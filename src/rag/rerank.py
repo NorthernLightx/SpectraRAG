@@ -42,10 +42,9 @@ class BgeReranker:
 
             self._ce = CrossEncoder(self._model_name)
         ce = self._ce
-        assert ce is not None  # narrow for mypy
 
         def _score(pairs: list[tuple[str, str]]) -> list[float]:
-            raw = ce.predict(pairs)  # type: ignore[attr-defined]
+            raw = ce.predict(pairs)  # type: ignore[union-attr]
             return [float(s) for s in raw]
 
         return _score
