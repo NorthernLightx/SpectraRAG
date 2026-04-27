@@ -16,6 +16,7 @@ from pathlib import Path
 from src.embeddings.ollama_bge import OllamaBgeEmbedder
 from src.ingestion.pipeline import ingest_paper
 from src.rag.bm25 import Bm25Index
+from src.rag.rerank import BgeReranker
 from src.rag.retrievers.pipeline import PipelineRetriever
 from src.rag.vectorstore import QdrantVectorStore
 from src.types import Paper, Query
@@ -28,6 +29,7 @@ async def main(
     qdrant_url: str,
     ollama_url: str,
     top_k: int,
+    use_rerank: bool,
 ) -> None:
     print(f"[1/4] Embedding via Ollama at {ollama_url}")
     embedder = OllamaBgeEmbedder(base_url=ollama_url)
@@ -49,12 +51,14 @@ async def main(
         print("No chunks produced. Aborting.")
         return
 
-    print(f"[4/4] Querying: {query_text!r} (top_k={top_k})")
+    print(f"[4/4] Querying: {query_text!r} (top_k={top_k}, rerank={use_rerank})")
+    reranker = BgeReranker() if use_rerank else None
     retriever = PipelineRetriever(
         embedder=embedder,
         vectorstore=vectorstore,
         bm25=bm25,
         chunks_by_id={c.chunk_id: c for c in ingested.chunks},
+        reranker=reranker,
     )
     results = await retriever.retrieve(Query(text=query_text, top_k=top_k))
     print(f"      -> {len(results)} results")
@@ -74,6 +78,11 @@ if __name__ == "__main__":
     parser.add_argument("--qdrant", default=os.environ.get("RAG_QDRANT_URL", "http://localhost:6333"))
     parser.add_argument("--ollama", default=os.environ.get("RAG_OLLAMA_BASE_URL", "http://localhost:11434"))
     parser.add_argument("--top-k", type=int, default=3)
+    parser.add_argument(
+        "--rerank",
+        action="store_true",
+        help="Apply BGE cross-encoder rerank (downloads ~570MB on first run).",
+    )
     args = parser.parse_args()
     asyncio.run(
         main(
@@ -82,5 +91,6 @@ if __name__ == "__main__":
             qdrant_url=args.qdrant,
             ollama_url=args.ollama,
             top_k=args.top_k,
+            use_rerank=args.rerank,
         )
     )
