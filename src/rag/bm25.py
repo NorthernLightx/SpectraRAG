@@ -54,6 +54,4 @@ class Bm25Index:
             return []
         scores = model.get_scores(tokens)
         ranked = sorted(range(len(self._chunks)), key=lambda i: scores[i], reverse=True)[:top_k]
-        return [
-            Bm25Hit(chunk_id=self._chunks[i].chunk_id, score=float(scores[i])) for i in ranked
-        ]
+        return [Bm25Hit(chunk_id=self._chunks[i].chunk_id, score=float(scores[i])) for i in ranked]

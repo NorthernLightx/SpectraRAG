@@ -31,9 +31,7 @@ async def test_ingest_paper_indexes_chunks_in_both_stores(tmp_path: Path) -> Non
     await vectorstore.ensure_collection()
     bm25 = Bm25Index()
 
-    result = await ingest_paper(
-        paper=paper, embedder=embedder, vectorstore=vectorstore, bm25=bm25
-    )
+    result = await ingest_paper(paper=paper, embedder=embedder, vectorstore=vectorstore, bm25=bm25)
 
     assert isinstance(result, IngestedPaper)
     assert result.paper_id == "p1"
@@ -60,7 +58,5 @@ async def test_ingest_empty_pdf_yields_zero_chunks(tmp_path: Path) -> None:
     await vectorstore.ensure_collection()
     bm25 = Bm25Index()
 
-    result = await ingest_paper(
-        paper=paper, embedder=embedder, vectorstore=vectorstore, bm25=bm25
-    )
+    result = await ingest_paper(paper=paper, embedder=embedder, vectorstore=vectorstore, bm25=bm25)
     assert result.chunk_count == 0
