@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from fastapi import FastAPI
 
-from src.api.routes import health, query
+from src.api.routes import answer, health, query
 
 
 def create_app() -> FastAPI:
@@ -21,6 +21,7 @@ def create_app() -> FastAPI:
 
     app.include_router(health.router)
     app.include_router(query.router)
+    app.include_router(answer.router)
     return app
 
 

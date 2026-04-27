@@ -7,7 +7,7 @@ from typing import Any
 from src.llm.protocol import ChatResponse, Message
 from src.prompts.loader import Prompt
 from src.rag.generate import Generator
-from src.types import Chunk, RankedChunk
+from src.types import RetrievalResult
 
 
 class _StubLLM:
@@ -36,9 +36,15 @@ class _StubLLM:
         )
 
 
-def _ranked(cid: str, text: str, score: float = 0.5) -> RankedChunk:
-    chunk = Chunk(chunk_id=cid, paper_id="p1", page_numbers=[1], text=text)
-    return RankedChunk(chunk=chunk, score=score, rank=1)
+def _result(cid: str, text: str, score: float = 0.5) -> RetrievalResult:
+    return RetrievalResult(
+        chunk_id=cid,
+        paper_id="p1",
+        score=score,
+        text=text,
+        page_numbers=[1],
+        source="pipeline",
+    )
 
 
 def _prompt(template: str = "Q: {query}\nC:\n{context}", system: str | None = None) -> Prompt:
@@ -52,7 +58,7 @@ async def test_generator_calls_llm_with_rendered_prompt() -> None:
     )
 
     answer = await gen.answer(
-        "What is X?", [_ranked("c1", "First fact."), _ranked("c2", "Second fact.")]
+        "What is X?", [_result("c1", "First fact."), _result("c2", "Second fact.")]
     )
 
     assert answer.text.startswith("Answer using")
@@ -72,7 +78,7 @@ async def test_generator_extracts_citations_for_chunks_referenced_in_answer() ->
     llm = _StubLLM("Per [c1] this is true. [c99] does not exist in our context.")
     gen = Generator(llm=llm, prompt=_prompt(), model="m")
 
-    answer = await gen.answer("q", [_ranked("c1", "x"), _ranked("c2", "y")])
+    answer = await gen.answer("q", [_result("c1", "x"), _result("c2", "y")])
 
     cited_ids = {c.chunk_id for c in answer.citations}
     assert cited_ids == {"c1"}  # c99 dropped (not in used set), c2 not cited
@@ -83,7 +89,7 @@ async def test_generator_truncates_context_to_token_budget() -> None:
     # Each block is ~50 chars; with budget=10 tokens (≈40 chars), only the first should fit.
     gen = Generator(llm=llm, prompt=_prompt(), model="m", max_context_tokens=10)
 
-    chunks = [_ranked(f"c{i}", "padding text " * 5) for i in range(5)]
+    chunks = [_result(f"c{i}", "padding text " * 5) for i in range(5)]
     await gen.answer("q", chunks)
 
     [(messages, _, _)] = llm.calls
