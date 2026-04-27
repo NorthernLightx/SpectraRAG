@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from typing import Any, Protocol, runtime_checkable
+from typing import Any, Protocol, cast, runtime_checkable
 
 from src.types import Answer, Query, RetrievalResult
 
@@ -35,8 +35,8 @@ def make_langfuse_client(
         return None
     from langfuse import Langfuse
 
-    client: LangfuseLike = Langfuse(public_key=pk, secret_key=sk, host=h)
-    return client
+    # Langfuse's SDK trace() has a richer signature; we duck-type via LangfuseLike.
+    return cast(LangfuseLike, Langfuse(public_key=pk, secret_key=sk, host=h))
 
 
 def trace_query(
