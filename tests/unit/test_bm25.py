@@ -39,9 +39,16 @@ def test_search_caps_to_top_k() -> None:
 
 
 def test_add_after_search_rebuilds_index() -> None:
+    """A chunk added after a previous search must be findable in the next search."""
     index = Bm25Index()
-    index.add([_chunk("c1", "alpha")])
-    index.search("alpha", top_k=1)
-    index.add([_chunk("c2", "alpha beta")])
-    hits = index.search("beta", top_k=1)
-    assert hits[0].chunk_id == "c2"
+    index.add(
+        [
+            _chunk("c1", "alpha gamma delta"),
+            _chunk("c2", "alpha gamma"),
+            _chunk("c3", "delta epsilon"),
+        ]
+    )
+    index.search("alpha", top_k=2)  # forces model build
+    index.add([_chunk("c4", "rare-term zeta only-here")])
+    hits = index.search("rare-term zeta", top_k=1)
+    assert hits[0].chunk_id == "c4"
