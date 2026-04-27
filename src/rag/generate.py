@@ -57,9 +57,7 @@ class Generator:
             tokens_out=response.tokens_out,
         )
 
-    def _build_context(
-        self, retrieved: list[RetrievalResult]
-    ) -> tuple[str, list[RetrievalResult]]:
+    def _build_context(self, retrieved: list[RetrievalResult]) -> tuple[str, list[RetrievalResult]]:
         used: list[RetrievalResult] = []
         parts: list[str] = []
         budget = 0

@@ -24,11 +24,15 @@ def make_langfuse_client(
     host: str | None = None,
 ) -> LangfuseLike | None:
     """Construct a real Langfuse client if all three keys are set; else return None."""
-    pk = public_key or os.environ.get("LANGFUSE_PUBLIC_KEY") or os.environ.get(
-        "RAG_LANGFUSE_PUBLIC_KEY", ""
+    pk = (
+        public_key
+        or os.environ.get("LANGFUSE_PUBLIC_KEY")
+        or os.environ.get("RAG_LANGFUSE_PUBLIC_KEY", "")
     )
-    sk = secret_key or os.environ.get("LANGFUSE_SECRET_KEY") or os.environ.get(
-        "RAG_LANGFUSE_SECRET_KEY", ""
+    sk = (
+        secret_key
+        or os.environ.get("LANGFUSE_SECRET_KEY")
+        or os.environ.get("RAG_LANGFUSE_SECRET_KEY", "")
     )
     h = host or os.environ.get("LANGFUSE_HOST") or os.environ.get("RAG_LANGFUSE_HOST", "")
     if not (pk and sk and h):

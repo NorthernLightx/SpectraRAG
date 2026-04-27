@@ -17,7 +17,11 @@ def test_rerank_orders_by_scorer_output() -> None:
         _chunk("c2", "extremely relevant text"),
         _chunk("c3", "medium relevance text"),
     ]
-    fake_scores = {"low relevance text": 0.1, "extremely relevant text": 0.9, "medium relevance text": 0.5}
+    fake_scores = {
+        "low relevance text": 0.1,
+        "extremely relevant text": 0.9,
+        "medium relevance text": 0.5,
+    }
     reranker = BgeReranker(scorer=lambda pairs: [fake_scores[doc] for _, doc in pairs])
 
     hits = reranker.rerank("any query", chunks, top_k=3)

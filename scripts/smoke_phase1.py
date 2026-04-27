@@ -75,8 +75,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="End-to-end smoke for Phase 1 retrieval.")
     parser.add_argument("--pdf", type=Path, required=True, help="Path to a PDF to ingest.")
     parser.add_argument("query", nargs="?", default="What does this paper introduce?")
-    parser.add_argument("--qdrant", default=os.environ.get("RAG_QDRANT_URL", "http://localhost:6333"))
-    parser.add_argument("--ollama", default=os.environ.get("RAG_OLLAMA_BASE_URL", "http://localhost:11434"))
+    parser.add_argument(
+        "--qdrant", default=os.environ.get("RAG_QDRANT_URL", "http://localhost:6333")
+    )
+    parser.add_argument(
+        "--ollama", default=os.environ.get("RAG_OLLAMA_BASE_URL", "http://localhost:11434")
+    )
     parser.add_argument("--top-k", type=int, default=3)
     parser.add_argument(
         "--rerank",
