@@ -73,7 +73,7 @@ async def download_pdf(pdf_url: str, arxiv_id: str, out_dir: Path) -> Path:
     out_dir.mkdir(parents=True, exist_ok=True)
     safe_name = re.sub(r"[^A-Za-z0-9._-]", "_", arxiv_id)
     out_path = out_dir / f"{safe_name}.pdf"
-    async with httpx.AsyncClient(timeout=60.0) as client:
+    async with httpx.AsyncClient(timeout=60.0, follow_redirects=True) as client:
         response = await client.get(pdf_url)
         response.raise_for_status()
         out_path.write_bytes(response.content)
@@ -82,7 +82,7 @@ async def download_pdf(pdf_url: str, arxiv_id: str, out_dir: Path) -> Path:
 
 async def main(*, category: str, max_results: int, out_dir: Path) -> None:
     url = arxiv_query_url(category=category, max_results=max_results)
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
         response = await client.get(url)
         response.raise_for_status()
     papers = parse_arxiv_atom(response.text)
