@@ -1,14 +1,24 @@
-"""API surface: /health is reachable and /query is wired but not yet implemented."""
+"""API surface: /health is reachable, /query routes to the configured retriever."""
 
 from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
+from src.api.deps import get_retriever
 from src.api.main import create_app
+from src.types import RetrievalResult
+from tests.fakes import FakeRetriever
+
+
+def _make_client(retriever: FakeRetriever | None = None) -> TestClient:
+    app = create_app()
+    if retriever is not None:
+        app.dependency_overrides[get_retriever] = lambda: retriever
+    return TestClient(app)
 
 
 def test_health_returns_ok() -> None:
-    client = TestClient(create_app())
+    client = _make_client()
     response = client.get("/health")
     assert response.status_code == 200
     body = response.json()
@@ -17,21 +27,42 @@ def test_health_returns_ok() -> None:
     assert "env" in body
 
 
-def test_query_placeholder_returns_501() -> None:
-    client = TestClient(create_app())
-    response = client.post("/query", json={"text": "What is X?"})
-    assert response.status_code == 501
-    assert "not implemented" in response.json()["detail"].lower()
+def test_query_returns_results_from_retriever() -> None:
+    fake = FakeRetriever(
+        results=[
+            RetrievalResult(
+                chunk_id="c1",
+                paper_id="p1",
+                score=0.9,
+                text="hit text",
+                page_numbers=[1],
+                source="pipeline",
+            )
+        ]
+    )
+    client = _make_client(retriever=fake)
+    response = client.post("/query", json={"text": "x", "top_k": 5})
+    assert response.status_code == 200
+    body = response.json()
+    assert body[0]["chunk_id"] == "c1"
+    assert body[0]["source"] == "pipeline"
 
 
 def test_query_validates_input() -> None:
-    client = TestClient(create_app())
+    client = _make_client(retriever=FakeRetriever(results=[]))
     response = client.post("/query", json={"text": ""})
     assert response.status_code == 422
 
 
-def test_root_returns_service_name() -> None:
+def test_query_returns_503_when_retriever_unset() -> None:
     client = TestClient(create_app())
+    response = client.post("/query", json={"text": "x"})
+    assert response.status_code == 503
+    assert "ingest a corpus" in response.json()["detail"].lower()
+
+
+def test_root_returns_service_name() -> None:
+    client = _make_client()
     response = client.get("/")
     assert response.status_code == 200
     assert "multi-modal" in response.json()["service"].lower()
