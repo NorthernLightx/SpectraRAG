@@ -1,0 +1,22 @@
+# Default runtime config. Overridden by env vars (RAG_*) and explicit YAML overlays.
+env: local
+log_level: INFO
+
+# Models
+default_chat_model: anthropic/claude-3.5-sonnet
+default_embed_model: bge-m3
+
+# Retrieval
+top_k: 5
+rerank_top_k: 50
+hybrid_alpha: 0.5
+
+# Generation
+max_context_tokens: 8000
+temperature: 0.2
+
+# Service URLs (override via env in deploy)
+ollama_base_url: http://localhost:11434
+qdrant_url: http://localhost:6333
+postgres_dsn: postgresql+psycopg://rag:rag@localhost:5432/rag
+langfuse_host: http://localhost:3000
