@@ -61,3 +61,37 @@ async def test_retrieve_returns_results_for_known_term(retriever: PipelineRetrie
 async def test_retrieve_returns_empty_for_no_match(retriever: PipelineRetriever) -> None:
     results = await retriever.retrieve(Query(text="completely unrelated topic xyz", top_k=5))
     assert len(results) <= 5
+
+
+async def test_retrieve_with_reranker_uses_rerank_scores() -> None:
+    """A reranker reorders results and replaces fused score with rerank_score."""
+    from src.rag.rerank import BgeReranker
+
+    embedder = FakeEmbedder(dim=8)
+    vectorstore = QdrantVectorStore(url=":memory:", collection_name="rr", dim=8)
+    await vectorstore.ensure_collection()
+    bm25 = Bm25Index()
+    chunks = [
+        _chunk("c1", "alpha"),
+        _chunk("c2", "beta"),
+        _chunk("c3", "gamma"),
+    ]
+    embeddings = await embedder.embed_texts([c.text for c in chunks])
+    await vectorstore.upsert_chunks(chunks, embeddings)
+    bm25.add(chunks)
+
+    # Inject a scorer that strongly prefers c3, then c1, then c2.
+    scores_by_text = {"alpha": 0.5, "beta": 0.1, "gamma": 0.95}
+    reranker = BgeReranker(scorer=lambda pairs: [scores_by_text[doc] for _, doc in pairs])
+
+    retriever = PipelineRetriever(
+        embedder=embedder,
+        vectorstore=vectorstore,
+        bm25=bm25,
+        chunks_by_id={c.chunk_id: c for c in chunks},
+        reranker=reranker,
+    )
+
+    results = await retriever.retrieve(Query(text="anything", top_k=3))
+    assert [r.chunk_id for r in results] == ["c3", "c1", "c2"]
+    assert results[0].score == 0.95
