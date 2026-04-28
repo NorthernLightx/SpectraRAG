@@ -273,6 +273,22 @@ until phase N is deployed, evaluated, and documented.
 - Guardrails (citation check, refusal handling)
 - Caching layer (only if measurements show it's needed)
 - Architecture docs, ADRs, README polish, demo recording
+- **Observability hardening** (foundation laid in Phase 1; production-grade
+  pieces deferred here):
+  - OpenTelemetry SDK + auto-instrumentation for FastAPI, httpx,
+    qdrant-client; OTLP exporter to Jaeger or Grafana Tempo (add to
+    docker-compose).
+  - Span hierarchy: `/answer` → `retrieve` (embed → vector_search +
+    bm25 → rrf → rerank) → `generate`. Replaces flat `*.done` events.
+  - Token counts, latency, error rate as OTel **metrics** (histograms /
+    counters), not just log fields.
+  - Sentry SDK for error reporting; one decorator on the FastAPI app.
+  - W3C trace context propagation (`traceparent` header). Phase 1.3's
+    `X-Request-ID` middleware is the placeholder.
+  - Field-name-aware PII redaction processor — replaces the coarse
+    `truncate_long_strings` shipped in Phase 1.3.
+  - Rotating file handler for `logs/api.log` (or migrate to stdout-only
+    + container log shipper, per 12-factor).
 - **Deliverable: deployed, documented, demo-able**
 
 ---
