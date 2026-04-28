@@ -58,7 +58,7 @@ def test_load_golden_set_rejects_non_mapping(tmp_path: Path) -> None:
 def test_load_golden_set_rejects_unknown_category(tmp_path: Path) -> None:
     yaml_path = tmp_path / "bad.yaml"
     yaml_path.write_text(
-        "name: x\nversion: v1\nqueries:\n  - query_id: q1\n    text: ?\n"
+        'name: x\nversion: v1\nqueries:\n  - query_id: q1\n    text: "hi"\n'
         "    paper_id: p1\n    category: not-a-real-category\n",
         encoding="utf-8",
     )

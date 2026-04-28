@@ -1,0 +1,57 @@
+name: phase1-text-baseline
+version: v1
+# Golden queries for the ArXiv paper 2604.22753v1 (the only paper currently in the
+# corpus). Chunk IDs were taken from the actual ingestion output of smoke_phase1
+# at chunk size 1200 / overlap 200; if the chunking config changes, regenerate.
+# Real golden sets need 20-30 queries; this is a placeholder for end-to-end wiring.
+queries:
+  - query_id: q1_inter_basin
+    text: "What is the inter-basin gain criterion?"
+    paper_id: "2604.22753v1"
+    category: factual
+    relevant_chunk_ids:
+      - "2604.22753v1::p5::c24"
+    expected_facts:
+      - "The inter-basin gain measures expected variance reduction across basins."
+    note: "Single-hop, definitional."
+
+  - query_id: q2_bic_ranking
+    text: "How does the paper rank basins?"
+    paper_id: "2604.22753v1"
+    category: factual
+    relevant_chunk_ids:
+      - "2604.22753v1::p19::c76"
+    expected_facts:
+      - "Basins are ranked by an information criterion derived from empirical fit."
+    note: "Single-hop, mechanism."
+
+  - query_id: q3_approximation_options
+    text: "What approximations are used to score basins?"
+    paper_id: "2604.22753v1"
+    category: factual
+    relevant_chunk_ids:
+      - "2604.22753v1::p19::c76"
+      - "2604.22753v1::p19::c77"
+    expected_facts:
+      - "BIC-style approximation is used for robustness."
+      - "Laplace form provides a local-evidence interpretation."
+    note: "Multi-source: two adjacent chunks discuss the two options."
+
+  - query_id: q4_target_region
+    text: "Why is the predictive accuracy goal restricted to a target region?"
+    paper_id: "2604.22753v1"
+    category: multi_hop
+    relevant_chunk_ids:
+      - "2604.22753v1::p2::c11"
+      - "2604.22753v1::p5::c24"
+    expected_facts:
+      - "The goal is predictive accuracy in a held-out target region in the high-cost regime."
+    note: "Multi-hop, motivation + method."
+
+  - query_id: q5_oc_weather
+    text: "Will it rain on Mars tomorrow?"
+    paper_id: "2604.22753v1"
+    category: out_of_corpus
+    relevant_chunk_ids: []
+    expected_facts: []
+    note: "Refusal expected. Used to verify the system does not hallucinate."
