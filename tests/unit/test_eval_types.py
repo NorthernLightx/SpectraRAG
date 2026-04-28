@@ -32,7 +32,7 @@ def test_golden_query_minimal() -> None:
 
 def test_golden_query_rejects_unknown_category() -> None:
     with pytest.raises(ValidationError):
-        GoldenQuery(  # type: ignore[arg-type]
+        GoldenQuery(
             query_id="q1",
             text="?",
             paper_id="p1",
