@@ -37,6 +37,7 @@ Thumbs.db
 # Project artefacts
 data/papers/
 data/golden/raw/
+data/eval/runs/
 logs/
 *.log
 .langfuse/
