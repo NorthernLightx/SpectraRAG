@@ -6,6 +6,7 @@ from pathlib import Path
 
 from fastapi import FastAPI
 
+from src.api.middleware import request_context_middleware
 from src.api.routes import answer, health, query
 from src.config.settings import load_settings
 from src.observability.logging import configure_logging, get_logger
@@ -27,6 +28,7 @@ def create_app(*, log_file: Path | None = Path("logs/api.log")) -> FastAPI:
         version="0.1.0",
         description="RAG over scientific papers comparing pipeline vs visual retrieval.",
     )
+    app.middleware("http")(request_context_middleware)
 
     @app.get("/")
     def root() -> dict[str, str]:
