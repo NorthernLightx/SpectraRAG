@@ -6,7 +6,7 @@ import re
 import time
 
 from src.llm.protocol import LLMClient, Message
-from src.observability.logging import get_logger
+from src.observability.logging import get_logger, timed_event
 from src.prompts.loader import Prompt
 from src.types import Answer, Citation, RetrievalResult
 
@@ -43,28 +43,23 @@ class Generator:
             messages.append(Message(role="system", content=system))
         messages.append(Message(role="user", content=user))
 
-        _log.info(
-            "generate.start",
+        with timed_event(
+            _log,
+            "generate.done",
             model=self._model,
             prompt_version=self._prompt.version,
             context_chunks=len(used),
-            context_chars=sum(len(p) for p in [user]),
-        )
-        started = time.monotonic()
-        response = await self._llm.chat(
-            messages=messages, model=self._model, temperature=self._temperature
-        )
-        latency_ms = int((time.monotonic() - started) * 1000)
-
-        citations = self._extract_citations(response.text, used)
-        _log.info(
-            "generate.done",
-            model=response.model,
-            latency_ms=latency_ms,
-            tokens_in=response.tokens_in,
-            tokens_out=response.tokens_out,
-            citations=len(citations),
-        )
+        ) as ctx:
+            started = time.monotonic()
+            response = await self._llm.chat(
+                messages=messages, model=self._model, temperature=self._temperature
+            )
+            latency_ms = int((time.monotonic() - started) * 1000)
+            citations = self._extract_citations(response.text, used)
+            ctx["model"] = response.model
+            ctx["tokens_in"] = response.tokens_in
+            ctx["tokens_out"] = response.tokens_out
+            ctx["citations"] = len(citations)
         return Answer(
             text=response.text,
             citations=citations,

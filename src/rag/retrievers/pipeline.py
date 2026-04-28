@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from src.embeddings.protocol import Embedder
-from src.observability.logging import get_logger
+from src.observability.logging import get_logger, timed_event
 from src.rag.bm25 import Bm25Index
 from src.rag.hybrid import RankedItem, reciprocal_rank_fusion
 from src.rag.rerank import BgeReranker
@@ -36,54 +36,47 @@ class PipelineRetriever:
         self._rerank_input_size = rerank_input_size
 
     async def retrieve(self, query: Query) -> list[RetrievalResult]:
-        _log.info("retrieve.start", query=query.text, top_k=query.top_k)
-        [vector] = await self._embedder.embed_texts([query.text])
-        dense_hits = await self._vectorstore.search(vector, top_k=self._candidate_pool)
-        sparse_hits = self._bm25.search(query.text, top_k=self._candidate_pool)
-        _log.info(
-            "retrieve.candidates",
-            dense_hits=len(dense_hits),
-            sparse_hits=len(sparse_hits),
-            candidate_pool=self._candidate_pool,
-        )
+        with timed_event(_log, "retrieve.done", query=query.text, top_k=query.top_k) as ctx:
+            [vector] = await self._embedder.embed_texts([query.text])
+            dense_hits = await self._vectorstore.search(vector, top_k=self._candidate_pool)
+            sparse_hits = self._bm25.search(query.text, top_k=self._candidate_pool)
+            ctx["dense_hits"] = len(dense_hits)
+            ctx["sparse_hits"] = len(sparse_hits)
+            ctx["candidate_pool"] = self._candidate_pool
 
-        dense_ranked = [RankedItem(id=h.chunk_id, score=h.score) for h in dense_hits]
-        sparse_ranked = [RankedItem(id=h.chunk_id, score=h.score) for h in sparse_hits]
+            dense_ranked = [RankedItem(id=h.chunk_id, score=h.score) for h in dense_hits]
+            sparse_ranked = [RankedItem(id=h.chunk_id, score=h.score) for h in sparse_hits]
 
-        if self._reranker is not None:
-            rrf_top = reciprocal_rank_fusion(
-                [dense_ranked, sparse_ranked], top_k=self._rerank_input_size
-            )
-            chunks_to_rerank = [
-                self._chunks_by_id[item.id] for item in rrf_top if item.id in self._chunks_by_id
-            ]
-            reranked = self._reranker.rerank(query.text, chunks_to_rerank, top_k=query.top_k)
+            if self._reranker is not None:
+                rrf_top = reciprocal_rank_fusion(
+                    [dense_ranked, sparse_ranked], top_k=self._rerank_input_size
+                )
+                chunks_to_rerank = [
+                    self._chunks_by_id[item.id]
+                    for item in rrf_top
+                    if item.id in self._chunks_by_id
+                ]
+                reranked = self._reranker.rerank(query.text, chunks_to_rerank, top_k=query.top_k)
+                results = [
+                    self._make_result(self._chunks_by_id[hit.chunk_id], hit.rerank_score)
+                    for hit in reranked
+                    if hit.chunk_id in self._chunks_by_id
+                ]
+                ctx["stage"] = "rerank"
+                ctx["returned"] = len(results)
+                ctx["top_chunk"] = results[0].chunk_id if results else None
+                return results
+
+            fused = reciprocal_rank_fusion([dense_ranked, sparse_ranked], top_k=query.top_k)
             results = [
-                self._make_result(self._chunks_by_id[hit.chunk_id], hit.rerank_score)
-                for hit in reranked
-                if hit.chunk_id in self._chunks_by_id
+                self._make_result(self._chunks_by_id[item.id], item.score)
+                for item in fused
+                if item.id in self._chunks_by_id
             ]
-            _log.info(
-                "retrieve.done",
-                stage="rerank",
-                returned=len(results),
-                top_chunk=results[0].chunk_id if results else None,
-            )
+            ctx["stage"] = "rrf"
+            ctx["returned"] = len(results)
+            ctx["top_chunk"] = results[0].chunk_id if results else None
             return results
-
-        fused = reciprocal_rank_fusion([dense_ranked, sparse_ranked], top_k=query.top_k)
-        results = [
-            self._make_result(self._chunks_by_id[item.id], item.score)
-            for item in fused
-            if item.id in self._chunks_by_id
-        ]
-        _log.info(
-            "retrieve.done",
-            stage="rrf",
-            returned=len(results),
-            top_chunk=results[0].chunk_id if results else None,
-        )
-        return results
 
     def _make_result(self, chunk: Chunk, score: float) -> RetrievalResult:
         return RetrievalResult(

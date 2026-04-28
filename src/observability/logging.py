@@ -8,6 +8,9 @@ from __future__ import annotations
 
 import logging
 import sys
+import time
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, cast
 
@@ -40,27 +43,30 @@ def configure_logging(
         timestamper,
     ]
 
-    stdout_renderer: Any = (
-        structlog.processors.JSONRenderer()
-        if env == "prod"
-        else structlog.dev.ConsoleRenderer(colors=True)
-    )
-
     handlers: list[logging.Handler] = []
 
+    # stdout: pretty in dev (rich tracebacks render natively), JSON in prod.
+    if env == "prod":
+        stdout_processors: list[Any] = [
+            structlog.stdlib.ProcessorFormatter.remove_processors_meta,
+            structlog.processors.format_exc_info,
+            structlog.processors.JSONRenderer(),
+        ]
+    else:
+        stdout_processors = [
+            structlog.stdlib.ProcessorFormatter.remove_processors_meta,
+            structlog.dev.ConsoleRenderer(colors=True),
+        ]
     stdout_handler = logging.StreamHandler(sys.stdout)
     stdout_handler.setFormatter(
         structlog.stdlib.ProcessorFormatter(
-            foreign_pre_chain=foreign_pre_chain,
-            processors=[
-                structlog.stdlib.ProcessorFormatter.remove_processors_meta,
-                stdout_renderer,
-            ],
+            foreign_pre_chain=foreign_pre_chain, processors=stdout_processors
         )
     )
     handlers.append(stdout_handler)
 
     if log_file is not None:
+        # File sink is always JSON; format exc_info into an "exception" string.
         log_file.parent.mkdir(parents=True, exist_ok=True)
         file_handler = logging.FileHandler(log_file, encoding="utf-8")
         file_handler.setFormatter(
@@ -68,6 +74,7 @@ def configure_logging(
                 foreign_pre_chain=foreign_pre_chain,
                 processors=[
                     structlog.stdlib.ProcessorFormatter.remove_processors_meta,
+                    structlog.processors.format_exc_info,
                     structlog.processors.JSONRenderer(),
                 ],
             )
@@ -99,3 +106,30 @@ def configure_logging(
 def get_logger(name: str) -> BoundLogger:
     """Bound logger keyed by module name. Use as `log = get_logger(__name__)`."""
     return cast(BoundLogger, structlog.get_logger(name))
+
+
+@contextmanager
+def timed_event(
+    logger: BoundLogger, event: str, **fields: Any
+) -> Iterator[dict[str, Any]]:
+    """Emit a single log record on exit with `duration_ms`. Replaces start/done pairs.
+
+    Usage:
+        with timed_event(log, "retrieve.done", query=q.text, top_k=q.top_k) as ctx:
+            results = do_retrieve()
+            ctx["returned"] = len(results)
+            ctx["top_chunk"] = results[0].chunk_id if results else None
+
+    On a raised exception: emits the same event at ERROR level with `exc_info=True`
+    and `duration_ms`, then re-raises.
+    """
+    extra: dict[str, Any] = {}
+    started = time.monotonic()
+    try:
+        yield extra
+    except Exception:
+        duration_ms = int((time.monotonic() - started) * 1000)
+        logger.error(event, duration_ms=duration_ms, **{**fields, **extra}, exc_info=True)
+        raise
+    duration_ms = int((time.monotonic() - started) * 1000)
+    logger.info(event, duration_ms=duration_ms, **{**fields, **extra})
