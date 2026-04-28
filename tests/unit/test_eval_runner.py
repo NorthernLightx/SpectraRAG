@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 import pytest
 
 from src.eval.runner import evaluate
+from src.rag.generate import Generator
 from src.types import (
     Answer,
     Citation,
@@ -55,7 +56,7 @@ def _golden(
         query_id=query_id,
         text=f"q-{query_id}",
         paper_id="p1",
-        category=category,  # type: ignore[arg-type]
+        category=category,
         relevant_chunk_ids=relevant or [],
     )
 
@@ -97,7 +98,9 @@ async def test_evaluate_with_generator_populates_generation_metrics() -> None:
     )
 
     run = await evaluate(
-        retriever=retriever, golden_set=gs, generator=_CannedGenerator(fake_answer)
+        retriever=retriever,
+        golden_set=gs,
+        generator=cast(Generator, _CannedGenerator(fake_answer)),
     )
 
     pq = run.per_query[0]
