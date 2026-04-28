@@ -11,10 +11,12 @@ from __future__ import annotations
 import argparse
 import asyncio
 import os
+from datetime import UTC, datetime
 from pathlib import Path
 
 from src.embeddings.ollama_bge import OllamaBgeEmbedder
 from src.ingestion.pipeline import ingest_paper
+from src.observability.logging import configure_logging, get_logger
 from src.rag.bm25 import Bm25Index
 from src.rag.rerank import BgeReranker
 from src.rag.retrievers.pipeline import PipelineRetriever
@@ -88,6 +90,19 @@ if __name__ == "__main__":
         help="Apply BGE cross-encoder rerank (downloads ~570MB on first run).",
     )
     args = parser.parse_args()
+    timestamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
+    log_file = Path("logs") / f"smoke-{timestamp}.log"
+    configure_logging(level="INFO", env="local", log_file=log_file)
+    get_logger(__name__).info(
+        "smoke.start",
+        pdf=str(args.pdf),
+        query=args.query,
+        qdrant=args.qdrant,
+        ollama=args.ollama,
+        rerank=args.rerank,
+        log_file=str(log_file),
+    )
+    print(f"Logging JSON to {log_file}")
     asyncio.run(
         main(
             pdf_path=args.pdf,

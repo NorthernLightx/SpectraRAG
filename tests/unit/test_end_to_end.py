@@ -59,7 +59,7 @@ async def test_full_pipeline_end_to_end(tmp_path: Path) -> None:
         chunks_by_id={c.chunk_id: c for c in ingested.chunks},
     )
 
-    app = create_app()
+    app = create_app(log_file=None)
     app.dependency_overrides[get_retriever] = lambda: retriever
 
     with TestClient(app) as client:

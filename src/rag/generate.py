@@ -6,8 +6,11 @@ import re
 import time
 
 from src.llm.protocol import LLMClient, Message
+from src.observability.logging import get_logger
 from src.prompts.loader import Prompt
 from src.types import Answer, Citation, RetrievalResult
+
+_log = get_logger(__name__)
 
 _CITATION_RE = re.compile(r"\[([A-Za-z0-9:_\-]+)\]")
 _CHARS_PER_TOKEN = 4  # rough approximation; replace with tokenizer when needed
@@ -40,6 +43,13 @@ class Generator:
             messages.append(Message(role="system", content=system))
         messages.append(Message(role="user", content=user))
 
+        _log.info(
+            "generate.start",
+            model=self._model,
+            prompt_version=self._prompt.version,
+            context_chunks=len(used),
+            context_chars=sum(len(p) for p in [user]),
+        )
         started = time.monotonic()
         response = await self._llm.chat(
             messages=messages, model=self._model, temperature=self._temperature
@@ -47,6 +57,14 @@ class Generator:
         latency_ms = int((time.monotonic() - started) * 1000)
 
         citations = self._extract_citations(response.text, used)
+        _log.info(
+            "generate.done",
+            model=response.model,
+            latency_ms=latency_ms,
+            tokens_in=response.tokens_in,
+            tokens_out=response.tokens_out,
+            citations=len(citations),
+        )
         return Answer(
             text=response.text,
             citations=citations,

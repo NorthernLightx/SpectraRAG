@@ -37,6 +37,7 @@ Thumbs.db
 # Project artefacts
 data/papers/
 data/golden/raw/
+logs/
 *.log
 .langfuse/
 qdrant_storage/

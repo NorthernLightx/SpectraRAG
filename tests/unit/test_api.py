@@ -11,7 +11,7 @@ from tests.fakes import FakeRetriever
 
 
 def _make_client(retriever: FakeRetriever | None = None) -> TestClient:
-    app = create_app()
+    app = create_app(log_file=None)
     if retriever is not None:
         app.dependency_overrides[get_retriever] = lambda: retriever
     return TestClient(app)
@@ -55,7 +55,7 @@ def test_query_validates_input() -> None:
 
 
 def test_query_returns_503_when_retriever_unset() -> None:
-    client = TestClient(create_app())
+    client = TestClient(create_app(log_file=None))
     response = client.post("/query", json={"text": "x"})
     assert response.status_code == 503
     assert "ingest a corpus" in response.json()["detail"].lower()

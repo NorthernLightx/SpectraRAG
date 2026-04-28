@@ -64,7 +64,7 @@ def test_answer_route_calls_retriever_then_generator_then_returns_answer() -> No
 
         return _T()
 
-    app = create_app()
+    app = create_app(log_file=None)
     app.dependency_overrides[get_retriever] = lambda: retriever
     app.dependency_overrides[get_generator] = lambda: generator
     app.dependency_overrides[get_tracer] = fake_tracer
@@ -90,7 +90,7 @@ def test_answer_route_calls_retriever_then_generator_then_returns_answer() -> No
 
 def test_answer_route_returns_503_when_generator_unset() -> None:
     retriever = FakeRetriever(results=_retrieved())
-    app = create_app()
+    app = create_app(log_file=None)
     app.dependency_overrides[get_retriever] = lambda: retriever
     # Don't set generator → should 503
 
@@ -102,7 +102,7 @@ def test_answer_route_returns_503_when_generator_unset() -> None:
 
 def test_answer_route_validates_input() -> None:
     retriever = FakeRetriever(results=[])
-    app = create_app()
+    app = create_app(log_file=None)
     app.dependency_overrides[get_retriever] = lambda: retriever
     app.dependency_overrides[get_generator] = lambda: _StubGenerator(_answer_payload())
 
@@ -114,7 +114,7 @@ def test_answer_route_validates_input() -> None:
 def test_answer_route_works_without_tracer() -> None:
     """No tracer configured → trace_query receives None → no-op (request still 200)."""
     retriever = FakeRetriever(results=_retrieved())
-    app = create_app()
+    app = create_app(log_file=None)
     app.dependency_overrides[get_retriever] = lambda: retriever
     app.dependency_overrides[get_generator] = lambda: _StubGenerator(_answer_payload())
     # tracer left as default (None)
