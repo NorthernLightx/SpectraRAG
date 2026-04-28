@@ -52,9 +52,7 @@ class PipelineRetriever:
                     [dense_ranked, sparse_ranked], top_k=self._rerank_input_size
                 )
                 chunks_to_rerank = [
-                    self._chunks_by_id[item.id]
-                    for item in rrf_top
-                    if item.id in self._chunks_by_id
+                    self._chunks_by_id[item.id] for item in rrf_top if item.id in self._chunks_by_id
                 ]
                 reranked = self._reranker.rerank(query.text, chunks_to_rerank, top_k=query.top_k)
                 results = [

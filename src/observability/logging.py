@@ -133,9 +133,7 @@ def get_logger(name: str) -> BoundLogger:
 
 
 @contextmanager
-def timed_event(
-    logger: BoundLogger, event: str, **fields: Any
-) -> Iterator[dict[str, Any]]:
+def timed_event(logger: BoundLogger, event: str, **fields: Any) -> Iterator[dict[str, Any]]:
     """Emit a single log record on exit with `duration_ms`. Replaces start/done pairs.
 
     Usage:

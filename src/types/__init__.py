@@ -1,6 +1,15 @@
 """Public types shared across modules."""
 
 from src.types.documents import Chunk, Figure, Page, Paper, Table
+from src.types.eval import (
+    EvalRun,
+    GenerationMetrics,
+    GoldenQuery,
+    GoldenSet,
+    PerQueryResult,
+    QueryCategory,
+    RetrievalMetrics,
+)
 from src.types.generation import Answer, Citation, Context
 from src.types.retrieval import Query, RankedChunk, RetrievalResult, RetrievalSource
 
@@ -9,11 +18,18 @@ __all__ = [
     "Chunk",
     "Citation",
     "Context",
+    "EvalRun",
     "Figure",
+    "GenerationMetrics",
+    "GoldenQuery",
+    "GoldenSet",
     "Page",
     "Paper",
+    "PerQueryResult",
     "Query",
+    "QueryCategory",
     "RankedChunk",
+    "RetrievalMetrics",
     "RetrievalResult",
     "RetrievalSource",
     "Table",
