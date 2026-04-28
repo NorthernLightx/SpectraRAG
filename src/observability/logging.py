@@ -9,13 +9,36 @@ from __future__ import annotations
 import logging
 import sys
 import time
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, cast
 
 import structlog
 from structlog.stdlib import BoundLogger
+
+DEFAULT_MAX_STRING_LEN = 500
+"""Cap on a single string field's length before logging. Coarse PII guard;
+real PII redaction lives in Phase 4 (see PROJECT.md §5)."""
+
+ProcessorFn = Callable[[Any, str, dict[str, Any]], dict[str, Any]]
+
+
+def truncate_long_strings(max_len: int = DEFAULT_MAX_STRING_LEN) -> ProcessorFn:
+    """structlog processor: shorten any string value > max_len with a count suffix.
+
+    This is intentionally blunt — it caps the size of the worst offenders
+    (full chunk text, full answers, raw paper bodies) before they hit disk
+    or stdout. Field-name-aware redaction is a Phase 4 concern.
+    """
+
+    def _processor(logger: Any, method_name: str, event_dict: dict[str, Any]) -> dict[str, Any]:
+        for key, value in list(event_dict.items()):
+            if isinstance(value, str) and len(value) > max_len:
+                event_dict[key] = value[:max_len] + f"...[+{len(value) - max_len} chars]"
+        return event_dict
+
+    return _processor
 
 
 def configure_logging(
@@ -40,6 +63,7 @@ def configure_logging(
         structlog.processors.add_log_level,
         structlog.processors.StackInfoRenderer(),
         structlog.dev.set_exc_info,
+        truncate_long_strings(),
         timestamper,
     ]
 
