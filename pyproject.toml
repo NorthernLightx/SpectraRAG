@@ -23,6 +23,11 @@ dependencies = [
   "openai>=1.55",
   "anthropic>=0.40",
   "ollama>=0.4",
+  "opentelemetry-api>=1.27",
+  "opentelemetry-exporter-otlp-proto-grpc>=1.27",
+  "opentelemetry-instrumentation-fastapi>=0.48b0",
+  "opentelemetry-instrumentation-httpx>=0.48b0",
+  "opentelemetry-sdk>=1.27",
   "qdrant-client>=1.12",
   "psycopg[binary]>=3.2",
   "sqlalchemy>=2.0",
@@ -30,6 +35,7 @@ dependencies = [
   "pymupdf>=1.24",
   "rank-bm25>=0.2.2",
   "sentence-transformers>=3.3",
+  "sentry-sdk[fastapi]>=2.18",
 ]
 
 [project.optional-dependencies]
@@ -77,6 +83,10 @@ plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
 module = ["rank_bm25", "rank_bm25.*", "ollama", "ollama.*", "langfuse", "langfuse.*", "fitz", "fitz.*", "sentence_transformers", "sentence_transformers.*", "PIL", "PIL.*", "colpali_engine", "colpali_engine.*", "torch", "torch.*", "torchvision", "torchvision.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["opentelemetry.instrumentation.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
