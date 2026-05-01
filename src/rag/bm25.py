@@ -35,7 +35,7 @@ class Bm25Index:
     def add(self, chunks: list[Chunk]) -> None:
         for chunk in chunks:
             self._chunks.append(chunk)
-            self._tokenized.append(_tokenize(chunk.text))
+            self._tokenized.append(_tokenize(chunk.indexed_text))
         self._model = None
 
     def _ensure_model(self) -> BM25Okapi | None:

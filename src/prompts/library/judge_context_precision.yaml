@@ -1,0 +1,33 @@
+name: judge_context_precision
+version: v1
+system: |
+  You are a strict grader of retrieval precision. Your job is to assess what
+  fraction of the retrieved context chunks are actually relevant to answering
+  the user's question.
+user_template: |
+  Question: {query}
+
+  Retrieved chunks:
+  {context}
+
+  Determine what fraction of the retrieved chunks are actually relevant to
+  answering the question. A chunk is "relevant" if it contains information a
+  competent answerer would use; chunks that are off-topic, tangential, or
+  generic should NOT count as relevant.
+
+  Output the score as a single decimal between 0.0 and 1.0 on the FIRST LINE
+  ONLY, with no prefix, label, or punctuation. Then on subsequent lines write
+  a 1-2 sentence rationale.
+
+  Examples of valid first lines:
+    1.0
+    0.4
+    0.0
+
+  Scoring guide:
+    1.0 = every retrieved chunk is relevant
+    0.5 = roughly half are relevant
+    0.0 = none are relevant (retrieval failed)
+
+  If the question is unanswerable from the corpus (out-of-corpus), score
+  whatever fraction of chunks remain on-topic to the question's subject.

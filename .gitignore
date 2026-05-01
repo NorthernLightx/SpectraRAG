@@ -38,11 +38,16 @@ Thumbs.db
 data/papers/
 data/golden/raw/
 data/eval/runs/
+data/figures/
+data/pages/
 logs/
 *.log
 .langfuse/
 qdrant_storage/
 postgres_data/
+
+# Claude Code local session state
+.claude/
 
 # Secrets
 *.pem

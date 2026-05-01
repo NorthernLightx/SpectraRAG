@@ -1,4 +1,4 @@
-"""Eval runner: orchestrates a Retriever (and optional Generator) over a GoldenSet."""
+"""Eval runner: orchestrates a Retriever (and optional Generator + LLM judge) over a GoldenSet."""
 
 from __future__ import annotations
 
@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
+from src.eval.judges import LLMJudge
 from src.eval.metrics_generation import citation_grounding
 from src.eval.metrics_retrieval import ndcg_at_k, recall_at_k, reciprocal_rank
 from src.observability.logging import get_logger, timed_event
@@ -30,10 +31,16 @@ async def evaluate(
     retriever: Retriever,
     golden_set: GoldenSet,
     generator: Generator | None = None,
+    judge: LLMJudge | None = None,
     top_k: int = 10,
     config: dict[str, Any] | None = None,
 ) -> EvalRun:
     """Run every query in `golden_set` through `retriever` (and `generator` if given).
+
+    If `judge` is provided alongside `generator`, three LLM-as-judge metrics
+    (faithfulness, answer_relevance, context_precision) are computed per query.
+    `judge` without `generator` only computes `context_precision` (the only
+    metric that doesn't need an answer).
 
     Aggregation is deliberately left to the reporter; this returns raw per-query data.
     """
@@ -44,16 +51,15 @@ async def evaluate(
         golden_set_version=golden_set.version,
         n_queries=len(golden_set.queries),
         with_generator=generator is not None,
+        with_judge=judge is not None,
     ) as ctx:
         started_at = datetime.now(UTC)
         per_query: list[PerQueryResult] = []
         for query in golden_set.queries:
-            per_query.append(await _run_one(query, retriever, generator, top_k))
+            per_query.append(await _run_one(query, retriever, generator, judge, top_k))
         finished_at = datetime.now(UTC)
         ctx["mean_ndcg5"] = (
-            sum(r.retrieval.ndcg_at_5 for r in per_query) / len(per_query)
-            if per_query
-            else 0.0
+            sum(r.retrieval.ndcg_at_5 for r in per_query) / len(per_query) if per_query else 0.0
         )
         return EvalRun(
             run_id=uuid4().hex[:12],
@@ -70,9 +76,10 @@ async def _run_one(
     query: GoldenQuery,
     retriever: Retriever,
     generator: Generator | None,
+    judge: LLMJudge | None,
     top_k: int,
 ) -> PerQueryResult:
-    """Retrieve, optionally generate, compute per-query metrics."""
+    """Retrieve, optionally generate, optionally judge, compute per-query metrics."""
     started = time.monotonic()
     rag_query = Query(text=query.text, top_k=top_k)
     retrieved = await retriever.retrieve(rag_query)
@@ -88,7 +95,10 @@ async def _run_one(
     cited_chunk_ids: list[str] = []
     tokens_in = 0
     tokens_out = 0
-    generation_metrics: GenerationMetrics | None = None
+    citation_rate: float | None = None
+    faithfulness: float | None = None
+    answer_relevance: float | None = None
+    context_precision: float | None = None
 
     if generator is not None:
         answer = await generator.answer(query.text, retrieved)
@@ -96,8 +106,27 @@ async def _run_one(
         cited_chunk_ids = [c.chunk_id for c in answer.citations]
         tokens_in = answer.tokens_in
         tokens_out = answer.tokens_out
+        citation_rate = citation_grounding(cited_chunk_ids, retrieved_chunk_ids)
+
+    if judge is not None:
+        if answer_text is not None:
+            faithfulness = (
+                await judge.faithfulness(query=query.text, answer=answer_text, retrieved=retrieved)
+            ).score
+            answer_relevance = (
+                await judge.answer_relevance(query=query.text, answer=answer_text)
+            ).score
+        context_precision = (
+            await judge.context_precision(query=query.text, retrieved=retrieved)
+        ).score
+
+    generation_metrics: GenerationMetrics | None = None
+    if generator is not None or judge is not None:
         generation_metrics = GenerationMetrics(
-            citation_rate=citation_grounding(cited_chunk_ids, retrieved_chunk_ids),
+            citation_rate=citation_rate,
+            faithfulness=faithfulness,
+            answer_relevance=answer_relevance,
+            context_precision=context_precision,
         )
 
     return PerQueryResult(

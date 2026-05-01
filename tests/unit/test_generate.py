@@ -104,3 +104,23 @@ async def test_generator_runs_with_no_chunks() -> None:
     answer = await gen.answer("q", [])
     assert answer.text == "I don't know."
     assert answer.citations == []
+
+
+async def test_generator_extracts_citations_with_chunk_id_prefix() -> None:
+    """Some local models inline `[chunk_id <id>]` despite the prompt; regex tolerates it."""
+    llm = _StubLLM("Per [chunk_id c1] this is true. Also [c2] and [chunk_id c99-not-in-set].")
+    gen = Generator(llm=llm, prompt=_prompt(), model="m")
+    answer = await gen.answer("q", [_result("c1", "x"), _result("c2", "y")])
+    cited_ids = {c.chunk_id for c in answer.citations}
+    assert cited_ids == {"c1", "c2"}
+
+
+async def test_generator_extracts_realistic_arxiv_chunk_ids() -> None:
+    """ArXiv paper ids contain dots: `2604.22753v1`. Chunk ids look like `<paper>::p5::c24`."""
+    cid_a = "2604.22753v1::p5::c24"
+    cid_b = "2604.22753v1::p19::c77"
+    llm = _StubLLM(f"Per [{cid_a}] and Citations: [{cid_b}], [{cid_a}].")
+    gen = Generator(llm=llm, prompt=_prompt(), model="m")
+    answer = await gen.answer("q", [_result(cid_a, "x"), _result(cid_b, "y")])
+    cited_ids = {c.chunk_id for c in answer.citations}
+    assert cited_ids == {cid_a, cid_b}

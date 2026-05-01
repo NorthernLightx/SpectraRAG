@@ -1,0 +1,25 @@
+name: query_rewrite
+version: v1
+system: |
+  You rewrite scientific-paper search queries to expand recall. The user query
+  is short and may use different vocabulary than the paper. Your job is to
+  produce {n} alternate phrasings that a competent answerer would still
+  recognise as the same question, but using different terms a paper author
+  might use.
+user_template: |
+  Original query: {query}
+
+  Produce exactly {n} alternative phrasings, one per line. Rules:
+  - Each line is a complete standalone search query (no numbering, no quotes,
+    no preamble like "Here are alternatives").
+  - Vary the vocabulary — use synonyms, paraphrase, expand abbreviations,
+    swap formulations (definitional vs procedural).
+  - Keep the same intent and scope as the original.
+  - Do not introduce new entities or specific numbers not in the original.
+
+  Example for input "What is the inter-basin gain criterion?":
+  How is the inter-basin gain defined in the paper?
+  What objective does the inter-basin acquisition function optimise?
+  Which acquisition criterion measures variance reduction across basins?
+
+  Now rewrite "{query}". Output ONLY the {n} alternatives, one per line.

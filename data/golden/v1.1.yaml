@@ -1,0 +1,162 @@
+name: phase1-text-baseline
+version: v1.1
+# Expansion of v1 (5 queries) → 15 queries on the same paper.
+# v1 frozen for historical comparison; this set adds 10 queries spanning more
+# concepts in 2604.22753v1 ("Spend Less, Fit Better" — active scaling-law fitting).
+# Chunk IDs verified against `chunks_dump.txt` from `scripts/dump_chunks.py`
+# at chunking config target_chars=1200, overlap_chars=200. Re-run that script
+# after any chunking config change.
+queries:
+  # === v1 queries ===
+  - query_id: q1_inter_basin
+    text: "What is the inter-basin gain criterion?"
+    paper_id: "2604.22753v1"
+    category: factual
+    relevant_chunk_ids:
+      - "2604.22753v1::p5::c24"
+    expected_facts:
+      - "The inter-basin gain measures expected variance reduction across basins."
+    note: "Single-hop, definitional."
+
+  - query_id: q2_bic_ranking
+    text: "How does the paper rank basins?"
+    paper_id: "2604.22753v1"
+    category: factual
+    relevant_chunk_ids:
+      - "2604.22753v1::p19::c76"
+    expected_facts:
+      - "Basins are ranked by an information criterion derived from empirical fit."
+    note: "Single-hop, mechanism."
+
+  - query_id: q3_approximation_options
+    text: "What approximations are used to score basins?"
+    paper_id: "2604.22753v1"
+    category: factual
+    relevant_chunk_ids:
+      - "2604.22753v1::p19::c76"
+      - "2604.22753v1::p19::c77"
+    expected_facts:
+      - "BIC-style approximation is used for robustness."
+      - "Laplace form provides a local-evidence interpretation."
+    note: "Multi-source: two adjacent chunks discuss the two options."
+
+  - query_id: q4_target_region
+    text: "Why is the predictive accuracy goal restricted to a target region?"
+    paper_id: "2604.22753v1"
+    category: multi_hop
+    relevant_chunk_ids:
+      - "2604.22753v1::p2::c11"
+      - "2604.22753v1::p3::c18"
+    expected_facts:
+      - "The goal is predictive accuracy in a held-out target region in the high-cost regime."
+    note: "Multi-hop, motivation + method. (Note: v1 originally listed p5::c24; replaced with p3::c18 which actually contains the target-region method statement.)"
+
+  - query_id: q5_oc_weather
+    text: "Will it rain on Mars tomorrow?"
+    paper_id: "2604.22753v1"
+    category: out_of_corpus
+    relevant_chunk_ids: []
+    expected_facts: []
+    note: "Refusal expected. Used to verify the system does not hallucinate."
+
+  # === v1.1 additions ===
+  - query_id: q6_basin_definition
+    text: "What is a basin in this paper?"
+    paper_id: "2604.22753v1"
+    category: factual
+    relevant_chunk_ids:
+      - "2604.22753v1::p4::c19"
+    expected_facts:
+      - "A basin is a locally optimal fit of the scaling law that extrapolates differently on Xtar."
+    note: "Definitional. v1.1."
+
+  - query_id: q7_posterior_mixture
+    text: "How is the posterior over scaling-law parameters approximated?"
+    paper_id: "2604.22753v1"
+    category: factual
+    relevant_chunk_ids:
+      - "2604.22753v1::p4::c19"
+    expected_facts:
+      - "As a weighted mixture of K local Gaussians: p(θ|Dt) ≈ Σ wk N(θk, Σk)."
+    note: "Definitional, equation. v1.1."
+
+  - query_id: q8_benchmark_size
+    text: "How many tasks and scaling-law instances are in the benchmark?"
+    paper_id: "2604.22753v1"
+    category: factual
+    relevant_chunk_ids:
+      - "2604.22753v1::p5::c26"
+    expected_facts:
+      - "8 tasks, 65 scaling-law instances."
+    note: "Quantitative single-fact. v1.1."
+
+  - query_id: q9_baselines
+    text: "Which baselines does the paper compare against?"
+    paper_id: "2604.22753v1"
+    category: factual
+    relevant_chunk_ids:
+      - "2604.22753v1::p6::c29"
+      - "2604.22753v1::p6::c30"
+    expected_facts:
+      - "Five baselines: Random, D-opt, V-opt, plus two others split across the two chunks."
+    note: "Multi-source, two adjacent chunks. v1.1."
+
+  - query_id: q10_ablation_terms
+    text: "What does the ablation study remove from the acquisition function?"
+    paper_id: "2604.22753v1"
+    category: factual
+    relevant_chunk_ids:
+      - "2604.22753v1::p9::c44"
+    expected_facts:
+      - "The ablation removes either the inter-basin term ΔVinter or the intra-basin term ΔVintra."
+    note: "Single-hop, mechanism. v1.1."
+
+  - query_id: q11_budget_levels
+    text: "What budget levels are used in the experiments?"
+    paper_id: "2604.22753v1"
+    category: factual
+    relevant_chunk_ids:
+      - "2604.22753v1::p6::c28"
+    expected_facts:
+      - "1%, 5%, 10% of total training cost for most tasks; 20%, 35%, 50% for domain and sparsity."
+    note: "Quantitative facts in one chunk. v1.1."
+
+  - query_id: q12_multibasin_vs_vopt
+    text: "Why does this method maintain multiple basins rather than a single best-fit linearization?"
+    paper_id: "2604.22753v1"
+    category: multi_hop
+    relevant_chunk_ids:
+      - "2604.22753v1::p4::c19"
+      - "2604.22753v1::p8::c39"
+    expected_facts:
+      - "Single-linearization methods like V-opt miss multimodal posterior structure."
+      - "Mixture-of-Gaussians captures plausible parameter regions that may extrapolate differently."
+    note: "Multi-hop, definition + comparison. v1.1."
+
+  - query_id: q13_figure1_lrbsz
+    text: "What does Figure 1 illustrate on the lr&bsz task?"
+    paper_id: "2604.22753v1"
+    category: figure
+    relevant_chunk_ids:
+      - "2604.22753v1::p2::c10"
+    expected_facts:
+      - "The predicted optimum over learning rate and batch size for a 1B/100B-token LLM reaches the low-loss region within 1% of the budget."
+    note: "Figure caption query. v1.1."
+
+  - query_id: q14_final_acquisition
+    text: "How is the final acquisition score combined?"
+    paper_id: "2604.22753v1"
+    category: equation
+    relevant_chunk_ids:
+      - "2604.22753v1::p25::c89"
+    expected_facts:
+      - "Total expected MSPE reduction is the sum of intra-basin and inter-basin components: ΔMSPEtar(x) = ΔVintra(x) + ΔVinter(x)."
+    note: "Equation chunk. v1.1."
+
+  - query_id: q15_oc_gpt4
+    text: "What is the loss curve of GPT-4?"
+    paper_id: "2604.22753v1"
+    category: out_of_corpus
+    relevant_chunk_ids: []
+    expected_facts: []
+    note: "OOC: paper does not discuss GPT-4. Refusal expected. v1.1."

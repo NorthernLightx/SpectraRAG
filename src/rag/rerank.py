@@ -13,6 +13,22 @@ ScorerFn = Callable[[list[tuple[str, str]]], list[float]]
 _DEFAULT_MODEL = "BAAI/bge-reranker-v2-m3"
 
 
+def _autodetect_device() -> str:
+    """Return 'cuda' if torch reports a CUDA device, else 'cpu'.
+
+    Imported lazily because sentence-transformers (and torch) is a heavy dep that
+    we don't want to load when an injected scorer is in use (e.g. tests).
+    """
+    try:
+        import torch
+
+        if torch.cuda.is_available():
+            return "cuda"
+    except ImportError:
+        pass
+    return "cpu"
+
+
 @dataclass(frozen=True)
 class RerankedHit:
     """A chunk re-scored by a cross-encoder."""
@@ -22,16 +38,22 @@ class RerankedHit:
 
 
 class BgeReranker:
-    """BGE reranker. Loads sentence-transformers CrossEncoder lazily on first use."""
+    """BGE reranker. Loads sentence-transformers CrossEncoder lazily on first use.
+
+    `device` defaults to auto-detect (cuda if torch reports it, else cpu). Cross-encoder
+    inference is ~40x faster on a consumer GPU vs CPU for this model.
+    """
 
     def __init__(
         self,
         *,
         scorer: ScorerFn | None = None,
         model_name: str = _DEFAULT_MODEL,
+        device: str | None = None,
     ) -> None:
         self._injected_scorer = scorer
         self._model_name = model_name
+        self._device = device
         self._ce: object | None = None
 
     def _resolve_scorer(self) -> ScorerFn:
@@ -40,7 +62,8 @@ class BgeReranker:
         if self._ce is None:
             from sentence_transformers import CrossEncoder
 
-            self._ce = CrossEncoder(self._model_name)
+            device = self._device if self._device is not None else _autodetect_device()
+            self._ce = CrossEncoder(self._model_name, device=device)
         ce = self._ce
 
         def _score(pairs: list[tuple[str, str]]) -> list[float]:

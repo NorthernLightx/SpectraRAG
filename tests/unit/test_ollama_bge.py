@@ -42,9 +42,37 @@ async def test_embed_empty_input_returns_empty_list() -> None:
 
 
 @respx.mock
-async def test_embed_propagates_http_errors() -> None:
+async def test_embed_skips_500_with_zero_vector() -> None:
+    """Ollama bge-m3 occasionally emits NaN and returns 500 — skip-with-zero, not abort."""
     respx.post("http://localhost:11434/api/embeddings").mock(
-        return_value=httpx.Response(500, json={"error": "model not loaded"})
+        return_value=httpx.Response(500, json={"error": "json: unsupported value: NaN"})
+    )
+    embedder = OllamaBgeEmbedder(base_url="http://localhost:11434")
+    [vec] = await embedder.embed_texts(["hi"])
+    assert vec == [0.0] * embedder.dim
+
+
+@respx.mock
+async def test_embed_skips_nan_or_inf_in_payload() -> None:
+    """Even on 200 OK, NaN/Inf in returned floats is replaced with a zero vector.
+
+    Python's json module rejects NaN by default; Ollama emits it via Go's encoder.
+    We test by feeding a raw bytes body that Python's json *will* parse (it allows
+    NaN by default on read, only rejects on write).
+    """
+    respx.post("http://localhost:11434/api/embeddings").mock(
+        return_value=httpx.Response(200, content=b'{"embedding":[NaN,0.1,0.2]}')
+    )
+    embedder = OllamaBgeEmbedder(base_url="http://localhost:11434")
+    [vec] = await embedder.embed_texts(["hi"])
+    assert vec == [0.0] * embedder.dim
+
+
+@respx.mock
+async def test_embed_propagates_other_http_errors() -> None:
+    """4xx and non-500 5xx still raise (e.g., auth issues, bad requests)."""
+    respx.post("http://localhost:11434/api/embeddings").mock(
+        return_value=httpx.Response(404, json={"error": "not found"})
     )
     embedder = OllamaBgeEmbedder(base_url="http://localhost:11434")
     with pytest.raises(httpx.HTTPStatusError):

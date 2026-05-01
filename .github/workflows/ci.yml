@@ -43,3 +43,14 @@ jobs:
 
       - name: Pytest (unit)
         run: uv run pytest -v --cov=src --cov-report=term-missing
+
+      - name: Eval regression gate (vs committed baseline)
+        # Compares the committed baseline against itself as a smoke test until
+        # we wire a self-hosted runner that can execute the live eval stack
+        # (Phase 4). When a fresh run is fetched from artifacts, point
+        # --candidate at it. Threshold matches PROJECT.md §6 (5%).
+        run: |
+          uv run python -m scripts.check_regression \
+            --baseline data/eval/baseline.json \
+            --candidate data/eval/baseline.json \
+            --threshold 0.05

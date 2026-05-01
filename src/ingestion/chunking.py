@@ -1,11 +1,17 @@
-"""Section-aware chunking. Splits page text on numbered headings, then by char budget."""
+"""Section-aware chunking. Splits page text on numbered headings, then by char budget.
+
+Also provides Figure/Table → Chunk converters (Phase 2 — pipeline multi-modal):
+figures and tables are first-class chunks in the same retrieval corpus, with
+`metadata['kind']` set to "figure" / "table" so callers can distinguish them
+from text chunks at display time.
+"""
 
 from __future__ import annotations
 
 import re
 from dataclasses import dataclass
 
-from src.types import Chunk, Page
+from src.types import Chunk, Figure, Page, Table
 
 _SECTION_HEADING_RE = re.compile(
     r"^\s*(\d+(?:\.\d+)*)\s+([A-Z][A-Za-z][A-Za-z\s\-:&]{1,60})\s*$",
@@ -91,3 +97,55 @@ def chunk_pages(
                     )
                 )
     return chunks
+
+
+def figure_to_chunk(figure: Figure) -> Chunk:
+    """Convert a Figure into a retrievable Chunk.
+
+    Picks the *single best* caption source: VLM caption when present (it tends
+    to add visual structure beyond the dense terminology PDFs capture), else
+    the PDF-extracted caption. Empirically (`docs/decisions/0002-phase2-multimodal-chunks.md`)
+    concatenating both *hurts* — the longer combined text fooled the reranker
+    into surfacing weak figure chunks over the strong text chunks that actually
+    answer the query.
+
+    Figures with no caption at all become a stub chunk with just the figure id —
+    better than dropping them, since BM25 might still match the id when an
+    answer cites a figure.
+    """
+    primary = (
+        figure.vlm_caption
+        if (figure.vlm_caption and figure.vlm_caption.strip())
+        else (
+            figure.caption if figure.caption and figure.caption.strip() else f"[{figure.figure_id}]"
+        )
+    )
+    return Chunk(
+        chunk_id=figure.figure_id,
+        paper_id=figure.paper_id,
+        page_numbers=[figure.page_number],
+        text=primary,
+        section=None,
+        metadata={
+            "kind": "figure",
+            "image_path": str(figure.image_path),
+            "has_vlm_caption": figure.vlm_caption is not None,
+        },
+    )
+
+
+def table_to_chunk(table: Table) -> Chunk:
+    """Convert a Table into a retrievable Chunk.
+
+    `text` is `caption\\n\\n<markdown>` so both caption-keyword queries and
+    cell-content queries match. The markdown is preserved verbatim for display.
+    """
+    parts = [p for p in (table.caption, table.markdown) if p]
+    return Chunk(
+        chunk_id=table.table_id,
+        paper_id=table.paper_id,
+        page_numbers=[table.page_number],
+        text="\n\n".join(parts) if parts else f"[{table.table_id}]",
+        section=None,
+        metadata={"kind": "table"},
+    )

@@ -3,14 +3,34 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import fitz
 
 from src.ingestion.pipeline import IngestedPaper, ingest_paper
+from src.llm.protocol import ChatResponse, Message
 from src.rag.bm25 import Bm25Index
 from src.rag.vectorstore import QdrantVectorStore
 from src.types import Paper
 from tests.fakes import FakeEmbedder
+
+
+class _StubLLM:
+    def __init__(self, text: str = "blurb") -> None:
+        self.text = text
+        self.calls = 0
+
+    async def chat(
+        self,
+        messages: list[Message],
+        model: str,
+        *,
+        temperature: float = 0.2,
+        max_tokens: int | None = None,
+        **kwargs: Any,
+    ) -> ChatResponse:
+        self.calls += 1
+        return ChatResponse(text=self.text, model=model, tokens_in=1, tokens_out=1)
 
 
 def _make_pdf(tmp_path: Path) -> Path:
@@ -43,6 +63,32 @@ async def test_ingest_paper_indexes_chunks_in_both_stores(tmp_path: Path) -> Non
     [vector] = await embedder.embed_texts(["attention"])
     matches = await vectorstore.search(vector, top_k=5)
     assert matches
+
+
+async def test_ingest_with_contextualizer_populates_context(tmp_path: Path) -> None:
+    pdf_path = _make_pdf(tmp_path)
+    paper = Paper(paper_id="p3", title="Ctx", pdf_path=pdf_path)
+    embedder = FakeEmbedder(dim=8)
+    vectorstore = QdrantVectorStore(url=":memory:", collection_name="t3", dim=8)
+    await vectorstore.ensure_collection()
+    bm25 = Bm25Index()
+    llm = _StubLLM(text="situating blurb")
+
+    result = await ingest_paper(
+        paper=paper,
+        embedder=embedder,
+        vectorstore=vectorstore,
+        bm25=bm25,
+        contextualizer_llm=llm,
+        contextualizer_model="cheap-model",
+    )
+
+    assert result.chunk_count >= 1
+    assert llm.calls == result.chunk_count
+    assert all(c.context == "situating blurb" for c in result.chunks)
+    # BM25 should index the contextualized text (so blurb terms hit too).
+    hits = bm25.search("situating", top_k=5)
+    assert hits, "blurb terms should hit BM25 because indexed_text includes context"
 
 
 async def test_ingest_empty_pdf_yields_zero_chunks(tmp_path: Path) -> None:

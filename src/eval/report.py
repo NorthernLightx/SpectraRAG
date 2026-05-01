@@ -8,6 +8,10 @@ from src.eval.latency import latency_stats
 from src.types import EvalRun
 
 
+def _fmt_optional(value: float | None) -> str:
+    return f"{value:.3f}" if isinstance(value, float) else "—"
+
+
 def write_run_json(run: EvalRun, path: Path) -> None:
     """Write the canonical JSON snapshot. The dashboard reads from these."""
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -61,20 +65,40 @@ def render_markdown(run: EvalRun) -> str:
         ]
     )
 
-    citation_rates = [
-        q.generation.citation_rate
-        for q in run.per_query
-        if q.generation is not None and q.generation.citation_rate is not None
-    ]
-    if citation_rates:
-        mean_cr = sum(citation_rates) / len(citation_rates)
+    def _metric_mean(field: str) -> float | None:
+        values: list[float] = [
+            getattr(q.generation, field)
+            for q in run.per_query
+            if q.generation is not None and getattr(q.generation, field) is not None
+        ]
+        if not values:
+            return None
+        return sum(values) / len(values)
+
+    means = {
+        field: _metric_mean(field)
+        for field in ("citation_rate", "faithfulness", "answer_relevance", "context_precision")
+    }
+    if any(v is not None for v in means.values()):
+        rows = [
+            ("citation grounding", means["citation_rate"]),
+            ("faithfulness (LLM judge)", means["faithfulness"]),
+            ("answer relevance (LLM judge)", means["answer_relevance"]),
+            ("context precision (LLM judge)", means["context_precision"]),
+        ]
         lines.extend(
             [
                 "## Generation",
                 "",
                 "| Metric | Value |",
                 "|---|---|",
-                f"| citation grounding (mean) | {mean_cr:.4f} |",
+            ]
+        )
+        for label, value in rows:
+            if value is not None:
+                lines.append(f"| {label} (mean) | {value:.4f} |")
+        lines.extend(
+            [
                 f"| total tokens in | {sum(q.tokens_in for q in run.per_query)} |",
                 f"| total tokens out | {sum(q.tokens_out for q in run.per_query)} |",
                 "",
@@ -100,23 +124,23 @@ def render_markdown(run: EvalRun) -> str:
         [
             "## Per-Query Results",
             "",
-            "| query_id | category | nDCG@5 | recall@10 | MRR | latency (ms) | cite. ground |",
-            "|---|---|---|---|---|---|---|",
+            "| query_id | category | nDCG@5 | recall@10 | MRR | latency (ms) | cite. | faith. | answ.rel. | ctx.prec. |",
+            "|---|---|---|---|---|---|---|---|---|---|",
         ]
     )
     for query_result in run.per_query:
-        cr = (
-            query_result.generation.citation_rate
-            if query_result.generation and query_result.generation.citation_rate is not None
-            else None
-        )
-        cr_str = f"{cr:.3f}" if isinstance(cr, float) else "—"
+        gen = query_result.generation
+        cr = gen.citation_rate if gen is not None else None
+        faith = gen.faithfulness if gen is not None else None
+        ar = gen.answer_relevance if gen is not None else None
+        cp = gen.context_precision if gen is not None else None
         lines.append(
             f"| `{query_result.query_id}` | {query_result.category} | "
             f"{query_result.retrieval.ndcg_at_5:.3f} | "
             f"{query_result.retrieval.recall_at_10:.3f} | "
             f"{query_result.retrieval.mrr:.3f} | "
-            f"{query_result.latency_ms} | {cr_str} |"
+            f"{query_result.latency_ms} | "
+            f"{_fmt_optional(cr)} | {_fmt_optional(faith)} | {_fmt_optional(ar)} | {_fmt_optional(cp)} |"
         )
 
     return "\n".join(lines) + "\n"

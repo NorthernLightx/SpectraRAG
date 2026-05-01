@@ -12,7 +12,11 @@ from src.types import Answer, Citation, RetrievalResult
 
 _log = get_logger(__name__)
 
-_CITATION_RE = re.compile(r"\[([A-Za-z0-9:_\-]+)\]")
+# Match `[<id>]` and `[chunk_id <id>]` (some local models inline the literal "chunk_id"
+# despite the prompt). The id can contain dots — ArXiv paper ids like `2604.22753v1`
+# have them, and chunk ids are `<paper_id>::p<n>::c<n>`. Without `.` the regex would
+# silently truncate `2604.22753v1::p5::c24` to `2604`.
+_CITATION_RE = re.compile(r"\[(?:chunk_id\s+)?([A-Za-z0-9.:_\-]+)\]")
 _CHARS_PER_TOKEN = 4  # rough approximation; replace with tokenizer when needed
 
 

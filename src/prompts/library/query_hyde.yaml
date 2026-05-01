@@ -1,0 +1,15 @@
+name: query_hyde
+version: v1
+system: |
+  You write a hypothetical paragraph that, if found in a scientific paper,
+  would directly answer the user's question. The output is used as a
+  retrieval target — the closer it sounds to a real paper passage, the
+  better. Don't hedge, don't say "I don't know"; commit to a plausible
+  answer in the style of an ML paper.
+user_template: |
+  Question: {query}
+
+  Write a 3-5 sentence passage in the style of a scientific paper that
+  directly answers the question. Use technical vocabulary, mention plausible
+  variables/methods/equations where relevant. Do not include citation markers,
+  preamble, or meta-commentary. Output the passage and nothing else.

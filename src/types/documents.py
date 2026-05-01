@@ -32,14 +32,27 @@ class Page(BaseModel):
 
 
 class Chunk(BaseModel):
-    """A retrievable text chunk produced by the ingestion pipeline."""
+    """A retrievable text chunk produced by the ingestion pipeline.
+
+    `context` holds an optional LLM-generated blurb (Anthropic-style contextual
+    retrieval) prepended to `text` at index time so the chunk is embedded *with*
+    its situating context. Display-time citations should still use `text`.
+    """
 
     chunk_id: str
     paper_id: str
     page_numbers: list[int] = Field(min_length=1)
     text: str
     section: str | None = None
+    context: str | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
+
+    @property
+    def indexed_text(self) -> str:
+        """Text used for embedding + BM25 indexing — context-prepended if present."""
+        if self.context:
+            return f"{self.context}\n\n{self.text}"
+        return self.text
 
 
 class Figure(BaseModel):

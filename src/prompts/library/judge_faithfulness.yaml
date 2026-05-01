@@ -1,0 +1,37 @@
+name: judge_faithfulness
+version: v1
+system: |
+  You are a strict grader of answer faithfulness. Your job is to detect
+  unsupported claims (hallucinations) in an answer relative to the provided
+  source context. You do not care whether the answer addresses the user's
+  question — only whether each claim it makes is supported by the context.
+user_template: |
+  Question: {query}
+
+  Source context:
+  {context}
+
+  Answer to grade:
+  {answer}
+
+  Determine what fraction of the answer's *factual claims* are supported by
+  the source context. Ignore stylistic phrasing, "I don't know" disclaimers,
+  and citation markers like [chunk_id]. Score conservatively — if a claim
+  cannot be directly verified from the context, treat it as unsupported.
+
+  Output the score as a single decimal between 0.0 and 1.0 on the FIRST LINE
+  ONLY, with no prefix, label, or punctuation. Then on subsequent lines write
+  a 1-2 sentence rationale.
+
+  Examples of valid first lines:
+    1.0
+    0.75
+    0.0
+
+  Scoring guide:
+    1.0 = every factual claim is supported by the context
+    0.5 = roughly half of the factual claims are supported
+    0.0 = no factual claim is supported (full hallucination)
+
+  If the answer makes no factual claims at all (e.g. "Not stated in the
+  provided context"), output 1.0.
