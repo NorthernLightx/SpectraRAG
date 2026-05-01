@@ -49,6 +49,9 @@ postgres_data/
 # Claude Code local session state
 .claude/
 
+# Git worktrees (isolated dev workspaces)
+.worktrees/
+
 # Secrets
 *.pem
 *.key
