@@ -118,7 +118,7 @@ async def build_visual_retriever(
     Embedding runs in a worker thread via `asyncio.to_thread` so the caller's
     event loop isn't blocked on the GPU work.
     """
-    from colpali_engine.models import ColQwen2, ColQwen2Processor  # type: ignore[import-untyped]
+    from colpali_engine.models import ColQwen2, ColQwen2Processor
 
     dtype = torch.bfloat16 if device.startswith("cuda") else torch.float32
 
