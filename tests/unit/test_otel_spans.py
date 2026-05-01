@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import importlib
-from collections.abc import Generator
 from typing import Any
 
 import pytest
@@ -31,7 +30,7 @@ def _reset_otel_global_provider(provider: TracerProvider) -> None:
 
 
 @pytest.fixture
-def in_memory_spans(monkeypatch: pytest.MonkeyPatch) -> Generator[InMemorySpanExporter, None, None]:
+def in_memory_spans(monkeypatch: pytest.MonkeyPatch) -> InMemorySpanExporter:
     """Force an in-memory tracer provider before create_app()."""
     importlib.reload(otel_mod)
     monkeypatch.setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317")
@@ -42,12 +41,7 @@ def in_memory_spans(monkeypatch: pytest.MonkeyPatch) -> Generator[InMemorySpanEx
     _reset_otel_global_provider(provider)
     # Also short-circuit configure_otel so it doesn't replace our provider.
     otel_mod._configured = True
-    yield exporter
-    # --- teardown: uninstrument httpx so the next test starts clean -----------
-    from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
-
-    if getattr(HTTPXClientInstrumentor, "_is_instrumented_by_opentelemetry", False):
-        HTTPXClientInstrumentor().uninstrument()
+    return exporter
 
 
 def test_health_request_emits_span(in_memory_spans: InMemorySpanExporter) -> None:

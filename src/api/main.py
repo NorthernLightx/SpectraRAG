@@ -47,11 +47,11 @@ def create_app(*, log_file: Path | None = Path("logs/api.log")) -> FastAPI:
     app.include_router(answer.router)
 
     # Auto-instrumentation must run after routers are added so per-route
-    # spans are named correctly. httpx is instrumented globally (one-time
-    # idempotent call); httpx 0.27 raises if double-instrumented.
+    # spans are named correctly. HTTPXClientInstrumentor is a singleton
+    # and BaseInstrumentor.instrument() is internally idempotent, so a
+    # repeat call is a no-op (logs a warning, no exception).
     FastAPIInstrumentor.instrument_app(app)
-    if not getattr(HTTPXClientInstrumentor, "_is_instrumented", False):
-        HTTPXClientInstrumentor().instrument()
+    HTTPXClientInstrumentor().instrument()
     return app
 
 
