@@ -7,6 +7,11 @@ import time
 
 from src.llm.protocol import LLMClient, Message
 from src.observability.logging import get_logger, timed_event
+from src.observability.metrics import (
+    GENERATE_LATENCY_MS,
+    TOKENS_IN,
+    TOKENS_OUT,
+)
 from src.prompts.loader import Prompt
 from src.types import Answer, Citation, RetrievalResult
 
@@ -64,6 +69,10 @@ class Generator:
             ctx["tokens_in"] = response.tokens_in
             ctx["tokens_out"] = response.tokens_out
             ctx["citations"] = len(citations)
+            attrs = {"model": response.model, "prompt_version": self._prompt.version}
+            TOKENS_IN.add(response.tokens_in, attributes=attrs)
+            TOKENS_OUT.add(response.tokens_out, attributes=attrs)
+            GENERATE_LATENCY_MS.record(latency_ms, attributes=attrs)
         return Answer(
             text=response.text,
             citations=citations,
