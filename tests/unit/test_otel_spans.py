@@ -56,3 +56,39 @@ def test_health_request_emits_span(in_memory_spans: InMemorySpanExporter) -> Non
     span_names = [s.name for s in spans]
     # FastAPI auto-instrumentation names the span after the route or method.
     assert any("/health" in name or "GET" in name for name in span_names), span_names
+
+
+def test_answer_route_emits_retrieve_and_generate_spans(
+    in_memory_spans: InMemorySpanExporter,
+) -> None:
+    from src.api.deps import set_generator, set_retriever
+    from src.api.main import create_app
+    from src.types import Answer, Query, RetrievalResult
+
+    class FakeRetriever:
+        async def retrieve(self, q: Query) -> list[RetrievalResult]:
+            return []
+
+    class FakeGenerator:
+        async def answer(self, text: str, retrieved: list[RetrievalResult]) -> Answer:
+            return Answer(
+                text="ok",
+                citations=[],
+                model="fake",
+                prompt_version="v0",
+                latency_ms=1,
+                tokens_in=1,
+                tokens_out=1,
+            )
+
+    set_retriever(FakeRetriever())
+    set_generator(FakeGenerator())  # type: ignore[arg-type]
+    app = create_app(log_file=None)
+    client = TestClient(app)
+
+    response = client.post("/answer", json={"text": "hi", "top_k": 5})
+    assert response.status_code == 200, response.text
+
+    span_names = {s.name for s in in_memory_spans.get_finished_spans()}
+    assert "rag.retrieve" in span_names, span_names
+    assert "rag.generate" in span_names, span_names
