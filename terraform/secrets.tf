@@ -21,9 +21,9 @@ resource "azurerm_key_vault" "rag" {
 
 # Grant the Container App's system-assigned identity Get on secrets.
 resource "azurerm_key_vault_access_policy" "container_app" {
-  key_vault_id = azurerm_key_vault.rag.id
-  tenant_id    = data.azurerm_client_config.current.tenant_id
-  object_id    = azurerm_container_app.api.identity[0].principal_id
+  key_vault_id       = azurerm_key_vault.rag.id
+  tenant_id          = data.azurerm_client_config.current.tenant_id
+  object_id          = azurerm_container_app.api.identity[0].principal_id
   secret_permissions = ["Get"]
 }
 

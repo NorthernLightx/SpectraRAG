@@ -52,6 +52,12 @@ postgres_data/
 # Git worktrees (isolated dev workspaces)
 .worktrees/
 
+# Terraform local state (.terraform.lock.hcl IS committed for provider pinning)
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+
 # Secrets
 *.pem
 *.key
