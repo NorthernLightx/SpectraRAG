@@ -36,14 +36,27 @@ class Generator:
         model: str,
         temperature: float = 0.2,
         max_context_tokens: int = 8000,
+        refusal_score_threshold: float | None = None,
+        refusal_text: str = "I cannot answer this question from the provided corpus.",
     ) -> None:
         self._llm = llm
         self._prompt = prompt
         self._model = model
         self._temperature = temperature
         self._max_context_chars = max_context_tokens * _CHARS_PER_TOKEN
+        self._refusal_score_threshold = refusal_score_threshold
+        self._refusal_text = refusal_text
 
     async def answer(self, query: str, retrieved: list[RetrievalResult]) -> Answer:
+        if self._refusal_score_threshold is not None and self._should_refuse(retrieved):
+            _log.info(
+                "generate.refused",
+                reason="rerank_score_below_threshold",
+                threshold=self._refusal_score_threshold,
+                top_score=max((r.score for r in retrieved), default=None),
+                n_retrieved=len(retrieved),
+            )
+            return self._refusal()
         context, used = self._build_context(retrieved)
         system, user = self._prompt.render(query=query, context=context)
 
@@ -113,3 +126,21 @@ class Generator:
                 )
             )
         return citations
+
+    def _should_refuse(self, retrieved: list[RetrievalResult]) -> bool:
+        if not retrieved:
+            return True
+        threshold = self._refusal_score_threshold
+        assert threshold is not None  # narrowed by caller's check
+        return all(r.score < threshold for r in retrieved)
+
+    def _refusal(self) -> Answer:
+        return Answer(
+            text=self._refusal_text,
+            citations=[],
+            model="refusal-gate",
+            prompt_version="refusal-v1",
+            latency_ms=0,
+            tokens_in=0,
+            tokens_out=0,
+        )
