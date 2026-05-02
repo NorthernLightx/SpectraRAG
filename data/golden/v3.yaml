@@ -1,0 +1,368 @@
+name: phase1-text-baseline
+version: v3
+# Extends v2 (5 papers, 23 queries) with 10 new queries (q24–q33) targeting
+# figure / table / multi-source content on 6 of the 15 newly-fetched papers
+# from the corpus expansion (5 → 20 papers). Designed to test where ColQwen2
+# is hypothesized to win — figure/table-grounded queries where text rerank
+# fragments multi-region content. v3 query authoring — NEEDS USER REVIEW
+# before promoting to default. Chunk-id anchors verified against
+# `scripts.dump_chunks` output for each paper.
+queries:
+  # === v1.1 queries (paper: 2604.22753v1, scaling-law fitting) ===
+  - query_id: q1_inter_basin
+    text: "What is the inter-basin gain criterion?"
+    paper_id: "2604.22753v1"
+    category: factual
+    relevant_chunk_ids: ["2604.22753v1::p5::c24"]
+    expected_facts: ["The inter-basin gain measures expected variance reduction across basins."]
+    note: "Single-hop, definitional."
+
+  - query_id: q2_bic_ranking
+    text: "How does the paper rank basins?"
+    paper_id: "2604.22753v1"
+    category: factual
+    relevant_chunk_ids: ["2604.22753v1::p19::c76"]
+    expected_facts: ["Basins are ranked by an information criterion derived from empirical fit."]
+    note: "Single-hop, mechanism."
+
+  - query_id: q3_approximation_options
+    text: "What approximations are used to score basins?"
+    paper_id: "2604.22753v1"
+    category: factual
+    relevant_chunk_ids: ["2604.22753v1::p19::c76", "2604.22753v1::p19::c77"]
+    expected_facts:
+      - "BIC-style approximation is used for robustness."
+      - "Laplace form provides a local-evidence interpretation."
+    note: "Multi-source: two adjacent chunks discuss the two options."
+
+  - query_id: q4_target_region
+    text: "Why is the predictive accuracy goal restricted to a target region?"
+    paper_id: "2604.22753v1"
+    category: multi_hop
+    relevant_chunk_ids: ["2604.22753v1::p2::c11", "2604.22753v1::p3::c18"]
+    expected_facts:
+      - "The goal is predictive accuracy in a held-out target region in the high-cost regime."
+    note: "Multi-hop, motivation + method."
+
+  - query_id: q5_oc_weather
+    text: "Will it rain on Mars tomorrow?"
+    paper_id: "2604.22753v1"
+    category: out_of_corpus
+    relevant_chunk_ids: []
+    expected_facts: []
+    note: "Refusal expected. Used to verify the system does not hallucinate."
+
+  - query_id: q6_basin_definition
+    text: "What is a basin in this paper?"
+    paper_id: "2604.22753v1"
+    category: factual
+    relevant_chunk_ids: ["2604.22753v1::p4::c19"]
+    expected_facts: ["A basin is a locally optimal fit of the scaling law."]
+    note: "Definitional."
+
+  - query_id: q7_posterior_mixture
+    text: "How is the posterior over scaling-law parameters approximated?"
+    paper_id: "2604.22753v1"
+    category: factual
+    relevant_chunk_ids: ["2604.22753v1::p4::c19"]
+    expected_facts: ["A weighted mixture of K local Gaussians: p(θ|Dt) ≈ Σ wk N(θk, Σk)."]
+    note: "Definitional, equation."
+
+  - query_id: q8_benchmark_size
+    text: "How many tasks and scaling-law instances are in the benchmark?"
+    paper_id: "2604.22753v1"
+    category: factual
+    relevant_chunk_ids: ["2604.22753v1::p5::c26"]
+    expected_facts: ["8 tasks, 65 scaling-law instances."]
+    note: "Quantitative single-fact."
+
+  - query_id: q9_baselines
+    text: "Which baselines does the paper compare against?"
+    paper_id: "2604.22753v1"
+    category: factual
+    relevant_chunk_ids: ["2604.22753v1::p6::c29", "2604.22753v1::p6::c30"]
+    expected_facts: ["Five baselines: Random, D-opt, V-opt, plus two others."]
+    note: "Multi-source."
+
+  - query_id: q10_ablation_terms
+    text: "What does the ablation study remove from the acquisition function?"
+    paper_id: "2604.22753v1"
+    category: factual
+    relevant_chunk_ids: ["2604.22753v1::p9::c44"]
+    expected_facts: ["Removes ΔVinter or ΔVintra."]
+    note: "Single-hop."
+
+  - query_id: q11_budget_levels
+    text: "What budget levels are used in the experiments?"
+    paper_id: "2604.22753v1"
+    category: factual
+    relevant_chunk_ids: ["2604.22753v1::p6::c28"]
+    expected_facts: ["1%/5%/10% for most tasks; 20%/35%/50% for domain and sparsity."]
+    note: "Quantitative facts in one chunk."
+
+  - query_id: q12_multibasin_vs_vopt
+    text: "Why does this method maintain multiple basins rather than a single best-fit linearization?"
+    paper_id: "2604.22753v1"
+    category: multi_hop
+    relevant_chunk_ids: ["2604.22753v1::p4::c19", "2604.22753v1::p8::c39"]
+    expected_facts:
+      - "V-opt uses single linearization; this method uses mixture-of-Gaussians."
+    note: "Multi-hop, definition + comparison."
+
+  - query_id: q13_figure1_lrbsz
+    text: "What does Figure 1 illustrate on the lr&bsz task?"
+    paper_id: "2604.22753v1"
+    category: figure
+    relevant_chunk_ids: ["2604.22753v1::p2::c10"]
+    expected_facts: ["Predicted optimum reaches the low-loss region within 1% of the budget."]
+    note: "Figure caption query."
+
+  - query_id: q14_final_acquisition
+    text: "How is the final acquisition score combined?"
+    paper_id: "2604.22753v1"
+    category: equation
+    relevant_chunk_ids: ["2604.22753v1::p25::c89"]
+    expected_facts: ["ΔMSPEtar(x) = ΔVintra(x) + ΔVinter(x)."]
+    note: "Equation chunk."
+
+  - query_id: q15_oc_gpt4
+    text: "What is the loss curve of GPT-4?"
+    paper_id: "2604.22753v1"
+    category: out_of_corpus
+    relevant_chunk_ids: []
+    expected_facts: []
+    note: "OOC: paper does not discuss GPT-4."
+
+  # === v2 additions (still NEEDS USER REVIEW) ===
+  # Paper: 2604.28180v1 — Adaptive Wavelet-based PINN
+  - query_id: q16_aw_pinn_what
+    text: "What is AW-PINN?"
+    paper_id: "2604.28180v1"
+    category: factual
+    relevant_chunk_ids: ["2604.28180v1::p3::c10"]
+    expected_facts:
+      - "Adaptive wavelet-based PINN that dynamically adapts the wavelet family."
+    note: "v2. Definitional. Author drafted from chunk dump; verify chunk_id matches a chunk that explicitly defines AW-PINN."
+
+  - query_id: q17_oc_pinn_rl
+    text: "How does AW-PINN handle reinforcement learning?"
+    paper_id: "2604.28180v1"
+    category: out_of_corpus
+    relevant_chunk_ids: []
+    expected_facts: []
+    note: "v2. OOC: paper is about PDE solvers, not RL."
+
+  # Paper: 2604.28181v1 — Synthetic Computers at Scale
+  - query_id: q18_synth_computer_count
+    text: "How many synthetic computers were created in the preliminary experiments?"
+    paper_id: "2604.28181v1"
+    category: factual
+    relevant_chunk_ids: ["2604.28181v1::p1::c1"]
+    expected_facts: ["1,000 synthetic computers."]
+    note: "v2. Quantitative single-fact. Verify chunk contains the literal '1,000' figure."
+
+  - query_id: q19_oc_synth_energy
+    text: "What is the energy consumption of the data center used to run the simulations?"
+    paper_id: "2604.28181v1"
+    category: out_of_corpus
+    relevant_chunk_ids: []
+    expected_facts: []
+    note: "v2. OOC: paper does not discuss energy or hardware footprint."
+
+  # Paper: 2604.28182v1 — Exploration Hacking (RL alignment)
+  - query_id: q20_exploration_hacking
+    text: "What is exploration hacking?"
+    paper_id: "2604.28182v1"
+    category: factual
+    relevant_chunk_ids: ["2604.28182v1::p2::c5"]
+    expected_facts:
+      - "An RL failure mode where the model intentionally alters its exploration to shape training."
+    note: "v2. Definitional. Verify chunk contains the term + definition."
+
+  - query_id: q21_oc_llama_finetune
+    text: "What hyperparameters were used to fine-tune Llama 3?"
+    paper_id: "2604.28182v1"
+    category: out_of_corpus
+    relevant_chunk_ids: []
+    expected_facts: []
+    note: "v2. OOC: paper studies exploration hacking on different model families."
+
+  # Paper: 2604.28186v1 — Computing Equilibrium beyond Unilateral Deviation
+  - query_id: q22_mase_definition
+    text: "What does MASE stand for in this paper?"
+    paper_id: "2604.28186v1"
+    category: factual
+    relevant_chunk_ids: ["2604.28186v1::p2::c4"]
+    expected_facts: ["Minimum Average-Strong Equilibrium."]
+    note: "v2. Definitional. Verify chunk contains the expansion."
+
+  - query_id: q23_oc_eurozone
+    text: "What is the current inflation rate of the eurozone?"
+    paper_id: "2604.28186v1"
+    category: out_of_corpus
+    relevant_chunk_ids: []
+    expected_facts: []
+    note: "v2. OOC: completely unrelated to game theory paper."
+
+  # === v3 additions: figure / table queries on the 15-paper corpus expansion ===
+  # All v3 queries DRAFT — chunk_id anchors verified via scripts.dump_chunks
+  # but the queries themselves NEED USER REVIEW for clarity / fairness.
+
+  # Paper: 2604.27742v1 — Linear-Core Surrogates: Smooth Loss Functions
+  - query_id: q24_lc_fig4_gradients
+    text: "What does Figure 4 show about gradient magnitudes on CIFAR-10 with 40% noise?"
+    paper_id: "2604.27742v1"
+    category: figure
+    relevant_chunk_ids: ["2604.27742v1::p6::c29"]
+    expected_facts:
+      - "Figure 4 visualizes the distribution of gradients comparing Cross-Entropy (Left) vs Linear-Core (Right) on CIFAR-10 with 40% instance-dependent noise."
+    note: "v3. Figure-content. Caption + surrounding text in c29 — text path can answer cleanly; tests whether visual matches."
+
+  - query_id: q25_lc_tab1_loss_properties
+    text: "Which surrogate losses are compared in Table 1 by their convexity, smoothness, and consistency?"
+    paper_id: "2604.27742v1"
+    category: table
+    relevant_chunk_ids: ["2604.27742v1::p2::c5"]
+    expected_facts:
+      - "Hinge Loss, Squared-Hinge, and others compared on convexity, smoothness, consistency bound, and rate."
+    note: "v3. Table-content. Comparison table; rows are losses."
+
+  # Paper: 2604.28190v1 — Representation Fréchet Loss for Visual Generation
+  - query_id: q26_fd_tab4_imagenet256
+    text: "What benchmark and resolution does Table 4 evaluate in the FD-loss paper?"
+    paper_id: "2604.28190v1"
+    category: table
+    relevant_chunk_ids: ["2604.28190v1::p10::c47"]
+    expected_facts:
+      - "Table 4 reports a system-level comparison on ImageNet 256×256."
+    note: "v3. Table-content (caption-derivable). Tests whether visual ranks the table page above the surrounding text."
+
+  - query_id: q27_fd_fig2_pipeline
+    text: "What does Figure 2 illustrate about the FD-loss training pipeline?"
+    paper_id: "2604.28190v1"
+    category: figure
+    relevant_chunk_ids: ["2604.28190v1::p2::c3"]
+    expected_facts:
+      - "Figure 2 shows the FD-loss pipeline: a generator produces B images per step whose features accumulate into a population via queue or EMA, decoupling population size N from batch size B."
+    note: "v3. Figure-content. Pipeline-diagram caption — multi-component description."
+
+  # Paper: 2604.28177v1 — AEGIS: Holistic Benchmark for MLLM Forensics
+  - query_id: q28_aegis_fig4_tasks
+    text: "What does Figure 4 of AEGIS illustrate about its task progression?"
+    paper_id: "2604.28177v1"
+    category: figure
+    relevant_chunk_ids: ["2604.28177v1::p5::c19"]
+    expected_facts:
+      - "Figure 4 shows AEGIS's progressively structured tasks evaluating forensic capability from global authenticity judgment to fine-grained spatial localization."
+    note: "v3. Figure-content. Cross-page conceptual diagram referenced from c19."
+
+  - query_id: q29_aegis_tab8_janus_rank
+    text: "What is the rank of Janus-Pro-7B in Table 8 of AEGIS?"
+    paper_id: "2604.28177v1"
+    category: table
+    relevant_chunk_ids: ["2604.28177v1::p23::c103"]
+    expected_facts:
+      - "Janus-Pro-7B ranks 24, 23, 23 across the three γ settings in Table 8."
+    note: "v3. Table-content cell-lookup. Specific row; favors retrievers that surface the exact table-page chunk."
+
+  # Paper: 2604.28173v1 — Action Motifs (A4Mer)
+  - query_id: q30_a4mer_tab1_pose_datasets
+    text: "What properties does Table 1 use to compare human 3D pose datasets?"
+    paper_id: "2604.28173v1"
+    category: table
+    relevant_chunk_ids: ["2604.28173v1::p3::c9"]
+    expected_facts:
+      - "Compared on 3rdPV (third-person-view), MultiView, Daily (indoor daily activities), MultiAct (multi-action sequences), and RealH (real human capture)."
+    note: "v3. Table-content. Comparison table caption + descriptions."
+
+  # Paper: 2604.28196v1 — HERMES++ Driving World Model
+  - query_id: q31_hermes_fig1_unification
+    text: "What does Figure 1 in HERMES++ illustrate about the proposed framework?"
+    paper_id: "2604.28196v1"
+    category: figure
+    relevant_chunk_ids: ["2604.28196v1::p2::c7"]
+    expected_facts:
+      - "Figure 1 contrasts (a) prior driving world models that focus on generative scene evolution prediction, (b) LLMs for driving limited to scene understanding, and (c) the proposed HERMES++ framework that unifies 3D scene understanding and generation."
+    note: "v3. Figure-content. Three-panel comparison figure."
+
+  # Paper: 2604.28144v1 — Global Optimality for Constrained Exploration (PGP)
+  - query_id: q32_pgp_fig1_methods
+    text: "Which methods does Figure 1 in the constrained exploration paper compare?"
+    paper_id: "2604.28144v1"
+    category: figure
+    relevant_chunk_ids: ["2604.28144v1::p8::c38"]
+    expected_facts:
+      - "Figure 1 compares Policy Gradient Penalty (PGP), unconstrained Maximum-Entropy (ME) exploration, and the primal-dual (PDPG) method of Ying et al. (2025)."
+    note: "v3. Figure-content / multi-source. Three-method legend in figure caption."
+
+  # === v3 OOC negatives ===
+  - query_id: q33_oc_aegis_quantum
+    text: "How does AEGIS use quantum computing for image authentication?"
+    paper_id: "2604.28177v1"
+    category: out_of_corpus
+    relevant_chunk_ids: []
+    expected_facts: []
+    note: "v3. OOC: AEGIS is about MLLM-based forensics, not quantum computing."
+
+  - query_id: q34_oc_lc_nas
+    text: "Which neural architecture search algorithm does the Linear-Core Surrogate paper use?"
+    paper_id: "2604.27742v1"
+    category: out_of_corpus
+    relevant_chunk_ids: []
+    expected_facts: []
+    note: "v3. OOC: paper is on loss surrogates, not architecture search."
+
+  # === v3 image-grounded queries (author saw the figures directly) ===
+  # These differ from caption-derivable queries above: I authored them after
+  # inspecting PNG renderings of the figures, so the expected_facts capture
+  # information that may or may not be in the chunk text alone — the test is
+  # whether retrievers surface the right page/chunk regardless.
+
+  # Paper: 2604.28176v1 — Defending Quantum Classifiers against Adversarial
+  - query_id: q35_qd_fig6_rejection
+    text: "What does the QAE++ defense framework do when a sample's confidence metric falls below the threshold?"
+    paper_id: "2604.28176v1"
+    category: figure
+    relevant_chunk_ids: ["2604.28176v1::p4::c17"]
+    expected_facts:
+      - "The sample is rejected as a potential adversarial sample (the predicted class label is not used)."
+    note: "v3. Figure 6 (defense framework block diagram). Caption text in c17 covers the answer; tests whether visual matches."
+
+  - query_id: q36_qd_fig7_layer_structure
+    text: "How many rotation gates and entangling gates does one layer of the circuit-centric classifier contain?"
+    paper_id: "2604.28176v1"
+    category: figure
+    relevant_chunk_ids: ["2604.28176v1::p4::c18"]
+    expected_facts:
+      - "Each layer has 4 rotation gates followed by 4 entangling gates (illustrated in a 4-qubit circuit)."
+    note: "v3. Figure 7 (circuit-centric classifier diagram). Single-fact figure caption."
+
+  # Paper: 2604.28182v1 — Exploration Hacking (existing v2 paper, figure-targeted queries)
+  - query_id: q37_eh_fig1_outcomes
+    text: "What two RL training outcomes does the exploration hacking paper's Figure 1 contrast for locked model organisms?"
+    paper_id: "2604.28182v1"
+    category: figure
+    relevant_chunk_ids: ["2604.28182v1::p2::c4"]
+    expected_facts:
+      - "Successful RL elicitation (the model recovers pre-locking performance, blue curve in figure) vs successful RL resistance (the model stays at the locked baseline, red curve)."
+    note: "v3. Figure 1 RL elicitation curves. Figure-internal labels and caption both in c4."
+
+  - query_id: q38_eh_fig2_main_categories
+    text: "What are the two main categories of exploration hacking strategies in the paper's taxonomy?"
+    paper_id: "2604.28182v1"
+    category: figure
+    relevant_chunk_ids: ["2604.28182v1::p5::c18"]
+    expected_facts:
+      - "(1) Complete under-exploration — reward does not meaningfully increase."
+      - "(2) Partial under-exploration — further split into Instrumental and Terminal subtypes."
+    note: "v3. Figure 2 taxonomy tree. Tree-internal labels extracted into c18."
+
+  - query_id: q39_eh_fig2_terminal_vs_instrumental
+    text: "How does the taxonomy distinguish 'instrumental' from 'terminal' partial under-exploration?"
+    paper_id: "2604.28182v1"
+    category: figure
+    relevant_chunk_ids: ["2604.28182v1::p5::c18"]
+    expected_facts:
+      - "Instrumental: reward increases but converges to lower reward than the benign baseline."
+      - "Terminal: reward increases and may converge to benign-baseline reward, but with model-preferred behavior (i.e., satisfies internal preferences while violating developer intent)."
+    note: "v3. Figure 2 leaf descriptions. Multi-fact comparison; tests whether retriever surfaces the single chunk holding both branch descriptions."
