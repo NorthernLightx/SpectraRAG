@@ -1,0 +1,47 @@
+# syntax=docker/dockerfile:1.7
+
+FROM ghcr.io/astral-sh/uv:0.5.4-python3.12-bookworm-slim AS builder
+
+WORKDIR /app
+
+# Install only main deps; dev deps aren't needed in the runtime image.
+COPY pyproject.toml uv.lock ./
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-install-project --no-dev
+
+# Copy source and install the project itself (wheel build).
+COPY src ./src
+COPY README.md ./
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev
+
+
+FROM python:3.12-slim-bookworm AS runtime
+
+# OS deps for psycopg, pymupdf, etc.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+       libpq5 \
+       libgomp1 \
+       ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Non-root user.
+RUN useradd --create-home --uid 10001 app
+USER app
+WORKDIR /home/app
+
+# Copy the virtualenv from the builder stage.
+COPY --from=builder --chown=app:app /app/.venv /home/app/.venv
+COPY --from=builder --chown=app:app /app/src /home/app/src
+
+ENV PATH="/home/app/.venv/bin:$PATH" \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    RAG_ENV=prod \
+    RAG_LOG_LEVEL=INFO
+
+EXPOSE 8000
+
+# Stdout-only logging in the container — no log_file argument.
+CMD ["python", "-c", "import uvicorn; from src.api.main import create_app; uvicorn.run(create_app(log_file=None), host='0.0.0.0', port=8000)"]
