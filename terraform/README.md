@@ -63,3 +63,23 @@ they're injected as env vars on the container at start.
 - Key Vault: pennies
 
 Budget: ~$10/mo idle, ~$30/mo with steady demo traffic.
+
+## GitHub Actions secrets
+
+Set in GitHub repo → Settings → Secrets and variables → Actions:
+
+- `AZURE_CLIENT_ID` — Service Principal (federated identity / OIDC).
+- `AZURE_TENANT_ID`
+- `AZURE_SUBSCRIPTION_ID`
+- `TF_BACKEND_RG` — name of the bootstrap state-storage resource group.
+- `TF_BACKEND_SA` — name of the bootstrap state-storage account.
+
+Configure the federated credential on the Service Principal:
+
+```bash
+az ad sp create-for-rbac --name rag-gha-sp --role Contributor --scopes "/subscriptions/$AZ_SUB"
+# Then set up OIDC trust:
+az ad app federated-credential create \
+  --id $APP_ID \
+  --parameters '{"name":"main","issuer":"https://token.actions.githubusercontent.com","subject":"repo:OWNER/REPO:ref:refs/heads/main","audiences":["api://AzureADTokenExchange"]}'
+```
