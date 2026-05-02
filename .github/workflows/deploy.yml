@@ -58,7 +58,10 @@ jobs:
 
       - name: Terraform plan
         working-directory: terraform
-        run: terraform plan -no-color -var "env=prod"
+        run: |
+          terraform plan -no-color \
+            -var "env=prod" \
+            -var "image_tag=${{ github.sha }}"
 
   apply:
     runs-on: ubuntu-latest
