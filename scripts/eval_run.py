@@ -83,6 +83,7 @@ async def _main(
     generate: bool,
     generator_provider: str,
     generator_model: str,
+    refusal_score_threshold: float | None,
     judge: bool,
     judge_provider: str,
     judge_model: str,
@@ -196,6 +197,7 @@ async def _main(
             llm=generator_llm,
             prompt=load_prompt_by_name("answer"),
             model=generator_model,
+            refusal_score_threshold=refusal_score_threshold,
         )
         print(f"Generating answers via {generator_provider} with {generator_model}")
 
@@ -233,6 +235,7 @@ async def _main(
             "generate": generate,
             "generator_provider": generator_provider if generate else None,
             "generator_model": generator_model if generate else None,
+            "refusal_score_threshold": refusal_score_threshold,
             "judge": judge,
             "judge_provider": judge_provider if judge else None,
             "judge_model": judge_model if judge else None,
@@ -330,6 +333,16 @@ if __name__ == "__main__":
         "--generator-model",
         default=None,
         help="Generator model. Defaults: 'openai/gpt-4o-mini' (openrouter), 'qwen2.5:7b' (ollama).",
+    )
+    parser.add_argument(
+        "--refusal-score-threshold",
+        type=float,
+        default=None,
+        help=(
+            "If set, Generator refuses (returns a zero-citation 'cannot answer' Answer) "
+            "when ALL top-K retrieved chunks have rerank score < this value. "
+            "Empirically calibrated per ADR 0006. Default: off (no gate)."
+        ),
     )
     parser.add_argument(
         "--judge",
@@ -482,6 +495,7 @@ if __name__ == "__main__":
             generate=args.generate,
             generator_provider=args.generator_provider,
             generator_model=generator_model,
+            refusal_score_threshold=args.refusal_score_threshold,
             judge=args.judge,
             judge_provider=args.judge_provider,
             judge_model=judge_model,
