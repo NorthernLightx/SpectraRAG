@@ -62,13 +62,14 @@ Earlier rejected: contextual retrieval (Anthropic-style blurbs) — `0001-contex
 | `--contextualize --contextualize-provider {ollama,openrouter}` | Anthropic-style contextual retrieval | opt-in (ADR 0001 rejected) |
 | `--postgres-dsn …` | Persist run to Postgres | opt-in |
 | `scripts/eval_visual.py` | Phase 3 ColQwen2 path (separate CLI) | opt-in (ADR 0004) |
+| `--refusal-score-threshold <τ>` | OOC refusal gate (returns refusal `Answer` when all top-K rerank scores < τ) | opt-in (ADR 0006 accepted opt-in; judge artifact prevents default-on) |
 
 ## Open questions / next steps
 
 - **Cloud judge calibration.** `qwen2.5:7b` as judge is inconsistent on refusals (q15/q19/q21 correctly refused but faithfulness scored 0.0; q23 refusal scored ans_rel=0.0). A cloud judge (gpt-4o-mini at ~$0.001/query) would resolve the cp ambiguity in ADRs 0002 and the OOC scoring inconsistencies.
 - **Hybrid text + visual.** ADR 0004 calls this out — text for definitional precision, visual for multi-hop / term-mismatch coverage. RRF-fuse top-K from both. Natural Phase 3.1 if/when chasing the combined number.
 - **Per-query-category routing for query expansion.** ADR 0003's q4/q11 wins are real; rewriting only multi-hop / term-mismatch queries (gated by a small classifier) would surface them without the q9/q12 cost.
-- **OOC refusal hardening.** q5/q23 don't refuse cleanly under `answer.yaml` v4. Durable fix is a rerank-score threshold gate (`if all top-K rerank scores < τ → return refusal directly`).
+- ~~**OOC refusal hardening**~~ — closed by ADR 0006 (rerank-score threshold gate, τ=0.11; ships as opt-in flag `--refusal-score-threshold` because the qwen2.5:7b judge scores gate-refusals worse than prompt-refusals on identical-correctness OOC outputs — re-evaluate after cloud judge lands).
 - **Golden v2 user review.** Queries q16–q23 (4 new papers) are draft; chunk-id verification was partial.
 - **Phase 4 follow-ups.** Scaffold landed (ADR 0005); pending: first `terraform apply` against a real Azure subscription, soak run, then a follow-up PR to flip `deploy.yml` to auto-apply on push-to-main. PII redaction processor and full `timed_event` → span migration tracked separately.
 
