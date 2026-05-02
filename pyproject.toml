@@ -36,6 +36,8 @@ dependencies = [
   "rank-bm25>=0.2.2",
   "sentence-transformers>=3.3",
   "sentry-sdk[fastapi]>=2.18",
+  "torch>=2.6",
+  "torchvision>=0.21",
 ]
 
 [project.optional-dependencies]
@@ -47,6 +49,31 @@ dev = [
   "ruff>=0.8",
   "mypy>=1.13",
   "types-pyyaml",
+]
+
+# PyTorch wheels: cu126 on Windows for the local GPU dev box (RTX 3070 cross-encoder
+# rerank). Linux (CI / cloud) keeps the default PyPI wheel (CPU-only) since the
+# regression-gate / unit suite doesn't need GPU. `explicit = true` keeps this index
+# off the resolver path for non-torch packages.
+[[tool.uv.index]]
+name = "pytorch-cu126"
+url = "https://download.pytorch.org/whl/cu126"
+explicit = true
+
+[tool.uv.sources]
+torch = [
+  { index = "pytorch-cu126", marker = "sys_platform == 'win32'" },
+]
+torchvision = [
+  { index = "pytorch-cu126", marker = "sys_platform == 'win32'" },
+]
+
+# Tell uv to resolve for both Windows + Linux so the lockfile has separate entries
+# for each (cu126 wheels on win32; CPU wheels from PyPI on linux for CI).
+[tool.uv]
+environments = [
+  "sys_platform == 'win32'",
+  "sys_platform == 'linux'",
 ]
 
 [tool.hatch.build.targets.wheel]
