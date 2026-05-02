@@ -84,6 +84,47 @@ services:
       timeout: 5s
       retries: 6
 
+  jaeger:
+    image: jaegertracing/all-in-one:1.62.0
+    container_name: rag-jaeger
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "16686:16686"  # UI
+      - "4317:4317"    # OTLP gRPC
+      - "4318:4318"    # OTLP HTTP
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:16686 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: rag-api:dev
+    container_name: rag-api
+    depends_on:
+      qdrant:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      jaeger:
+        condition: service_healthy
+    environment:
+      RAG_ENV: dev
+      RAG_LOG_LEVEL: INFO
+      RAG_QDRANT_URL: http://qdrant:6333
+      RAG_OLLAMA_BASE_URL: http://ollama:11434
+      RAG_POSTGRES_DSN: postgresql+psycopg://rag:rag@postgres:5432/rag
+      RAG_LANGFUSE_HOST: http://langfuse:3000
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
+      OTEL_SERVICE_NAME: rag-api-dev
+      # SENTRY_DSN intentionally unset; sentry stays in no-op mode locally.
+    ports:
+      - "8000:8000"
+
 volumes:
   qdrant_storage:
   postgres_data:
