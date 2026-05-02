@@ -43,5 +43,4 @@ ENV PATH="/home/app/.venv/bin:$PATH" \
 
 EXPOSE 8000
 
-# Stdout-only logging in the container — no log_file argument.
-CMD ["python", "-c", "import uvicorn; from src.api.main import create_app; uvicorn.run(create_app(log_file=None), host='0.0.0.0', port=8000)"]
+CMD ["python", "-m", "uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000"]

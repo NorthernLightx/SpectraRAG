@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -55,4 +56,5 @@ def create_app(*, log_file: Path | None = Path("logs/api.log")) -> FastAPI:
     return app
 
 
-app = create_app()
+_log_file: Path | None = None if os.getenv("RAG_ENV") == "prod" else Path("logs/api.log")
+app = create_app(log_file=_log_file)
