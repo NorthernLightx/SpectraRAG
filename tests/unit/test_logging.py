@@ -71,3 +71,35 @@ def test_no_file_sink_when_log_file_is_none(tmp_path: Path) -> None:
     log.info("stdout-only")
     # The log file we didn't create must not exist
     assert not (tmp_path / "rag.log").exists()
+
+
+def test_stdout_handler_handles_non_cp1252_chars_without_crashing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Regression: bge-m3 NaN warnings include chunk-text snippets that may
+    contain CJK / fullwidth characters (e.g. U+FF08 fullwidth left paren).
+    Windows stdout defaults to cp1252 + strict, which fails to encode these
+    — Python logging swallows the error via Handler.handleError so the
+    process keeps going, but the offending log line is *truncated* at the
+    first un-encodable char and noisy `--- Logging error ---` tracebacks
+    flood stderr. configure_logging must reconfigure stdout's error policy
+    so the full message reaches the stream."""
+    import io
+    import sys
+
+    raw = io.BytesIO()
+    cp1252_strict = io.TextIOWrapper(raw, encoding="cp1252", errors="strict")
+    monkeypatch.setattr(sys, "stdout", cp1252_strict)
+
+    configure_logging(level="WARNING", env="local")
+    log = get_logger("test")
+    log.warning(
+        "embed.skip_500",
+        text_head="prefix （fullwidth） marker_after_bad_char",  # noqa: RUF001
+    )
+
+    decoded = raw.getvalue().decode("cp1252", errors="replace")
+    # Without the fix: cp1252 encode crashes mid-message; "marker_after_bad_char"
+    # never reaches the buffer because handleError swallows after the partial write.
+    assert "embed.skip_500" in decoded
+    assert "marker_after_bad_char" in decoded

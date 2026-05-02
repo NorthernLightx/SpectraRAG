@@ -7,10 +7,12 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+from datetime import datetime
 from pathlib import Path
 
 from src.embeddings.ollama_bge import OllamaBgeEmbedder
 from src.ingestion.pipeline import ingest_paper
+from src.observability.logging import configure_logging
 from src.rag.bm25 import Bm25Index
 from src.rag.vectorstore import QdrantVectorStore
 from src.types import Paper
@@ -42,6 +44,12 @@ if __name__ == "__main__":
     parser.add_argument("--ollama", default="http://localhost:11434")
     parser.add_argument("--collection", default="papers_v1")
     args = parser.parse_args()
+
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    log_file = Path("logs") / f"ingest-{timestamp}.log"
+    configure_logging(level="INFO", env="local", log_file=log_file)
+    print(f"Logging JSON to {log_file}")
+
     asyncio.run(
         main(
             pdf_dir=args.pdf_dir,

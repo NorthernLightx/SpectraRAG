@@ -56,6 +56,15 @@ def configure_logging(
     """
     log_level = getattr(logging, level.upper(), logging.INFO)
 
+    # Windows stdout defaults to cp1252 + errors='strict', which crashes when
+    # the bge-m3 NaN-warning path tries to log a chunk_text snippet containing
+    # CJK/fullwidth chars. Python logging swallows the encode error via
+    # Handler.handleError, but the line is truncated and stderr fills with
+    # `--- Logging error ---` traces. Switching to errors='replace' lets the
+    # full message reach the stream with `?` substituted for un-encodable chars.
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(errors="replace")
+
     timestamper = structlog.processors.TimeStamper(fmt="iso", utc=True)
 
     foreign_pre_chain: list[Any] = [
