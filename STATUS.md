@@ -2,7 +2,7 @@
 
 Rolling 1-page summary of *current* project state. Append-only at phase boundaries — don't reflexively update after every run; let `data/eval/runs/` and ADRs hold per-run detail.
 
-**Last updated:** 2026-05-01.
+**Last updated:** 2026-05-02.
 
 ## Current production stack
 
@@ -46,7 +46,7 @@ CI regression gate fails the build if any of these drops by > 5%.
 | 2.1 — VLM captioning | ✅ accepted, opt-in default-off (recommended VLM `minicpm-v:8b`) | `0002-phase2-multimodal-chunks.md` |
 | 2.2 — query expansion (rewrite/HyDE/combo) | ❌ rejected default-off, kept in tree | `0003-phase22-query-expansion.md` |
 | 3 — visual retrieval (ColQwen2) | ✅ accepted as complementary path, separate CLI | `0004-phase3-visual-retrieval.md` |
-| 4 — production polish (Azure, OTel, demo) | ⏳ not started | PROJECT.md §5 |
+| 4 — production polish (Azure, OTel, Sentry) | 🟡 scaffold landed (deploy + OTel + Sentry); apply not yet run | `0005-phase4-deploy-and-observability.md` |
 
 Earlier rejected: contextual retrieval (Anthropic-style blurbs) — `0001-contextual-retrieval.md`. Rejected because it adds zero marginal value when reranker is in the pipeline.
 
@@ -70,7 +70,7 @@ Earlier rejected: contextual retrieval (Anthropic-style blurbs) — `0001-contex
 - **Per-query-category routing for query expansion.** ADR 0003's q4/q11 wins are real; rewriting only multi-hop / term-mismatch queries (gated by a small classifier) would surface them without the q9/q12 cost.
 - **OOC refusal hardening.** q5/q23 don't refuse cleanly under `answer.yaml` v4. Durable fix is a rerank-score threshold gate (`if all top-K rerank scores < τ → return refusal directly`).
 - **Golden v2 user review.** Queries q16–q23 (4 new papers) are draft; chunk-id verification was partial.
-- **Phase 4** — Azure Container Apps deploy + GitHub Actions CD + OTel SDK + Sentry + W3C trace context + field-name-aware PII redaction. Per PROJECT.md §5 Phase 4 spec.
+- **Phase 4 follow-ups.** Scaffold landed (ADR 0005); pending: first `terraform apply` against a real Azure subscription, soak run, then a follow-up PR to flip `deploy.yml` to auto-apply on push-to-main. PII redaction processor and full `timed_event` → span migration tracked separately.
 
 ## Hardware notes
 
