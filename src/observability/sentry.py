@@ -19,7 +19,8 @@ def configure_sentry() -> bool:
 
     Idempotent: subsequent calls are no-ops once Sentry is up. SDK reads the
     DSN, environment, and traces sample rate directly from env per its own
-    conventions — they are NOT routed through `Settings` (see CLAUDE.md).
+    conventions — they are NOT routed through `Settings`, which by convention
+    only carries project-prefixed `RAG_*` env vars.
     """
     global _configured
     if _configured:

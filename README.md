@@ -72,10 +72,16 @@ flowchart LR
 
 | Phase | Scope | Status |
 |-------|-------|--------|
-| 1 - Text-only baseline | Text RAG, hybrid + rerank, Langfuse, eval harness | scaffold complete |
-| 2 - Pipeline multi-modal | Figures (VLM-captioned), tables (markdown), equations | not started |
-| 3 - ColQwen2 visual path | colpali-engine, page rendering, multi-vector Qdrant, multi-modal generator | not started |
-| 4 - Production polish | Terraform on Azure Container Apps, full CI/CD, guardrails, ADRs | not started |
+| 1 — Text-only baseline | BM25 + dense + RRF + BGE rerank, generator, RAGAS-style judge | ✅ closed (`baseline.json` = `7b5242df5b38`) |
+| 2.0 — Figure + table extraction | PyMuPDF figures + tables → chunks | ✅ accepted, opt-in via `--extract-figures --extract-tables` |
+| 2.1 — VLM captioning | Vision-LM captions for figures (recommended `minicpm-v:8b`) | ✅ accepted, opt-in via `--vlm-caption-model` |
+| 2.2 — Query expansion | LLM rewrite / HyDE / combo with RRF fusion | ❌ rejected default-off; per-query wins kept in tree |
+| 3 — Visual retrieval | ColQwen2 multi-vector + late-interaction MaxSim | ✅ accepted as complementary path (`scripts/eval_visual.py`) |
+| 3.1 — Hybrid text + visual fusion | Offline RRF over text+visual at page granularity, golden v3 | ✅ closed; rejected as default — figure/table subset shows +1.9% nDCG@5, motivating routing |
+| 3.2 — Per-query routing | Route by query category (text-only vs hybrid) | 🟡 next priority |
+| 4 — Production polish | Terraform / Azure Container Apps / OTel / Sentry | 🟡 scaffold landed; first apply pending |
+
+ADRs cover every non-obvious decision in [`docs/decisions/`](./docs/decisions/).
 
 ---
 
@@ -132,8 +138,38 @@ Modules added in later phases: `src/ingestion/`, `src/rag/`, `src/prompts/`,
 
 ## Eval results
 
-Eval results table will be populated once Phase 1 retrieval lands. See
-`docs/evals.md` (created in Phase 4 docs polish) for methodology.
+Golden v2 — 5 papers, 23 queries (17 in-corpus). Production stack:
+BM25 + dense + RRF → BGE-v2-m3 cross-encoder rerank → qwen2.5:7b
+generate + judge.
+
+| Metric | Value |
+|---|---|
+| nDCG@5 (in-corpus macro) | 0.7214 |
+| recall@10 (in-corpus macro) | 0.9412 |
+| MRR (in-corpus macro) | 0.7437 |
+| citation grounding | 1.0000 |
+| faithfulness (LLM judge) | 0.8587 |
+| answer relevance (LLM judge) | 0.8261 |
+| context precision (LLM judge) | 0.6304 |
+| p50 whole-query latency | ~73 s |
+| p50 rerank stage on GPU | ~5.5 s |
+
+CI regression gate fails the build if any metric drops by > 5%
+(`scripts/check_regression.py`).
+
+Phase 3.1 follow-up — golden v3 (39 queries, 20 papers, retrieval-only):
+
+| Stack | nDCG@5 | recall@10 | MRR |
+|---|---|---|---|
+| text @ page (chunks → page granularity) | **0.8628** | 1.0000 | **0.8167** |
+| visual (ColQwen2-v1.0 only) | 0.6780 | 0.9677 | 0.6637 |
+| hybrid (RRF text + visual at page level) | 0.8226 | 1.0000 | 0.7826 |
+
+The split that motivates Phase 3.2 routing: on the 14 figure/table-targeted
+queries (q24–q39 in-corpus), hybrid edges text @ page (+1.9% nDCG@5);
+on the 17 definitional v2 queries, hybrid loses (−10.6%).
+Full analysis in
+[`docs/decisions/0007-phase31-corpus-expansion-and-hybrid-fusion.md`](./docs/decisions/0007-phase31-corpus-expansion-and-hybrid-fusion.md).
 
 ---
 

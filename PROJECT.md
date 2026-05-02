@@ -1,7 +1,8 @@
 # Multi-modal Paper RAG — Project Specification
 
-> Handoff document for Claude Code. This is the source of truth for scope,
-> stack, architecture, and what NOT to build. Read in full before scaffolding.
+> Source of truth for the project's scope, stack, architecture, and the
+> anti-rules that bound it. Read in full before adding new modules,
+> dependencies, or abstractions.
 
 ---
 

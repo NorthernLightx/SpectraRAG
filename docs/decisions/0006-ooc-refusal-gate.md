@@ -8,7 +8,7 @@ unchanged.
 
 ## Context
 
-`STATUS.md` (open questions) explicitly called out:
+A pre-existing open question carried into this work:
 
 > **OOC refusal hardening.** q5/q23 don't refuse cleanly under `answer.yaml` v4.
 > Durable fix is a rerank-score threshold gate (`if all top-K rerank scores < τ →
@@ -24,7 +24,7 @@ q15, q17, q19, q21, q23).  In that baseline:
   produced "Not stated in the provided context" (prompt text), not the clean gate
   text.
 - q15, q19, q21 — prompt-based refusal worked, but judge scored `answer_relevance
-  = 0.0` on all of them (qwen2.5:7b judge artefact documented in STATUS.md).
+  = 0.0` on all of them (a known qwen2.5:7b judge artefact).
 - q17 — leaked through entirely (top-1 rerank score 0.58; query mentions the
   paper's exact entity name, fooling the cross-encoder).
 
@@ -198,7 +198,7 @@ Concrete evidence:
 4. q17 — `faithfulness` was 0.75 in the baseline run and 0.0 in this run for the
    same generation pattern. Pure non-determinism in the judge.
 
-This matches the cloud-judge calibration open question in STATUS.md. The qwen2.5:7b
+This matches the standing cloud-judge-calibration open question. The qwen2.5:7b
 judge is unreliable for evaluating refusals. When the cloud judge (gpt-4o-mini or
 similar) lands, a re-run with τ = 0.11 should score the gate's refusal text at
 `answer_relevance = 1.0` and `faithfulness = 1.0` on OOC queries — at which point
@@ -257,7 +257,6 @@ feature ships in-tree as an opt-in with the upgrade path documented.
 
 ## References
 
-- `STATUS.md` — OOC refusal hardening bullet (open questions section).
 - ADR 0001 (`docs/decisions/0001-contextual-retrieval.md`) — Rejected; established
   the pattern of "real wins exist, ships in-tree as opt-in."
 - ADR 0003 (`docs/decisions/0003-phase22-query-expansion.md`) — Rejected; same
@@ -268,4 +267,3 @@ feature ships in-tree as an opt-in with the upgrade path documented.
   conditions, false-refusal guard.
 - `data/eval/runs/run-20260502-211555.json` — gate-run data (run id `47a9c3eaca0e`).
 - `data/eval/baseline.json` — baseline (run id `7b5242df5b38`).
-- `docs/superpowers/plans/2026-05-02-ooc-refusal-gate.md` — experiment plan.

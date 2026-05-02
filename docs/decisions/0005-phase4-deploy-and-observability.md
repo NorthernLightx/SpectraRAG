@@ -12,8 +12,8 @@ PROJECT.md §5 calls for: Terraform → Azure Container Apps deploy, GitHub
 Actions full CI/CD, OpenTelemetry SDK with auto-instrumentation, OTLP
 exporter, span hierarchy on `/answer`, OTel metrics for tokens / latency /
 errors, Sentry, W3C `traceparent` propagation, field-name-aware PII
-redaction, and a rotating-file handler decision. STATUS.md confirms Phase 3
-closed 2026-05-01. This ADR covers the scaffold subset the user requested:
+redaction, and a rotating-file handler decision. Phase 3 closed 2026-05-01
+(see ADR 0004). This ADR covers the scaffold subset the user requested:
 **deploy infra + OTel SDK + Sentry**. PII redaction, caching, demo, and a
 full `timed_event` → span migration are explicitly deferred.
 
@@ -22,8 +22,9 @@ full `timed_event` → span migration are explicitly deferred.
 ### 1. SDKs follow the Langfuse no-op-when-unconfigured pattern
 `configure_otel()` and `configure_sentry()` mirror `make_langfuse_client`:
 read SDK-native env vars (`OTEL_EXPORTER_OTLP_ENDPOINT`, `SENTRY_DSN`),
-return early when unset. They are NOT in `Settings` — CLAUDE.md says
-third-party SDK env vars stay out of `Settings`. Tests can run without an
+return early when unset. They are NOT in `Settings` — by convention, only
+project-prefixed `RAG_*` env vars go through `Settings`; third-party SDK
+env vars stay outside. Tests can run without an
 OTLP collector or Sentry project. Idempotent so duplicate calls (test
 fixtures, FastAPI reload) don't double-register handlers.
 
@@ -36,8 +37,8 @@ to it). 12-factor; deferred to Phase 4.x if a separate handler is needed.
 ### 3. OTel and structlog coexist; no `timed_event` removal
 PROJECT.md §5 says spans "replace flat `*.done` events." In practice they
 serve different consumers (grep/jq vs. trace UI) and removing the log
-records would break the existing `logs/*.log` analysis workflow described
-in CLAUDE.md. Spans are added at the seams (`/answer`, retrieve, generate)
+records would break the existing `logs/*.log` analysis workflow used for
+local debugging. Spans are added at the seams (`/answer`, retrieve, generate)
 as a working demonstration; the structlog records stay. Future migration
 is a separate ADR.
 
@@ -80,7 +81,6 @@ ship in their own commits.
 ## References
 
 - `PROJECT.md` §5.
-- `STATUS.md` Phase status table.
 - `src/observability/langfuse.py` — pattern reference for no-op SDKs.
 - `src/observability/logging.py` — `truncate_long_strings()` placeholder.
 - ADR 0004 — Phase 3 (closed prerequisite).

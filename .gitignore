@@ -46,11 +46,27 @@ logs/
 qdrant_storage/
 postgres_data/
 
-# Claude Code local session state
+# Coding-agent / LLM-tooling local state and agent-specific docs
 .claude/
+.cursor/
+.windsurfrules
+.aider*
+CLAUDE.md
+GEMINI.md
+AGENTS.md
+docs/superpowers/
 
 # Git worktrees (isolated dev workspaces)
 .worktrees/
+
+# Coverage / packaging leftovers
+.coverage.*
+coverage.xml
+.tox/
+__pypackages__/
+
+# Internal rolling-state notes (per-author project tracking; not for public repo)
+STATUS.md
 
 # Terraform local state (.terraform.lock.hcl IS committed for provider pinning)
 **/.terraform/
