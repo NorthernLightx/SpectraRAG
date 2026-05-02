@@ -23,7 +23,6 @@ on:
 permissions:
   contents: read
   id-token: write    # OIDC to Azure
-  pull-requests: write
 
 concurrency:
   group: deploy-${{ github.event.inputs.env || github.ref }}
