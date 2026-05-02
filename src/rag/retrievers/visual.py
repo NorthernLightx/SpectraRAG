@@ -106,26 +106,58 @@ class VisualRetriever:
             return dict(zip(chunk_ids, row.tolist(), strict=True))
 
 
+def _select_col_classes(model_name: str) -> tuple[Any, Any]:
+    """Pick the colpali-engine model + processor pair for a given HF model id.
+
+    The colpali-engine library has separate classes per backbone family
+    (ColQwen2 vs ColQwen2_5 vs ColPali). We dispatch on the model name so
+    callers can swap backbones via config without touching this file."""
+    from colpali_engine.models import (
+        ColPali,
+        ColPaliProcessor,
+        ColQwen2,
+        ColQwen2_5,
+        ColQwen2_5_Processor,
+        ColQwen2Processor,
+    )
+
+    name = model_name.lower()
+    if "colqwen2.5" in name:
+        return ColQwen2_5, ColQwen2_5_Processor
+    if "colqwen2" in name:
+        return ColQwen2, ColQwen2Processor
+    if "colpali" in name:
+        return ColPali, ColPaliProcessor
+    raise ValueError(
+        f"unsupported visual model {model_name!r} — expected a vidore/colqwen2*, "
+        "vidore/colqwen2.5*, or vidore/colpali* checkpoint"
+    )
+
+
 async def build_visual_retriever(
     pages_by_paper: dict[str, list[tuple[int, Path]]],
     *,
     model_name: str = "vidore/colqwen2-v1.0",
     device: str = "cuda",
 ) -> VisualRetriever:
-    """Load ColQwen2, embed every supplied page, return a ready retriever.
+    """Load a Col* visual retriever, embed every supplied page, return it.
 
     `pages_by_paper` maps `paper_id -> [(page_number, image_path), ...]`.
     Embedding runs in a worker thread via `asyncio.to_thread` so the caller's
-    event loop isn't blocked on the GPU work.
+    event loop isn't blocked on the GPU work. The model class is picked from
+    the name. Default is ColQwen2-v1.0 (Qwen2-VL-2B backbone, ~4 GB VRAM at
+    bf16). ColQwen2.5-v0.2 (Qwen2.5-VL-3B, ~6 GB) is the 2025 upgrade and
+    works on hardware with ≥7 GB free GPU; on the 8 GB RTX 3070 dev box used
+    here, the Windows desktop compositor + Ollama runtime hold ~3 GB and the
+    bigger model OOMs. Pass `--model vidore/colqwen2.5-v0.2` on a roomier GPU.
     """
-    from colpali_engine.models import ColQwen2, ColQwen2Processor
-
+    model_cls, processor_cls = _select_col_classes(model_name)
     dtype = torch.bfloat16 if device.startswith("cuda") else torch.float32
 
     def _load() -> tuple[Any, Any]:
-        m = ColQwen2.from_pretrained(model_name, torch_dtype=dtype, device_map=device)
-        m.train(False)  # inference mode (equivalent to .eval())
-        p = ColQwen2Processor.from_pretrained(model_name)
+        m = model_cls.from_pretrained(model_name, torch_dtype=dtype, device_map=device)
+        m.train(False)  # set inference mode
+        p = processor_cls.from_pretrained(model_name)
         return m, p
 
     model, processor = await asyncio.to_thread(_load)
