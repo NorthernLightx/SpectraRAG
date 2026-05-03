@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from pydantic import Field
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DEFAULT_CONFIG_PATH = Path(__file__).parent / "default.yaml"
@@ -32,8 +32,10 @@ class Settings(BaseSettings):
     env: str = "local"
     log_level: str = "INFO"
 
-    default_chat_model: str = "anthropic/claude-3.5-sonnet"
+    default_chat_model: str = "anthropic/claude-sonnet-4.6"
     default_embed_model: str = "bge-m3"
+
+    openrouter_api_key: SecretStr | None = None
 
     top_k: int = Field(default=5, ge=1)
     rerank_top_k: int = Field(default=50, ge=1)

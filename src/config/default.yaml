@@ -3,7 +3,7 @@ env: local
 log_level: INFO
 
 # Models
-default_chat_model: anthropic/claude-3.5-sonnet
+default_chat_model: anthropic/claude-sonnet-4.6
 default_embed_model: bge-m3
 
 # Retrieval
