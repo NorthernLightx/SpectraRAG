@@ -10,16 +10,21 @@ from pydantic import SecretStr
 from src.config.settings import Settings, load_settings
 
 
-def test_load_defaults_from_yaml(tmp_path: Path) -> None:
+def test_load_defaults_from_yaml(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """YAML values flow through when no env var is set. Uses sentinel values
+    so a developer's local .env (loaded at module import) cannot mask the
+    YAML path under test."""
     yaml_file = tmp_path / "default.yaml"
     yaml_file.write_text(
-        "default_chat_model: anthropic/claude-3.5-sonnet\n"
+        "default_chat_model: yaml-sentinel-model\n"
         "default_embed_model: bge-m3\n"
         "top_k: 5\n"
         "rerank_top_k: 50\n"
     )
+    monkeypatch.delenv("RAG_DEFAULT_CHAT_MODEL", raising=False)
+    monkeypatch.delenv("RAG_TOP_K", raising=False)
     settings = load_settings(config_path=yaml_file)
-    assert settings.default_chat_model == "anthropic/claude-3.5-sonnet"
+    assert settings.default_chat_model == "yaml-sentinel-model"
     assert settings.top_k == 5
 
 
