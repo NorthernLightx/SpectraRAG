@@ -2,14 +2,31 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from typing import Any
 
+import pytest
 from fastapi.testclient import TestClient
 
-from src.api.deps import get_generator, get_retriever, get_tracer
+from src.api.deps import _GeneratorState, _RetrieverState, get_generator, get_retriever, get_tracer
 from src.api.main import create_app
 from src.types import Answer, Citation, Query, RetrievalResult
 from tests.fakes import FakeRetriever
+
+
+@pytest.fixture(autouse=True)
+def _reset_module_state(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+    """Module-level _GeneratorState / _RetrieverState leak across tests; reset around each.
+
+    Also clears RAG_OPENROUTER_API_KEY so create_app() default tests don't see a key
+    leaked from the dev shell.
+    """
+    monkeypatch.delenv("RAG_OPENROUTER_API_KEY", raising=False)
+    _GeneratorState.instance = None
+    _RetrieverState.instance = None
+    yield
+    _GeneratorState.instance = None
+    _RetrieverState.instance = None
 
 
 class _StubGenerator:
@@ -126,3 +143,24 @@ def test_answer_route_works_without_tracer() -> None:
 
 def _unused_query() -> Query:
     return Query(text="placeholder")
+
+
+def test_create_app_wires_generator_when_openrouter_key_set(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """RAG_OPENROUTER_API_KEY in env → create_app() builds + registers a Generator.
+
+    No HTTP traffic asserted; we're verifying the wiring path
+    Settings → OpenRouterClient → Generator → set_generator().
+    """
+    from src.rag.generate import Generator
+
+    monkeypatch.setenv("RAG_OPENROUTER_API_KEY", "sk-or-v1-test")
+    create_app(log_file=None)
+    assert isinstance(_GeneratorState.instance, Generator)
+
+
+def test_create_app_does_not_wire_generator_when_key_unset() -> None:
+    """Without the key, _GeneratorState stays None — /answer returns 503 by design."""
+    create_app(log_file=None)
+    assert _GeneratorState.instance is None
