@@ -1,12 +1,70 @@
-"""Phase 3.2 routing — classify_query precedence + Query.force_route field per ADR 0008."""
+"""Phase 3.2 routing — classify_query precedence + Query.force_route field per ADR 0008.
+
+Also covers RoutingRetriever dispatch, page-level RRF fusion, and visual-leg
+fallback per ADR 0008 §"Architecture" + §"Failure modes".
+"""
 
 from __future__ import annotations
 
 import pytest
 from pydantic import ValidationError
 
-from src.rag.retrievers.routing import Category, classify_query
-from src.types import Query
+from src.rag.retrievers.routing import (
+    Category,
+    RoutingRetriever,
+    classify_query,
+)
+from src.types import Query, RetrievalResult
+
+
+class _RecordingRetriever:
+    """Test fake: records call count, returns canned results."""
+
+    def __init__(self, name: str, results: list[RetrievalResult]) -> None:
+        self.name = name
+        self.results = results
+        self.calls = 0
+
+    async def retrieve(self, query: Query) -> list[RetrievalResult]:
+        self.calls += 1
+        return self.results
+
+
+class _FailingRetriever:
+    """Test fake: raises on retrieve. Used for visual-leg failure tests."""
+
+    def __init__(self, exc: Exception) -> None:
+        self.exc = exc
+        self.calls = 0
+
+    async def retrieve(self, query: Query) -> list[RetrievalResult]:
+        self.calls += 1
+        raise self.exc
+
+
+def _text_chunk(
+    chunk_id: str, score: float, page: int = 1, paper: str = "paper1"
+) -> RetrievalResult:
+    return RetrievalResult(
+        chunk_id=chunk_id,
+        paper_id=paper,
+        score=score,
+        text="text chunk",
+        page_numbers=[page],
+        source="pipeline",
+    )
+
+
+def _visual_page(page: int, score: float, paper: str = "paper1") -> RetrievalResult:
+    """Mirrors visual.py's chunk_id convention: <paper>::p<n>::page."""
+    return RetrievalResult(
+        chunk_id=f"{paper}::p{page}::page",
+        paper_id=paper,
+        score=score,
+        text=f"[Page image {paper} p{page}]",
+        page_numbers=[page],
+        source="visual",
+    )
 
 
 @pytest.mark.parametrize(
@@ -72,3 +130,134 @@ def test_query_force_route_rejects_invalid_literal() -> None:
     """Pydantic Literal validation should reject anything outside {text, hybrid, None}."""
     with pytest.raises(ValidationError):
         Query(text="hello", top_k=5, force_route="visual")
+
+
+# --------------------------------------------------------------------------
+# RoutingRetriever
+# --------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_routes_text_only_for_definitional_query() -> None:
+    """definitional category → text-only path; visual leg never invoked."""
+    text = _RecordingRetriever("text", [_text_chunk("paper1::p1::c0", 0.9)])
+    visual = _RecordingRetriever("visual", [_visual_page(2, 0.5)])
+    router = RoutingRetriever(text=text, visual=visual)
+
+    results = await router.retrieve(Query(text="What does the model do?", top_k=5))
+
+    assert text.calls == 1
+    assert visual.calls == 0
+    assert len(results) == 1
+    assert results[0].chunk_id == "paper1::p1::c0"
+
+
+@pytest.mark.asyncio
+async def test_routes_hybrid_for_figure_query() -> None:
+    """figure category → hybrid path; both retrievers invoked."""
+    text = _RecordingRetriever("text", [_text_chunk("paper1::p1::c0", 0.9)])
+    visual = _RecordingRetriever("visual", [_visual_page(2, 0.7)])
+    router = RoutingRetriever(text=text, visual=visual)
+
+    results = await router.retrieve(Query(text="Show Figure 3 architecture", top_k=5))
+
+    assert text.calls == 1
+    assert visual.calls == 1
+    assert len(results) >= 1
+
+
+@pytest.mark.asyncio
+async def test_force_route_text_skips_visual_even_for_figure_query() -> None:
+    """force_route='text' overrides the classifier — visual never invoked."""
+    text = _RecordingRetriever("text", [_text_chunk("paper1::p1::c0", 0.9)])
+    visual = _RecordingRetriever("visual", [_visual_page(2, 0.7)])
+    router = RoutingRetriever(text=text, visual=visual)
+
+    await router.retrieve(Query(text="Show Figure 3", top_k=5, force_route="text"))
+
+    assert text.calls == 1
+    assert visual.calls == 0
+
+
+@pytest.mark.asyncio
+async def test_force_route_hybrid_overrides_definitional() -> None:
+    """force_route='hybrid' overrides the classifier — visual is invoked."""
+    text = _RecordingRetriever("text", [_text_chunk("paper1::p1::c0", 0.9)])
+    visual = _RecordingRetriever("visual", [_visual_page(2, 0.7)])
+    router = RoutingRetriever(text=text, visual=visual)
+
+    await router.retrieve(Query(text="What does the model do?", top_k=5, force_route="hybrid"))
+
+    assert text.calls == 1
+    assert visual.calls == 1
+
+
+@pytest.mark.asyncio
+async def test_page_level_fusion_merges_same_page() -> None:
+    """text chunk on page 1 + visual page 1 → fused result has ONE entry for page 1.
+
+    Page-keyed deduplication: text chunks normalise to their page-id before RRF
+    so the same page from both legs doesn't double-count. The text RetrievalResult
+    is preferred when both legs hit a page (chunk-level provenance > page-level)."""
+    text = _RecordingRetriever("text", [_text_chunk("paper1::p1::c5", 0.9, page=1)])
+    visual = _RecordingRetriever("visual", [_visual_page(1, 0.8)])
+    router = RoutingRetriever(text=text, visual=visual)
+
+    results = await router.retrieve(Query(text="Compare Figure 1 layouts", top_k=5))
+
+    pages = [r.page_numbers[0] for r in results]
+    assert pages.count(1) == 1, f"page 1 should appear exactly once, got {pages}"
+    page1 = next(r for r in results if r.page_numbers == [1])
+    assert page1.source == "pipeline"
+    assert page1.chunk_id == "paper1::p1::c5"
+
+
+@pytest.mark.asyncio
+async def test_page_level_fusion_keeps_visual_only_pages() -> None:
+    """Visual hit on page 5 (no text hit there) → fused result keeps that page
+    via the visual RetrievalResult."""
+    text = _RecordingRetriever("text", [_text_chunk("paper1::p1::c0", 0.9, page=1)])
+    visual = _RecordingRetriever("visual", [_visual_page(5, 0.8)])
+    router = RoutingRetriever(text=text, visual=visual)
+
+    results = await router.retrieve(Query(text="Compare Figure in Table 5", top_k=5))
+
+    pages = sorted({r.page_numbers[0] for r in results})
+    assert pages == [1, 5]
+    page5 = next(r for r in results if r.page_numbers == [5])
+    assert page5.source == "visual"
+    assert page5.chunk_id == "paper1::p5::page"
+
+
+@pytest.mark.asyncio
+async def test_visual_failure_falls_back_to_text() -> None:
+    """Visual leg raises → log warning, return text-only results, do NOT propagate."""
+    text = _RecordingRetriever("text", [_text_chunk("paper1::p1::c0", 0.9)])
+    visual = _FailingRetriever(RuntimeError("CUDA out of memory"))
+    router = RoutingRetriever(text=text, visual=visual)
+
+    results = await router.retrieve(Query(text="Show Figure 3", top_k=5))
+
+    assert text.calls == 1
+    assert visual.calls == 1  # was attempted
+    assert len(results) == 1
+    assert results[0].chunk_id == "paper1::p1::c0"
+    assert results[0].source == "pipeline"
+
+
+@pytest.mark.asyncio
+async def test_top_k_limits_hybrid_fused_results() -> None:
+    """RRF fusion respects top_k. 5 disjoint text + 5 disjoint visual pages, top_k=3 → 3 fused."""
+    text = _RecordingRetriever(
+        "text",
+        [_text_chunk(f"paper1::p{i}::c0", 0.9 - i * 0.01, page=i) for i in range(1, 6)],
+    )
+    visual = _RecordingRetriever(
+        "visual",
+        [_visual_page(page=i + 10, score=0.7 - i * 0.01) for i in range(1, 6)],
+    )
+    router = RoutingRetriever(text=text, visual=visual)
+
+    results = await router.retrieve(Query(text="Compare Figure 1 vs Figure 2", top_k=3))
+
+    assert len(results) == 3
