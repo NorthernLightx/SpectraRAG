@@ -76,3 +76,20 @@ def test_default_chat_model_is_current_sonnet(monkeypatch: pytest.MonkeyPatch) -
     assert settings.default_chat_model.startswith("anthropic/claude-sonnet-4"), (
         f"expected sonnet-4.x, got {settings.default_chat_model!r}"
     )
+
+
+def test_enable_routing_defaults_to_true(monkeypatch: pytest.MonkeyPatch) -> None:
+    """ADR 0008 §"Decision": routing on by default when a visual leg is available."""
+    monkeypatch.delenv("RAG_ENABLE_ROUTING", raising=False)
+    assert Settings().enable_routing is True
+
+
+def test_enable_routing_can_be_disabled_via_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("RAG_ENABLE_ROUTING", "false")
+    assert Settings().enable_routing is False
+
+
+def test_visual_model_defaults_to_colqwen2_v1(monkeypatch: pytest.MonkeyPatch) -> None:
+    """ADR 0008 caveat — pinned to the 4 GB-VRAM-fitting checkpoint by default."""
+    monkeypatch.delenv("RAG_VISUAL_MODEL", raising=False)
+    assert Settings().visual_model == "vidore/colqwen2-v1.0"

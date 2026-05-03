@@ -37,12 +37,21 @@ class Settings(BaseSettings):
 
     default_chat_model: str = "anthropic/claude-sonnet-4.6"
     default_embed_model: str = "bge-m3"
+    # ADR 0008: ColPali-family checkpoint for the visual leg of routing.
+    # Default fits the 8 GB RTX 3070 dev box; the 3 B+ tier (ColQwen2.5-v0.2,
+    # ColQwen3, etc.) needs ≥7 GB free GPU and is opt-in via this knob.
+    visual_model: str = "vidore/colqwen2-v1.0"
 
     openrouter_api_key: SecretStr | None = None
 
     top_k: int = Field(default=5, ge=1)
     rerank_top_k: int = Field(default=50, ge=1)
     hybrid_alpha: float = Field(default=0.5, ge=0.0, le=1.0)
+    # ADR 0008: when True (default) and a visual retriever is wired,
+    # /answer dispatches via RoutingRetriever (text-only vs RRF-fused
+    # text+visual per query category). False forces text-only — useful for
+    # baseline comparisons or when the visual model is unavailable.
+    enable_routing: bool = True
 
     max_context_tokens: int = Field(default=8000, ge=512)
     temperature: float = Field(default=0.2, ge=0.0, le=2.0)
