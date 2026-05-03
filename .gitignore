@@ -67,6 +67,7 @@ __pypackages__/
 
 # Internal rolling-state notes (per-author project tracking; not for public repo)
 STATUS.md
+docs/mvp-plan.md
 
 # Terraform local state (.terraform.lock.hcl IS committed for provider pinning)
 **/.terraform/
