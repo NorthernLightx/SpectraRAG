@@ -1,4 +1,7 @@
-"""Runtime configuration: Pydantic Settings layered over a YAML default."""
+"""Runtime configuration: Pydantic Settings layered over a YAML default.
+
+.env is loaded once in src/__init__.py before any os.environ.get() runs.
+"""
 
 from __future__ import annotations
 
@@ -7,16 +10,8 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from dotenv import load_dotenv
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
-# Load .env into os.environ at import time so eval scripts, FastAPI startup, and
-# ad-hoc Python sessions all see the same secrets without each wiring its own
-# dotenv loader. Existing env vars win (load_dotenv defaults to override=False),
-# which keeps CI / shell exports authoritative over a stale checked-in file.
-# .env itself is gitignored (.gitignore covers .env, .env.local, .env.*.local).
-load_dotenv()
 
 DEFAULT_CONFIG_PATH = Path(__file__).parent / "default.yaml"
 _ENV_PREFIX = "RAG_"
