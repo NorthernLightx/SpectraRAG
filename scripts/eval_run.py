@@ -36,6 +36,7 @@ from src.eval.runner import evaluate
 from src.eval.storage import make_engine, write_eval_run
 from src.ingestion.captioner import OllamaVisionCaptioner
 from src.ingestion.pipeline import ingest_paper
+from src.ingestion.visual import render_pages
 from src.llm.ollama_chat import OllamaChatClient
 from src.llm.openrouter import OpenRouterClient
 from src.llm.protocol import LLMClient
@@ -48,6 +49,8 @@ from src.rag.rerank import BgeReranker
 from src.rag.retrievers.multi_query import ExpansionMode, MultiQueryRetriever
 from src.rag.retrievers.pipeline import PipelineRetriever
 from src.rag.retrievers.protocol import Retriever
+from src.rag.retrievers.routing import RoutingRetriever
+from src.rag.retrievers.visual import build_visual_retriever
 from src.rag.vectorstore import QdrantVectorStore
 from src.types import Chunk, Paper
 
@@ -101,6 +104,11 @@ async def _main(
     query_expansion_provider: str,
     query_expansion_model: str,
     query_expansion_n: int,
+    router: bool,
+    visual_model: str,
+    visual_device: str,
+    pages_dir: Path,
+    pages_dpi: int,
 ) -> None:
     log = get_logger("scripts.eval_run")
     log.info(
@@ -185,6 +193,27 @@ async def _main(
             f"(mode={query_expansion_mode}, n_rewrites={query_expansion_n})"
         )
 
+    if router:
+        # Phase 3.2 router (ADR 0008): wrap the text retriever (already
+        # query-expanded if requested) with RoutingRetriever so figure/table/
+        # multi_hop queries get RRF-fused with the visual leg at page
+        # granularity. Render PDF pages first (idempotent — render_pages
+        # caches), then build ColQwen2 page embeddings (slow, GPU-heavy).
+        pages_by_paper: dict[str, list[tuple[int, Path]]] = {}
+        for pdf_path in pdf_paths:
+            paper_id = pdf_path.stem
+            rendered = render_pages(paper_id, pdf_path, out_dir=pages_dir, dpi=pages_dpi)
+            pages_by_paper[paper_id] = [(p.page_number, p.image_path) for p in rendered]
+        print(
+            f"Building visual retriever ({visual_model}, device={visual_device}) "
+            f"over {sum(len(v) for v in pages_by_paper.values())} pages..."
+        )
+        visual_retriever = await build_visual_retriever(
+            pages_by_paper, model_name=visual_model, device=visual_device
+        )
+        retriever = RoutingRetriever(text=retriever, visual=visual_retriever)
+        print("Routing enabled — text leg + ColQwen2 visual leg fused per query category.")
+
     golden_set = load_golden_set(golden_path)
     print(
         f"Loaded golden set {golden_set.name} {golden_set.version} ({len(golden_set.queries)} queries)"
@@ -247,6 +276,9 @@ async def _main(
             "query_expansion_mode": query_expansion_mode if query_expansion else None,
             "query_expansion_model": query_expansion_model if query_expansion else None,
             "query_expansion_n": query_expansion_n if query_expansion else None,
+            "router": router,
+            "visual_model": visual_model if router else None,
+            "visual_device": visual_device if router else None,
         },
     )
 
@@ -458,6 +490,40 @@ if __name__ == "__main__":
         default=3,
         help="Number of rewrites to request (rewrite/combo modes). Default 3.",
     )
+    parser.add_argument(
+        "--router",
+        action="store_true",
+        help=(
+            "Phase 3.2 (ADR 0008): wrap the text retriever in RoutingRetriever, "
+            "build a ColQwen2 visual leg, and fuse text+visual via RRF at page "
+            "granularity for figure/table/multi_hop queries. GPU-heavy first run."
+        ),
+    )
+    parser.add_argument(
+        "--visual-model",
+        default="vidore/colqwen2-v1.0",
+        help=(
+            "Visual model checkpoint for the routing leg. Default fits the 8 GB "
+            "RTX 3070 dev box; bump to colqwen2.5-v0.2 / colqwen3 on roomier GPU."
+        ),
+    )
+    parser.add_argument(
+        "--visual-device",
+        default="cuda",
+        help="torch device for the visual model. Use 'cpu' if no GPU available.",
+    )
+    parser.add_argument(
+        "--pages-dir",
+        type=Path,
+        default=Path("data/pages"),
+        help="Where to cache rendered PDF page PNGs. Idempotent — re-runs reuse cached files.",
+    )
+    parser.add_argument(
+        "--pages-dpi",
+        type=int,
+        default=150,
+        help="DPI for rendered page PNGs. Higher = better visual signal, larger files.",
+    )
     args = parser.parse_args()
 
     _provider_default_model = {
@@ -513,5 +579,10 @@ if __name__ == "__main__":
             query_expansion_provider=args.query_expansion_provider,
             query_expansion_model=query_expansion_model,
             query_expansion_n=args.query_expansion_n,
+            router=args.router,
+            visual_model=args.visual_model,
+            visual_device=args.visual_device,
+            pages_dir=args.pages_dir,
+            pages_dpi=args.pages_dpi,
         )
     )
