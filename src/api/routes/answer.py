@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 
 from src.api.deps import get_generator, get_retriever, get_tracer
+from src.api.rate_limit import limiter
 from src.observability.langfuse import LangfuseLike, trace_query
 from src.observability.otel import get_tracer as get_otel_tracer
 from src.rag.generate import Generator
@@ -14,8 +15,14 @@ from src.types import Answer, Query
 router = APIRouter()
 
 
+# Phase 2.2 — slowapi keys by `request.client.host`, so the `request: Request`
+# parameter is mandatory for the decorator to extract the IP. 10/minute is a
+# loose ceiling for a portfolio-demo backend; tune up or down as the demo
+# matures. Tests reset the limiter between cases so the limit doesn't leak.
 @router.post("/answer", response_model=Answer)
+@limiter.limit("10/minute")
 async def answer(
+    request: Request,
     payload: Query,
     retriever: Retriever = Depends(get_retriever),
     generator: Generator = Depends(get_generator),
