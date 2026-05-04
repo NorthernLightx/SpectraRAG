@@ -15,7 +15,7 @@ Usage:
   $env:RAG_OPENROUTER_API_KEY = "sk-or-v1-..."
   .venv\\Scripts\\python.exe -m scripts.spike_vision_generator
 
-Cost: ~$0.005 across all 12 calls (3 queries × 4 models). Verify on
+Cost: ~$0.005 across all 12 calls (3 queries x 4 models). Verify on
 https://openrouter.ai/activity afterwards.
 """
 
@@ -158,7 +158,7 @@ def main() -> None:
                     f"body={exc.response.text[:200]}"
                 )
                 continue
-            except Exception as exc:  # noqa: BLE001 — spike, surface anything
+            except Exception as exc:
                 print(f"\n[{model}] FAILED {type(exc).__name__}: {exc}")
                 continue
             print(
