@@ -64,6 +64,18 @@ class QdrantVectorStore:
         ]
         await self._client.upsert(collection_name=self._collection, points=points)
 
+    async def count(self) -> int:
+        """Return the number of points in the collection; 0 if it doesn't exist.
+
+        Used by `scripts/bootstrap_corpus.py` for idempotent re-runs — a populated
+        collection means ingestion already happened, skip unless --force.
+        """
+        existing = await self._client.get_collections()
+        if not any(c.name == self._collection for c in existing.collections):
+            return 0
+        result = await self._client.count(collection_name=self._collection, exact=True)
+        return int(result.count)
+
     async def search(self, vector: list[float], top_k: int) -> list[VectorMatch]:
         response = await self._client.query_points(
             collection_name=self._collection,
