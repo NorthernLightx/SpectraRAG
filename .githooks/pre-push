@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+# Pre-push gauntlet — runs the same gates as .github/workflows/ci.yml plus a
+# gitleaks scan, so the most common CI failures are caught locally before
+# anything reaches GitHub. Bypass with `git push --no-verify` if you really
+# need to (e.g., pushing in-progress work to a private branch).
+#
+# Install once per clone (this is a one-time setup, not in version control):
+#   git config core.hooksPath .githooks
+#
+# Cost: ~20-30 s on a warm cache. Skip the gitleaks step automatically if
+# Docker isn't running.
+
+set -euo pipefail
+
+if [ -t 1 ]; then
+    RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
+else
+    RED=''; GREEN=''; YELLOW=''; NC=''
+fi
+
+fail() { printf "${RED}FAIL${NC} %s\n" "$1" >&2; exit 1; }
+pass() { printf "${GREEN}ok${NC}   %s\n" "$1"; }
+warn() { printf "${YELLOW}skip${NC} %s\n" "$1"; }
+
+# Locate venv binaries regardless of activation state. .venv/Scripts on
+# Windows (Git Bash), .venv/bin on macOS / Linux.
+VENV_DIR=""
+if [ -d ".venv/Scripts" ]; then
+    VENV_DIR=".venv/Scripts"
+elif [ -d ".venv/bin" ]; then
+    VENV_DIR=".venv/bin"
+else
+    fail ".venv not found — run \`uv sync --extra dev\` first"
+fi
+
+RUFF="$VENV_DIR/ruff"
+MYPY="$VENV_DIR/mypy"
+PYTEST="$VENV_DIR/pytest"
+
+printf "pre-push gauntlet:\n"
+
+# 1. Ruff lint
+if "$RUFF" check src tests scripts >/dev/null; then
+    pass "ruff check"
+else
+    "$RUFF" check src tests scripts
+    fail "ruff check"
+fi
+
+# 2. Ruff format
+if "$RUFF" format --check src tests scripts >/dev/null; then
+    pass "ruff format"
+else
+    "$RUFF" format --check src tests scripts
+    fail "ruff format (run \`ruff format src tests scripts\` to fix)"
+fi
+
+# 3. mypy strict
+if "$MYPY" src tests >/dev/null 2>&1; then
+    pass "mypy strict"
+else
+    "$MYPY" src tests
+    fail "mypy strict"
+fi
+
+# 4. Full pytest
+if "$PYTEST" tests/ -q --no-header >/tmp/pre-push-pytest.log 2>&1; then
+    pass "pytest ($(grep -oE '[0-9]+ passed' /tmp/pre-push-pytest.log | head -1))"
+else
+    cat /tmp/pre-push-pytest.log
+    fail "pytest"
+fi
+
+# 5. gitleaks via Docker (this is the one that caught us; opt-in, never blocks
+# the push on Docker-down — that's a separate operational issue).
+if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
+    # MSYS_NO_PATHCONV=1 stops Git Bash on Windows from rewriting `/repo` (the
+    # in-container path) to its install dir; harmless no-op on macOS / Linux.
+    if MSYS_NO_PATHCONV=1 docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:latest detect --source /repo --redact --exit-code 2 >/dev/null 2>&1; then
+        pass "gitleaks"
+    else
+        printf "${RED}FAIL${NC} gitleaks — see details:\n"
+        MSYS_NO_PATHCONV=1 docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:latest detect --source /repo --redact -v --exit-code 2 || true
+        fail "gitleaks (silence false positives in .gitleaksignore or with inline \`# gitleaks:allow\` comments)"
+    fi
+else
+    warn "gitleaks (Docker not running — start Docker Desktop to enable)"
+fi
+
+printf "${GREEN}all checks passed — pushing${NC}\n"

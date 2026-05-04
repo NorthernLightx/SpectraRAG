@@ -118,6 +118,16 @@ uv run pytest -v             # unit tests
 
 CI runs the same four checks on every push and PR — see `.github/workflows/ci.yml`.
 
+To run the same gates locally before every push (plus a gitleaks secret scan
+via Docker), enable the in-tree pre-push hook once per clone:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+The hook lives at `.githooks/pre-push`; bypass with `git push --no-verify`
+when needed.
+
 ---
 
 ## Project layout
