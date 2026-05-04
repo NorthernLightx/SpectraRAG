@@ -39,27 +39,31 @@ PYTEST="$VENV_DIR/pytest"
 
 printf "pre-push gauntlet:\n"
 
+# Match the gates in .github/workflows/ci.yml exactly — running a narrower
+# subset means CI fails at the runner level on things the hook should have
+# caught (which is exactly what we're trying to prevent).
+
 # 1. Ruff lint
-if "$RUFF" check src tests scripts >/dev/null; then
+if "$RUFF" check . >/dev/null; then
     pass "ruff check"
 else
-    "$RUFF" check src tests scripts
+    "$RUFF" check .
     fail "ruff check"
 fi
 
 # 2. Ruff format
-if "$RUFF" format --check src tests scripts >/dev/null; then
+if "$RUFF" format --check . >/dev/null; then
     pass "ruff format"
 else
-    "$RUFF" format --check src tests scripts
-    fail "ruff format (run \`ruff format src tests scripts\` to fix)"
+    "$RUFF" format --check .
+    fail "ruff format (run \`ruff format .\` to fix)"
 fi
 
-# 3. mypy strict
-if "$MYPY" src tests >/dev/null 2>&1; then
+# 3. mypy strict (CI runs against src tests scripts — match that)
+if "$MYPY" src tests scripts >/dev/null 2>&1; then
     pass "mypy strict"
 else
-    "$MYPY" src tests
+    "$MYPY" src tests scripts
     fail "mypy strict"
 fi
 

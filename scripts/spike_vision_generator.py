@@ -27,6 +27,7 @@ import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import httpx
 
@@ -104,7 +105,7 @@ def encode_image(path: Path) -> str:
     return f"data:image/png;base64,{data}"
 
 
-def ask(api_key: str, model: str, query: str, image_data_url: str) -> dict:
+def ask(api_key: str, model: str, query: str, image_data_url: str) -> dict[str, Any]:
     payload = {
         "model": model,
         "messages": [
