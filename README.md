@@ -78,7 +78,7 @@ flowchart LR
 | 2.2 — Query expansion | LLM rewrite / HyDE / combo with RRF fusion | ❌ rejected default-off; per-query wins kept in tree |
 | 3 — Visual retrieval | ColQwen2 multi-vector + late-interaction MaxSim | ✅ accepted as complementary path (`scripts/eval_visual.py`) |
 | 3.1 — Hybrid text + visual fusion | Offline RRF over text+visual at page granularity, golden v3 | ✅ closed; rejected as default — figure/table subset shows +1.9% nDCG@5, motivating routing |
-| 3.2 — Per-query routing | Route by query category (text-only vs hybrid) | 🟡 next priority |
+| 3.2 — Per-query routing | Route by query category (text-only vs hybrid) per ADR 0008 | ✅ closed (run `6447247ef8e7` — hybrid-routed figure+table queries 0.876 nDCG@5 vs 0.732 on text-routed factual/equation; routing dispatches correctly per category) |
 | 4 — Production polish | Terraform / Azure Container Apps / OTel / Sentry | 🟡 scaffold landed; first apply pending |
 
 ADRs cover every non-obvious decision in [`docs/decisions/`](./docs/decisions/).
@@ -170,6 +170,30 @@ queries (q24–q39 in-corpus), hybrid edges text @ page (+1.9% nDCG@5);
 on the 17 definitional v2 queries, hybrid loses (−10.6%).
 Full analysis in
 [`docs/decisions/0007-phase31-corpus-expansion-and-hybrid-fusion.md`](./docs/decisions/0007-phase31-corpus-expansion-and-hybrid-fusion.md).
+
+Phase 3.2 router — golden v3, retrieval-only with `--rerank --router`
+(run `6447247ef8e7`, ADR 0008):
+
+| Routed category | n | mean nDCG@5 | path |
+|---|---|---|---|
+| equation | 1 | 1.000 | text-only |
+| factual | 13 | 0.712 | text-only |
+| **figure** | **11** | **0.876** | **hybrid (RRF page-level)** |
+| **table** | **4** | **0.875** | **hybrid (RRF page-level)** |
+| multi_hop | 2 | 0.619 | hybrid |
+| out_of_corpus | 8 | 0.000 | (correct — no relevant chunks) |
+| **Aggregate (in-corpus n=31)** | | **0.7942** | mixed |
+
+The router fires hybrid for `figure`/`table`/`multi_hop` and stays
+text-only for `factual`/`definitional`/`equation`, exactly per the
+ADR 0007 §"Implications" oracle. Hybrid-routed figure+table queries
+score 0.876 mean — well above the chunk-level text baseline. Text-routed
+factual queries score 0.712 — within noise of the chunk-level baseline
+0.7214 from `baseline.json`. Aggregate 0.7942 is below ADR 0007's
+all-page-level numbers because the router mixes granularities (chunk-
+level for text-only, page-level for hybrid); the per-category numbers
+are the apples-to-apples comparison.
+See [`docs/decisions/0008-phase32-routing.md`](./docs/decisions/0008-phase32-routing.md).
 
 ---
 
