@@ -47,8 +47,11 @@ resource "azurerm_container_app" "api" {
   tags                         = local.tags
 
   registry {
-    server               = azurerm_container_registry.rag.login_server
-    username             = azurerm_container_registry.rag.admin_username
+    server   = azurerm_container_registry.rag.login_server
+    username = azurerm_container_registry.rag.admin_username
+    # gitleaks:allow — value is a Terraform secret NAME (string identifier),
+    # not a hardcoded password. The actual credential value lives below in
+    # the `secret` block where it references azurerm_container_registry.rag.admin_password.
     password_secret_name = "acr-password"
   }
 

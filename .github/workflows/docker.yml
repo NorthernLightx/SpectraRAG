@@ -31,6 +31,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # The runtime image bundles torch + colpali-engine + transformers, which
+      # blow past the ~14 GB free disk on a default ubuntu-latest runner during
+      # the wheel-install phase. Free up ~15 GB by removing Android / .NET /
+      # Haskell tooling that's pre-installed but unused here. Keeps the tool
+      # cache (Python) and Docker images cache so Buildx still warms fast.
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@v1.3.1
+        with:
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: false
+          swap-storage: true
+
       - name: Set up Buildx
         uses: docker/setup-buildx-action@v3
 

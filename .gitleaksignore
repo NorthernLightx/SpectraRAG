@@ -1,0 +1,11 @@
+# Gitleaks fingerprints to silence — `<commit>:<file>:<rule>:<line>` per line.
+# Append a one-line rationale in the surrounding comment block when adding entries.
+
+# False positive: terraform/main.tf:52 in commit 3b0bb163 ("feat(terraform):
+# azure container apps scaffold") — `password_secret_name = "acr-password"` is
+# a Terraform secret NAME (string identifier), not a hardcoded credential value.
+# The actual credential is `azurerm_container_registry.rag.admin_password` in
+# the `secret` block immediately below. An inline `# gitleaks:allow` comment
+# now sits on the line in HEAD, but the historical scan against this commit
+# still triggers without a rewrite.
+3b0bb1634e7dde0baaffe25ad532934614018339:terraform/main.tf:hashicorp-tf-password:52
