@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
 
+from src.api.auth import make_api_key_middleware
 from src.api.deps import set_generator
 from src.api.middleware import request_context_middleware
 from src.api.routes import answer, health, query
@@ -67,6 +68,12 @@ def create_app(*, log_file: Path | None = Path("logs/api.log")) -> FastAPI:
         description="RAG over scientific papers comparing pipeline vs visual retrieval.",
     )
     app.middleware("http")(request_context_middleware)
+    # Auth runs OUTERMOST so unauthenticated requests get short-circuited
+    # before request_context allocates an X-Request-ID or downstream code does
+    # any work. Pass None when no key is configured — the middleware no-ops
+    # and the endpoint-level guards take over.
+    api_key = settings.public_api_key.get_secret_value() if settings.public_api_key else None
+    app.middleware("http")(make_api_key_middleware(api_key))
 
     @app.get("/")
     def root() -> dict[str, str]:

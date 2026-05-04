@@ -93,3 +93,21 @@ def test_visual_model_defaults_to_colqwen2_v1(monkeypatch: pytest.MonkeyPatch) -
     """ADR 0008 caveat — pinned to the 4 GB-VRAM-fitting checkpoint by default."""
     monkeypatch.delenv("RAG_VISUAL_MODEL", raising=False)
     assert Settings().visual_model == "vidore/colqwen2-v1.0"
+
+
+def test_public_api_key_defaults_to_none(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """No key = no auth applied (development default)."""
+    yaml_file = tmp_path / "default.yaml"
+    yaml_file.write_text("")
+    monkeypatch.delenv("RAG_PUBLIC_API_KEY", raising=False)
+    settings = load_settings(config_path=yaml_file)
+    assert settings.public_api_key is None
+
+
+def test_public_api_key_loads_from_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    yaml_file = tmp_path / "default.yaml"
+    yaml_file.write_text("")
+    monkeypatch.setenv("RAG_PUBLIC_API_KEY", "shared-secret-xyz")
+    settings = load_settings(config_path=yaml_file)
+    assert isinstance(settings.public_api_key, SecretStr)
+    assert settings.public_api_key.get_secret_value() == "shared-secret-xyz"

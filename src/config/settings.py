@@ -43,6 +43,11 @@ class Settings(BaseSettings):
     visual_model: str = "vidore/colqwen2-v1.0"
 
     openrouter_api_key: SecretStr | None = None
+    # Phase 2.1: optional shared-secret gate for /answer + /query. Unset = no
+    # auth (dev default). Set this in any deployed env so the LLM-spending
+    # endpoints can't be hit by drive-by traffic. Health + OpenAPI metadata
+    # routes stay exempt.
+    public_api_key: SecretStr | None = None
 
     top_k: int = Field(default=5, ge=1)
     rerank_top_k: int = Field(default=50, ge=1)
