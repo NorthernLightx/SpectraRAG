@@ -1,0 +1,446 @@
+name: mmlongbench-doc
+version: v1
+queries:
+- query_id: mmlb_0000_0e94b4197b10096b1f4c699701570f
+  text: Where was Gestalt psychology concieved?
+  paper_id: 0e94b4197b10096b1f4c699701570fbf
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 2
+  expected_facts:
+  - Berlin School of Experimental Psychology
+  note: MMLongBench-Doc | doc_type=Tutorial/Workshop | evidence_sources=['Pure-text (Plain-text)'] | answer_format=Str
+- query_id: mmlb_0001_0e94b4197b10096b1f4c699701570f
+  text: According to the chart on page 14 how much time was spent with family and friends in 2010?
+  paper_id: 0e94b4197b10096b1f4c699701570fbf
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 14
+  expected_facts:
+  - 21%
+  note: MMLongBench-Doc | doc_type=Tutorial/Workshop | evidence_sources=['Chart'] | answer_format=Float
+- query_id: mmlb_0002_0e94b4197b10096b1f4c699701570f
+  text: What range does red color represents in approximate distance from the Mississippi River in the chart that tracks the
+    West NIle Virus in Europe?
+  paper_id: 0e94b4197b10096b1f4c699701570fbf
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 10
+  expected_facts:
+  - 0-375 miles
+  note: MMLongBench-Doc | doc_type=Tutorial/Workshop | evidence_sources=['Chart'] | answer_format=Str
+- query_id: mmlb_0003_0e94b4197b10096b1f4c699701570f
+  text: How does this document define the law of good gestalt?
+  paper_id: 0e94b4197b10096b1f4c699701570fbf
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 11
+  expected_facts:
+  - Elements of objects tend to be perceptually grouped together if they form a pattern that is regular, simple, and orderly.
+  note: MMLongBench-Doc | doc_type=Tutorial/Workshop | evidence_sources=['Pure-text (Plain-text)'] | answer_format=Str
+- query_id: mmlb_0004_0e94b4197b10096b1f4c699701570f
+  text: Which category has the most increase from 2005 to 2010 for time spent on weedends?
+  paper_id: 0e94b4197b10096b1f4c699701570fbf
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 14
+  expected_facts:
+  - Eating out
+  note: MMLongBench-Doc | doc_type=Tutorial/Workshop | evidence_sources=['Chart'] | answer_format=Str
+- query_id: mmlb_0005_0e94b4197b10096b1f4c699701570f
+  text: Which continent has the most number of registered participant for advanced science course in CTBTO?
+  paper_id: 0e94b4197b10096b1f4c699701570fbf
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 13
+  expected_facts:
+  - Europe
+  note: MMLongBench-Doc | doc_type=Tutorial/Workshop | evidence_sources=['Figure'] | answer_format=Str
+- query_id: mmlb_0006_0e94b4197b10096b1f4c699701570f
+  text: Which shapes does the slide use to illustrate the closure aspect of Gestalt Principle of Visual Perception?
+  paper_id: 0e94b4197b10096b1f4c699701570fbf
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 8
+  expected_facts:
+  - '[''Circle'', ''Rectangle'']'
+  note: MMLongBench-Doc | doc_type=Tutorial/Workshop | evidence_sources=['Figure'] | answer_format=List
+- query_id: mmlb_0007_05-03-18-political-release
+  text: 'Among the adults conducted the survey on April 25 - May 1 2018, how many adults rated Trump''s government ethical
+    standards as poor? '
+  paper_id: 05-03-18-political-release
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 3
+  - 4
+  expected_facts:
+  - '541'
+  note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=['Pure-text (Plain-text)', 'Chart'] |
+    answer_format=Int
+- query_id: mmlb_0008_05-03-18-political-release
+  text: 'Among the adults conducted the survey on April 25 - May 1 2022, how many adults rated Trump''s government ethical
+    standards as poor? '
+  paper_id: 05-03-18-political-release
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts:
+  - Not answerable
+  note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=[] | answer_format=None
+- query_id: mmlb_0009_05-03-18-political-release
+  text: According to the survey on April 25 - May 1, 2018, what are the domains with the highest percentage that adults are
+    very confident and not at all confident of Donald Trump's govenment? Please write the answer in the list format and with
+    alphabetical order, e.g., ["A","B"]
+  paper_id: 05-03-18-political-release
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 5
+  expected_facts:
+  - '[''Make good decisions about economic policy '', ''Make wise decisions about immigration policy '']'
+  note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=['Chart'] | answer_format=List
+- query_id: mmlb_0010_05-03-18-political-release
+  text: According to the survey on April 25 - May 1, 2018, what are the domains with the highest percentage that adults are
+    very confident and not at all confident of  Joe Biden's govenment? Please write the answer in the list format and with
+    alphabetical order, e.g., ["A","B"]
+  paper_id: 05-03-18-political-release
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts:
+  - Not answerable
+  note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=[] | answer_format=None
+- query_id: mmlb_0011_05-03-18-political-release
+  text: What percentage of the party that holds the highest total percentage of good policy ideas and high ethical standards
+    reported that they followed the news about congressional elections in their state very closely in the survey of U.S. adults
+    conducted from April 25 to May 1, 2018?
+  paper_id: 05-03-18-political-release
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 11
+  - 13
+  expected_facts:
+  - 21%
+  note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=['Chart', 'Pure-text (Plain-text)'] |
+    answer_format=Int
+- query_id: mmlb_0012_05-03-18-political-release
+  text: What percentage of the party that holds the highest total percentage of good policy ideas and high ethical standards
+    reported that they followed the news about congressional elections in their state very closely in the survey of U.S. adults
+    conducted from April 25 to May 1, 2022?
+  paper_id: 05-03-18-political-release
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts:
+  - Not answerable
+  note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=[] | answer_format=None
+- query_id: mmlb_0013_05-03-18-political-release
+  text: What is the percentage of registered voters who support or lean toward the candidate from the party with the higher
+    total percentage of good policy ideas and high ethical standards and closely follow congressional elections in their district
+    in the survey of U.S. adults conducted April 25 - May 1, 2018?
+  paper_id: 05-03-18-political-release
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 11
+  - 14
+  expected_facts:
+  - 92%
+  note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=['Chart', 'Pure-text (Plain-text)'] |
+    answer_format=Float
+- query_id: mmlb_0014_05-03-18-political-release
+  text: What is the percentage of registered voters who support or lean toward the candidate from the party with the higher
+    total percentage of good policy ideas and high ethical standards and closely follow congressional elections in their district
+    in the survey of Chinese adults conducted April 25 - May 1, 2018?
+  paper_id: 05-03-18-political-release
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts:
+  - Not answerable
+  note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=[] | answer_format=None
+- query_id: mmlb_0015_05-03-18-political-release
+  text: What is the percentage gap between the youngest age group and the oldest age group that strongly disapproves of the
+    way the president, who started his job in 2018, was handling his job in the survey of U.S. adults conducted April 25-May
+    1, 2018? Please write the answer in float format
+  paper_id: 05-03-18-political-release
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 8
+  - 10
+  expected_facts:
+  - '7.0'
+  note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=['Pure-text (Plain-text)', 'Chart'] |
+    answer_format=Float
+- query_id: mmlb_0016_05-03-18-political-release
+  text: What is the percentage gap between the youngest age group and the oldest age group that strongly disapproves of the
+    way the president, who started his job in 2018, was handling his job in the survey of Chinese adults conducted April 25-May
+    1, 2018?
+  paper_id: 05-03-18-political-release
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts:
+  - Not answerable
+  note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=[] | answer_format=None
+- query_id: mmlb_0017_05-03-18-political-release
+  text: How many Demoncratic people in the survey of U.S. adults conducted April 25- May 1, 2019 said neither the Republican
+    Party nor the Democratic Party  has ‘high ethical standards'?
+  paper_id: 05-03-18-political-release
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 12
+  - 17
+  expected_facts:
+  - '128'
+  note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=['Table', 'Chart'] | answer_format=Int
+- query_id: mmlb_0018_05-03-18-political-release
+  text: How many non-partisan people in the survey  of U.S. adults conducted April 25- May 1, 2019 said neither the Republican
+    Party nor the Democratic Party  has ‘high ethical standards'?
+  paper_id: 05-03-18-political-release
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts:
+  - Not answerable
+  note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=[] | answer_format=None
+- query_id: mmlb_0019_0b85477387a9d0cc33fca0f4becaa0
+  text: Who is the commanding officer in the first figure on the second page?
+  paper_id: 0b85477387a9d0cc33fca0f4becaa0e5
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 2
+  expected_facts:
+  - Capt. John W. Sanders
+  note: MMLongBench-Doc | doc_type=Administration/Industry file | evidence_sources=['Figure', 'Pure-text (Plain-text)'] |
+    answer_format=Str
+- query_id: mmlb_0020_0b85477387a9d0cc33fca0f4becaa0
+  text: Who is the commanding officer at the last page?
+  paper_id: 0b85477387a9d0cc33fca0f4becaa0e5
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts:
+  - Not answerable
+  note: MMLongBench-Doc | doc_type=Administration/Industry file | evidence_sources=[] | answer_format=None
+- query_id: mmlb_0021_0b85477387a9d0cc33fca0f4becaa0
+  text: Who Visited the U.S. Naval Medical Research centre on November 29, 2012 in the document?
+  paper_id: 0b85477387a9d0cc33fca0f4becaa0e5
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 1
+  expected_facts:
+  - Tim Ziemer
+  note: MMLongBench-Doc | doc_type=Administration/Industry file | evidence_sources=['Pure-text (Plain-text)'] | answer_format=Str
+- query_id: mmlb_0022_0b85477387a9d0cc33fca0f4becaa0
+  text: Who Visited the U.S. Naval Medical Research centre on November 29, 2020?
+  paper_id: 0b85477387a9d0cc33fca0f4becaa0e5
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts:
+  - Not answerable
+  note: MMLongBench-Doc | doc_type=Administration/Industry file | evidence_sources=[] | answer_format=None
+- query_id: mmlb_0023_0b85477387a9d0cc33fca0f4becaa0
+  text: With whom did the NAMRU-3 team visit Monrovia, Liberia, in November 2012? Enumerate their names within a list.
+  paper_id: 0b85477387a9d0cc33fca0f4becaa0e5
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 7
+  expected_facts:
+  - '[''Walter Gwenigale'', ''Fatorma Bolay'', ''Vernon Graham'']'
+  note: MMLongBench-Doc | doc_type=Administration/Industry file | evidence_sources=[] | answer_format=List
+- query_id: mmlb_0024_0b85477387a9d0cc33fca0f4becaa0
+  text: Among all the pictures, how many of them contain only one person?
+  paper_id: 0b85477387a9d0cc33fca0f4becaa0e5
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 2
+  - 4
+  - 5
+  - 14
+  - 15
+  expected_facts:
+  - '6'
+  note: MMLongBench-Doc | doc_type=Administration/Industry file | evidence_sources=['Figure'] | answer_format=Int
+- query_id: mmlb_0025_0b85477387a9d0cc33fca0f4becaa0
+  text: Among all the pictures, in which page the picture contains the most number of people? Give me the page no. as an integer.
+  paper_id: 0b85477387a9d0cc33fca0f4becaa0e5
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 9
+  expected_facts:
+  - '9'
+  note: MMLongBench-Doc | doc_type=Administration/Industry file | evidence_sources=['Figure'] | answer_format=Int
+- query_id: mmlb_0026_12-15-15-ISIS-and-terrorism-re
+  text: In 2015, how many percentage of surveyed adults, Republicans, and Democrats believed that the goverment was doing
+    very/fairly well in reducing the threat of terrorism? Please write the answer in list format, e.g., ["3","2"]
+  paper_id: 12-15-15-ISIS-and-terrorism-release-final
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 2
+  - 11
+  expected_facts:
+  - '[''46'', ''27'', ''64'']'
+  note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=['Pure-text (Plain-text)', 'Chart'] |
+    answer_format=List
+- query_id: mmlb_0027_12-15-15-ISIS-and-terrorism-re
+  text: In 2020, how many percentage of surveyed adults, Republicans, and Democrats believed that the goverment was doing
+    very/fairly well in reducing the threat of terrorism? Please write the answer in list format, e.g., ["3","2"]
+  paper_id: 12-15-15-ISIS-and-terrorism-release-final
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts:
+  - Not answerable
+  note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=[] | answer_format=None
+- query_id: mmlb_0028_12-15-15-ISIS-and-terrorism-re
+  text: 'In 2015, among all those that are considered as bigger threats to well-being of the United States compared to August
+    2014, which one has the biggest R-D difference? '
+  paper_id: 12-15-15-ISIS-and-terrorism-release-final
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 15
+  - 16
+  expected_facts:
+  - Iran's nuclear program
+  note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=['Pure-text (Plain-text)', 'Chart'] |
+    answer_format=Str
+- query_id: mmlb_0029_12-15-15-ISIS-and-terrorism-re
+  text: 'In 2015, among all those that are considered as bigger threats to well-being of the China compared to August 2014,
+    which one has the biggest R-D difference? '
+  paper_id: 12-15-15-ISIS-and-terrorism-release-final
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts:
+  - Not answerable
+  note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=[] | answer_format=None
+- query_id: mmlb_0030_12-15-15-ISIS-and-terrorism-re
+  text: How many bar charts are in the report?Please write the answer in float format.
+  paper_id: 12-15-15-ISIS-and-terrorism-release-final
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 3
+  expected_facts:
+  - '1'
+  note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=['Generalized-text (Layout)', 'Chart']
+    | answer_format=Int
+- query_id: mmlb_0031_12-15-15-ISIS-and-terrorism-re
+  text: although few says that current military effort in Iraq and Syria is going well,  what are the more people's attitude
+    in still believe that the U.S. and its allies in the ISIS flight in the end in 2015?
+  paper_id: 12-15-15-ISIS-and-terrorism-release-final
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 18
+  expected_facts:
+  - will definitely/probably succeed
+  note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=['Pure-text (Plain-text)', 'Chart'] |
+    answer_format=Str
+- query_id: mmlb_0032_11-21-16-Updated-Post-Election
+  text: What is the highest point of % of voters who say there was more mudslinging than in past elections?
+  paper_id: 11-21-16-Updated-Post-Election-Release
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 7
+  expected_facts:
+  - '92'
+  note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=['Chart'] | answer_format=List
+- query_id: mmlb_0033_11-21-16-Updated-Post-Election
+  text: Do more men or women (in %) think a female president will be elected in a lifetime?
+  paper_id: 11-21-16-Updated-Post-Election-Release
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 10
+  expected_facts:
+  - men
+  note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=['Chart'] | answer_format=Str
+- query_id: mmlb_0034_11-21-16-Updated-Post-Election
+  text: Do more White or Black Americans (in %) think a female president will be elected in a lifetime?
+  paper_id: 11-21-16-Updated-Post-Election-Release
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts:
+  - Not answerable
+  note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=[] | answer_format=None
+- query_id: mmlb_0035_11-21-16-Updated-Post-Election
+  text: How many line plots are there in the report?
+  paper_id: 11-21-16-Updated-Post-Election-Release
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 3
+  - 7
+  - 33
+  - 34
+  - 35
+  expected_facts:
+  - '8'
+  note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=['Chart'] | answer_format=Int
+- query_id: mmlb_0036_11-21-16-Updated-Post-Election
+  text: Who has a higher median campaign grade? Trump or Clinton?
+  paper_id: 11-21-16-Updated-Post-Election-Release
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 28
+  - 29
+  expected_facts:
+  - Clinton
+  note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=['Chart'] | answer_format=Str
+- query_id: mmlb_0037_11-21-16-Updated-Post-Election
+  text: How many charts are related to mudslinging?
+  paper_id: 11-21-16-Updated-Post-Election-Release
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 7
+  - 34
+  expected_facts:
+  - '3'
+  note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=['Chart'] | answer_format=Int
+- query_id: mmlb_0038_11-21-16-Updated-Post-Election
+  text: How many % of voters reactions are "uneasy" and "excited" about Trump's victory?
+  paper_id: 11-21-16-Updated-Post-Election-Release
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 8
+  - 9
+  expected_facts:
+  - '[53, 1.4]'
+  note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=['Pure-text (Plain-text)', 'Chart'] |
+    answer_format=List
+- query_id: mmlb_0039_11-21-16-Updated-Post-Election
+  text: How many % of voters reactions are "angry" about Trump's victory?
+  paper_id: 11-21-16-Updated-Post-Election-Release
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 8
+  expected_facts:
+  - 31%
+  note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=[] | answer_format=Float
