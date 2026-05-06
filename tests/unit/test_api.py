@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
+import pytest
 from fastapi.testclient import TestClient
 
 from src.api.deps import get_retriever
@@ -25,6 +28,9 @@ def test_health_returns_ok() -> None:
     assert body["status"] == "ok"
     assert "version" in body
     assert "env" in body
+    # pages_available drives the BYOK frontend's decision to attach image
+    # content blocks to OpenRouter calls. Always present as a bool.
+    assert isinstance(body["pages_available"], bool)
 
 
 def test_query_returns_results_from_retriever() -> None:
@@ -74,3 +80,45 @@ def test_root_serves_bundled_frontend() -> None:
     # Sanity: the static mount didn't shadow /docs (FastAPI matches explicit
     # routes before the catch-all StaticFiles mount).
     assert client.get("/docs").status_code == 200
+
+
+def test_pages_mount_serves_png_when_pages_dir_set(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """When settings.pages_dir points at a populated directory, page PNGs are
+    served at /pages/<paper>/<file> so the BYOK frontend can include them as
+    OpenRouter image content blocks."""
+    from src.api.deps import get_settings
+
+    paper_dir = tmp_path / "paper-x"
+    paper_dir.mkdir()
+    png = paper_dir / "paper-x_p1.png"
+    png.write_bytes(b"\x89PNG\r\n\x1a\n" + b"\x00" * 32)
+    monkeypatch.setenv("RAG_PAGES_DIR", str(tmp_path))
+    # get_settings is @lru_cache; previous tests may have cached a Settings
+    # without RAG_PAGES_DIR set. Clear so /health re-reads the env-derived
+    # value the new app instance also sees.
+    get_settings.cache_clear()
+
+    client = TestClient(create_app(log_file=None))
+    response = client.get("/pages/paper-x/paper-x_p1.png")
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "image/png"
+
+    health = client.get("/health").json()
+    assert health["pages_available"] is True
+
+
+def test_pages_mount_absent_when_pages_dir_not_set(monkeypatch: pytest.MonkeyPatch) -> None:
+    """No RAG_PAGES_DIR → /pages mount is skipped → /pages/* falls through
+    to the static-frontend mount → 404 for non-index paths. Health flag is
+    False so the BYOK frontend skips image content blocks entirely."""
+    from src.api.deps import get_settings
+
+    monkeypatch.delenv("RAG_PAGES_DIR", raising=False)
+    get_settings.cache_clear()
+    client = TestClient(create_app(log_file=None))
+    response = client.get("/pages/paper-x/paper-x_p1.png")
+    assert response.status_code == 404
+    health = client.get("/health").json()
+    assert health["pages_available"] is False

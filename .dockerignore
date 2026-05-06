@@ -8,7 +8,13 @@ __pycache__
 .pytest_cache
 .mypy_cache
 .ruff_cache
-data
+# `data/` is gitignored except `data/pages/` which we DO want baked into the
+# image so the deployed UI can serve page PNGs to OpenRouter as image content
+# blocks. Render via `python -m scripts.render_pages` before `docker build`.
+data/eval
+data/golden
+data/papers
+data/mmlongbench
 logs
 docs
 tests

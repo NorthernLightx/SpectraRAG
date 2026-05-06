@@ -17,36 +17,20 @@
         --code: #c9d1d9;
         --code-bg: #1f242c;
       }
-      * {
-        box-sizing: border-box;
-      }
-      html,
-      body {
+      * { box-sizing: border-box; }
+      html, body {
         margin: 0;
         padding: 0;
         background: var(--bg);
         color: var(--fg);
-        font-family:
-          -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
         font-size: 15px;
         line-height: 1.55;
       }
-      main {
-        max-width: 880px;
-        margin: 0 auto;
-        padding: 32px 24px 64px;
-      }
-      header {
-        margin-bottom: 28px;
-      }
-      h1 {
-        font-size: 26px;
-        margin: 0 0 4px;
-      }
-      header p {
-        margin: 0;
-        color: var(--muted);
-      }
+      main { max-width: 880px; margin: 0 auto; padding: 32px 24px 64px; }
+      header { margin-bottom: 28px; }
+      h1 { font-size: 26px; margin: 0 0 4px; }
+      header p { margin: 0; color: var(--muted); }
       .card {
         background: var(--card);
         border: 1px solid var(--border);
@@ -60,8 +44,7 @@
         color: var(--muted);
         margin-bottom: 6px;
       }
-      input,
-      textarea {
+      input, select, textarea {
         width: 100%;
         background: var(--bg);
         color: var(--fg);
@@ -71,15 +54,11 @@
         font-family: inherit;
         font-size: 14px;
       }
-      input:focus,
-      textarea:focus {
+      input:focus, select:focus, textarea:focus {
         outline: none;
         border-color: var(--accent);
       }
-      textarea {
-        min-height: 100px;
-        resize: vertical;
-      }
+      textarea { min-height: 100px; resize: vertical; }
       button {
         background: var(--accent);
         color: #0d1117;
@@ -90,24 +69,12 @@
         font-size: 14px;
         cursor: pointer;
       }
-      button:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-      }
-      .row {
-        display: flex;
-        gap: 12px;
-        align-items: center;
-        margin-top: 12px;
-      }
-      .muted {
-        color: var(--muted);
-        font-size: 13px;
-      }
-      pre,
-      code {
-        font-family:
-          ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, monospace;
+      button:disabled { opacity: 0.5; cursor: not-allowed; }
+      .row { display: flex; gap: 12px; align-items: center; margin-top: 12px; }
+      .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+      .muted { color: var(--muted); font-size: 13px; }
+      pre, code {
+        font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, monospace;
         font-size: 13px;
       }
       pre {
@@ -119,31 +86,16 @@
         overflow-x: auto;
         white-space: pre-wrap;
       }
-      .answer {
-        white-space: pre-wrap;
-      }
-      details {
-        margin-top: 16px;
-      }
-      summary {
-        cursor: pointer;
-        color: var(--muted);
-        font-size: 13px;
-      }
+      .answer { white-space: pre-wrap; }
+      details { margin-top: 16px; }
+      summary { cursor: pointer; color: var(--muted); font-size: 13px; }
       .chunk {
         border-top: 1px solid var(--border);
         padding-top: 10px;
         margin-top: 10px;
       }
-      .chunk:first-of-type {
-        border-top: none;
-        padding-top: 0;
-      }
-      .chunk-meta {
-        color: var(--muted);
-        font-size: 12px;
-        margin-bottom: 4px;
-      }
+      .chunk:first-of-type { border-top: none; padding-top: 0; }
+      .chunk-meta { color: var(--muted); font-size: 12px; margin-bottom: 4px; }
       .badge {
         display: inline-block;
         padding: 1px 6px;
@@ -154,26 +106,13 @@
         letter-spacing: 0.4px;
         margin-right: 6px;
       }
-      .badge-pipeline {
-        background: rgba(88, 166, 255, 0.15);
-        color: var(--accent);
-      }
-      .badge-visual {
-        background: rgba(63, 185, 80, 0.15);
-        color: var(--ok);
-      }
-      .err {
-        color: var(--err);
-      }
-      footer {
-        margin-top: 40px;
-        color: var(--muted);
-        font-size: 12px;
-      }
-      footer a {
-        color: var(--accent);
-        text-decoration: none;
-      }
+      .badge-pipeline { background: rgba(88, 166, 255, 0.15); color: var(--accent); }
+      .badge-visual { background: rgba(63, 185, 80, 0.15); color: var(--ok); }
+      .badge-multimodal { background: rgba(187, 128, 247, 0.18); color: #d2a8ff; }
+      .err { color: var(--err); }
+      footer { margin-top: 40px; color: var(--muted); font-size: 12px; }
+      footer a { color: var(--accent); text-decoration: none; }
+      .hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
     </style>
   </head>
   <body>
@@ -181,27 +120,39 @@
       <header>
         <h1>Multi-modal Paper RAG</h1>
         <p>
-          BM25 + dense retrieval + BGE rerank, optionally fused with a ColQwen2
-          visual leg. Ask a question — the API retrieves and generates with
-          inline citations.
+          Bring your own OpenRouter key. Retrieval runs on this server (BM25 +
+          dense + RRF + rerank). Generation calls OpenRouter from your browser
+          with the retrieved chunks — and, when a vision model is selected and
+          page images are available, the page PNGs ride along as image content
+          blocks. Your key is never sent to this server.
         </p>
       </header>
 
       <section class="card">
-        <label for="apiKey"
-          >API key
-          <span class="muted"
-            >(only required when the server has
-            <code>RAG_PUBLIC_API_KEY</code> set)</span
-          ></label
-        >
-        <input id="apiKey" type="password" autocomplete="off" />
+        <div class="grid-2">
+          <div>
+            <label for="apiKey">OpenRouter API key</label>
+            <input id="apiKey" type="password" autocomplete="off" placeholder="sk-or-v1-..." />
+            <div class="hint">
+              Get one at <a href="https://openrouter.ai/keys" target="_blank" rel="noopener">openrouter.ai/keys</a>.
+              Stored in your browser's localStorage.
+            </div>
+          </div>
+          <div>
+            <label for="model">Model</label>
+            <select id="model">
+              <option value="openai/gpt-4o-mini">openai/gpt-4o-mini (vision, cheapest)</option>
+              <option value="anthropic/claude-sonnet-4.6">anthropic/claude-sonnet-4.6 (vision)</option>
+              <option value="openai/gpt-4o">openai/gpt-4o (vision)</option>
+              <option value="qwen/qwen3-vl-32b-instruct">qwen/qwen3-vl-32b-instruct (vision)</option>
+              <option value="meta-llama/llama-3.1-70b-instruct">meta-llama/llama-3.1-70b-instruct (text-only)</option>
+            </select>
+            <div class="hint" id="modeHint">Multi-modal mode auto-detected from server.</div>
+          </div>
+        </div>
 
-        <label for="query" style="margin-top: 16px">Question</label>
-        <textarea
-          id="query"
-          placeholder="What is the inter-basin gain criterion?"
-        ></textarea>
+        <label for="query">Question</label>
+        <textarea id="query" placeholder="What is the inter-basin gain criterion?"></textarea>
 
         <div class="row">
           <button id="ask">Ask</button>
@@ -224,15 +175,14 @@
       </section>
 
       <footer>
-        Source on
-        <a href="https://github.com/NorthernLightx/multi-modal-rag">GitHub</a> ·
+        Source on <a href="https://github.com/NorthernLightx/multi-modal-rag">GitHub</a> ·
         OpenAPI at <a href="/docs">/docs</a>
       </footer>
     </main>
 
     <script>
-      // Persist API key in localStorage so refreshes don't lose it.
       const apiKeyInput = document.getElementById("apiKey");
+      const modelSelect = document.getElementById("model");
       const queryInput = document.getElementById("query");
       const askBtn = document.getElementById("ask");
       const statusEl = document.getElementById("status");
@@ -243,90 +193,265 @@
       const chunksWrap = document.getElementById("chunksWrap");
       const chunksEl = document.getElementById("chunks");
       const metaEl = document.getElementById("meta");
+      const modeHint = document.getElementById("modeHint");
 
       apiKeyInput.value = localStorage.getItem("rag.apiKey") || "";
-      apiKeyInput.addEventListener("change", () => {
-        localStorage.setItem("rag.apiKey", apiKeyInput.value);
+      modelSelect.value = localStorage.getItem("rag.model") || modelSelect.value;
+      apiKeyInput.addEventListener("change", () =>
+        localStorage.setItem("rag.apiKey", apiKeyInput.value)
+      );
+      modelSelect.addEventListener("change", () =>
+        localStorage.setItem("rag.model", modelSelect.value)
+      );
+
+      // Cache server's pages-available status — drives whether we attach
+      // image content blocks. When false, the deploy skipped the page-render
+      // bake step, so we run text-only.
+      let pagesAvailable = false;
+      fetch("/health")
+        .then((r) => r.json())
+        .then((h) => {
+          pagesAvailable = !!h.pages_available;
+          modeHint.textContent = pagesAvailable
+            ? "Multi-modal: page images attached to vision-capable models."
+            : "Text-only: server has no pages_dir; vision models receive text chunks only.";
+        })
+        .catch(() => {
+          modeHint.textContent = "Server status unknown.";
+        });
+
+      askBtn.addEventListener("click", askHandler);
+      queryInput.addEventListener("keydown", (e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key === "Enter") askHandler();
       });
 
-      askBtn.addEventListener("click", async () => {
+      async function askHandler() {
         const query = queryInput.value.trim();
-        if (!query) {
-          statusEl.textContent = "Type a question first.";
-          return;
-        }
+        const apiKey = apiKeyInput.value.trim();
+        const model = modelSelect.value;
+        if (!query) return setStatus("Type a question first.", true);
+        if (!apiKey) return setStatus("Paste an OpenRouter API key.", true);
+
         askBtn.disabled = true;
-        statusEl.textContent = "Retrieving + generating...";
-        statusEl.classList.remove("err");
+        setStatus("Retrieving chunks...", false);
+        clearAnswer();
         resultEl.hidden = true;
 
-        const headers = { "Content-Type": "application/json" };
-        if (apiKeyInput.value) headers["X-API-Key"] = apiKeyInput.value;
-
-        const started = performance.now();
+        const t0 = performance.now();
+        let chunks;
         try {
-          const res = await fetch("/answer", {
-            method: "POST",
-            headers,
-            body: JSON.stringify({ text: query, top_k: 5 }),
-          });
-          const elapsed = Math.round(performance.now() - started);
-          if (!res.ok) {
-            const detail = await res.text();
-            throw new Error(`${res.status} ${res.statusText} — ${detail}`);
-          }
-          const data = await res.json();
-          render(data, elapsed);
-          statusEl.textContent = "";
+          chunks = await retrieveChunks(query);
         } catch (err) {
-          statusEl.textContent = String(err.message || err);
-          statusEl.classList.add("err");
+          askBtn.disabled = false;
+          return setStatus(`Retrieval failed: ${err.message || err}`, true);
+        }
+        const tRetrieve = performance.now() - t0;
+
+        renderChunks(chunks);
+        chunksWrap.hidden = chunks.length === 0;
+        resultEl.hidden = false;
+
+        if (chunks.length === 0) {
+          setStatus("No chunks retrieved — corpus may not be ingested.", true);
+          askBtn.disabled = false;
+          return;
+        }
+
+        // Build the messages array for OpenRouter. Page image URLs are
+        // resolved by the browser against the same origin (/pages/...).
+        // The vision model sees the actual page pixels alongside the text.
+        const useImages = pagesAvailable && supportsVision(model);
+        setStatus(
+          useImages
+            ? "Generating with vision (chunks + page images)..."
+            : "Generating (text-only)...",
+          false
+        );
+
+        const messages = buildMessages(query, chunks, useImages);
+        const tGenStart = performance.now();
+        try {
+          const { text, usage } = await streamOpenRouter(apiKey, model, messages);
+          const tGen = performance.now() - tGenStart;
+          renderAnswer(text);
+          renderCitations(parseCitations(text), chunks);
+          renderMeta(model, usage, Math.round(tRetrieve), Math.round(tGen), useImages);
+          setStatus("");
+        } catch (err) {
+          setStatus(`Generation failed: ${err.message || err}`, true);
         } finally {
           askBtn.disabled = false;
         }
-      });
+      }
 
-      // All rendering goes through DOM construction (no innerHTML) so any
-      // server-supplied string is treated as text, not markup. Prevents XSS
-      // even if a chunk's text or chunk_id ever contains HTML / JS.
-      function render(answer, elapsedMs) {
-        answerEl.textContent = answer.text || "(empty answer)";
+      async function retrieveChunks(query) {
+        const res = await fetch("/query", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: query, top_k: 5 }),
+        });
+        if (!res.ok) {
+          const detail = await res.text();
+          throw new Error(`${res.status} ${res.statusText} — ${detail}`);
+        }
+        return res.json();
+      }
 
+      function buildMessages(query, chunks, useImages) {
+        const system = [
+          "You are a careful research assistant answering from the supplied context.",
+          "Cite the chunks you used by their chunk_id in [brackets].",
+          "If the context doesn't support an answer, say so plainly.",
+        ].join(" ");
+
+        const content = [];
+        for (const c of chunks) {
+          content.push({
+            type: "text",
+            text: `[chunk ${c.chunk_id}] paper=${c.paper_id} pages=${(c.page_numbers || []).join(",")}\n${c.text || ""}`,
+          });
+          if (useImages && Array.isArray(c.page_numbers)) {
+            for (const page of c.page_numbers) {
+              const url = `${window.location.origin}/pages/${encodeURIComponent(c.paper_id)}/${encodeURIComponent(c.paper_id)}_p${page}.png`;
+              content.push({ type: "image_url", image_url: { url } });
+            }
+          }
+        }
+        content.push({ type: "text", text: `\nQuestion: ${query}` });
+
+        return [
+          { role: "system", content: system },
+          { role: "user", content },
+        ];
+      }
+
+      function supportsVision(model) {
+        // Trivial allow-list — every option in the dropdown except the
+        // explicit text-only Llama is vision-capable. Models that don't
+        // accept image content blocks will return 400; the user gets the
+        // raw OpenRouter error so the failure mode is visible.
+        return !model.includes("llama-3.1-70b");
+      }
+
+      // Streams an SSE response from OpenRouter, accumulating text as it
+      // arrives. Returns the final concatenated text + the usage block.
+      async function streamOpenRouter(apiKey, model, messages) {
+        const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+            "HTTP-Referer": window.location.origin,
+            "X-Title": "Multi-modal Paper RAG",
+          },
+          body: JSON.stringify({
+            model,
+            messages,
+            temperature: 0.2,
+            max_tokens: 800,
+            stream: true,
+            usage: { include: true },
+          }),
+        });
+        if (!res.ok || !res.body) {
+          const detail = await res.text();
+          throw new Error(`${res.status} ${res.statusText} — ${detail}`);
+        }
+
+        let acc = "";
+        let usage = { prompt_tokens: 0, completion_tokens: 0 };
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buf = "";
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+          let nl;
+          while ((nl = buf.indexOf("\n")) >= 0) {
+            const line = buf.slice(0, nl).trim();
+            buf = buf.slice(nl + 1);
+            if (!line.startsWith("data:")) continue;
+            const payload = line.slice(5).trim();
+            if (payload === "[DONE]") continue;
+            try {
+              const obj = JSON.parse(payload);
+              const delta = obj.choices?.[0]?.delta?.content || "";
+              if (delta) {
+                acc += delta;
+                answerEl.textContent = acc;
+              }
+              if (obj.usage) usage = obj.usage;
+            } catch {
+              // Heartbeat / partial — skip.
+            }
+          }
+        }
+        return { text: acc, usage };
+      }
+
+      // Pull [chunk_id]-style references out of the LLM output. matchAll
+      // returns an iterator so we can de-dupe on first occurrence.
+      function parseCitations(text) {
+        const seen = new Set();
+        const ids = [];
+        for (const m of text.matchAll(/\[([A-Za-z0-9_:.\-]+)\]/g)) {
+          if (!seen.has(m[1])) {
+            seen.add(m[1]);
+            ids.push(m[1]);
+          }
+        }
+        return ids;
+      }
+
+      function renderAnswer(text) {
+        answerEl.textContent = text || "(empty answer)";
+      }
+
+      function clearAnswer() {
+        answerEl.textContent = "";
         clear(citationsEl);
-        if (answer.citations && answer.citations.length > 0) {
-          for (const c of answer.citations) {
-            const div = document.createElement("div");
-            div.className = "chunk";
-            const meta = document.createElement("span");
-            meta.className = "chunk-meta";
-            const code = document.createElement("code");
-            code.textContent = c.chunk_id || "";
-            meta.append(code, document.createTextNode(` — paper ${c.paper_id || ""}`));
-            const pages = (c.page_numbers || []).join(", ");
-            if (pages) meta.append(document.createTextNode(` · p${pages}`));
-            div.append(meta);
-            citationsEl.append(div);
-          }
-          citationsWrap.hidden = false;
-        } else {
-          citationsWrap.hidden = true;
-        }
-
+        citationsWrap.hidden = true;
         clear(chunksEl);
-        if (answer.retrieved && answer.retrieved.length > 0) {
-          for (const r of answer.retrieved) {
-            chunksEl.append(renderChunk(r));
-          }
-          chunksWrap.hidden = false;
-        } else {
-          chunksWrap.hidden = true;
-        }
+        chunksWrap.hidden = true;
+        metaEl.textContent = "";
+      }
 
-        const tokens = `${answer.tokens_in || 0} in / ${answer.tokens_out || 0} out`;
-        metaEl.textContent =
-          `${answer.model || ""} · ${tokens} · ${elapsedMs} ms (client) · ` +
-          `server ${answer.latency_ms || 0} ms`;
-        resultEl.hidden = false;
+      function renderCitations(ids, chunks) {
+        clear(citationsEl);
+        if (ids.length === 0) {
+          citationsWrap.hidden = true;
+          return;
+        }
+        const byId = new Map(chunks.map((c) => [c.chunk_id, c]));
+        for (const id of ids) {
+          const c = byId.get(id);
+          const div = document.createElement("div");
+          div.className = "chunk";
+          const meta = document.createElement("span");
+          meta.className = "chunk-meta";
+          const code = document.createElement("code");
+          code.textContent = id;
+          meta.append(code);
+          if (c) {
+            const pages = (c.page_numbers || []).join(", ");
+            meta.append(
+              document.createTextNode(
+                ` — paper ${c.paper_id}${pages ? ` · p${pages}` : ""}`
+              )
+            );
+          } else {
+            meta.append(document.createTextNode(" — (not in retrieved set)"));
+          }
+          div.append(meta);
+          citationsEl.append(div);
+        }
+        citationsWrap.hidden = false;
+      }
+
+      function renderChunks(chunks) {
+        clear(chunksEl);
+        for (const r of chunks) chunksEl.append(renderChunk(r));
       }
 
       function renderChunk(r) {
@@ -353,14 +478,28 @@
         return div;
       }
 
+      function renderMeta(model, usage, retrieveMs, generateMs, useImages) {
+        const tokens = `${usage.prompt_tokens || 0} in / ${usage.completion_tokens || 0} out`;
+        const modeBadge = document.createElement("span");
+        modeBadge.className = useImages ? "badge badge-multimodal" : "badge badge-pipeline";
+        modeBadge.textContent = useImages ? "multi-modal" : "text";
+        clear(metaEl);
+        metaEl.append(modeBadge);
+        metaEl.append(
+          document.createTextNode(
+            ` ${model} · ${tokens} · retrieve ${retrieveMs} ms · generate ${generateMs} ms`
+          )
+        );
+      }
+
+      function setStatus(msg, isErr) {
+        statusEl.textContent = msg;
+        statusEl.classList.toggle("err", !!isErr);
+      }
+
       function clear(node) {
         while (node.firstChild) node.removeChild(node.firstChild);
       }
-
-      // Submit on Cmd/Ctrl+Enter.
-      queryInput.addEventListener("keydown", (e) => {
-        if ((e.metaKey || e.ctrlKey) && e.key === "Enter") askBtn.click();
-      });
     </script>
   </body>
 </html>

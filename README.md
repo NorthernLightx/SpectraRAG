@@ -112,10 +112,14 @@ Then start the API:
 uv run uvicorn src.api.main:app --reload --port 8000
 ```
 
-Verify in a browser at <http://localhost:8000/> — the bundled UI (`web/index.html`
-mounted as static files) lets you paste a question and see the answer + citations
-+ retrieved chunks (with `pipeline` vs `visual` source badges). The same container
-also serves the API:
+Verify in a browser at <http://localhost:8000/> — the bundled UI is BYOK
+(paste your own OpenRouter key in the field, never sent to this server). It
+calls `/query` for retrieval, then dispatches the chat call directly from
+your browser to OpenRouter. When `RAG_PAGES_DIR` points to a populated
+directory (run `python -m scripts.render_pages --pdf-dir data/papers` once
+to fill it), the UI also attaches page PNGs as image content blocks so
+vision-capable models (gpt-4o, claude-sonnet-4.x, qwen3-vl) read pixels
+directly. The same container also serves the API:
 
 ```bash
 curl http://localhost:8000/health

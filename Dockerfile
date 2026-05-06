@@ -38,6 +38,16 @@ COPY --from=builder --chown=app:app /app/src /home/app/src
 # container serves both the API and the demo page. Skipped if the path is
 # absent (the StaticFiles mount in src/api/main.py guards on existence).
 COPY --chown=app:app web /home/app/web
+# Page PNGs for the multi-modal vision-generation path. The browser sends
+# these URLs to OpenRouter as image content blocks so a vision-capable model
+# (gpt-4o, claude, qwen3-vl) sees the actual page pixels. Render with
+# `python -m scripts.render_pages --pdf-dir data/papers` before `docker
+# build`; the StaticFiles mount in src/api/main.py guards on existence so
+# `data/pages` being absent doesn't break the build (the deploy just serves
+# text-only retrieval).
+COPY --chown=app:app data/pages /home/app/data/pages
+
+ENV RAG_PAGES_DIR=/home/app/data/pages
 
 ENV PATH="/home/app/.venv/bin:$PATH" \
     PYTHONUNBUFFERED=1 \

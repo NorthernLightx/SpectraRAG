@@ -39,7 +39,8 @@ data/papers/
 data/golden/raw/
 data/eval/runs/
 data/figures/
-data/pages/
+data/pages/*
+!data/pages/.gitkeep
 data/mmlongbench/   # MMLongBench-Doc parquet (~5 MB) + PDFs (~650 MB) — fetched
                     # by scripts/fetch_mmlongbench.py; the derived golden YAML
                     # at data/golden/mmlongbench-v1.yaml is the only committed

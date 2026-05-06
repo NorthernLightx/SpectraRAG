@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from importlib.metadata import PackageNotFoundError, version
+from typing import Any
 
 from fastapi import APIRouter, Depends
 
@@ -20,9 +21,15 @@ def _service_version() -> str:
 
 
 @router.get("/health")
-def health(settings: Settings = Depends(get_settings)) -> dict[str, str]:
+def health(settings: Settings = Depends(get_settings)) -> dict[str, Any]:
+    """Returns liveness + the small set of feature flags the bundled UI needs
+    to know about up front (whether page images are served at /pages/ — the
+    BYOK client uses this to decide if it should attach image content blocks
+    in its OpenRouter call)."""
+    pages_available = settings.pages_dir is not None and settings.pages_dir.is_dir()
     return {
         "status": "ok",
         "version": _service_version(),
         "env": settings.env,
+        "pages_available": pages_available,
     }

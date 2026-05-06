@@ -327,6 +327,15 @@ def create_app(*, log_file: Path | None = Path("logs/api.log")) -> FastAPI:
     app.include_router(query.router)
     app.include_router(answer.router)
 
+    # Page PNGs served at /pages/<paper>/<paper>_pN.png. The browser pulls
+    # these URLs into OpenRouter `image_url` content blocks so a vision-
+    # capable model (gpt-4o, claude, qwen3-vl) sees the pixels directly. This
+    # is the deploy-side equivalent of `Generator._collect_image_paths`'s
+    # server-side attachment: same data, different transport. Mounted from
+    # settings.pages_dir when set (defaults to None — no pages served).
+    if settings.pages_dir is not None and settings.pages_dir.is_dir():
+        app.mount("/pages", StaticFiles(directory=settings.pages_dir), name="pages")
+
     # Static frontend mounted LAST at "/" so it doesn't shadow API routes —
     # FastAPI matches explicit routes before mounted apps. `html=True` makes
     # GET / serve index.html (instead of a directory listing). When the web/
