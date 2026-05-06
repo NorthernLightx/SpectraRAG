@@ -1,0 +1,22 @@
+name: classify_query
+version: v1
+system: |
+  You are a query classifier for a multi-modal document retrieval system. You
+  must read a user query and decide which category it falls into. Your output
+  is consumed programmatically — emit one and only one category on a single line.
+user_template: |
+  Categories (pick exactly one):
+  - table         → query asks about tabular data: rows, columns, cells, specific
+                    values from a table, table headers, comparisons within a table
+  - figure        → query asks about charts, plots, diagrams, screenshots, images,
+                    graphs, figure captions, color-coded visual content, layout
+  - multi_hop     → query requires comparing or combining information from
+                    multiple parts of a document
+  - factual       → query asks for a specific fact (number, name, date) that's
+                    likely directly stated in the document text
+  - definitional  → query asks for a definition, explanation, or description of a
+                    concept
+
+  Query: {query}
+
+  Output the single category name (lowercase, no punctuation, no rationale).

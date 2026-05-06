@@ -1,4 +1,4 @@
-"""Phase 3.2 per-query routing — classify queries to text-only or hybrid (text+visual).
+"""Per-query routing — classify queries to text-only or hybrid (text+visual).
 
 ADR 0008 pins the design: regex/keyword classifier emits one of five categories;
 {figure, table, multi_hop} route to hybrid (RRF over text + visual at page
@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import asyncio
 import re
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from opentelemetry import trace
 from opentelemetry.trace import Span
@@ -21,12 +21,14 @@ from src.rag.hybrid import RankedItem, reciprocal_rank_fusion
 from src.rag.retrievers.protocol import Retriever
 from src.types import Query, RetrievalResult
 
+if TYPE_CHECKING:
+    from src.rag.retrievers.classifier_llm import LLMQueryClassifier
+
 _log = get_logger(__name__)
 
 # RRF k from the original Cormack & Buettcher 2009 paper. Same default
 # scripts/eval_hybrid.py used to produce ADR 0007's offline numbers, so the
-# production router's fused ranking should track that eval methodology.
-# ADR 0008 caveat §3 — Phase 3.2.1 candidate to tune against golden v3.
+# production router's fused ranking tracks that eval methodology.
 _RRF_K = 60
 
 Category = Literal["table", "figure", "multi_hop", "factual", "definitional"]
@@ -98,14 +100,31 @@ class RoutingRetriever:
     Visual-leg failures (GPU OOM, model-load errors) fall back to text-only;
     `routing.visual_failed=true` is set on the current OTel span so the
     failure is observable without breaking the response. ADR 0008 §"Failure modes".
+
+    Classifier upgrade: pass an `LLMQueryClassifier` via `classifier=` to
+    replace the regex with an LLM-based zero-shot classifier. This is the fix
+    for corpora where natural-language queries don't carry "Figure X" / "Table N"
+    keywords (MMLongBench-style) — the regex under-fired by ~75 % on that
+    corpus per the run-cc45831697b6 diagnostic. Default classifier is the
+    regex (fast, deterministic, free).
     """
 
-    def __init__(self, *, text: Retriever, visual: Retriever) -> None:
+    def __init__(
+        self,
+        *,
+        text: Retriever,
+        visual: Retriever,
+        classifier: LLMQueryClassifier | None = None,
+    ) -> None:
         self._text = text
         self._visual = visual
+        self._classifier = classifier
 
     async def retrieve(self, query: Query) -> list[RetrievalResult]:
-        category = classify_query(query.text)
+        if self._classifier is not None:
+            category = await self._classifier.classify(query.text)
+        else:
+            category = classify_query(query.text)
         forced = query.force_route is not None
         path: RoutingPath = (
             query.force_route if query.force_route is not None else route_for_category(category)
