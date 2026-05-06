@@ -32,7 +32,7 @@ def reader(monkeypatch: pytest.MonkeyPatch) -> InMemoryMetricReader:
 
 
 class _FakeLLM:
-    async def chat(self, messages, model, *, temperature):  # type: ignore[no-untyped-def]
+    async def chat(self, messages, model, *, temperature, images=None):  # type: ignore[no-untyped-def]
         return ChatResponse(text="ok [c1]", model=model, tokens_in=10, tokens_out=20)
 
 

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import base64
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -11,6 +13,11 @@ from src.llm.protocol import ChatResponse, Message
 
 _OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 _DEFAULT_TIMEOUT_SECONDS = 60.0
+
+
+def _encode_image(path: Path) -> str:
+    """PNG path -> data URL (`data:image/png;base64,...`) for an image_url block."""
+    return f"data:image/png;base64,{base64.standard_b64encode(path.read_bytes()).decode()}"
 
 
 class OpenRouterClient:
@@ -61,11 +68,31 @@ class OpenRouterClient:
         *,
         temperature: float = 0.2,
         max_tokens: int | None = None,
+        images: list[Path] | None = None,
         **kwargs: Any,
     ) -> ChatResponse:
+        # When `images` is provided and non-empty, the LAST user message is
+        # rewritten from string-content to a content-block list (text + image_url
+        # blocks). This is the OpenAI-compat schema for vision input. Other
+        # messages stay string-content. Without `images`, behaviour is unchanged.
+        msg_dicts: list[dict[str, Any]] = [m.model_dump() for m in messages]
+        if images:
+            for m in reversed(msg_dicts):
+                if m["role"] == "user":
+                    text_content = m["content"]
+                    blocks: list[dict[str, Any]] = [{"type": "text", "text": text_content}]
+                    for img_path in images:
+                        blocks.append(
+                            {
+                                "type": "image_url",
+                                "image_url": {"url": _encode_image(img_path)},
+                            }
+                        )
+                    m["content"] = blocks
+                    break
         payload: dict[str, Any] = {
             "model": model,
-            "messages": [m.model_dump() for m in messages],
+            "messages": msg_dicts,
             "temperature": temperature,
         }
         if max_tokens is not None:

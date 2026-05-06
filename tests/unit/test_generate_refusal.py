@@ -14,7 +14,7 @@ class _CountingLLM:
     def __init__(self) -> None:
         self.calls = 0
 
-    async def chat(self, *, messages, model, temperature):  # type: ignore[no-untyped-def]
+    async def chat(self, *, messages, model, temperature, images=None):  # type: ignore[no-untyped-def]
         self.calls += 1
         return ChatResponse(text="answer [c1]", model=model, tokens_in=10, tokens_out=20)
 

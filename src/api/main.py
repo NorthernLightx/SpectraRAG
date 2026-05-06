@@ -31,8 +31,8 @@ def _wire_generator_from_settings(settings: Settings) -> bool:
 
     Returns True if a Generator was wired, False if the key is unset (no-op).
     Retriever wiring is intentionally deferred — it needs a populated Qdrant
-    collection, which is Phase 2's ingestion path. Eval scripts and tests
-    continue to wire their own retrievers via ``set_retriever``.
+    collection. Eval scripts and tests wire their own retrievers via
+    ``set_retriever``.
     """
     if settings.openrouter_api_key is None:
         return False
@@ -44,6 +44,10 @@ def _wire_generator_from_settings(settings: Settings) -> bool:
             model=settings.default_chat_model,
             temperature=settings.temperature,
             max_context_tokens=settings.max_context_tokens,
+            # When pages_dir is set the Generator attaches the rendered page PNG
+            # for any visual RetrievalResult so a vision-capable default_chat_model
+            # can read images directly. None = text-only behaviour (back-compat).
+            pages_dir=settings.pages_dir,
         )
     )
     return True

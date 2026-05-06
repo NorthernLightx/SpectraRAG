@@ -57,8 +57,15 @@ class OllamaChatClient:
         *,
         temperature: float = 0.2,
         max_tokens: int | None = None,
+        images: list[Any] | None = None,
         **kwargs: Any,
     ) -> ChatResponse:
+        # `images` is part of LLMClient for OpenRouter vision support; this
+        # local-Ollama client doesn't pipe images through `/api/chat` (Ollama
+        # has a different per-message base64 image field that isn't worth
+        # bridging until a local vision generator becomes a goal). Silently
+        # ignored so the protocol stays uniform.
+        del images  # unused
         options: dict[str, Any] = {"temperature": temperature}
         if max_tokens is not None:
             options["num_predict"] = max_tokens

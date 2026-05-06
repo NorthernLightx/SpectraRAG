@@ -18,12 +18,7 @@ _ENV_PREFIX = "RAG_"
 
 
 class Settings(BaseSettings):
-    """Runtime configuration. RAG_-prefixed env vars override YAML.
-
-    Secrets are deliberately omitted in Phase 1 day-one scaffolding — no client
-    actually consumes one yet. They will be added (still RAG_-prefixed) when
-    the first wired client needs them.
-    """
+    """Runtime configuration. RAG_-prefixed env vars override YAML."""
 
     model_config = SettingsConfigDict(
         env_prefix="RAG_",
@@ -43,10 +38,10 @@ class Settings(BaseSettings):
     visual_model: str = "vidore/colqwen2-v1.0"
 
     openrouter_api_key: SecretStr | None = None
-    # Phase 2.1: optional shared-secret gate for /answer + /query. Unset = no
-    # auth (dev default). Set this in any deployed env so the LLM-spending
-    # endpoints can't be hit by drive-by traffic. Health + OpenAPI metadata
-    # routes stay exempt.
+    # Optional shared-secret gate for /answer + /query. Unset = no auth (dev
+    # default). Set this in any deployed env so the LLM-spending endpoints
+    # can't be hit by drive-by traffic. Health + OpenAPI metadata routes stay
+    # exempt.
     public_api_key: SecretStr | None = None
 
     top_k: int = Field(default=5, ge=1)
@@ -60,6 +55,14 @@ class Settings(BaseSettings):
 
     max_context_tokens: int = Field(default=8000, ge=512)
     temperature: float = Field(default=0.2, ge=0.0, le=2.0)
+
+    # When set, the production Generator attaches the rendered page PNG
+    # (`<pages_dir>/<paper>/<paper>_pN.png`) for any visual RetrievalResult to
+    # the LLM call as an OpenAI-compat content-block. Pair with a vision-capable
+    # `default_chat_model` (gpt-4o-mini, gpt-4o, claude-sonnet-4.x, qwen3-vl,
+    # …) — non-vision models will return 400 when sent images. Unset = text-only
+    # behaviour (the previous default).
+    pages_dir: Path | None = None
 
     ollama_base_url: str = "http://localhost:11434"
     qdrant_url: str = "http://localhost:6333"
