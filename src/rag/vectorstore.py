@@ -1,4 +1,11 @@
-"""Qdrant vector store wrapper. Supports `:memory:` (in-process) and remote URLs."""
+"""Qdrant vector store wrapper. Supports `:memory:` (in-process) and remote URLs.
+
+The payload schema persists the full Chunk so the corpus can be re-materialised
+at API startup without a separate manifest file: `_wire_retriever_from_settings`
+(in `src/api/main.py`) calls `scroll_chunks()` to seed BM25 + chunks_by_id.
+Older collections written before this schema (payload only `{chunk_id, paper_id}`)
+won't round-trip — re-ingest with `scripts/bootstrap_corpus.py --force`.
+"""
 
 from __future__ import annotations
 
@@ -6,6 +13,7 @@ import uuid
 from dataclasses import dataclass
 
 from qdrant_client import AsyncQdrantClient
+from qdrant_client.http import models as qdrant_models
 from qdrant_client.http.models import Distance, PointStruct, VectorParams
 
 from src.types import Chunk
@@ -17,6 +25,48 @@ class VectorMatch:
 
     chunk_id: str
     score: float
+
+
+def _chunk_to_payload(chunk: Chunk) -> dict[str, object]:
+    """Serialise a Chunk into a Qdrant payload dict.
+
+    Optional fields (`section`, `context`) are stored as `None` rather than
+    omitted, keeping the schema dense and the round-trip explicit.
+    """
+    return {
+        "chunk_id": chunk.chunk_id,
+        "paper_id": chunk.paper_id,
+        "page_numbers": list(chunk.page_numbers),
+        "text": chunk.text,
+        "section": chunk.section,
+        "context": chunk.context,
+        "metadata": dict(chunk.metadata),
+    }
+
+
+def _payload_to_chunk(payload: dict[str, object]) -> Chunk | None:
+    """Reverse of `_chunk_to_payload`. Returns None on payloads written by an
+    older schema (before this column existed) — the caller logs and skips so a
+    stale collection degrades to "retriever not wired" rather than crashing."""
+    required = ("chunk_id", "paper_id", "page_numbers", "text")
+    if not all(key in payload for key in required):
+        return None
+    page_numbers_raw = payload["page_numbers"]
+    if not isinstance(page_numbers_raw, list):
+        return None
+    metadata_raw = payload.get("metadata")
+    metadata = metadata_raw if isinstance(metadata_raw, dict) else {}
+    section_raw = payload.get("section")
+    context_raw = payload.get("context")
+    return Chunk(
+        chunk_id=str(payload["chunk_id"]),
+        paper_id=str(payload["paper_id"]),
+        page_numbers=[int(n) for n in page_numbers_raw],
+        text=str(payload["text"]),
+        section=section_raw if isinstance(section_raw, str) else None,
+        context=context_raw if isinstance(context_raw, str) else None,
+        metadata=metadata,
+    )
 
 
 class QdrantVectorStore:
@@ -58,7 +108,7 @@ class QdrantVectorStore:
             PointStruct(
                 id=str(uuid.uuid5(uuid.NAMESPACE_OID, chunk.chunk_id)),
                 vector=vector,
-                payload={"chunk_id": chunk.chunk_id, "paper_id": chunk.paper_id},
+                payload=_chunk_to_payload(chunk),
             )
             for chunk, vector in zip(chunks, vectors, strict=True)
         ]
@@ -87,3 +137,34 @@ class QdrantVectorStore:
             for point in response.points
             if point.payload and "chunk_id" in point.payload
         ]
+
+    async def scroll_chunks(self, *, batch_size: int = 256) -> list[Chunk]:
+        """Read every chunk back from the collection's payload — paginated scroll.
+
+        Returns [] if the collection doesn't exist. Skips any payload missing
+        required fields (older schema) so a stale collection produces a smaller
+        result rather than raising. The API startup path uses this to seed BM25
+        + chunks_by_id; tests use it to verify round-trip fidelity.
+        """
+        existing = await self._client.get_collections()
+        if not any(c.name == self._collection for c in existing.collections):
+            return []
+        chunks: list[Chunk] = []
+        offset: qdrant_models.ExtendedPointId | None = None
+        while True:
+            records, offset = await self._client.scroll(
+                collection_name=self._collection,
+                limit=batch_size,
+                offset=offset,
+                with_payload=True,
+                with_vectors=False,
+            )
+            for record in records:
+                if record.payload is None:
+                    continue
+                chunk = _payload_to_chunk(record.payload)
+                if chunk is not None:
+                    chunks.append(chunk)
+            if offset is None:
+                break
+        return chunks

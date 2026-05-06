@@ -66,6 +66,12 @@ class Settings(BaseSettings):
 
     ollama_base_url: str = "http://localhost:11434"
     qdrant_url: str = "http://localhost:6333"
+    # Collection wired into the FastAPI retriever at startup. Must match the
+    # collection populated by `scripts/bootstrap_corpus.py` (its --collection
+    # default is the same string). When the collection is missing or empty,
+    # the API still boots — the retriever stays unwired and /answer returns
+    # 503 until a corpus is ingested.
+    corpus_collection: str = "rag_corpus"
     postgres_dsn: str = "postgresql+psycopg://rag:rag@localhost:5432/rag"
     langfuse_host: str = "http://localhost:3000"
 
