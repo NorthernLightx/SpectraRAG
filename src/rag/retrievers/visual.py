@@ -1,4 +1,4 @@
-"""VisualRetriever — ColQwen2 multi-vector page retrieval (Phase 3).
+"""VisualRetriever — ColQwen2 multi-vector page retrieval.
 
 Each page of each paper is embedded once into a multi-vector tensor
 (`[n_patches, dim]`). At query time the user query is also multi-vector
@@ -6,9 +6,10 @@ embedded and scored against every page via late interaction
 (MaxSim — for each query token, max similarity over page patches; sum
 across query tokens).
 
-Storage is in-memory (a list of tensors keyed by chunk_id). For Phase 3's
-5-paper x ~20-80 page corpus that's ~50 MB at bf16. If we ever want to
-persist these, Qdrant 1.10+ supports multivector collections natively.
+Storage is in-memory (a list of tensors keyed by chunk_id). For a small
+multi-paper corpus (~5 papers x 20-80 pages) that's tens of MB at bf16. If
+we ever want to persist these, Qdrant 1.10+ supports multivector collections
+natively.
 
 Duck-types `Retriever` so `eval.runner.evaluate` can run it head-to-head
 against `PipelineRetriever`.

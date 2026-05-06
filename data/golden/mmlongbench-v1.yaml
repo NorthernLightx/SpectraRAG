@@ -72,7 +72,218 @@ queries:
   expected_facts:
   - '[''Circle'', ''Rectangle'']'
   note: MMLongBench-Doc | doc_type=Tutorial/Workshop | evidence_sources=['Figure'] | answer_format=List
-- query_id: mmlb_0007_05-03-18-political-release
+- query_id: mmlb_0007_2310.05634v2
+  text: In figure 1, which relation arrows do not point to specific leaf nodes?
+  paper_id: 2310.05634v2
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 1
+  expected_facts:
+  - '[''movement'', ''birth'', ''place of birth'', ''member'']'
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Chart'] | answer_format=List
+- query_id: mmlb_0008_2310.05634v2
+  text: In figure 5, what is the color of the line that has no intersection with any other line?
+  paper_id: 2310.05634v2
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 8
+  expected_facts:
+  - red
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Chart'] | answer_format=Str
+- query_id: mmlb_0009_2310.05634v2
+  text: How many tables include "F1" as a metric?
+  paper_id: 2310.05634v2
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 7
+  - 9
+  expected_facts:
+  - '3'
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Table'] | answer_format=Int
+- query_id: mmlb_0010_2310.05634v2
+  text: From the paper, which temperature gives ChatGPT the highest alignment score?
+  paper_id: 2310.05634v2
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 7
+  expected_facts:
+  - '0.1'
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Pure-text (Plain-text)', 'Table'] | answer_format=Float
+- query_id: mmlb_0011_2310.05634v2
+  text: 'For dataset construction, which step takes the most word to describe than the others. '
+  paper_id: 2310.05634v2
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 12
+  - 13
+  expected_facts:
+  - Evolutionary Question Generation
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Pure-text (Plain-text)'] | answer_format=Str
+- query_id: mmlb_0012_2310.05634v2
+  text: According to author's definition on conscious incompetence, when can a sentence map to both [NA] and a list of sub-graph
+    knowledge?
+  paper_id: 2310.05634v2
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 2
+  - 3
+  expected_facts:
+  - If it can be partially verified by the knowledge graph G
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Pure-text (Plain-text)'] | answer_format=Str
+- query_id: mmlb_0013_2310.05634v2
+  text: According to author's definition on conscious incompetence, when can a sentence map to either [NA] or a list of sub-graph
+    knowledge?
+  paper_id: 2310.05634v2
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts:
+  - Not answerable
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=[] | answer_format=None
+- query_id: mmlb_0014_2024.ug.eprospectus
+  text: Which groups of applicants have the lastest end of application period according to this brochure?
+  paper_id: 2024.ug.eprospectus
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 25
+  expected_facts:
+  - '["Singapore-Cambridge GCE ''A'' Level", ''International Baccalaureate (IB) Diploma'']'
+  note: MMLongBench-Doc | doc_type=Brochure | evidence_sources=['Table'] | answer_format=List
+- query_id: mmlb_0015_2024.ug.eprospectus
+  text: Among the top 10 reasons why NTU smart campus is for you, which is the reason that does not include any person in
+    the corresponding figure?
+  paper_id: 2024.ug.eprospectus
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 3
+  expected_facts:
+  - Most Beautiful Campus
+  note: MMLongBench-Doc | doc_type=Brochure | evidence_sources=['Figure', 'Generalized-text (Layout)'] | answer_format=Str
+- query_id: mmlb_0016_2024.ug.eprospectus
+  text: Student from which major has a picture of playing badminton in this brochure?
+  paper_id: 2024.ug.eprospectus
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 22
+  expected_facts:
+  - Medicine
+  note: MMLongBench-Doc | doc_type=Brochure | evidence_sources=['Generalized-text (Layout)', 'Figure'] | answer_format=Str
+- query_id: mmlb_0017_2024.ug.eprospectus
+  text: Student from which major has a picture of playing tennis in this brochure?
+  paper_id: 2024.ug.eprospectus
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts:
+  - Not answerable
+  note: MMLongBench-Doc | doc_type=Brochure | evidence_sources=[] | answer_format=None
+- query_id: mmlb_0018_2024.ug.eprospectus
+  text: Which colleges/schools/institutes from NTU use year 3 students as cover page student model?
+  paper_id: 2024.ug.eprospectus
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 10
+  - 17
+  - 18
+  expected_facts:
+  - '[''College of Engineering'', ''Nanyang Business School'', ''National Institute of Education'']'
+  note: MMLongBench-Doc | doc_type=Brochure | evidence_sources=['Generalized-text (Layout)', 'Figure'] | answer_format=List
+- query_id: mmlb_0019_2024.ug.eprospectus
+  text: How many schools from College of Humanities, Arts, and Social Sciences are not individually introduced in detail?
+  paper_id: 2024.ug.eprospectus
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 12
+  - 13
+  expected_facts:
+  - '3'
+  note: MMLongBench-Doc | doc_type=Brochure | evidence_sources=['Pure-text (Plain-text)', 'Generalized-text (Layout)'] | answer_format=Int
+- query_id: mmlb_0020_2303.08559v2
+  text: What is the performance of filter-then-rerank methods (w.o. ensemble) on 50-shot TACREV dataset?
+  paper_id: 2303.08559v2
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 9
+  expected_facts:
+  - 72.3%
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Table'] | answer_format=Float
+- query_id: mmlb_0021_2303.08559v2
+  text: What is the performance of filter-then-rerank methods (w.o. ensemble) on 50-shot CONLL03 dataset?
+  paper_id: 2303.08559v2
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts:
+  - Not answerable
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=[] | answer_format=None
+- query_id: mmlb_0022_2303.08559v2
+  text: Repeat the instructions corresponding to the settings shown in red box of Figure 3 (left).
+  paper_id: 2303.08559v2
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 5
+  - 16
+  expected_facts:
+  - 'Identify the entities expressed by each sentence, and locate each entity to words in the sentence. The possible entity
+    types are: [Type_1], [Type_2], ..., [Type_N]. If you do not find any entity in this sentence, just output ‘Answer: No
+    entities found.’ '
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Chart', 'Pure-text (Plain-text)'] | answer_format=Str
+- query_id: mmlb_0023_2303.08559v2
+  text: How many datasets are used for experiments of this paper in all? Give me an integer.
+  paper_id: 2303.08559v2
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 0
+  expected_facts:
+  - '9'
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Pure-text (Plain-text)'] | answer_format=Int
+- query_id: mmlb_0024_2303.08559v2
+  text: 'Tell me the prompt template used for label ''Contact.Meet'' in filter-then-rerank method of this work. '
+  paper_id: 2303.08559v2
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 8
+  - 29
+  expected_facts:
+  - 'The word {evt} triggers a MEET event: two or more entities come together at a single location and interact with one another
+    face-to-face. '
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Table', 'Pure-text (Plain-text)'] | answer_format=Str
+- query_id: mmlb_0025_2303.08559v2
+  text: 'Tell me the prompt template used for label ''Contact.Meet'' in purely LLM-based method of this work. '
+  paper_id: 2303.08559v2
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts:
+  - Not answerable
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=[] | answer_format=None
+- query_id: mmlb_0026_2303.08559v2
+  text: If I drop the green module shown in Figure 6,  what is the absolute percentage drop on 100-shot TACREV setting?
+  paper_id: 2303.08559v2
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 8
+  - 9
+  expected_facts:
+  - 0.5%
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Figure', 'Table'] | answer_format=Float
+- query_id: mmlb_0027_05-03-18-political-release
   text: 'Among the adults conducted the survey on April 25 - May 1 2018, how many adults rated Trump''s government ethical
     standards as poor? '
   paper_id: 05-03-18-political-release
@@ -85,7 +296,7 @@ queries:
   - '541'
   note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=['Pure-text (Plain-text)', 'Chart'] |
     answer_format=Int
-- query_id: mmlb_0008_05-03-18-political-release
+- query_id: mmlb_0028_05-03-18-political-release
   text: 'Among the adults conducted the survey on April 25 - May 1 2022, how many adults rated Trump''s government ethical
     standards as poor? '
   paper_id: 05-03-18-political-release
@@ -95,7 +306,7 @@ queries:
   expected_facts:
   - Not answerable
   note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=[] | answer_format=None
-- query_id: mmlb_0009_05-03-18-political-release
+- query_id: mmlb_0029_05-03-18-political-release
   text: According to the survey on April 25 - May 1, 2018, what are the domains with the highest percentage that adults are
     very confident and not at all confident of Donald Trump's govenment? Please write the answer in the list format and with
     alphabetical order, e.g., ["A","B"]
@@ -107,7 +318,7 @@ queries:
   expected_facts:
   - '[''Make good decisions about economic policy '', ''Make wise decisions about immigration policy '']'
   note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=['Chart'] | answer_format=List
-- query_id: mmlb_0010_05-03-18-political-release
+- query_id: mmlb_0030_05-03-18-political-release
   text: According to the survey on April 25 - May 1, 2018, what are the domains with the highest percentage that adults are
     very confident and not at all confident of  Joe Biden's govenment? Please write the answer in the list format and with
     alphabetical order, e.g., ["A","B"]
@@ -118,7 +329,7 @@ queries:
   expected_facts:
   - Not answerable
   note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=[] | answer_format=None
-- query_id: mmlb_0011_05-03-18-political-release
+- query_id: mmlb_0031_05-03-18-political-release
   text: What percentage of the party that holds the highest total percentage of good policy ideas and high ethical standards
     reported that they followed the news about congressional elections in their state very closely in the survey of U.S. adults
     conducted from April 25 to May 1, 2018?
@@ -132,7 +343,7 @@ queries:
   - 21%
   note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=['Chart', 'Pure-text (Plain-text)'] |
     answer_format=Int
-- query_id: mmlb_0012_05-03-18-political-release
+- query_id: mmlb_0032_05-03-18-political-release
   text: What percentage of the party that holds the highest total percentage of good policy ideas and high ethical standards
     reported that they followed the news about congressional elections in their state very closely in the survey of U.S. adults
     conducted from April 25 to May 1, 2022?
@@ -143,7 +354,7 @@ queries:
   expected_facts:
   - Not answerable
   note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=[] | answer_format=None
-- query_id: mmlb_0013_05-03-18-political-release
+- query_id: mmlb_0033_05-03-18-political-release
   text: What is the percentage of registered voters who support or lean toward the candidate from the party with the higher
     total percentage of good policy ideas and high ethical standards and closely follow congressional elections in their district
     in the survey of U.S. adults conducted April 25 - May 1, 2018?
@@ -157,7 +368,7 @@ queries:
   - 92%
   note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=['Chart', 'Pure-text (Plain-text)'] |
     answer_format=Float
-- query_id: mmlb_0014_05-03-18-political-release
+- query_id: mmlb_0034_05-03-18-political-release
   text: What is the percentage of registered voters who support or lean toward the candidate from the party with the higher
     total percentage of good policy ideas and high ethical standards and closely follow congressional elections in their district
     in the survey of Chinese adults conducted April 25 - May 1, 2018?
@@ -168,7 +379,7 @@ queries:
   expected_facts:
   - Not answerable
   note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=[] | answer_format=None
-- query_id: mmlb_0015_05-03-18-political-release
+- query_id: mmlb_0035_05-03-18-political-release
   text: What is the percentage gap between the youngest age group and the oldest age group that strongly disapproves of the
     way the president, who started his job in 2018, was handling his job in the survey of U.S. adults conducted April 25-May
     1, 2018? Please write the answer in float format
@@ -182,7 +393,7 @@ queries:
   - '7.0'
   note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=['Pure-text (Plain-text)', 'Chart'] |
     answer_format=Float
-- query_id: mmlb_0016_05-03-18-political-release
+- query_id: mmlb_0036_05-03-18-political-release
   text: What is the percentage gap between the youngest age group and the oldest age group that strongly disapproves of the
     way the president, who started his job in 2018, was handling his job in the survey of Chinese adults conducted April 25-May
     1, 2018?
@@ -193,7 +404,7 @@ queries:
   expected_facts:
   - Not answerable
   note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=[] | answer_format=None
-- query_id: mmlb_0017_05-03-18-political-release
+- query_id: mmlb_0037_05-03-18-political-release
   text: How many Demoncratic people in the survey of U.S. adults conducted April 25- May 1, 2019 said neither the Republican
     Party nor the Democratic Party  has ‘high ethical standards'?
   paper_id: 05-03-18-political-release
@@ -205,7 +416,7 @@ queries:
   expected_facts:
   - '128'
   note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=['Table', 'Chart'] | answer_format=Int
-- query_id: mmlb_0018_05-03-18-political-release
+- query_id: mmlb_0038_05-03-18-political-release
   text: How many non-partisan people in the survey  of U.S. adults conducted April 25- May 1, 2019 said neither the Republican
     Party nor the Democratic Party  has ‘high ethical standards'?
   paper_id: 05-03-18-political-release
@@ -215,7 +426,7 @@ queries:
   expected_facts:
   - Not answerable
   note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=[] | answer_format=None
-- query_id: mmlb_0019_0b85477387a9d0cc33fca0f4becaa0
+- query_id: mmlb_0039_0b85477387a9d0cc33fca0f4becaa0
   text: Who is the commanding officer in the first figure on the second page?
   paper_id: 0b85477387a9d0cc33fca0f4becaa0e5
   category: figure
@@ -226,7 +437,7 @@ queries:
   - Capt. John W. Sanders
   note: MMLongBench-Doc | doc_type=Administration/Industry file | evidence_sources=['Figure', 'Pure-text (Plain-text)'] |
     answer_format=Str
-- query_id: mmlb_0020_0b85477387a9d0cc33fca0f4becaa0
+- query_id: mmlb_0040_0b85477387a9d0cc33fca0f4becaa0
   text: Who is the commanding officer at the last page?
   paper_id: 0b85477387a9d0cc33fca0f4becaa0e5
   category: out_of_corpus
@@ -235,7 +446,7 @@ queries:
   expected_facts:
   - Not answerable
   note: MMLongBench-Doc | doc_type=Administration/Industry file | evidence_sources=[] | answer_format=None
-- query_id: mmlb_0021_0b85477387a9d0cc33fca0f4becaa0
+- query_id: mmlb_0041_0b85477387a9d0cc33fca0f4becaa0
   text: Who Visited the U.S. Naval Medical Research centre on November 29, 2012 in the document?
   paper_id: 0b85477387a9d0cc33fca0f4becaa0e5
   category: factual
@@ -245,7 +456,7 @@ queries:
   expected_facts:
   - Tim Ziemer
   note: MMLongBench-Doc | doc_type=Administration/Industry file | evidence_sources=['Pure-text (Plain-text)'] | answer_format=Str
-- query_id: mmlb_0022_0b85477387a9d0cc33fca0f4becaa0
+- query_id: mmlb_0042_0b85477387a9d0cc33fca0f4becaa0
   text: Who Visited the U.S. Naval Medical Research centre on November 29, 2020?
   paper_id: 0b85477387a9d0cc33fca0f4becaa0e5
   category: out_of_corpus
@@ -254,7 +465,7 @@ queries:
   expected_facts:
   - Not answerable
   note: MMLongBench-Doc | doc_type=Administration/Industry file | evidence_sources=[] | answer_format=None
-- query_id: mmlb_0023_0b85477387a9d0cc33fca0f4becaa0
+- query_id: mmlb_0043_0b85477387a9d0cc33fca0f4becaa0
   text: With whom did the NAMRU-3 team visit Monrovia, Liberia, in November 2012? Enumerate their names within a list.
   paper_id: 0b85477387a9d0cc33fca0f4becaa0e5
   category: out_of_corpus
@@ -264,7 +475,7 @@ queries:
   expected_facts:
   - '[''Walter Gwenigale'', ''Fatorma Bolay'', ''Vernon Graham'']'
   note: MMLongBench-Doc | doc_type=Administration/Industry file | evidence_sources=[] | answer_format=List
-- query_id: mmlb_0024_0b85477387a9d0cc33fca0f4becaa0
+- query_id: mmlb_0044_0b85477387a9d0cc33fca0f4becaa0
   text: Among all the pictures, how many of them contain only one person?
   paper_id: 0b85477387a9d0cc33fca0f4becaa0e5
   category: figure
@@ -278,7 +489,7 @@ queries:
   expected_facts:
   - '6'
   note: MMLongBench-Doc | doc_type=Administration/Industry file | evidence_sources=['Figure'] | answer_format=Int
-- query_id: mmlb_0025_0b85477387a9d0cc33fca0f4becaa0
+- query_id: mmlb_0045_0b85477387a9d0cc33fca0f4becaa0
   text: Among all the pictures, in which page the picture contains the most number of people? Give me the page no. as an integer.
   paper_id: 0b85477387a9d0cc33fca0f4becaa0e5
   category: figure
@@ -288,7 +499,395 @@ queries:
   expected_facts:
   - '9'
   note: MMLongBench-Doc | doc_type=Administration/Industry file | evidence_sources=['Figure'] | answer_format=Int
-- query_id: mmlb_0026_12-15-15-ISIS-and-terrorism-re
+- query_id: mmlb_0046_2310.07609v1
+  text: How many numbers with blue color are mentioned in the example figure of question-guidue reasoning?
+  paper_id: 2310.07609v1
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 1
+  expected_facts:
+  - '2'
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Figure', 'Pure-text (Plain-text)'] | answer_format=Int
+- query_id: mmlb_0047_2310.07609v1
+  text: How many numbers with purple color are mentioned in the example figure of question-guidue reasoning?
+  paper_id: 2310.07609v1
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts:
+  - Not answerable
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=[] | answer_format=None
+- query_id: mmlb_0048_2310.07609v1
+  text: In the proposed system, how many modules are implemented with Large Language Models backbone?
+  paper_id: 2310.07609v1
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 2
+  expected_facts:
+  - '5'
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Figure', 'Pure-text (Plain-text)'] | answer_format=Int
+- query_id: mmlb_0049_2310.07609v1
+  text: In the proposed system, how many modules are implemented with BERT's backbone?
+  paper_id: 2310.07609v1
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts:
+  - Not answerable
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=[] | answer_format=None
+- query_id: mmlb_0050_2310.07609v1
+  text: In the figure that locates at the top of page 5, what is the final step? Please write down the answer in string format.
+  paper_id: 2310.07609v1
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 5
+  expected_facts:
+  - 4. The final prediction result with rationale.
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Pure-text (Plain-text)', 'Generalized-text (Layout)',
+    'Figure'] | answer_format=Str
+- query_id: mmlb_0051_2310.07609v1
+  text: What is the color of the model rectangle in the figure of page 4 that appears both in QA model and Reasone moduler
+    in the paper?
+  paper_id: 2310.07609v1
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 2
+  - 4
+  - 5
+  expected_facts:
+  - Yellow
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Pure-text (Plain-text)', 'Figure'] | answer_format=Str
+- query_id: mmlb_0052_2310.07609v1
+  text: How many prompts instruction examples are listed in the main body of the paper? Please writhe down the answer in float
+    format.
+  paper_id: 2310.07609v1
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 3
+  - 4
+  expected_facts:
+  - '4'
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Generalized-text (Layout)', 'Pure-text (Plain-text)']
+    | answer_format=Int
+- query_id: mmlb_0053_2310.07609v1
+  text: What is the average performance gap between the ProgramFC performance and our proposed system in the HOVER dataset?
+    Please write down the answer in float format with 2 decimals.
+  paper_id: 2310.07609v1
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 6
+  expected_facts:
+  - '0.45'
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Table', 'Pure-text (Plain-text)'] | answer_format=Float
+- query_id: mmlb_0054_2303.05039v2
+  text: 'How many items in total of Amazon related datasets in the paper? Please write the answer in int format. '
+  paper_id: 2303.05039v2
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 4
+  expected_facts:
+  - '8980'
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Table'] | answer_format=Int
+- query_id: mmlb_0055_2303.05039v2
+  text: 'How many items in total of Shopee related datasets in the paper? Please write the answer in int format. '
+  paper_id: 2303.05039v2
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts:
+  - Not answerable
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=[] | answer_format=None
+- query_id: mmlb_0056_2303.05039v2
+  text: What is the average number of words per user used for the experiments in the dataset from which a data sample of a
+    user's Receptiviti score is shown? Please write the answer in float format.
+  paper_id: 2303.05039v2
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 4
+  expected_facts:
+  - '466.43'
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=[] | answer_format=Float
+- query_id: mmlb_0057_2303.05039v2
+  text: What is the average number of words per user used for the experiments in the dataset from which a data sample of a
+    user's LIWC score is shown? Please write the answer in float format.
+  paper_id: 2303.05039v2
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts:
+  - Not answerable
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=[] | answer_format=None
+- query_id: mmlb_0058_2303.05039v2
+  text: What is the color of the personality vector in the soft-labled  personality embedding matrix that with the highest
+    Receptiviti score for User A2GBIFL43U1LKJ?
+  paper_id: 2303.05039v2
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 4
+  - 5
+  expected_facts:
+  - Orange
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Figure', 'Table', 'Pure-text (Plain-text)'] | answer_format=Str
+- query_id: mmlb_0059_2303.05039v2
+  text: What are the personality scores of the data sample with extreme personality cases, in which the personality vector
+    color is blue in the overall model structure? Please write down the answer in list format with ascending order, e.g.,
+    ["1","2"]
+  paper_id: 2303.05039v2
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 5
+  - 6
+  expected_facts:
+  - '[''71.02'', ''75.38'']'
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Pure-text (Plain-text)', 'Figure', 'Table'] | answer_format=List
+- query_id: mmlb_0060_2303.05039v2
+  text: What is the highest hit rate number in the dataset for the personality located furthest to the left in the distribution
+    of personality traits figure?
+  paper_id: 2303.05039v2
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 6
+  - 8
+  expected_facts:
+  - '0.833'
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Chart', 'Table', 'Pure-text (Plain-text)'] | answer_format=Float
+- query_id: mmlb_0061_2303.05039v2
+  text: What is the evaluation metric that has highest number for the method located at the bottom of the model structure
+    figure across the three datasets? Please write down the answer with string format.
+  paper_id: 2303.05039v2
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 5
+  - 8
+  expected_facts:
+  - H@10
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Pure-text (Plain-text)', 'Table', 'Figure', 'Generalized-text
+    (Layout)'] | answer_format=Str
+- query_id: mmlb_0062_2305.13186v3
+  text: How many green and grey rectangles in the first figure of the paper? Please list the numbers in the list format by
+    descending order. e.g., ["2","1"]
+  paper_id: 2305.13186v3
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 2
+  expected_facts:
+  - '[''3'', ''1'']'
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Figure', 'Pure-text (Plain-text)'] | answer_format=List
+- query_id: mmlb_0063_2305.13186v3
+  text: How many green and grey triangles in the first figure of the paper? Please list the numbers in the list format by
+    descending order. e.g., ["2","1"]
+  paper_id: 2305.13186v3
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts:
+  - Not answerable
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=[] | answer_format=None
+- query_id: mmlb_0064_2305.13186v3
+  text: 'How many reasoning steps are involved in the figure 1 in the paper? '
+  paper_id: 2305.13186v3
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 2
+  expected_facts:
+  - '5'
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Pure-text (Plain-text)', 'Figure'] | answer_format=Int
+- query_id: mmlb_0065_2305.13186v3
+  text: 'How many more claims does the Wiki Table datasets have comparing to scientific articles datasets? Please writeh the
+    answer in int format. '
+  paper_id: 2305.13186v3
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 4
+  expected_facts:
+  - '197940'
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Table', 'Pure-text (Plain-text)'] | answer_format=Int
+- query_id: mmlb_0066_2305.13186v3
+  text: 'How many more claims does the Health Table datasets have comparing to Newspaper datasets? Please writeh the answer
+    in int format. '
+  paper_id: 2305.13186v3
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts:
+  - Not answerable
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=[] | answer_format=None
+- query_id: mmlb_0067_2305.13186v3
+  text: How many USD dollars will the author spend if the annotators finish annotating all of claims of the authors' proposed
+    dataset? Please write the answer in float format.
+  paper_id: 2305.13186v3
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 4
+  expected_facts:
+  - '453.25'
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Pure-text (Plain-text)', 'Table'] | answer_format=Float
+- query_id: mmlb_0068_2305.13186v3
+  text: How many claims are with the highest percentage of reasoning steps  in the author's proposed dataset?
+  paper_id: 2305.13186v3
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 4
+  - 5
+  expected_facts:
+  - '245'
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Chart', 'Table', 'Pure-text (Plain-text)'] | answer_format=Int
+- query_id: mmlb_0069_2305.13186v3
+  text: How many figures are there in the Appendix in the paper? Please write down the answer into int format.
+  paper_id: 2305.13186v3
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 15
+  - 16
+  - 17
+  - 22
+  - 23
+  - 24
+  - 25
+  - 26
+  - 27
+  expected_facts:
+  - '10'
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Figure', 'Generalized-text (Layout)'] | answer_format=Int
+- query_id: mmlb_0070_2309.17421v2
+  text: In Figure 122, what's the colour of OSCARb in the prompt?
+  paper_id: 2309.17421v2
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 153
+  expected_facts:
+  - Blue
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Figure'] | answer_format=Str
+- query_id: mmlb_0071_2309.17421v2
+  text: In Figure 113, what's the name of the music app shown in the computer screen?
+  paper_id: 2309.17421v2
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 143
+  expected_facts:
+  - YouTube Music
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Figure'] | answer_format=Str
+- query_id: mmlb_0072_2309.17421v2
+  text: In Figure 111, what's the price of the keyboard shown in the screenshot?
+  paper_id: 2309.17421v2
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 141
+  expected_facts:
+  - $49.99
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Figure'] | answer_format=Float
+- query_id: mmlb_0073_2309.17421v2
+  text: In Figure 107, what's the battery percentage shown in the screenshot?
+  paper_id: 2309.17421v2
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 137
+  expected_facts:
+  - 76%
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Figure'] | answer_format=Float
+- query_id: mmlb_0074_2309.17421v2
+  text: In Figure 101, which country is the person on the cover of the news on the politico website from?
+  paper_id: 2309.17421v2
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 131
+  expected_facts:
+  - Ukraine
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Figure'] | answer_format=Str
+- query_id: mmlb_0075_2309.17421v2
+  text: In Figure 89, what is the brand name of the coffee machine in the picture?
+  paper_id: 2309.17421v2
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 118
+  expected_facts:
+  - JoooDeee
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Figure'] | answer_format=Str
+- query_id: mmlb_0076_2005.12872v3
+  text: According to the DETR PyTorch inference code, what is the output dimension of the linear_class layer?
+  paper_id: 2005.12872v3
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 26
+  expected_facts:
+  - '92'
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Table', 'Generalized-text (Layout)'] | answer_format=Int
+- query_id: mmlb_0077_2005.12872v3
+  text: When number of visible instances = 60, which category has the largest proportion of missed instances?
+  paper_id: 2005.12872v3
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 25
+  expected_facts:
+  - Person
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Figure'] | answer_format=Str
+- query_id: mmlb_0078_2005.12872v3
+  text: What's the AP50 value of DETR with L1 loss and without GIoU loss on the COCO validation set?
+  paper_id: 2005.12872v3
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 13
+  expected_facts:
+  - '57.3'
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Table'] | answer_format=Float
+- query_id: mmlb_0079_2005.12872v3
+  text: What's the AP50 value of DETR without L1 loss and without GIoU loss on the COCO validation set?
+  paper_id: 2005.12872v3
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts:
+  - Not answerable
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=[] | answer_format=None
+- query_id: mmlb_0080_2005.12872v3
+  text: According to Fig 10 architecture of DETR’s transformer, what is the colour of the Multi-Head Self-Attention layer?
+  paper_id: 2005.12872v3
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 22
+  expected_facts:
+  - Red
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Figure'] | answer_format=Str
+- query_id: mmlb_0081_2005.12872v3
+  text: How many multi-head self-attention layers does DETR's default structure have?
+  paper_id: 2005.12872v3
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 10
+  - 22
+  expected_facts:
+  - '36'
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=[] | answer_format=Int
+- query_id: mmlb_0082_12-15-15-ISIS-and-terrorism-re
   text: In 2015, how many percentage of surveyed adults, Republicans, and Democrats believed that the goverment was doing
     very/fairly well in reducing the threat of terrorism? Please write the answer in list format, e.g., ["3","2"]
   paper_id: 12-15-15-ISIS-and-terrorism-release-final
@@ -301,7 +900,7 @@ queries:
   - '[''46'', ''27'', ''64'']'
   note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=['Pure-text (Plain-text)', 'Chart'] |
     answer_format=List
-- query_id: mmlb_0027_12-15-15-ISIS-and-terrorism-re
+- query_id: mmlb_0083_12-15-15-ISIS-and-terrorism-re
   text: In 2020, how many percentage of surveyed adults, Republicans, and Democrats believed that the goverment was doing
     very/fairly well in reducing the threat of terrorism? Please write the answer in list format, e.g., ["3","2"]
   paper_id: 12-15-15-ISIS-and-terrorism-release-final
@@ -311,7 +910,7 @@ queries:
   expected_facts:
   - Not answerable
   note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=[] | answer_format=None
-- query_id: mmlb_0028_12-15-15-ISIS-and-terrorism-re
+- query_id: mmlb_0084_12-15-15-ISIS-and-terrorism-re
   text: 'In 2015, among all those that are considered as bigger threats to well-being of the United States compared to August
     2014, which one has the biggest R-D difference? '
   paper_id: 12-15-15-ISIS-and-terrorism-release-final
@@ -324,7 +923,7 @@ queries:
   - Iran's nuclear program
   note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=['Pure-text (Plain-text)', 'Chart'] |
     answer_format=Str
-- query_id: mmlb_0029_12-15-15-ISIS-and-terrorism-re
+- query_id: mmlb_0085_12-15-15-ISIS-and-terrorism-re
   text: 'In 2015, among all those that are considered as bigger threats to well-being of the China compared to August 2014,
     which one has the biggest R-D difference? '
   paper_id: 12-15-15-ISIS-and-terrorism-release-final
@@ -334,7 +933,7 @@ queries:
   expected_facts:
   - Not answerable
   note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=[] | answer_format=None
-- query_id: mmlb_0030_12-15-15-ISIS-and-terrorism-re
+- query_id: mmlb_0086_12-15-15-ISIS-and-terrorism-re
   text: How many bar charts are in the report?Please write the answer in float format.
   paper_id: 12-15-15-ISIS-and-terrorism-release-final
   category: figure
@@ -345,7 +944,7 @@ queries:
   - '1'
   note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=['Generalized-text (Layout)', 'Chart']
     | answer_format=Int
-- query_id: mmlb_0031_12-15-15-ISIS-and-terrorism-re
+- query_id: mmlb_0087_12-15-15-ISIS-and-terrorism-re
   text: although few says that current military effort in Iraq and Syria is going well,  what are the more people's attitude
     in still believe that the U.S. and its allies in the ISIS flight in the end in 2015?
   paper_id: 12-15-15-ISIS-and-terrorism-release-final
@@ -357,7 +956,190 @@ queries:
   - will definitely/probably succeed
   note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=['Pure-text (Plain-text)', 'Chart'] |
     answer_format=Str
-- query_id: mmlb_0032_11-21-16-Updated-Post-Election
+- query_id: mmlb_0088_2023.findings-emnlp.248
+  text: For the dataset that uses Prover9 as the symbolic solver, how many examples in this dataset are used for evaluation?
+  paper_id: 2023.findings-emnlp.248
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 5
+  - 6
+  expected_facts:
+  - '204'
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Pure-text (Plain-text)', 'Table'] | answer_format=Int
+- query_id: mmlb_0089_2023.findings-emnlp.248
+  text: For the dataset that uses HOVER as the symbolic solver, how many examples in this dataset are used for evaluation?
+  paper_id: 2023.findings-emnlp.248
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts:
+  - Not answerable
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=[] | answer_format=None
+- query_id: mmlb_0090_2023.findings-emnlp.248
+  text: For all the examples given in Figure 5 and Figure 6, how many of them Logic-LM predicted the correct answer?
+  paper_id: 2023.findings-emnlp.248
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 9
+  - 19
+  expected_facts:
+  - '2'
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Figure'] | answer_format=Int
+- query_id: mmlb_0091_2023.findings-emnlp.248
+  text: For all the examples given in Figure 7 and Figure 8, how many of them Logic-LM predicted the correct answer?
+  paper_id: 2023.findings-emnlp.248
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts:
+  - Not answerable
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=[] | answer_format=None
+- query_id: mmlb_0092_2023.findings-emnlp.248
+  text: 'How many prompt examples are given in the Appendix? '
+  paper_id: 2023.findings-emnlp.248
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 14
+  - 15
+  - 16
+  - 17
+  - 18
+  expected_facts:
+  - '15'
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Figure'] | answer_format=Int
+- query_id: mmlb_0093_2023.findings-emnlp.248
+  text: 'When using GPT-4 as the base language model, how many datasets does Logic-LM (without self-refinement) outperform
+    the two baseline models in? '
+  paper_id: 2023.findings-emnlp.248
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 7
+  expected_facts:
+  - '4'
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Table'] | answer_format=Int
+- query_id: mmlb_0094_2023.findings-emnlp.248
+  text: In this paper, what symbolic solver is used to implement the logic programming module shown in Figure 1?
+  paper_id: 2023.findings-emnlp.248
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 3
+  - 5
+  expected_facts:
+  - Pyke
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Pure-text (Plain-text)', 'Figure'] | answer_format=Str
+- query_id: mmlb_0095_2023.findings-emnlp.248
+  text: Which dataset used in this paper was proposed in 2022 and all of its logical reasoning problems are multiple-choice
+    questions with 5 options?
+  paper_id: 2023.findings-emnlp.248
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 6
+  - 14
+  expected_facts:
+  - ProofWriter
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Table', 'Pure-text (Plain-text)'] | answer_format=Str
+- query_id: mmlb_0096_2023.acl-long.386
+  text: What are the program execution function names with blue background in our proposed model in the first figure in the
+    paper?  Please write down the answer in a list format with ascending alphabetical order, e.g., ["a","b"]
+  paper_id: 2023.acl-long.386
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 2
+  expected_facts:
+  - '[''Fact Checker'']'
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Figure', 'Pure-text (Plain-text)'] | answer_format=List
+- query_id: mmlb_0097_2023.acl-long.386
+  text: What are the program execution function names with grey background in our proposed model in the first figure in the
+    paper?  Please write down the answer in a list format with ascending alphabetical order, e.g., ["a","b"]
+  paper_id: 2023.acl-long.386
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts:
+  - Not answerable
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=[] | answer_format=None
+- query_id: mmlb_0098_2023.acl-long.386
+  text: How many prompts examples are shown in the paper's main body?
+  paper_id: 2023.acl-long.386
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 4
+  expected_facts:
+  - '2'
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Generalized-text (Layout)', 'Pure-text (Plain-text)']
+    | answer_format=Int
+- query_id: mmlb_0099_2023.acl-long.386
+  text: How many complete in-context examples are shown in the figure at the top of page 6985? Please write down the answer
+    with integer format.
+  paper_id: 2023.acl-long.386
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 5
+  expected_facts:
+  - '1'
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Figure', 'Pure-text (Plain-text)'] | answer_format=Int
+- query_id: mmlb_0100_2023.acl-long.386
+  text: How many complete in-context examples are shown in the figure at the bottom of page 6985? Please write down the answer
+    with float format.
+  paper_id: 2023.acl-long.386
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts:
+  - Not answerable
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=[] | answer_format=None
+- query_id: mmlb_0101_2023.acl-long.386
+  text: Which type of semantic errors has the lowest total percentages in HOVER dataset?
+  paper_id: 2023.acl-long.386
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 8
+  expected_facts:
+  - Subtask
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Table', 'Pure-text (Plain-text)'] | answer_format=Str
+- query_id: mmlb_0102_2023.acl-long.386
+  text: Which type of semantic errors has the lowest total percentages in FEVER dataset?
+  paper_id: 2023.acl-long.386
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts:
+  - Not answerable
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=[] | answer_format=None
+- query_id: mmlb_0103_2023.acl-long.386
+  text: What is the performance of the InstructGPT model with Self-Ask in the closed-book setting on the dataset with the
+    highest ProgramFC retrieval recall at 10? Please write down the answer in float format with 1 decimal.
+  paper_id: 2023.acl-long.386
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 7
+  - 8
+  expected_facts:
+  - '56.8'
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Pure-text (Plain-text)', 'Chart'] | answer_format=Float
+- query_id: mmlb_0104_2023.acl-long.386
+  text: 'Please list the F1 scores for ProgramFC on different datasets with gold evidence in relation to Flan-T5-small, in
+    descending order, with one decimal place. For example: ["3.0", "2.0"].'
+  paper_id: 2023.acl-long.386
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 7
+  expected_facts:
+  - '[''64.3'', ''62.4'', ''62.2'']'
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Chart', 'Pure-text (Plain-text)'] | answer_format=List
+- query_id: mmlb_0105_11-21-16-Updated-Post-Election
   text: What is the highest point of % of voters who say there was more mudslinging than in past elections?
   paper_id: 11-21-16-Updated-Post-Election-Release
   category: figure
@@ -367,7 +1149,7 @@ queries:
   expected_facts:
   - '92'
   note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=['Chart'] | answer_format=List
-- query_id: mmlb_0033_11-21-16-Updated-Post-Election
+- query_id: mmlb_0106_11-21-16-Updated-Post-Election
   text: Do more men or women (in %) think a female president will be elected in a lifetime?
   paper_id: 11-21-16-Updated-Post-Election-Release
   category: figure
@@ -377,7 +1159,7 @@ queries:
   expected_facts:
   - men
   note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=['Chart'] | answer_format=Str
-- query_id: mmlb_0034_11-21-16-Updated-Post-Election
+- query_id: mmlb_0107_11-21-16-Updated-Post-Election
   text: Do more White or Black Americans (in %) think a female president will be elected in a lifetime?
   paper_id: 11-21-16-Updated-Post-Election-Release
   category: out_of_corpus
@@ -386,7 +1168,7 @@ queries:
   expected_facts:
   - Not answerable
   note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=[] | answer_format=None
-- query_id: mmlb_0035_11-21-16-Updated-Post-Election
+- query_id: mmlb_0108_11-21-16-Updated-Post-Election
   text: How many line plots are there in the report?
   paper_id: 11-21-16-Updated-Post-Election-Release
   category: figure
@@ -400,7 +1182,7 @@ queries:
   expected_facts:
   - '8'
   note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=['Chart'] | answer_format=Int
-- query_id: mmlb_0036_11-21-16-Updated-Post-Election
+- query_id: mmlb_0109_11-21-16-Updated-Post-Election
   text: Who has a higher median campaign grade? Trump or Clinton?
   paper_id: 11-21-16-Updated-Post-Election-Release
   category: figure
@@ -411,7 +1193,7 @@ queries:
   expected_facts:
   - Clinton
   note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=['Chart'] | answer_format=Str
-- query_id: mmlb_0037_11-21-16-Updated-Post-Election
+- query_id: mmlb_0110_11-21-16-Updated-Post-Election
   text: How many charts are related to mudslinging?
   paper_id: 11-21-16-Updated-Post-Election-Release
   category: figure
@@ -422,7 +1204,7 @@ queries:
   expected_facts:
   - '3'
   note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=['Chart'] | answer_format=Int
-- query_id: mmlb_0038_11-21-16-Updated-Post-Election
+- query_id: mmlb_0111_11-21-16-Updated-Post-Election
   text: How many % of voters reactions are "uneasy" and "excited" about Trump's victory?
   paper_id: 11-21-16-Updated-Post-Election-Release
   category: figure
@@ -434,7 +1216,7 @@ queries:
   - '[53, 1.4]'
   note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=['Pure-text (Plain-text)', 'Chart'] |
     answer_format=List
-- query_id: mmlb_0039_11-21-16-Updated-Post-Election
+- query_id: mmlb_0112_11-21-16-Updated-Post-Election
   text: How many % of voters reactions are "angry" about Trump's victory?
   paper_id: 11-21-16-Updated-Post-Election-Release
   category: out_of_corpus
@@ -444,3 +1226,368 @@ queries:
   expected_facts:
   - 31%
   note: MMLongBench-Doc | doc_type=Research report / Introduction | evidence_sources=[] | answer_format=Float
+- query_id: mmlb_0113_2306.05425v1
+  text: What task is on the top of the planning branch of the tree?
+  paper_id: 2306.05425v1
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 2
+  expected_facts:
+  - egocentric planning
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Figure'] | answer_format=Str
+- query_id: mmlb_0114_2306.05425v1
+  text: What task is on the top of the action branch of the tree?
+  paper_id: 2306.05425v1
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts:
+  - Not answerable
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=[] | answer_format=None
+- query_id: mmlb_0115_2306.05425v1
+  text: How many bar plots (including subplots) are in this paper?
+  paper_id: 2306.05425v1
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 7
+  - 10
+  expected_facts:
+  - '6'
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Chart'] | answer_format=Int
+- query_id: mmlb_0116_2306.05425v1
+  text: According to the figure, what is the first step of cold start?
+  paper_id: 2306.05425v1
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 5
+  expected_facts:
+  - Prompt
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Figure'] | answer_format=Str
+- query_id: mmlb_0117_2306.05425v1
+  text: What sport is shown in the visual examples of MIMIC-IT and Otter?
+  paper_id: 2306.05425v1
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 4
+  - 5
+  expected_facts:
+  - soccer
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Figure'] | answer_format=Str
+- query_id: mmlb_0118_2306.05425v1
+  text: What literature is shown in the visual examples of MIMIC-IT and Otter?
+  paper_id: 2306.05425v1
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts:
+  - Not answerable
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=[] | answer_format=None
+- query_id: mmlb_0119_2306.05425v1
+  text: How many languages are shown in the in-context examples for multi-lingual translation query?
+  paper_id: 2306.05425v1
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 16
+  expected_facts:
+  - '8'
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Table'] | answer_format=Int
+- query_id: mmlb_0120_2306.05425v1
+  text: How many line plots are shown in the paper?
+  paper_id: 2306.05425v1
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts:
+  - '1'
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Figure'] | answer_format=Int
+- query_id: mmlb_0121_2306.05425v1
+  text: How many line plots are shown in the slides?
+  paper_id: 2306.05425v1
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts:
+  - Not answerable
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=[] | answer_format=None
+- query_id: mmlb_0122_2210.02442v1
+  text: How many figures convey similar messages as the first figure?
+  paper_id: 2210.02442v1
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 2
+  - 16
+  - 20
+  expected_facts:
+  - '2'
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Figure'] | answer_format=Int
+- query_id: mmlb_0123_2210.02442v1
+  text: How many strategies outperform the random selection baseline on CIFAR-10-LT?
+  paper_id: 2210.02442v1
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 7
+  expected_facts:
+  - '4'
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Pure-text (Plain-text)', 'Generalized-text (Layout)',
+    'Figure'] | answer_format=Int
+- query_id: mmlb_0124_2210.02442v1
+  text: How many strategies outperform the uniform sampling baseline on CIFAR-10-LT?
+  paper_id: 2210.02442v1
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts:
+  - Not answerable
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=[] | answer_format=None
+- query_id: mmlb_0125_2210.02442v1
+  text: What querying criteria yields the worst label diversity generally on all the datasets?
+  paper_id: 2210.02442v1
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 4
+  - 17
+  expected_facts:
+  - VAAL
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Chart'] | answer_format=Str
+- query_id: mmlb_0126_2210.02442v1
+  text: How many line plots are in this paper?
+  paper_id: 2210.02442v1
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 8
+  - 24
+  expected_facts:
+  - '3'
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Chart'] | answer_format=Int
+- query_id: mmlb_0127_2210.02442v1
+  text: What are the optimizers used in this research?
+  paper_id: 2210.02442v1
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 14
+  - 15
+  expected_facts:
+  - SGD
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Table'] | answer_format=Str
+- query_id: mmlb_0128_2210.02442v1
+  text: What are the large language models used in this research?
+  paper_id: 2210.02442v1
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts:
+  - Not answerable
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=[] | answer_format=None
+- query_id: mmlb_0129_2210.02442v1
+  text: On the dataset map of PathMNIST, does the map by ground truth or pseudo-labels have a larger confidence variance?
+  paper_id: 2210.02442v1
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 22
+  expected_facts:
+  - ground truth
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Figure'] | answer_format=Str
+- query_id: mmlb_0130_2210.02442v1
+  text: On the dataset map of DermaMNIST, does the map by ground truth or pseudo-labels have a larger confidence variance?
+  paper_id: 2210.02442v1
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts:
+  - Not answerable
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=[] | answer_format=None
+- query_id: mmlb_0131_2307.09288v2
+  text: How many tables are included in Pages 5-10?
+  paper_id: 2307.09288v2
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 6
+  - 7
+  - 8
+  - 9
+  expected_facts:
+  - '5'
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Table'] | answer_format=Int
+- query_id: mmlb_0132_2307.09288v2
+  text: How many tables are included in Pages 100-110?
+  paper_id: 2307.09288v2
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts:
+  - Not answerable
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=[] | answer_format=None
+- query_id: mmlb_0133_2307.09288v2
+  text: list the top-3 models in Figure 3
+  paper_id: 2307.09288v2
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 4
+  expected_facts:
+  - '[''Vicuna13b-v1.3'', ''PaLM Bison'', ''Vicuna13b-v1.1'']'
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Chart'] | answer_format=List
+- query_id: mmlb_0134_2307.09288v2
+  text: list the top-100 models in Figure 3
+  paper_id: 2307.09288v2
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts:
+  - Not answerable
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=[] | answer_format=None
+- query_id: mmlb_0135_2307.09288v2
+  text: which model performs best in 0-shot setting on QUAC dataset according to Table 23?
+  paper_id: 2307.09288v2
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 50
+  expected_facts:
+  - Llama 1 33B
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Table', 'Pure-text (Plain-text)'] | answer_format=Str
+- query_id: mmlb_0136_2307.09288v2
+  text: How many slots are missed in Table 21?
+  paper_id: 2307.09288v2
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 49
+  expected_facts:
+  - '8'
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Table'] | answer_format=Int
+- query_id: mmlb_0137_2307.09288v2
+  text: How many datasets are reported in Pages 49-50?
+  paper_id: 2307.09288v2
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 48
+  - 49
+  expected_facts:
+  - '13'
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Table'] | answer_format=Int
+- query_id: mmlb_0138_2307.09288v2
+  text: How many more emojis does the right subfig have than the left subfig in Figure 9?
+  paper_id: 2307.09288v2
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 16
+  expected_facts:
+  - '15'
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Figure'] | answer_format=Int
+- query_id: mmlb_0139_2305.14160v4
+  text: Does the mean significance of information flow from the text part to label words always greater than the mean significance
+    of information flow from label words to the target position? Answer 'yes' or 'no' directly.
+  paper_id: 2305.14160v4
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 3
+  - 4
+  expected_facts:
+  - 'No'
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Pure-text (Plain-text)', 'Chart'] | answer_format=Str
+- query_id: mmlb_0140_2305.14160v4
+  text: Does the  information flow from label words to the target position dominate in all layers? Answer 'yes' or 'no' directly.
+  paper_id: 2305.14160v4
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 3
+  - 4
+  expected_facts:
+  - 'No'
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Pure-text (Plain-text)', 'Chart'] | answer_format=Str
+- query_id: mmlb_0141_2305.14160v4
+  text: Does randomly isolating non-label words within the last 5 layers have almost no impact? Answer 'yes' or 'no' directly.
+  paper_id: 2305.14160v4
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 4
+  expected_facts:
+  - 'Yes'
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Chart', 'Pure-text (Plain-text)'] | answer_format=Str
+- query_id: mmlb_0142_2305.14160v4
+  text: How much does the Anchor Re-weighting method improve the performance of vanilla ICL on average?
+  paper_id: 2305.14160v4
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 7
+  expected_facts:
+  - '16.74'
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Table'] | answer_format=Float
+- query_id: mmlb_0143_2305.14160v4
+  text: Using anchor-only context compression, how much can GPT2-XL speed up on AGNews?
+  paper_id: 2305.14160v4
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts:
+  - 2.5x
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Table'] | answer_format=Str
+- query_id: mmlb_0144_2305.14160v4
+  text: What is the most confusing category of Abbreviation?
+  paper_id: 2305.14160v4
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 8
+  expected_facts:
+  - Description
+  note: MMLongBench-Doc | doc_type=Academic paper | evidence_sources=['Chart', 'Pure-text (Plain-text)'] | answer_format=Str
+- query_id: mmlb_0145_2021-Apple-Catalog
+  text: How many different iPad solutions are shown in the document?
+  paper_id: 2021-Apple-Catalog
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 6
+  expected_facts:
+  - '4'
+  note: MMLongBench-Doc | doc_type=Brochure | evidence_sources=['Figure', 'Generalized-text (Layout)'] | answer_format=Int
+- query_id: mmlb_0146_2021-Apple-Catalog
+  text: Are there 11 different iPad solutions shown in the document?
+  paper_id: 2021-Apple-Catalog
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts:
+  - Not answerable
+  note: MMLongBench-Doc | doc_type=Brochure | evidence_sources=[] | answer_format=None
+- query_id: mmlb_0147_2021-Apple-Catalog
+  text: Regarding macbook high security solution, which numbers of features are not presented in the illustration?
+  paper_id: 2021-Apple-Catalog
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 22
+  expected_facts:
+  - '4'
+  note: MMLongBench-Doc | doc_type=Brochure | evidence_sources=['Figure', 'Generalized-text (Layout)'] | answer_format=Int
+- query_id: mmlb_0148_2021-Apple-Catalog
+  text: One40 can only be used for Apple Watch, is that true? Please directly answer 'yes' or 'no'.
+  paper_id: 2021-Apple-Catalog
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 11
+  - 28
+  expected_facts:
+  - 'Yes'
+  note: MMLongBench-Doc | doc_type=Brochure | evidence_sources=['Generalized-text (Layout)', 'Table'] | answer_format=Str

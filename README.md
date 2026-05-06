@@ -10,8 +10,9 @@ set under regression gates. The secondary story is the production engineering:
 provider abstraction, prompt versioning, hybrid retrieval, eval harness,
 observability, IaC, CI/CD.
 
-The full specification lives in [`PROJECT.md`](./PROJECT.md). This README is
-the entry point for running the project.
+This README is the entry point for running the project. Architectural
+decisions live in [`docs/decisions/`](./docs/decisions/) (ADRs); the eval
+framework is documented in [`docs/evals.md`](./docs/evals.md).
 
 ---
 
@@ -132,8 +133,7 @@ when needed.
 
 ## Project layout
 
-The full structure and architectural rules are documented in [`PROJECT.md`](./PROJECT.md).
-Top-level packages already in place:
+Top-level packages:
 
 - `src/types/` — Pydantic models shared across modules
 - `src/config/` — Pydantic Settings + YAML defaults
@@ -203,6 +203,54 @@ factual queries score 0.712 — within noise of the chunk-level baseline
 all-page-level numbers because the router mixes granularities (chunk-
 level for text-only, page-level for hybrid); the per-category numbers
 are the apples-to-apples comparison.
+
+### Stress test on MMLongBench-Doc
+
+Golden v3 is too easy to differentiate text vs hybrid generation —
+PyMuPDF's text-layer extraction captures even figure-internal labels
+on modern arXiv PDFs, so caption text is nearly always sufficient.
+[MMLongBench-Doc](https://arxiv.org/abs/2407.01523) is the harder
+regime: 47-page PDFs with 22.5 % unanswerable queries (refusal-gate
+friendly), GPT-4o tops out at 44.9 % F1 — a non-saturated benchmark.
+
+20 docs / 149 queries (76 figure + 24 table + 9 factual + 40 OOC),
+page-level scoring. Both runs use BGE-rerank + gpt-4o-mini for
+generation and as judge.
+
+| | text-only `589f7269d617` | router `cc45831697b6` | Δ rel |
+|---|---|---|---|
+| **Retrieval** (n=111 in-corpus) | | | |
+| nDCG@5 | 0.5904 | 0.6177 | +4.6 % |
+| recall@10 | 0.6854 | **0.7515** | **+9.6 %** |
+| MRR | 0.5741 | 0.6009 | +4.7 % |
+| **figure subset** (n=75) | | | |
+| nDCG@5 | 0.5161 | 0.5565 | +7.8 % |
+| recall@10 | 0.6378 | **0.7356** | **+15.3 %** |
+| **Generation** (post judge-bug fix, all 149) | | | |
+| faithfulness | 0.5990 | 0.6074 | +1.4 % |
+| answer_relevance | 0.6812 | 0.6879 | +1.0 % |
+| context_precision | 0.4315 | 0.4369 | +1.3 % |
+
+The visual leg's lift on figure-subset recall@10 (+15.3 %) is the
+clean win that golden v3 couldn't show. Generation deltas are small
+because the bottleneck is the gpt-4o-mini-as-judge can't reliably
+distinguish quality at this resolution (and systematically under-
+scores OOC refusals — a 15-query post-processing pass corrects the
+canonical-refusal-rubric mis-grading; raw faithfulness was 0.50/0.51
+before the fix).
+
+Diagnostic that points at the next ADR. The router dispatched **only
+26 of 149 queries to hybrid** even though our golden labels 98 of
+them as figure/table-evidenced. Reason: MMLongBench questions are
+phrased as natural language ("What's the percentage of people who…")
+without the explicit "Figure X" / "Table N" keywords ADR 0008's
+regex classifier looks for. Table queries hit 0 hybrid dispatches —
+that's why the table-per-category metrics are identical across the
+two runs. **Oracle dispatch** (route from evidence_sources rather
+than query text) would have lifted hybrid coverage from ~17 % to
+~66 % — likely a much bigger Δ than what we observe. Phase 3.2.1
+candidate: classifier upgrade to LLM zero-shot or embedding-similarity
+for corpora where queries don't carry their own modality cue.
 See [`docs/decisions/0008-phase32-routing.md`](./docs/decisions/0008-phase32-routing.md).
 
 ---
