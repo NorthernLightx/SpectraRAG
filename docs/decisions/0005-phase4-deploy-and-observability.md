@@ -71,7 +71,7 @@ ship in their own commits.
   (visual is `scripts/eval_visual.py`, separate CLI). The deploy serves
   text-path only — same as `data/eval/baseline.json`.
 - Container Apps' minimum scale is 0; expect cold-start of ~5 s on first
-  request. Acceptable for a portfolio demo; revisit with `min_replicas=1`
+  request. Acceptable for a low-traffic demo; revisit with `min_replicas=1`
   if latency under cold conditions matters.
 - `qdrant-client` does not have OTel auto-instrumentation in the same
   package as fastapi/httpx; outbound Qdrant gRPC traces appear as plain

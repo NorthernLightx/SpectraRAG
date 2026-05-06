@@ -1,4 +1,4 @@
-"""Vision-language captioning for extracted figures (Phase 2.1).
+"""Vision-language captioning for extracted figures.
 
 Wraps Ollama's `/api/chat` with the `images` field (base64-encoded PNGs) so a
 local VLM (gemma3, qwen2.5vl, llava-llama3, …) can generate richer captions than

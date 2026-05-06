@@ -1,4 +1,4 @@
-"""Phase 2: figure/table → Chunk converters."""
+"""Figure/table → Chunk converters."""
 
 from __future__ import annotations
 

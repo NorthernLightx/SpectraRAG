@@ -1,9 +1,9 @@
 """Section-aware chunking. Splits page text on numbered headings, then by char budget.
 
-Also provides Figure/Table → Chunk converters (Phase 2 — pipeline multi-modal):
-figures and tables are first-class chunks in the same retrieval corpus, with
-`metadata['kind']` set to "figure" / "table" so callers can distinguish them
-from text chunks at display time.
+Also provides Figure/Table → Chunk converters: figures and tables are
+first-class chunks in the same retrieval corpus, with `metadata['kind']` set
+to "figure" / "table" so callers can distinguish them from text chunks at
+display time.
 """
 
 from __future__ import annotations
@@ -104,10 +104,9 @@ def figure_to_chunk(figure: Figure) -> Chunk:
 
     Picks the *single best* caption source: VLM caption when present (it tends
     to add visual structure beyond the dense terminology PDFs capture), else
-    the PDF-extracted caption. Empirically (`docs/decisions/0002-phase2-multimodal-chunks.md`)
-    concatenating both *hurts* — the longer combined text fooled the reranker
-    into surfacing weak figure chunks over the strong text chunks that actually
-    answer the query.
+    the PDF-extracted caption. Empirically, concatenating both *hurts* — the
+    longer combined text fooled the reranker into surfacing weak figure chunks
+    over the strong text chunks that actually answer the query.
 
     Figures with no caption at all become a stub chunk with just the figure id —
     better than dropping them, since BM25 might still match the id when an

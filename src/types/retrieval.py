@@ -17,10 +17,10 @@ class Query(BaseModel):
     text: str = Field(min_length=1)
     top_k: int = Field(default=5, ge=1, le=100)
     filters: dict[str, Any] = Field(default_factory=dict)
-    # ADR 0008: optional override that bypasses the Phase 3.2 classifier.
+    # ADR 0008: optional override that bypasses the routing classifier.
     # Used by the eval harness ("run every query through hybrid for the
     # comparison") and for debugging. Not exposed in the public OpenAPI
-    # schema yet (caveat §5 in ADR 0008).
+    # schema (caveat §5 in ADR 0008).
     force_route: Literal["text", "hybrid"] | None = None
 
 

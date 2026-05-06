@@ -1,4 +1,4 @@
-"""Query expansion for multi-query retrieval (Phase 2.2).
+"""Query expansion for multi-query retrieval.
 
 Two strategies:
 

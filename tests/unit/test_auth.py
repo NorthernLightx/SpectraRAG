@@ -1,8 +1,8 @@
 """API-key middleware: gate /answer + /query behind X-API-Key when configured.
 
-Phase 2.1 — protects the LLM-spending endpoints from drive-by traffic on the
-public URL. Health and OpenAPI metadata are exempt so liveness probes and the
-Swagger UI keep working without a key.
+Protects the LLM-spending endpoints from drive-by traffic on the public URL.
+Health and OpenAPI metadata are exempt so liveness probes and the Swagger UI
+keep working without a key.
 """
 
 from __future__ import annotations

@@ -1,21 +1,18 @@
-"""Bootstrap the corpus into a configured Qdrant (Phase 2.3).
+"""Bootstrap the corpus into a configured Qdrant.
 
 Runs once per deploy / fresh local setup: walks --pdf-dir, ingests each PDF
 through src.ingestion.pipeline.ingest_paper, and writes the resulting chunks
 + embeddings to the named Qdrant collection. Idempotent — refuses to re-ingest
 if the collection already has points (override with --force).
 
-Designed to be the foundation for Phase 4's Container Apps init job; the same
-script runs locally against `docker compose up qdrant ollama` for development
-parity. There's no /ingest HTTP endpoint yet — that's deferred until live
-paper upload becomes a demo requirement.
+Runs locally against `docker compose up qdrant ollama` for development parity.
 
-Caveats (recorded so future-me doesn't have to re-derive them):
+Caveats:
 
   * BM25 lives in process memory (`src/rag/bm25.py`) — this script populates
     Qdrant but its BM25 dies with the process. The FastAPI app would need to
-    rebuild BM25 from scratch at startup (or persist it separately). That's
-    a Phase 2.x follow-up; for now eval scripts rebuild BM25 per run.
+    rebuild BM25 from scratch at startup (or persist it separately). Eval
+    scripts rebuild BM25 per run.
   * Same for `chunks_by_id` — the PipelineRetriever needs a chunk dict to
     resolve text after Qdrant returns chunk-ids. This script doesn't
     persist that either; eval / retrieval workflows materialize chunks

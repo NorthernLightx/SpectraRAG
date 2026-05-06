@@ -1,5 +1,4 @@
-"""Generation-side metrics. LLM-as-judge metrics will arrive in Phase 1.4b;
-for now this module ships citation grounding (no LLM needed)."""
+"""Generation-side metrics. Ships citation grounding (no LLM needed)."""
 
 from __future__ import annotations
 

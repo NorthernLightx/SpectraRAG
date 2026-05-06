@@ -1,9 +1,9 @@
 """Compare a fresh EvalRun JSON against a committed baseline. Fail if any metric
 drops more than the threshold (default 5%).
 
-Per PROJECT.md §6: "CI fails if any metric drops more than 5% vs. last
-main-branch baseline." This script is the gate. It is deliberately offline —
-it doesn't run the eval, only compares two JSON snapshots.
+CI fails if any metric drops more than 5% vs. the last main-branch baseline.
+This script is the gate. It is deliberately offline — it doesn't run the
+eval, only compares two JSON snapshots.
 
 Run:
   uv run python -m scripts.check_regression \

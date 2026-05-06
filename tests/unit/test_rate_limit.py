@@ -1,4 +1,4 @@
-"""Per-IP rate limit on /answer (Phase 2.2 — slowapi at 10/minute).
+"""Per-IP rate limit on /answer (slowapi at 10/minute).
 
 Tests wire FakeRetriever + a stub generator via dependency_overrides so /answer
 returns 200 instead of the 503 from the unset-retriever guard. The slowapi
@@ -86,8 +86,7 @@ def test_429_response_is_json_with_detail() -> None:
     """The 429 body is JSON — clients can parse the error programmatically.
     Retry-After is intentionally not asserted: slowapi only adds it under
     `headers_enabled=True`, which requires every route to return Response
-    directly. We return Pydantic Answer models, so it stays off; adding
-    Retry-After would need a custom 429 handler — Phase 3.2.1 candidate."""
+    directly. We return Pydantic Answer models, so it stays off."""
     app = _wire_app()
     client = TestClient(app)
     for _ in range(10):

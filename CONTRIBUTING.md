@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for your interest. This is a portfolio / research project — drive-by
+Thanks for your interest. This is a personal research project — drive-by
 PRs are welcome, but please open an issue first for anything beyond a typo
 or single-line fix so we can align on scope.
 
@@ -67,8 +67,7 @@ in an area covered by an ADR should reference or supersede it.
 
 ## What NEVER goes in a commit
 
-This repo is open-source by design and is occasionally shared in job
-applications. Be defensive about leakage:
+This repo is open-source by design. Be defensive about leakage:
 
 - ❌ **Secrets** — API keys, tokens, DSNs, private keys, OAuth secrets.
   `.env` is gitignored; `.env.example` is the only sanctioned secrets-ish

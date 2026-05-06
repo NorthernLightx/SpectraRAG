@@ -194,11 +194,11 @@ async def _main(
         )
 
     if router:
-        # Phase 3.2 router (ADR 0008): wrap the text retriever (already
-        # query-expanded if requested) with RoutingRetriever so figure/table/
-        # multi_hop queries get RRF-fused with the visual leg at page
-        # granularity. Render PDF pages first (idempotent — render_pages
-        # caches), then build ColQwen2 page embeddings (slow, GPU-heavy).
+        # ADR 0008 router: wrap the text retriever (already query-expanded if
+        # requested) with RoutingRetriever so figure/table/multi_hop queries
+        # get RRF-fused with the visual leg at page granularity. Render PDF
+        # pages first (idempotent — render_pages caches), then build ColQwen2
+        # page embeddings (slow, GPU-heavy).
         pages_by_paper: dict[str, list[tuple[int, Path]]] = {}
         for pdf_path in pdf_paths:
             paper_id = pdf_path.stem
@@ -438,18 +438,18 @@ if __name__ == "__main__":
     parser.add_argument(
         "--extract-figures",
         action="store_true",
-        help="Phase 2: extract embedded figures via PyMuPDF and add as Chunks (caption-text-only, no VLM yet).",
+        help="Extract embedded figures via PyMuPDF and add as Chunks (caption-text-only, no VLM unless --vlm-caption-model is set).",
     )
     parser.add_argument(
         "--extract-tables",
         action="store_true",
-        help="Phase 2: extract tables via PyMuPDF and add as Chunks (markdown-rendered).",
+        help="Extract tables via PyMuPDF and add as Chunks (markdown-rendered).",
     )
     parser.add_argument(
         "--vlm-caption-model",
         default=None,
         help=(
-            "Phase 2.1: vision Ollama model used to caption extracted figures "
+            "Vision Ollama model used to caption extracted figures "
             "(e.g. 'gemma3:4b', 'qwen2.5vl:7b', 'llava-llama3:8b'). When set, "
             "Figure.vlm_caption is filled and figure_to_chunk uses it as the "
             "indexable text. Requires --extract-figures."
@@ -459,8 +459,8 @@ if __name__ == "__main__":
         "--query-expansion",
         action="store_true",
         help=(
-            "Phase 2.2: wrap PipelineRetriever in MultiQueryRetriever — generate "
-            "query variants via LLM, retrieve for each, fuse with RRF. Helps on "
+            "Wrap PipelineRetriever in MultiQueryRetriever — generate query "
+            "variants via LLM, retrieve for each, fuse with RRF. Helps on "
             "multi-hop and term-mismatch queries."
         ),
     )
@@ -494,8 +494,8 @@ if __name__ == "__main__":
         "--router",
         action="store_true",
         help=(
-            "Phase 3.2 (ADR 0008): wrap the text retriever in RoutingRetriever, "
-            "build a ColQwen2 visual leg, and fuse text+visual via RRF at page "
+            "ADR 0008: wrap the text retriever in RoutingRetriever, build a "
+            "ColQwen2 visual leg, and fuse text+visual via RRF at page "
             "granularity for figure/table/multi_hop queries. GPU-heavy first run."
         ),
     )

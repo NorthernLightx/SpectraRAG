@@ -1,9 +1,10 @@
 """Offline RRF fusion of an existing text run + an existing visual run.
 
-ADR 0004 names hybrid text+visual fusion as the natural follow-up to Phase 3.
-Visual recall@10 is 1.0 on golden v2 in-corpus and visual wins on the exact
-queries text loses on (q4/q9/q10/q12/q20), so RRF over the two retrieval
-rank lists is expected to lift nDCG@5 / MRR without re-ingestion or re-eval.
+ADR 0004 names hybrid text+visual fusion as the natural follow-up to visual
+retrieval. Visual recall@10 is 1.0 on golden v2 in-corpus and visual wins on
+the exact queries text loses on (q4/q9/q10/q12/q20), so RRF over the two
+retrieval rank lists is expected to lift nDCG@5 / MRR without re-ingestion
+or re-eval.
 
 This script consumes two existing run JSONs (no model calls, no GPU): a text
 run from `scripts/eval_run.py` and a visual run from `scripts/eval_visual.py`.

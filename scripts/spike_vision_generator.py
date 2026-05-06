@@ -6,7 +6,7 @@ string, but vision in the OpenAI-compat schema needs a list of content blocks
 ({"type": "text"}, {"type": "image_url"}). If this spike works we promote the
 content-block path into OpenRouterClient + Generator; if not we kill the idea.
 
-Test fixture: three Phase 3.1 figure-grounded queries on paper 2604.28182v1
+Test fixture: three figure-grounded queries on paper 2604.28182v1
 (q37/q38/q39 from data/golden/v3.yaml) — exactly the kind of question where
 text-only retrieval scored weakly per ADR 0007 §"Per-subset" and where the
 visual leg is supposed to add value.
@@ -96,7 +96,7 @@ MODELS = [
     "qwen/qwen3-vl-8b-instruct",  # cheapest tier
     "qwen/qwen3-vl-32b-instruct",  # likely sweet spot
     "qwen/qwen3-vl-235b-a22b-instruct",  # flagship MoE
-    "openai/gpt-4o-mini",  # baseline (already used in Phase 0 smoke eval)
+    "openai/gpt-4o-mini",  # baseline
 ]
 
 

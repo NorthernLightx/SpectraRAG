@@ -1,4 +1,4 @@
-"""Figure extraction from PDFs (Phase 2 — pipeline multi-modal).
+"""Figure extraction from PDFs.
 
 PyMuPDF gives us two views of figures:
 - Embedded image streams (via `page.get_images()`) — the bytes that the PDF

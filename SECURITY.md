@@ -11,13 +11,13 @@ not open a public issue**. Use GitHub's private vulnerability reporting:
 3. Describe the issue, including reproduction steps and impact assessment.
 
 You'll get an acknowledgement within ~7 days. Realistic timeline for a fix
-depends on complexity — this is a portfolio project, not a 24/7 production
-service.
+depends on complexity — this is a personal research project, not a 24/7
+production service.
 
 ## Scope
 
-This is a research / portfolio codebase. The threat model is narrower than
-a typical production service:
+This is a personal research codebase. The threat model is narrower than a
+typical production service:
 
 - **In scope**: secret leaks in code or commit history, command injection
   / SSRF / SQL injection in `src/`, dependency vulnerabilities flagged by

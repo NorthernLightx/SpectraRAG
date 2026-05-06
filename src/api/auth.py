@@ -1,4 +1,4 @@
-"""X-API-Key middleware for /answer + /query (Phase 2.1).
+"""X-API-Key middleware for /answer + /query.
 
 Compares the inbound `X-API-Key` header against the configured shared secret
 in constant time (hmac.compare_digest). When `RAG_PUBLIC_API_KEY` is unset,

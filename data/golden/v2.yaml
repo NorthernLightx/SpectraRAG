@@ -1,11 +1,9 @@
 name: phase1-text-baseline
 version: v2
-# 23 queries spanning 5 ArXiv papers — closes Phase 1 per PROJECT.md §6
-# ("20-30 queries against 5-10 ArXiv ML papers"). Inherits all 15 v1.1 queries
-# on 2604.22753v1 (scaling-law fitting); adds 2 queries each (1 factual + 1 OOC)
+# 23 queries spanning 5 ArXiv papers. Inherits all 15 v1.1 queries on
+# 2604.22753v1 (scaling-law fitting); adds 2 queries each (1 factual + 1 OOC)
 # on 4 newly-fetched papers spanning PDEs/PINN, agent simulation, RL alignment,
 # and game theory. Chunk IDs verified against `scripts/dump_chunks.py` output.
-# v2 query authoring — NEEDS USER REVIEW before promoting to default.
 queries:
   # === v1.1 queries (paper: 2604.22753v1, scaling-law fitting) ===
   - query_id: q1_inter_basin

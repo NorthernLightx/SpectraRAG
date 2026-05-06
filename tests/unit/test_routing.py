@@ -1,4 +1,4 @@
-"""Phase 3.2 routing — classify_query precedence + Query.force_route field per ADR 0008.
+"""Routing — classify_query precedence + Query.force_route field per ADR 0008.
 
 Also covers RoutingRetriever dispatch, page-level RRF fusion, and visual-leg
 fallback per ADR 0008 §"Architecture" + §"Failure modes".

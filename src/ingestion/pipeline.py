@@ -1,8 +1,8 @@
 """End-to-end ingestion: paper → pages → chunks → indexed in BM25 + vectorstore.
 
-Phase 2 extends this with optional figure + table extraction. When enabled,
-figures and tables are converted to first-class Chunks (with `metadata['kind']`)
-and join the text chunks in the same embedding + BM25 + Qdrant pipeline.
+Optional figure + table extraction is supported: when enabled, figures and
+tables are converted to first-class Chunks (with `metadata['kind']`) and join
+the text chunks in the same embedding + BM25 + Qdrant pipeline.
 """
 
 from __future__ import annotations

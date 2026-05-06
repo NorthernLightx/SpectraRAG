@@ -1,4 +1,4 @@
-"""Page-image rendering for the visual retrieval path (Phase 3).
+"""Page-image rendering for the visual retrieval path.
 
 ColPali-style retrievers (ColQwen2, ColPali, etc.) embed *whole pages* as
 images rather than working from extracted text. This module renders each

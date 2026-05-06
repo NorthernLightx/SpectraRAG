@@ -1,4 +1,4 @@
-"""Table extraction from PDFs (Phase 2 — pipeline multi-modal).
+"""Table extraction from PDFs.
 
 Uses PyMuPDF's built-in `page.find_tables()` (heuristic table detection from
 PDF layout). Each detected `Table` is serialised to GitHub-flavoured markdown
