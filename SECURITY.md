@@ -36,6 +36,8 @@ typical production service:
   every PR for accidental secret commits.
 - `pyproject.toml` author info uses GitHub's no-reply email pattern so
   contributor identities aren't scraped from package metadata.
-- Production secrets in the Terraform stack are stored in Azure Key
-  Vault; values are set out-of-band via `az keyvault secret set`, not
-  committed to IaC.
+- The deploy workflow (`.github/workflows/deploy.yml`) authenticates to
+  Azure via short-lived OIDC tokens — no long-lived service-principal
+  secret stored in GitHub. Application secrets (e.g. OpenRouter API
+  keys for the optional server-side classifier) are set out-of-band on
+  the Container App via `az containerapp secret set`, not committed.
