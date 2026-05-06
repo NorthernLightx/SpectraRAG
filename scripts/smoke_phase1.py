@@ -74,7 +74,9 @@ async def main(
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="End-to-end smoke for the text-only retrieval path.")
+    parser = argparse.ArgumentParser(
+        description="End-to-end smoke for the text-only retrieval path."
+    )
     parser.add_argument("--pdf", type=Path, required=True, help="Path to a PDF to ingest.")
     parser.add_argument("query", nargs="?", default="What does this paper introduce?")
     parser.add_argument(
