@@ -359,6 +359,42 @@ candidate: classifier upgrade to LLM zero-shot or embedding-similarity
 for corpora where queries don't carry their own modality cue.
 See [`docs/decisions/0008-phase32-routing.md`](./docs/decisions/0008-phase32-routing.md).
 
+### Multi-modal regression gate
+
+The MMLongBench router run is committed as
+[`data/eval/baseline-mmlongbench.json`](./data/eval/baseline-mmlongbench.json)
+so future changes can't silently lose the +9.6 % recall@10 win. The eval
+runner stores chunk-level scores against `relevant_chunk_ids` (always 0.0
+for MMLongBench, since the golden uses page-level relevance). Page-level
+scoring lives in
+[`scripts/rescore_mmlb_pages.py`](./scripts/rescore_mmlb_pages.py); the
+committed baseline is its output.
+
+To check a candidate run against the gate:
+
+```sh
+.venv/Scripts/python.exe -m scripts.rescore_mmlb_pages \
+    --run data/eval/runs/run-XXXX.json \
+    --golden data/golden/mmlongbench-v1.yaml \
+    --output /tmp/candidate-rescored.json
+.venv/Scripts/python.exe -m scripts.check_regression \
+    --baseline data/eval/baseline-mmlongbench.json \
+    --candidate /tmp/candidate-rescored.json \
+    --metrics ndcg_at_5 recall_at_10 mrr
+```
+
+The gate fails if any retrieval metric regresses > 5 %. Verified locally:
+running it with the **text-only** run as candidate fails with `recall_at_10
+delta -9.18 %` — exactly the regression we'd see if a future change
+disabled the visual leg. CI doesn't run MMLongBench (it needs Qdrant +
+Ollama + 15 min of compute); this is a manual gate, run before merging
+any change that touches retrieval. The baseline numbers (107 queries with
+both an in-corpus category label AND a non-empty `relevant_pages`) differ
+slightly from the headline table above because that table uses the wider
+"any query with relevant_pages" filter (111 queries) — the gate's
+methodology is the stricter one and matches what `check_regression.py`
+computes.
+
 ---
 
 ## License

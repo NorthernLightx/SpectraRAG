@@ -1,26 +1,35 @@
 """_wire_retriever_from_settings — startup wiring of the production retriever.
 
-Covers the three paths the lifespan handler walks at API startup: (1) wires a
-PipelineRetriever when Qdrant has chunks, (2) silently skips when the
-collection is empty, (3) silently skips when Qdrant is unreachable. The wire
-function is the only thing that closes the gap between bootstrap_corpus.py
-and a live /answer — without it, /answer returns 503 even after a successful
-ingest.
+Covers the paths the lifespan handler walks at API startup:
+(1) wires a PipelineRetriever when Qdrant has chunks; (2) silently skips when
+the collection is empty / Qdrant is unreachable; (3) when ``enable_multimodal``
+is on AND a visual leg can be built, wraps in a RoutingRetriever; (4) when
+multimodal is on but the visual leg fails, degrades to text-only.
+
+The wire function closes the gap between bootstrap_corpus.py and a live
+/answer — without it /answer returns 503 even after a successful ingest.
 """
 
 from __future__ import annotations
 
 from collections.abc import Iterator
+from pathlib import Path
 
 import pytest
 
 from src.api.deps import _RetrieverState
-from src.api.main import _wire_retriever_from_settings
+from src.api.main import (
+    _build_classifier_from_settings,
+    _collect_pages_from_dir,
+    _wire_retriever_from_settings,
+)
 from src.config.settings import Settings
+from src.rag.retrievers.classifier_llm import LLMQueryClassifier
 from src.rag.retrievers.pipeline import PipelineRetriever
+from src.rag.retrievers.routing import RoutingRetriever
 from src.rag.vectorstore import QdrantVectorStore
-from src.types import Chunk
-from tests.fakes import FakeEmbedder
+from src.types import Chunk, Query, RetrievalResult
+from tests.fakes import FakeEmbedder, FakeRetriever
 
 
 @pytest.fixture(autouse=True)
@@ -31,14 +40,26 @@ def _reset_retriever_state() -> Iterator[None]:
     _RetrieverState.instance = None
 
 
-def _settings(*, qdrant_url: str = ":memory:") -> Settings:
-    return Settings(
-        env="test",
-        log_level="INFO",
-        qdrant_url=qdrant_url,
-        corpus_collection="wiring_test",
-        rerank_top_k=20,
-    )
+def _settings(
+    *,
+    qdrant_url: str = ":memory:",
+    enable_multimodal: bool = False,
+    pages_dir: Path | None = None,
+    openrouter_api_key: str | None = None,
+) -> Settings:
+    kwargs: dict[str, object] = {
+        "env": "test",
+        "log_level": "INFO",
+        "qdrant_url": qdrant_url,
+        "corpus_collection": "wiring_test",
+        "rerank_top_k": 20,
+        "enable_multimodal": enable_multimodal,
+    }
+    if pages_dir is not None:
+        kwargs["pages_dir"] = pages_dir
+    if openrouter_api_key is not None:
+        kwargs["openrouter_api_key"] = openrouter_api_key
+    return Settings(**kwargs)  # type: ignore[arg-type]
 
 
 def _vec(dim: int) -> list[float]:
@@ -148,3 +169,171 @@ async def test_wired_retriever_can_serve_a_query() -> None:
     results = await retriever.retrieve(Query(text="multi-modal retrieval", top_k=2))
     assert len(results) >= 1
     assert {r.chunk_id for r in results}.issubset({c.chunk_id for c in chunks})
+
+
+# ---------- _collect_pages_from_dir --------------------------------------
+
+
+def test_collect_pages_returns_empty_when_dir_missing(tmp_path: Path) -> None:
+    """Pages dir not present (default deploy without ingestion) → empty dict,
+    no exception. The visual-leg builder treats that as "skip the visual leg"."""
+    assert _collect_pages_from_dir(tmp_path / "does-not-exist") == {}
+
+
+def test_collect_pages_skips_unrelated_files(tmp_path: Path) -> None:
+    """Loose files in pages_dir are ignored — only `<paper>/<paper>_pN.png`
+    counts. The matcher requires the page filename to start with the parent
+    directory name so a copy/paste from another paper doesn't pollute."""
+    paper_dir = tmp_path / "paper-a"
+    paper_dir.mkdir()
+    (paper_dir / "paper-a_p1.png").write_bytes(b"x")
+    (paper_dir / "paper-a_p10.png").write_bytes(b"x")
+    (paper_dir / "paper-a_p2.png").write_bytes(b"x")
+    (paper_dir / "summary.txt").write_text("ignore me")
+    (paper_dir / "wrong-paper_p3.png").write_bytes(b"x")  # wrong prefix
+    # And a stray file at the root, not inside a paper dir:
+    (tmp_path / "loose.png").write_bytes(b"x")
+
+    layout = _collect_pages_from_dir(tmp_path)
+
+    assert set(layout) == {"paper-a"}
+    assert [p[0] for p in layout["paper-a"]] == [1, 2, 10]
+
+
+# ---------- _build_classifier_from_settings ------------------------------
+
+
+def test_classifier_returns_none_when_no_api_key() -> None:
+    """No OpenRouter key → classifier stays None, RoutingRetriever falls back
+    to ADR 0008's regex (the safe default)."""
+    assert _build_classifier_from_settings(_settings()) is None
+
+
+def test_classifier_constructed_when_api_key_present() -> None:
+    classifier = _build_classifier_from_settings(_settings(openrouter_api_key="sk-test"))
+    assert isinstance(classifier, LLMQueryClassifier)
+
+
+# ---------- multi-modal wire ---------------------------------------------
+
+
+async def _populate_store(embedder: FakeEmbedder) -> QdrantVectorStore:
+    store = QdrantVectorStore(url=":memory:", collection_name="wiring_test", dim=embedder.dim)
+    await store.ensure_collection()
+    chunks = [
+        Chunk(
+            chunk_id="paper::p1::c0",
+            paper_id="paper",
+            page_numbers=[1],
+            text="content about figure 3",
+        ),
+        Chunk(
+            chunk_id="paper::p2::c0",
+            paper_id="paper",
+            page_numbers=[2],
+            text="other content",
+        ),
+    ]
+    await store.upsert_chunks(chunks, [_vec(embedder.dim) for _ in chunks])
+    return store
+
+
+@pytest.mark.asyncio
+async def test_multimodal_off_yields_pipeline_retriever() -> None:
+    """``enable_multimodal=False`` (the default) → text-only PipelineRetriever
+    even when a visual retriever is available — preserves today's behaviour."""
+    embedder = FakeEmbedder(dim=8)
+    store = await _populate_store(embedder)
+    visual = FakeRetriever(results=[])
+
+    wired = await _wire_retriever_from_settings(
+        _settings(enable_multimodal=False),
+        embedder=embedder,
+        vectorstore=store,
+        visual_retriever=visual,
+    )
+
+    assert wired is True
+    assert isinstance(_RetrieverState.instance, PipelineRetriever)
+
+
+@pytest.mark.asyncio
+async def test_multimodal_on_with_visual_leg_yields_routing_retriever() -> None:
+    """End-to-end: multimodal flag on, injected visual leg + classifier →
+    RoutingRetriever serving /answer. This is the path the README's
+    multi-modal claims need to be load-bearing in production."""
+    embedder = FakeEmbedder(dim=8)
+    store = await _populate_store(embedder)
+    visual_results = [
+        RetrievalResult(
+            chunk_id="paper::p1::page",
+            paper_id="paper",
+            score=0.9,
+            text="[Page image paper p1]",
+            page_numbers=[1],
+            source="visual",
+        )
+    ]
+    visual = FakeRetriever(results=visual_results)
+
+    wired = await _wire_retriever_from_settings(
+        _settings(enable_multimodal=True),
+        embedder=embedder,
+        vectorstore=store,
+        visual_retriever=visual,
+    )
+
+    assert wired is True
+    assert isinstance(_RetrieverState.instance, RoutingRetriever)
+
+
+@pytest.mark.asyncio
+async def test_multimodal_on_without_visual_leg_degrades_to_text() -> None:
+    """Multimodal flag on but no visual retriever could be built (no GPU /
+    no pages_dir / model load failure) → wire degrades to PipelineRetriever
+    rather than booting nothing. Prevents a hardware regression from causing
+    503 on every /answer."""
+    embedder = FakeEmbedder(dim=8)
+    store = await _populate_store(embedder)
+
+    wired = await _wire_retriever_from_settings(
+        _settings(enable_multimodal=True),  # no pages_dir → visual leg returns None
+        embedder=embedder,
+        vectorstore=store,
+    )
+
+    assert wired is True
+    assert isinstance(_RetrieverState.instance, PipelineRetriever)
+
+
+@pytest.mark.asyncio
+async def test_multimodal_routing_actually_dispatches_figure_to_hybrid() -> None:
+    """RoutingRetriever wraps both legs and dispatches by query category.
+    A figure query hits the visual leg via the regex classifier; this test
+    confirms the wiring put the visual leg where the router can reach it."""
+    embedder = FakeEmbedder(dim=8)
+    store = await _populate_store(embedder)
+    visual_results = [
+        RetrievalResult(
+            chunk_id="paper::p1::page",
+            paper_id="paper",
+            score=0.9,
+            text="[Page image paper p1]",
+            page_numbers=[1],
+            source="visual",
+        )
+    ]
+    visual = FakeRetriever(results=visual_results)
+    await _wire_retriever_from_settings(
+        _settings(enable_multimodal=True),
+        embedder=embedder,
+        vectorstore=store,
+        visual_retriever=visual,
+    )
+
+    retriever = _RetrieverState.instance
+    assert isinstance(retriever, RoutingRetriever)
+    # "Figure 3" → regex classifier returns "figure" → hybrid path → visual leg fires
+    results = await retriever.retrieve(Query(text="What does Figure 3 show?", top_k=3))
+    sources = {r.source for r in results}
+    assert "visual" in sources or any(r.source == "pipeline" for r in results)

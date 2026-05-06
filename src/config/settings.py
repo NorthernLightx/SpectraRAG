@@ -52,6 +52,22 @@ class Settings(BaseSettings):
     # text+visual per query category). False forces text-only — useful for
     # baseline comparisons or when the visual model is unavailable.
     enable_routing: bool = True
+    # When True, `_wire_retriever_from_settings` attempts to build the visual
+    # leg (ColQwen2 multivector index) and the LLM classifier so /answer
+    # serves the full multi-modal stack. Default False because the visual
+    # leg requires GPU + pre-rendered page PNGs (`pages_dir`) and 5-30 min
+    # of startup time for embedding. When prerequisites aren't met, wiring
+    # silently falls back to text-only — same behaviour as today's default
+    # production deploy. Local dev with a populated `pages_dir` flips this
+    # on to exercise the end-to-end multi-modal path.
+    enable_multimodal: bool = False
+    # Optional override for the LLM classifier model. When `enable_multimodal`
+    # is on AND `openrouter_api_key` is set, RoutingRetriever uses the LLM
+    # classifier (~$0.0001 per query) instead of ADR 0008's regex. The LLM
+    # closes the dispatch gap on natural-language queries that don't carry
+    # "Figure X" / "Table N" keywords (run cc45831697b6 → exp_classifier_dispatch:
+    # regex 17 % vs LLM 72 % hybrid dispatch on MMLongBench).
+    classifier_model: str = "openai/gpt-4o-mini"
 
     max_context_tokens: int = Field(default=8000, ge=512)
     temperature: float = Field(default=0.2, ge=0.0, le=2.0)

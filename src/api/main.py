@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import os
+import re
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from fastapi import FastAPI
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
@@ -30,7 +32,17 @@ from src.prompts.loader import load_prompt_by_name
 from src.rag.bm25 import Bm25Index
 from src.rag.generate import Generator
 from src.rag.retrievers.pipeline import PipelineRetriever
+from src.rag.retrievers.protocol import Retriever
+from src.rag.retrievers.routing import RoutingRetriever
 from src.rag.vectorstore import QdrantVectorStore
+
+if TYPE_CHECKING:
+    from src.rag.retrievers.classifier_llm import LLMQueryClassifier
+
+# Mirrors the layout `scripts/eval_run.py` writes / `Generator._collect_image_paths`
+# reads: `<pages_dir>/<paper_id>/<paper_id>_p<N>.png`. The paper id allows
+# arbitrary characters except `/`, so we anchor on the trailing `_p<N>.png`.
+_PAGE_FILE_RE = re.compile(r"^(?P<paper>.+)_p(?P<page>\d+)\.png$")
 
 
 def _wire_generator_from_settings(settings: Settings) -> bool:
@@ -57,27 +69,129 @@ def _wire_generator_from_settings(settings: Settings) -> bool:
     return True
 
 
+def _collect_pages_from_dir(pages_dir: Path) -> dict[str, list[tuple[int, Path]]]:
+    """Scan a `pages_dir` populated by ingestion into the `pages_by_paper` shape
+    that `build_visual_retriever` consumes. Layout: each paper id maps to a
+    subdirectory containing `<paper_id>_p<N>.png`. Returns an empty dict when
+    the directory is missing or contains no matching PNGs (no exception — the
+    caller treats that as "skip the visual leg")."""
+    pages: dict[str, list[tuple[int, Path]]] = {}
+    if not pages_dir.exists() or not pages_dir.is_dir():
+        return pages
+    for paper_subdir in sorted(pages_dir.iterdir()):
+        if not paper_subdir.is_dir():
+            continue
+        paper_id = paper_subdir.name
+        page_files: list[tuple[int, Path]] = []
+        for png in sorted(paper_subdir.glob("*.png")):
+            match = _PAGE_FILE_RE.match(png.name)
+            if match is None or match.group("paper") != paper_id:
+                continue
+            page_files.append((int(match.group("page")), png))
+        if page_files:
+            page_files.sort(key=lambda pair: pair[0])
+            pages[paper_id] = page_files
+    return pages
+
+
+async def _build_visual_retriever_from_settings(settings: Settings) -> Retriever | None:
+    """Build the visual leg (ColQwen2 multivector index) when prerequisites
+    are met. Returns None on any failure path: no `pages_dir`, empty layout,
+    GPU/CPU OOM, missing colpali deps. The caller logs and falls back to
+    text-only routing (the strong baseline per ADR 0008).
+
+    Heavy import of ``torch`` / ``colpali_engine`` is deferred to keep the
+    text-only deploy path light.
+    """
+    log = get_logger(__name__)
+    if settings.pages_dir is None:
+        log.info("api.multimodal.visual.skip_no_pages_dir")
+        return None
+    pages_by_paper = _collect_pages_from_dir(settings.pages_dir)
+    if not pages_by_paper:
+        log.warning("api.multimodal.visual.skip_empty_layout", pages_dir=str(settings.pages_dir))
+        return None
+    try:
+        import torch
+
+        from src.rag.retrievers.visual import build_visual_retriever
+
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        retriever = await build_visual_retriever(
+            pages_by_paper, model_name=settings.visual_model, device=device
+        )
+        log.info(
+            "api.multimodal.visual.wired",
+            n_papers=len(pages_by_paper),
+            n_pages=sum(len(v) for v in pages_by_paper.values()),
+            device=device,
+            model=settings.visual_model,
+        )
+        return retriever
+    except Exception as exc:
+        log.warning(
+            "api.multimodal.visual.wire_failed",
+            error=str(exc),
+            error_type=type(exc).__name__,
+            model=settings.visual_model,
+        )
+        return None
+
+
+def _build_classifier_from_settings(settings: Settings) -> LLMQueryClassifier | None:
+    """Build the LLM query classifier when an OpenRouter key is set. Falls
+    back to None (regex classifier) on any failure — the regex is the safe
+    default. ADR 0008 §"Decision" §1: misclassification is bounded.
+    """
+    log = get_logger(__name__)
+    if settings.openrouter_api_key is None:
+        log.info("api.multimodal.classifier.skip_no_api_key")
+        return None
+    try:
+        from src.rag.retrievers.classifier_llm import LLMQueryClassifier
+
+        client = OpenRouterClient(api_key=settings.openrouter_api_key.get_secret_value())
+        return LLMQueryClassifier(
+            llm=client,
+            model=settings.classifier_model,
+            prompt=load_prompt_by_name("classify_query"),
+        )
+    except Exception as exc:
+        log.warning(
+            "api.multimodal.classifier.wire_failed",
+            error=str(exc),
+            error_type=type(exc).__name__,
+        )
+        return None
+
+
 async def _wire_retriever_from_settings(
     settings: Settings,
     *,
     embedder: Embedder | None = None,
     vectorstore: QdrantVectorStore | None = None,
+    visual_retriever: Retriever | None = None,
+    classifier: LLMQueryClassifier | None = None,
 ) -> bool:
-    """Materialise the production text retriever from the configured Qdrant corpus.
+    """Materialise the production retriever from the configured Qdrant corpus.
 
     Connects to Qdrant, scrolls the configured collection so BM25 + chunks_by_id
-    can be rebuilt in process, then registers a PipelineRetriever via
-    ``set_retriever``. Returns True if a retriever was wired, False on any
-    failure path (Qdrant unreachable, collection empty, payload schema stale).
-    The API still serves health + OpenAPI; /answer just returns 503 until a
-    corpus exists.
+    can be rebuilt in process, then registers a retriever via ``set_retriever``.
+    Returns True on success, False if Qdrant is unreachable, the collection is
+    empty, or the payload schema is stale. The API still serves health +
+    OpenAPI; /answer just returns 503 until a corpus exists.
 
-    Visual leg (ColQwen2) and the LLM-classifier upgrade stay opt-in — they
-    need GPU / extra LLM calls and aren't wired here. ADR 0008 §"Composition".
+    When ``settings.enable_multimodal`` is True the function additionally
+    attempts to build the visual leg (ColQwen2 over ``pages_dir``) and the
+    LLM classifier (over ``openrouter_api_key``). If the visual leg builds,
+    the registered retriever is a ``RoutingRetriever`` wrapping the text leg
+    + visual leg + classifier — figure/table/multi_hop queries dispatch to
+    RRF-fused hybrid, factual/definitional stay text-only. If the visual leg
+    can't be built (no GPU, missing pages, model load error) the function
+    falls through to text-only — same as ``enable_multimodal=False``.
 
-    The keyword args allow tests to inject a fake embedder + a pre-populated
-    ``:memory:`` vectorstore without monkeypatching module-level constructors.
-    Production callers pass neither; the function builds them from settings.
+    The keyword args allow tests to inject fakes without monkeypatching
+    module-level constructors. Production callers pass none.
     """
     log = get_logger(__name__)
     try:
@@ -91,8 +205,6 @@ async def _wire_retriever_from_settings(
             )
         chunks = await vectorstore.scroll_chunks()
     except Exception as exc:
-        # ConnectError / DNS failure / unreachable Qdrant — degrade gracefully.
-        # /answer returns 503 until the operator fixes the connection.
         log.warning(
             "api.retriever.wire_failed",
             error=str(exc),
@@ -111,17 +223,43 @@ async def _wire_retriever_from_settings(
     bm25 = Bm25Index()
     bm25.add(chunks)
     chunks_by_id = {c.chunk_id: c for c in chunks}
-    set_retriever(
-        PipelineRetriever(
-            embedder=embedder,
-            vectorstore=vectorstore,
-            bm25=bm25,
-            chunks_by_id=chunks_by_id,
-            candidate_pool=settings.rerank_top_k,
-        )
+    text_retriever = PipelineRetriever(
+        embedder=embedder,
+        vectorstore=vectorstore,
+        bm25=bm25,
+        chunks_by_id=chunks_by_id,
+        candidate_pool=settings.rerank_top_k,
     )
+
+    if settings.enable_multimodal:
+        if visual_retriever is None:
+            visual_retriever = await _build_visual_retriever_from_settings(settings)
+        if classifier is None:
+            classifier = _build_classifier_from_settings(settings)
+        if visual_retriever is not None:
+            set_retriever(
+                RoutingRetriever(
+                    text=text_retriever,
+                    visual=visual_retriever,
+                    classifier=classifier,
+                )
+            )
+            log.info(
+                "api.retriever.wired",
+                mode="routing",
+                chunks=len(chunks),
+                classifier="llm" if classifier is not None else "regex",
+            )
+            return True
+        log.info(
+            "api.retriever.multimodal_degraded_to_text",
+            reason="visual_leg_unavailable",
+        )
+
+    set_retriever(text_retriever)
     log.info(
         "api.retriever.wired",
+        mode="text",
         qdrant_url=settings.qdrant_url,
         collection=settings.corpus_collection,
         chunks=len(chunks),
