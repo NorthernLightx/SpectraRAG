@@ -6,9 +6,12 @@ Provisions:
 - Container Apps Environment + a single Container App (`<prefix>-<env>-api`)
 - Key Vault + three placeholder secrets (operator sets real values via az CLI)
 
-The container image is pulled from GHCR (the public image
-`.github/workflows/docker.yml` already pushes to). No Azure Container
-Registry — saves the $5/mo Basic SKU for a portfolio-traffic deploy.
+The container image is pulled from GHCR (`ghcr.io/<owner>/<repo>:main`).
+The `docker.yml` `publish` job bakes the rendered page PNGs + Qdrant
+snapshot in CI from the committed `data/curated_demo/papers.txt`
+manifest, then pushes a multi-tag image (`:main`, `:sha-<short>`, plus
+`:vN.N.N` on releases). No Azure Container Registry — saves the $5/mo
+Basic SKU for a portfolio-traffic deploy.
 
 ## One-time bootstrap (do this manually before the first `terraform init`)
 
@@ -41,52 +44,25 @@ terraform init \
   -backend-config="container_name=tfstate" \
   -backend-config="key=rag.tfstate"
 
-terraform plan -var "prefix=$PREFIX" -var "env=prod" -var "image_tag=baked-XXXXXXX"
+terraform plan -var "prefix=$PREFIX" -var "env=prod"
 ```
 
-`image_tag` has no default and `terraform plan` will fail without it — the
-default `:main` tag would deploy a code-only image (the `qdrant_local/` and
-`data/pages/` bake artefacts are gitignored, so CI can't include them).
-
-## Baking the deploy image
-
-The Container App pulls the public image from
-`ghcr.io/<owner>/<repo>:<tag>`. CI (`.github/workflows/docker.yml`) only
-publishes on version tags (`v*`); the actual demo image is published from
-a developer machine that has the rendered page PNGs and Qdrant snapshot.
-
-Prereqs (one-time):
-
-```bash
-docker compose up -d ollama
-docker exec rag-ollama ollama pull bge-m3
-echo $GITHUB_PAT | docker login ghcr.io -u <gh-user> --password-stdin
-```
-
-Bake + push:
-
-```powershell
-.\scripts\Publish-DemoImage.ps1
-```
-
-The script renders pages, builds the Qdrant snapshot via
-`bootstrap_corpus --qdrant path:./qdrant_local`, runs `docker build` +
-`docker push`, and prints the tag (e.g. `baked-693f6d4`). Pin that tag in
-the next `terraform apply` or in the deploy workflow input.
+`image_tag` defaults to `main` (always the latest CI-baked image). For a
+prod deploy you can pin a specific build with `-var "image_tag=sha-abc1234"`
+to lock the image to a known-good commit; bump it when you want to roll
+forward.
 
 ## First apply
 
 ```bash
-terraform apply \
-  -var "prefix=$PREFIX" \
-  -var "env=prod" \
-  -var "image_tag=baked-693f6d4"
+terraform apply -var "prefix=$PREFIX" -var "env=prod"
 ```
 
-Re-baking is idempotent — re-running `Publish-DemoImage.ps1` only rebuilds the
-layers whose source changed, and the qdrant snapshot is skipped when the
-collection is already populated (override with `--force` from the script's
-internals if the corpus content changed).
+To redeploy after a code change: push to `main`, wait for the `docker.yml`
+`publish` job to finish (~15-20 min — fetches PDFs, runs render_pages +
+bootstrap_corpus, builds, pushes), then `terraform apply` again (or trigger
+`deploy.yml` manually). The Container App pulls the new `:main` and
+restarts the active revision.
 
 ## Setting secret values
 

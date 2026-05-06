@@ -17,6 +17,7 @@ __pycache__
 data/eval
 data/golden
 data/papers
+data/curated_demo
 data/mmlongbench
 logs
 docs

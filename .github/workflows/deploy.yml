@@ -10,8 +10,9 @@ on:
         type: choice
         options: ["prod", "staging"]
       image_tag:
-        description: "Image tag from scripts/Publish-DemoImage.ps1 (e.g. baked-693f6d4). 'main' is code-only and will 503."
+        description: "Image tag (default 'main' = latest CI-baked image; or 'sha-abc1234' to pin)."
         required: true
+        default: "main"
 
   pull_request:
     branches: [main]

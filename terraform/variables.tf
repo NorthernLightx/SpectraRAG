@@ -16,14 +16,14 @@ variable "env" {
   default     = "prod"
 }
 
-# Image tags follow the `baked-<short-sha>` convention published by
-# `scripts/Publish-DemoImage.ps1` — the bake script prints the exact tag it
-# pushed. There's intentionally no default: a stale `:main` or `:latest`
-# would deploy a code-only image (no qdrant_local, no data/pages) that
-# 503s every request. Force the operator to pick the tag they baked.
+# `:main` is the always-fresh tag pushed by the docker.yml `publish` job on
+# every main-branch commit — it includes the rendered pages + Qdrant
+# snapshot, baked in CI from the `data/curated_demo/papers.txt` manifest.
+# Pin a specific commit for prod with `-var "image_tag=sha-abc1234"`.
 variable "image_tag" {
-  description = "Docker image tag to deploy (e.g. baked-693f6d4 from scripts/Publish-DemoImage.ps1)."
+  description = "Docker image tag to deploy (default :main; pin :sha-<short> to lock a specific build)."
   type        = string
+  default     = "main"
 }
 
 # Image lives on GHCR (free for public repos) instead of an Azure Container

@@ -122,24 +122,7 @@ to fill it), the UI also attaches page PNGs as image content blocks so
 vision-capable models (gpt-4o, claude-sonnet-4.x, qwen3-vl) read pixels
 directly.
 
-For a fully self-contained Docker image (no external Qdrant required at
-runtime), build the local Qdrant snapshot before `docker build`:
-
-```bash
-uv run python -m scripts.bootstrap_corpus \
-    --pdf-dir data/papers \
-    --qdrant path:./qdrant_local \
-    --ollama http://localhost:11434 \
-    --collection rag_corpus
-uv run python -m scripts.render_pages --pdf-dir data/papers --out-dir data/pages
-docker build -t multi-modal-rag .
-```
-
-The Dockerfile bakes both `qdrant_local/` (vector index) and `data/pages/`
-(rendered page PNGs) into the image, sets `RAG_QDRANT_URL=path:/home/app/qdrant_local`,
-and serves everything from a single container — no external services.
-
-The same container also serves the API:
+Smoke-test the API:
 
 ```bash
 curl http://localhost:8000/health
@@ -147,6 +130,12 @@ curl -X POST http://localhost:8000/answer \
     -H 'Content-Type: application/json' \
     -d '{"text": "What is the inter-basin gain criterion?", "top_k": 5}'
 ```
+
+The deployed image (CI-baked from `data/curated_demo/papers.txt`) bundles
+`qdrant_local/` + `data/pages/` so the running container has no external
+service dependency. The same `Dockerfile` works locally — point
+`bootstrap_corpus` at `path:./qdrant_local` and `docker build .` if you
+want to package your own corpus for elsewhere.
 
 `/answer` returns 503 until both the OpenRouter key is set AND `bootstrap_corpus.py`
 has populated Qdrant — those are the two prerequisites the lifespan handler

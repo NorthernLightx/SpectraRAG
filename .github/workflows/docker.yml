@@ -1,9 +1,14 @@
-# The deployable image bundles a baked Qdrant snapshot (`qdrant_local/`) and
-# pre-rendered page PNGs (`data/pages/`), both gitignored — CI's checkout
-# can't see them. So this workflow only validates the build on `main` / PRs;
-# pushes to GHCR happen only on version tags (`v*`), and the actual demo
-# image is published via `scripts/Publish-DemoImage.ps1` from a developer
-# machine that has the rendered artefacts.
+# Two jobs:
+# - validate: builds the Dockerfile on every push and PR. No bake artefacts; no
+#   GHCR push. Catches Dockerfile / src regressions in ~3 min.
+# - publish: runs only on main pushes and version tags. Fetches the curated
+#   demo PDFs from arXiv (via the committed manifest), runs the same
+#   render_pages + bootstrap_corpus pipeline a developer would run locally,
+#   then `docker build` + `docker push` to GHCR. ~15-20 min.
+#
+# This replaces the old "bake from your laptop, push from your laptop" flow:
+# the deploy image is now reproducible, no PAT needed locally, and `terraform
+# apply` can pin :sha-<short> straight off CI.
 name: docker
 
 on:
@@ -16,6 +21,10 @@ on:
       - "Dockerfile"
       - ".dockerignore"
       - "src/**"
+      - "scripts/render_pages.py"
+      - "scripts/bootstrap_corpus.py"
+      - "scripts/fetch_papers.py"
+      - "data/curated_demo/papers.txt"
       - "pyproject.toml"
       - "uv.lock"
       - ".github/workflows/docker.yml"
@@ -29,19 +38,13 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      # The runtime image bundles torch + colpali-engine + transformers, which
-      # blow past the ~14 GB free disk on a default ubuntu-latest runner during
-      # the wheel-install phase. Free up ~15 GB by removing Android / .NET /
-      # Haskell tooling that's pre-installed but unused here. Keeps the tool
-      # cache (Python) and Docker images cache so Buildx still warms fast.
       - name: Free disk space
         uses: jlumbroso/free-disk-space@v1.3.1
         with:
@@ -56,8 +59,89 @@ jobs:
       - name: Set up Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Build (no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  publish:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@v1.3.1
+        with:
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: false
+          swap-storage: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "0.5.4"
+
+      - name: Install dependencies
+        run: uv sync --frozen --no-dev
+
+      # arXiv PDFs are immutable per versioned ID — cache keyed on the manifest
+      # hash means we only fetch when the curated set changes.
+      - name: Cache curated PDFs
+        uses: actions/cache@v4
+        with:
+          path: data/curated_demo
+          key: pdfs-${{ hashFiles('data/curated_demo/papers.txt') }}
+
+      - name: Fetch curated PDFs (skips IDs already restored from cache)
+        run: uv run python -m scripts.fetch_papers --manifest data/curated_demo/papers.txt --out-dir data/curated_demo
+
+      - name: Render page PNGs
+        run: uv run python -m scripts.render_pages --pdf-dir data/curated_demo --out-dir data/pages
+
+      # Ollama runs in a sidecar container so the embedding service is
+      # reachable at localhost:11434 — same URL as a developer's local
+      # `docker compose up ollama`. bge-m3 is ~1.2 GB; not worth caching.
+      - name: Start Ollama and pull bge-m3
+        run: |
+          docker run -d --name ollama -p 11434:11434 ollama/ollama
+          for i in $(seq 1 30); do
+            sleep 1
+            curl -sf http://localhost:11434/api/version && break
+          done
+          docker exec ollama ollama pull bge-m3
+
+      - name: Bake Qdrant snapshot
+        run: |
+          uv run python -m scripts.bootstrap_corpus \
+            --pdf-dir data/curated_demo \
+            --qdrant "path:./qdrant_local" \
+            --ollama http://localhost:11434 \
+            --collection rag_corpus
+
+      - name: Stop Ollama
+        if: always()
+        run: docker rm -f ollama || true
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Log in to GHCR
-        if: startsWith(github.ref, 'refs/tags/')
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -70,17 +154,17 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository }}
           tags: |
+            type=ref,event=branch
             type=ref,event=tag
-            type=ref,event=pr
             type=semver,pattern={{version}}
             type=sha,format=short
 
-      - name: Build (push only on version tags)
+      - name: Build and push
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile
-          push: ${{ startsWith(github.ref, 'refs/tags/') }}
+          push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha

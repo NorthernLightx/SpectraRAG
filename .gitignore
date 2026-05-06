@@ -43,6 +43,11 @@ data/pages/*
 !data/pages/.gitkeep
 qdrant_local/*
 !qdrant_local/.gitkeep
+# Curated demo corpus: only the arXiv-ID manifest is checked in. The PDFs are
+# fetched from arXiv at CI build time (cached in actions/cache keyed on the
+# manifest hash) and never live in git history. Keeps the repo lean.
+data/curated_demo/*
+!data/curated_demo/papers.txt
 # MMLongBench-Doc parquet (~5 MB) + PDFs (~650 MB) — fetched by
 # scripts/fetch_mmlongbench.py; the derived golden YAML at
 # data/golden/mmlongbench-v1.yaml is the only committed artefact.

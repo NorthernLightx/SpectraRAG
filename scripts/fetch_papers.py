@@ -1,4 +1,15 @@
-"""Fetch ArXiv ML papers as PDFs. Run via: `uv run python -m scripts.fetch_papers`."""
+"""Fetch ArXiv ML papers as PDFs. Run via: `uv run python -m scripts.fetch_papers`.
+
+Two modes:
+
+* Default (query-driven) — search a category by submitted-date, fetch the top
+  N. Useful for one-off corpus builds; non-reproducible (results change as
+  arXiv adds papers).
+* `--manifest <file>` — read a list of arXiv IDs (one per line, # comments
+  allowed) and fetch each. Reproducible, used by the CI deploy bake to build
+  a deterministic image from a committed manifest at
+  `data/curated_demo/papers.txt`.
+"""
 
 from __future__ import annotations
 
@@ -80,7 +91,7 @@ async def download_pdf(pdf_url: str, arxiv_id: str, out_dir: Path) -> Path:
     return out_path
 
 
-async def main(*, category: str, max_results: int, out_dir: Path) -> None:
+async def fetch_by_query(*, category: str, max_results: int, out_dir: Path) -> None:
     url = arxiv_query_url(category=category, max_results=max_results)
     async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
         response = await client.get(url)
@@ -93,15 +104,60 @@ async def main(*, category: str, max_results: int, out_dir: Path) -> None:
         print(f"Saved {paper.arxiv_id}: {path}")
 
 
+def _read_manifest(manifest_path: Path) -> list[str]:
+    """Read a manifest of arXiv IDs (one per line; # comments + blanks ignored)."""
+    ids: list[str] = []
+    for raw in manifest_path.read_text(encoding="utf-8").splitlines():
+        line = raw.split("#", 1)[0].strip()
+        if line:
+            ids.append(line)
+    return ids
+
+
+async def fetch_by_manifest(*, manifest_path: Path, out_dir: Path) -> None:
+    """Fetch each arXiv ID listed in the manifest.
+
+    Idempotent — skips IDs whose PDF already exists in `out_dir`. CI restores
+    `data/curated_demo/` from the actions/cache keyed on the manifest hash, so
+    a cache hit means this loop just verifies presence and exits.
+    """
+    ids = _read_manifest(manifest_path)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    for arxiv_id in ids:
+        safe = re.sub(r"[^A-Za-z0-9._-]", "_", arxiv_id)
+        out_path = out_dir / f"{safe}.pdf"
+        if out_path.exists():
+            print(f"Have {arxiv_id}")
+            continue
+        # arXiv exposes PDFs at https://arxiv.org/pdf/<id>.pdf — versioned IDs
+        # (e.g. 2604.22753v1) are addressable directly.
+        pdf_url = f"https://arxiv.org/pdf/{arxiv_id}.pdf"
+        await download_pdf(pdf_url, arxiv_id, out_dir)
+        print(f"Saved {arxiv_id}: {out_path}")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Fetch ArXiv ML papers as PDFs.")
+    parser.add_argument(
+        "--manifest",
+        type=Path,
+        default=None,
+        help="If set, fetch every arXiv ID listed in this file (one per line, "
+        "# comments + blanks ignored). Reproducible. When unset, falls back "
+        "to category search.",
+    )
     parser.add_argument("--category", default="cs.LG")
     parser.add_argument("--max-results", type=int, default=5)
     parser.add_argument("--out-dir", type=Path, default=Path("data/papers"))
     args = parser.parse_args()
     try:
-        asyncio.run(
-            main(category=args.category, max_results=args.max_results, out_dir=args.out_dir)
-        )
+        if args.manifest is not None:
+            asyncio.run(fetch_by_manifest(manifest_path=args.manifest, out_dir=args.out_dir))
+        else:
+            asyncio.run(
+                fetch_by_query(
+                    category=args.category, max_results=args.max_results, out_dir=args.out_dir
+                )
+            )
     except KeyboardInterrupt:
         sys.exit(130)
