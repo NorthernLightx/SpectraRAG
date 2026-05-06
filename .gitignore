@@ -43,10 +43,12 @@ data/pages/*
 !data/pages/.gitkeep
 qdrant_local/*
 !qdrant_local/.gitkeep
-data/mmlongbench/   # MMLongBench-Doc parquet (~5 MB) + PDFs (~650 MB) — fetched
-                    # by scripts/fetch_mmlongbench.py; the derived golden YAML
-                    # at data/golden/mmlongbench-v1.yaml is the only committed
-                    # artefact from this dataset.
+# MMLongBench-Doc parquet (~5 MB) + PDFs (~650 MB) — fetched by
+# scripts/fetch_mmlongbench.py; the derived golden YAML at
+# data/golden/mmlongbench-v1.yaml is the only committed artefact.
+# (Trailing comments aren't valid in .gitignore — keep them on their own line
+# or git treats the whole "pattern   # comment" string as a literal pattern.)
+data/mmlongbench/
 logs/
 *.log
 .langfuse/
