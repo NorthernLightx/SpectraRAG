@@ -219,6 +219,39 @@ where the answer literally lives in pixels (chart colour, screenshot
 content, image identification) — 5/7 vision wins, 0/7 text wins,
 2/7 ties.
 
+**The dispatch gap (closed).** The retrieval section above flagged that
+the regex classifier dispatched only 26 / 149 MMLongBench queries to
+hybrid where 98 were figure/table-evidenced — a 75 % under-fire on a
+corpus where natural-language questions don't say "Figure X" / "Table
+N". `src/rag/retrievers/classifier_llm.py` adds an LLM zero-shot
+classifier as an alternative to the regex.
+[`scripts/exp_classifier_dispatch.py`](./scripts/exp_classifier_dispatch.py)
+ran both over the same 149 queries:
+
+| | regex (ADR 0008) | LLM (gpt-4o-mini) | Δ abs |
+|---|---|---|---|
+| any → hybrid | 17.4 % | **71.8 %** | **+54 pp** |
+| figure → hybrid (n=76) | 25 % | **87 %** | **+62 pp** |
+| table → hybrid (n=24) | 12 % | 50 % | +38 pp |
+
+The LLM over-dispatches some factual queries (0 % → 56 %) but the
+fail-safe is bounded: hybrid retrieval on a text-only-needed query
+just costs more compute, the answer is still correct.
+
+**Composed pipeline — end-to-end win.** Three lifts compose into a
+single deployed answer:
+1. **Visual retriever** (ColQwen2 in `RoutingRetriever`): +9.6 %
+   recall@10 aggregate, +15.3 % on figure subset.
+2. **LLM classifier** (`LLMQueryClassifier`, opt-in via `classifier=`
+   on RoutingRetriever): dispatches 87 % of figure queries to hybrid
+   vs the regex's 25 %.
+3. **Vision generator** (`Generator(pages_dir=...)` with a
+   vision-capable model): +89 % gold-match on figure-grounded queries
+   when it actually fires.
+
+Each layer's lift was measured in isolation; the dispatch upgrade closes
+the bottleneck that was previously suppressing the composed product.
+
 ---
 
 Golden v2 — 5 papers, 23 queries (17 in-corpus). Production stack:
