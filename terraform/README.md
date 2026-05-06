@@ -66,7 +66,7 @@ echo $GITHUB_PAT | docker login ghcr.io -u <gh-user> --password-stdin
 Bake + push:
 
 ```powershell
-.\scripts\bake_and_push.ps1
+.\scripts\Publish-DemoImage.ps1
 ```
 
 The script renders pages, builds the Qdrant snapshot via
@@ -83,7 +83,7 @@ terraform apply \
   -var "image_tag=baked-693f6d4"
 ```
 
-Re-baking is idempotent — re-running `bake_and_push.ps1` only rebuilds the
+Re-baking is idempotent — re-running `Publish-DemoImage.ps1` only rebuilds the
 layers whose source changed, and the qdrant snapshot is skipped when the
 collection is already populated (override with `--force` from the script's
 internals if the corpus content changed).

@@ -17,12 +17,12 @@ variable "env" {
 }
 
 # Image tags follow the `baked-<short-sha>` convention published by
-# `scripts/bake_and_push.ps1` — the bake script prints the exact tag it
+# `scripts/Publish-DemoImage.ps1` — the bake script prints the exact tag it
 # pushed. There's intentionally no default: a stale `:main` or `:latest`
 # would deploy a code-only image (no qdrant_local, no data/pages) that
 # 503s every request. Force the operator to pick the tag they baked.
 variable "image_tag" {
-  description = "Docker image tag to deploy (e.g. baked-693f6d4 from scripts/bake_and_push.ps1)."
+  description = "Docker image tag to deploy (e.g. baked-693f6d4 from scripts/Publish-DemoImage.ps1)."
   type        = string
 }
 

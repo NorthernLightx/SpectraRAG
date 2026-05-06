@@ -2,7 +2,7 @@
 # pre-rendered page PNGs (`data/pages/`), both gitignored — CI's checkout
 # can't see them. So this workflow only validates the build on `main` / PRs;
 # pushes to GHCR happen only on version tags (`v*`), and the actual demo
-# image is published via `scripts/bake_and_push.ps1` from a developer
+# image is published via `scripts/Publish-DemoImage.ps1` from a developer
 # machine that has the rendered artefacts.
 name: docker
 
