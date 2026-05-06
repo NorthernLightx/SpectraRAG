@@ -148,6 +148,50 @@ Modules added in later phases: `src/ingestion/`, `src/rag/`, `src/prompts/`,
 
 ## Eval results
 
+### Why multi-modal? — one concrete example
+
+`mmlb_0008` from MMLongBench-Doc, paper `2310.05634v2`, gold page 8:
+
+> *"In figure 5, what is the color of the line that has no intersection with any other line?"*  → expected answer: **red**
+
+| Stack | top-10 retrieved pages | recall@10 |
+|---|---|---|
+| text-only (`589f7269d617`) | `[25, 23, 24, 94, 16, 35, 4]` | **0.00** |
+| router (`cc45831697b6`) | `[25, 5, 23, 12, 24, 8, 94, 16, 15]` | **1.00** |
+
+This is the kind of question that's fundamentally unanswerable from
+extracted text — the answer lives in the chart's colour-coding. The
+text retriever can't surface page 8 because the relevant signal was
+never in the text layer; the visual leg (ColQwen2 multi-vector +
+late-interaction MaxSim on the rendered page image) recovers it.
+6 more queries with the same shape are listed in the output of
+`scripts/find_visual_wins.py` (chart colours, figure-internal labels,
+screenshot content, news-image identification — all cases where the
+text layer of the PDF doesn't carry the answer).
+
+**The honest tradeoff.** Multi-modal retrieval helps when figures
+encode information as pixels — chart colours, layout geometry,
+screenshot content, image-only diagrams. It helps less when figures
+encode information as a text layer the PDF parser can extract — most
+modern arXiv preprints serialise even figure-internal labels and
+captions as selectable text, which is why golden v3's Phase 3.2 router
+showed only +1.9 % on figure subsets while MMLongBench shows +15.3 %
+on the same category. ADR 0007 + `docs/decisions/0008` explain the
+mechanism; the `mmlb_*` numbers below are the empirical case.
+
+**One honest gap to call out.** Even when the visual leg surfaces the
+right page, the current generator is text-only and answers
+*"Not stated in the provided context."* on `mmlb_0008` and friends —
+it has no way to read the page image. So the visual win shows up
+cleanly in retrieval metrics but not in generation metrics. Wiring a
+vision-capable generator (Sonnet 4.6 vision, Qwen3-VL) into the
+hybrid path is a Phase 3.2.x candidate (the spike-stage script
+`scripts/spike_vision_generator.py` and follow-up experiment
+`scripts/experiment_vision_vs_text.py` cover the feasibility +
+golden-v3 null result; MMLongBench changes the calculus).
+
+---
+
 Golden v2 — 5 papers, 23 queries (17 in-corpus). Production stack:
 BM25 + dense + RRF → BGE-v2-m3 cross-encoder rerank → qwen2.5:7b
 generate + judge.
