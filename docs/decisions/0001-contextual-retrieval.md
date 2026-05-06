@@ -251,10 +251,10 @@ cell is the one that matters. Contextual retrieval is therefore rejected.
 
 **Caveats / what could still flip this:**
 
-1. **Larger golden set** (`data/golden/v1.1.yaml`, 15 queries, NEEDS
-   USER REVIEW). All current numbers are macro-averaged over 4 in-corpus
-   queries — variance is high. If the rerank+contextual delta on v1.1 is
-   non-zero in either direction, the verdict can be revisited.
+1. **Larger golden set** (`data/golden/v1.1.yaml`, 15 queries — later
+   folded into v2). All current numbers are macro-averaged over 4 in-corpus
+   queries — variance is high. If the rerank+contextual delta on a larger
+   set is non-zero in either direction, the verdict can be revisited.
 2. **Cloud A/B with `gpt-4o-mini` + 128k context** to test whether
    cloud-quality blurbs change the candidate-pool composition enough that
    rerank picks materially different chunks. Only worth running if we get

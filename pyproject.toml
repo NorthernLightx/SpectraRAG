@@ -55,8 +55,8 @@ dev = [
   "types-pyyaml",
 ]
 
-# PyTorch wheels: cu126 on Windows for the local GPU dev box (RTX 3070 cross-encoder
-# rerank). Linux (CI / cloud) keeps the default PyPI wheel (CPU-only) since the
+# PyTorch wheels: cu126 on Windows for local 8 GB GPU dev (cross-encoder rerank).
+# Linux (CI / cloud) keeps the default PyPI wheel (CPU-only) since the
 # regression-gate / unit suite doesn't need GPU. `explicit = true` keeps this index
 # off the resolver path for non-torch packages.
 [[tool.uv.index]]

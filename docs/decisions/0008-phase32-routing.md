@@ -1,6 +1,6 @@
 # ADR 0008 — Phase 3.2 per-query routing (text-only vs hybrid)
 
-**Status:** Proposed. Promoted to a draft pending user review before any code lands; flips to Accepted once the implementation closes against this design.
+**Status:** Accepted (2026-05-03 design; implementation closed against this design — see run `6447247ef8e7` referenced in the README).
 **Date:** 2026-05-03.
 **Phase:** 3.2.
 
@@ -188,9 +188,8 @@ choice only affects observability labels.
   `<paper>::p<n>::page` (page granularity, not chunk).
 - `src/types/retrieval.py:14` — `Query` model gains the `force_route`
   field per Decision §4.
-- `data/golden/v3.yaml` — the corpus the router will be re-evaluated
-  on after wiring (router-on retrieval-only run, expected to match or
-  beat the v3 oracle bound from ADR 0007 §"Implications"). Note: ADR
-  0007 §3 left golden v3 as draft pending user review of the v3-only
-  queries (q24–q39); promoting v3 to the regression baseline is a
-  separate future decision, not part of this ADR.
+- `data/golden/v3.yaml` — the corpus the router was re-evaluated on
+  after wiring (router-on retrieval-only run; per the README, the run
+  matched the v3 oracle bound from ADR 0007 §"Implications"). Promoting
+  v3 to the regression baseline is a separate decision, not part of this
+  ADR.

@@ -171,9 +171,8 @@ classifier signals figure / table / multi-hop.
    n=17).
 
 2. **Accept the 20-paper corpus + golden v3 as the new evaluation
-   substrate** for visual-vs-text comparisons going forward. v3 stays
-   draft until the user reviews the v3-only queries (q24–q39); the v2
-   queries are unchanged.
+   substrate** for visual-vs-text comparisons going forward. v3-only
+   queries (q24–q39) are added on top of the unchanged v2 queries.
 
 3. **Promote per-query routing to Phase 3.2 priority.** The empirical case
    was already in ADR 0003 (query-expansion) and ADR 0004 (visual);
@@ -224,7 +223,7 @@ classifier signals figure / table / multi-hop.
 - `scripts/eval_hybrid.py` — offline RRF fusion of two existing run JSONs.
 - `scripts/inspect_candidates.py` — visual-richness scoring used for the
   corpus expansion.
-- `data/golden/v3.yaml` — 39-query golden, draft.
+- `data/golden/v3.yaml` — 39-query golden set used for the runs above.
 - `data/eval/runs/run-20260502-235237.json` — text run (id `d8ff80ee9258`).
 - `data/eval/runs/run-text-page-20260502-235300.json` — text @ page
   re-scored baseline (id `2d818239dbc0`).

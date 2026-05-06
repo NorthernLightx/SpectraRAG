@@ -148,9 +148,9 @@ async def build_visual_retriever(
     event loop isn't blocked on the GPU work. The model class is picked from
     the name. Default is ColQwen2-v1.0 (Qwen2-VL-2B backbone, ~4 GB VRAM at
     bf16). ColQwen2.5-v0.2 (Qwen2.5-VL-3B, ~6 GB) is the 2025 upgrade and
-    works on hardware with ≥7 GB free GPU; on the 8 GB RTX 3070 dev box used
-    here, the Windows desktop compositor + Ollama runtime hold ~3 GB and the
-    bigger model OOMs. Pass `--model vidore/colqwen2.5-v0.2` on a roomier GPU.
+    works on hardware with ≥7 GB free GPU; on an 8 GB consumer card with a
+    Windows desktop compositor + Ollama runtime holding ~3 GB, the bigger
+    model OOMs. Pass `--model vidore/colqwen2.5-v0.2` on a roomier GPU.
     """
     model_cls, processor_cls = _select_col_classes(model_name)
     dtype = torch.bfloat16 if device.startswith("cuda") else torch.float32

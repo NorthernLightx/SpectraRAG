@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     default_chat_model: str = "anthropic/claude-sonnet-4.6"
     default_embed_model: str = "bge-m3"
     # ADR 0008: ColPali-family checkpoint for the visual leg of routing.
-    # Default fits the 8 GB RTX 3070 dev box; the 3 B+ tier (ColQwen2.5-v0.2,
+    # Default fits an 8 GB GPU; the 3 B+ tier (ColQwen2.5-v0.2,
     # ColQwen3, etc.) needs ≥7 GB free GPU and is opt-in via this knob.
     visual_model: str = "vidore/colqwen2-v1.0"
 

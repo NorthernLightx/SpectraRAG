@@ -503,8 +503,8 @@ if __name__ == "__main__":
         "--visual-model",
         default="vidore/colqwen2-v1.0",
         help=(
-            "Visual model checkpoint for the routing leg. Default fits the 8 GB "
-            "RTX 3070 dev box; bump to colqwen2.5-v0.2 / colqwen3 on roomier GPU."
+            "Visual model checkpoint for the routing leg. Default fits an "
+            "8 GB GPU; bump to colqwen2.5-v0.2 / colqwen3 on roomier hardware."
         ),
     )
     parser.add_argument(

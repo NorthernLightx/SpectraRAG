@@ -1,9 +1,9 @@
 name: phase1-text-baseline
 version: v1
-# Golden queries for the ArXiv paper 2604.22753v1 (the only paper currently in the
-# corpus). Chunk IDs were taken from the actual ingestion output of smoke_phase1
-# at chunk size 1200 / overlap 200; if the chunking config changes, regenerate.
-# Real golden sets need 20-30 queries; this is a placeholder for end-to-end wiring.
+# Golden queries for the ArXiv paper 2604.22753v1 — the v1 smoke set,
+# covering a single paper. Chunk IDs were taken from the actual ingestion
+# output of smoke_phase1 at chunk size 1200 / overlap 200; if the chunking
+# config changes, regenerate.
 queries:
   - query_id: q1_inter_basin
     text: "What is the inter-basin gain criterion?"

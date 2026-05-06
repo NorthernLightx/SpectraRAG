@@ -4,8 +4,7 @@ version: v3
 # figure / table / multi-source content on 6 of the 15 newly-fetched papers
 # from the corpus expansion (5 → 20 papers). Designed to test where ColQwen2
 # is hypothesized to win — figure/table-grounded queries where text rerank
-# fragments multi-region content. v3 query authoring — NEEDS USER REVIEW
-# before promoting to default. Chunk-id anchors verified against
+# fragments multi-region content. Chunk-id anchors verified against
 # `scripts.dump_chunks` output for each paper.
 queries:
   # === v1.1 queries (paper: 2604.22753v1, scaling-law fitting) ===
@@ -133,7 +132,7 @@ queries:
     expected_facts: []
     note: "OOC: paper does not discuss GPT-4."
 
-  # === v2 additions (still NEEDS USER REVIEW) ===
+  # === v2 additions (4 papers added to the v1 corpus) ===
   # Paper: 2604.28180v1 — Adaptive Wavelet-based PINN
   - query_id: q16_aw_pinn_what
     text: "What is AW-PINN?"
@@ -142,7 +141,7 @@ queries:
     relevant_chunk_ids: ["2604.28180v1::p3::c10"]
     expected_facts:
       - "Adaptive wavelet-based PINN that dynamically adapts the wavelet family."
-    note: "v2. Definitional. Author drafted from chunk dump; verify chunk_id matches a chunk that explicitly defines AW-PINN."
+    note: "v2. Definitional."
 
   - query_id: q17_oc_pinn_rl
     text: "How does AW-PINN handle reinforcement learning?"
@@ -159,7 +158,7 @@ queries:
     category: factual
     relevant_chunk_ids: ["2604.28181v1::p1::c1"]
     expected_facts: ["1,000 synthetic computers."]
-    note: "v2. Quantitative single-fact. Verify chunk contains the literal '1,000' figure."
+    note: "v2. Quantitative single-fact."
 
   - query_id: q19_oc_synth_energy
     text: "What is the energy consumption of the data center used to run the simulations?"
@@ -177,7 +176,7 @@ queries:
     relevant_chunk_ids: ["2604.28182v1::p2::c5"]
     expected_facts:
       - "An RL failure mode where the model intentionally alters its exploration to shape training."
-    note: "v2. Definitional. Verify chunk contains the term + definition."
+    note: "v2. Definitional, term + definition in one chunk."
 
   - query_id: q21_oc_llama_finetune
     text: "What hyperparameters were used to fine-tune Llama 3?"
@@ -194,7 +193,7 @@ queries:
     category: factual
     relevant_chunk_ids: ["2604.28186v1::p2::c4"]
     expected_facts: ["Minimum Average-Strong Equilibrium."]
-    note: "v2. Definitional. Verify chunk contains the expansion."
+    note: "v2. Definitional, acronym expansion."
 
   - query_id: q23_oc_eurozone
     text: "What is the current inflation rate of the eurozone?"
@@ -205,8 +204,7 @@ queries:
     note: "v2. OOC: completely unrelated to game theory paper."
 
   # === v3 additions: figure / table queries on the 15-paper corpus expansion ===
-  # All v3 queries DRAFT — chunk_id anchors verified via scripts.dump_chunks
-  # but the queries themselves NEED USER REVIEW for clarity / fairness.
+  # Chunk-id anchors verified via scripts.dump_chunks.
 
   # Paper: 2604.27742v1 — Linear-Core Surrogates: Smooth Loss Functions
   - query_id: q24_lc_fig4_gradients
