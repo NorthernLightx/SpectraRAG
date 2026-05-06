@@ -3,9 +3,12 @@
 Provisions:
 - Resource Group
 - Log Analytics workspace (Container Apps' log sink)
-- Azure Container Registry (Basic SKU)
 - Container Apps Environment + a single Container App (`<prefix>-<env>-api`)
 - Key Vault + three placeholder secrets (operator sets real values via az CLI)
+
+The container image is pulled from GHCR (the public image
+`.github/workflows/docker.yml` already pushes to). No Azure Container
+Registry — saves the $5/mo Basic SKU for a portfolio-traffic deploy.
 
 ## One-time bootstrap (do this manually before the first `terraform init`)
 
@@ -57,12 +60,15 @@ they're injected as env vars on the container at start.
 
 ## Cost (approximate, westeurope)
 
-- Container App, scale-to-zero, ~10 prod requests/day: <$1/mo
-- ACR Basic: $5/mo
-- Log Analytics PerGB2018, low traffic: <$3/mo
-- Key Vault: pennies
+- Container App, scale-to-zero, portfolio traffic: $0 (within always-free
+  quota: 180k vCPU-sec + 2M requests/mo)
+- GHCR (image registry): $0 (free for public repos)
+- Log Analytics: $0 at low traffic (5 GB/mo free tier)
+- Key Vault: pennies, within free 10k-ops/mo tier
 
-Budget: ~$10/mo idle, ~$30/mo with steady demo traffic.
+Budget: ~$0/mo at portfolio traffic. The $200 Azure free-trial credit
+covers any incidental usage in the first 30 days; after that, staying
+within the free tiers above keeps the bill at $0.
 
 ## GitHub Actions secrets
 

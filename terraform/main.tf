@@ -22,15 +22,6 @@ resource "azurerm_log_analytics_workspace" "rag" {
   tags                = local.tags
 }
 
-resource "azurerm_container_registry" "rag" {
-  name                = replace("${local.base_name}acr", "-", "")
-  resource_group_name = azurerm_resource_group.rag.name
-  location            = azurerm_resource_group.rag.location
-  sku                 = "Basic"
-  admin_enabled       = true
-  tags                = local.tags
-}
-
 resource "azurerm_container_app_environment" "rag" {
   name                       = "${local.base_name}-cae"
   location                   = azurerm_resource_group.rag.location
@@ -46,19 +37,10 @@ resource "azurerm_container_app" "api" {
   revision_mode                = "Single"
   tags                         = local.tags
 
-  registry {
-    server   = azurerm_container_registry.rag.login_server
-    username = azurerm_container_registry.rag.admin_username
-    # gitleaks:allow — value is a Terraform secret NAME (string identifier),
-    # not a hardcoded password. The actual credential value lives below in
-    # the `secret` block where it references azurerm_container_registry.rag.admin_password.
-    password_secret_name = "acr-password"
-  }
-
-  secret {
-    name  = "acr-password"
-    value = azurerm_container_registry.rag.admin_password
-  }
+  # No `registry {}` block — GHCR images on a public package are pullable
+  # anonymously (Container Apps falls back to anonymous pull when no
+  # credentials are configured). Switching from ACR Basic ($5/mo) to GHCR
+  # (free for public repos) drops the deploy's idle cost to ~$0.
 
   secret {
     name                = "openrouter-api-key"
@@ -88,7 +70,7 @@ resource "azurerm_container_app" "api" {
 
     container {
       name   = "api"
-      image  = "${azurerm_container_registry.rag.login_server}/multi-modal-paper-rag:${var.image_tag}"
+      image  = "${var.image_repository}:${var.image_tag}"
       cpu    = var.cpu
       memory = var.memory
 

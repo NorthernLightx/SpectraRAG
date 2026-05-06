@@ -3,9 +3,9 @@ output "container_app_fqdn" {
   value       = azurerm_container_app.api.ingress[0].fqdn
 }
 
-output "acr_login_server" {
-  description = "Container registry login server (used by GHA push)."
-  value       = azurerm_container_registry.rag.login_server
+output "image_reference" {
+  description = "Container image the app pulls from (GHCR — free, public)."
+  value       = "${var.image_repository}:${var.image_tag}"
 }
 
 output "key_vault_name" {

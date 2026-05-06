@@ -19,7 +19,18 @@ variable "env" {
 variable "image_tag" {
   description = "Docker image tag to deploy."
   type        = string
-  default     = "latest"
+  default     = "main"
+}
+
+# Image lives on GHCR (free for public repos) instead of an Azure Container
+# Registry — saves $5/mo on the Basic SKU and the image was already being
+# pushed there by `.github/workflows/docker.yml`. The `image_repository`
+# default points at the public repo this terraform was authored for; override
+# for forks via `terraform plan -var image_repository=ghcr.io/<owner>/<name>`.
+variable "image_repository" {
+  description = "Public container image repository (GHCR or DockerHub)."
+  type        = string
+  default     = "ghcr.io/northernlightx/multi-modal-rag"
 }
 
 variable "min_replicas" {
