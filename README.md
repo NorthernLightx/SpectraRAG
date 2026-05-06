@@ -80,6 +80,7 @@ flowchart LR
 | 3 — Visual retrieval | ColQwen2 multi-vector + late-interaction MaxSim | ✅ accepted as complementary path (`scripts/eval_visual.py`) |
 | 3.1 — Hybrid text + visual fusion | Offline RRF over text+visual at page granularity, golden v3 | ✅ closed; rejected as default — figure/table subset shows +1.9% nDCG@5, motivating routing |
 | 3.2 — Per-query routing | Route by query category (text-only vs hybrid) per ADR 0008 | ✅ closed (run `6447247ef8e7` — hybrid-routed figure+table queries 0.876 nDCG@5 vs 0.732 on text-routed factual/equation; routing dispatches correctly per category) |
+| 3.3 — Multi-modal in `/answer` + regression gate | Visual leg + LLM classifier wired into the lifespan handler behind `RAG_ENABLE_MULTIMODAL`; MMLongBench retrieval baseline committed | ✅ closed (`baseline-mmlongbench.json` = `cc45831697b6`, recall@10 0.7469 over 107 scoreable queries; gate fails when text-only is the candidate at -9.18%) |
 | 4 — Production polish | Terraform / Azure Container Apps / OTel / Sentry | 🟡 scaffold landed; first apply pending |
 
 ADRs cover every non-obvious decision in [`docs/decisions/`](./docs/decisions/).
@@ -94,9 +95,20 @@ Prerequisites: Python 3.12, [uv](https://docs.astral.sh/uv/), Docker + Docker Co
 git clone <repo-url> multi-modal-paper-rag
 cd multi-modal-paper-rag
 uv sync --extra dev
-cp .env.example .env  # fill in keys when retrieval/generation lands
+cp .env.example .env                        # fill in RAG_OPENROUTER_API_KEY (used by /answer)
 docker compose up -d qdrant postgres langfuse ollama
 docker exec rag-ollama ollama pull bge-m3   # one-off
+```
+
+Ingest a corpus (idempotent — skips when the collection is already populated):
+
+```bash
+uv run python -m scripts.bootstrap_corpus --pdf-dir data/papers
+```
+
+Then start the API:
+
+```bash
 uv run uvicorn src.api.main:app --reload --port 8000
 ```
 
@@ -104,7 +116,14 @@ Verify:
 
 ```bash
 curl http://localhost:8000/health
+curl -X POST http://localhost:8000/answer \
+    -H 'Content-Type: application/json' \
+    -d '{"text": "What is the inter-basin gain criterion?", "top_k": 5}'
 ```
+
+`/answer` returns 503 until both the OpenRouter key is set AND `bootstrap_corpus.py`
+has populated Qdrant — those are the two prerequisites the lifespan handler
+checks at startup.
 
 ---
 
@@ -139,10 +158,11 @@ Top-level packages:
 - `src/config/` — Pydantic Settings + YAML defaults
 - `src/llm/` — `LLMClient` Protocol and OpenRouter implementation
 - `src/embeddings/` — `Embedder` Protocol and Ollama BGE-M3 implementation
-- `src/api/` — FastAPI app (`/health`, `/query` placeholder)
-
-Modules added in later phases: `src/ingestion/`, `src/rag/`, `src/prompts/`,
-`src/eval/`, `src/guardrails/`, `src/observability/`.
+- `src/api/` — FastAPI app: `/health`, `/query` (hybrid retrieval), `/answer`
+  (retrieve + generate, X-API-Key gated, rate-limited at 10/min, OTel + Langfuse
+  traced). Generator + retriever auto-wire from settings via the lifespan handler.
+- `src/ingestion/`, `src/rag/`, `src/prompts/`, `src/eval/`, `src/guardrails/`,
+  `src/observability/` — built out across phases 1-3.
 
 ---
 
