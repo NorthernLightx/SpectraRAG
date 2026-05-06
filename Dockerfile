@@ -34,6 +34,10 @@ WORKDIR /home/app
 # Copy the virtualenv from the builder stage.
 COPY --from=builder --chown=app:app /app/.venv /home/app/.venv
 COPY --from=builder --chown=app:app /app/src /home/app/src
+# Static UI bundled into the image — FastAPI mounts this at "/" so the same
+# container serves both the API and the demo page. Skipped if the path is
+# absent (the StaticFiles mount in src/api/main.py guards on existence).
+COPY --chown=app:app web /home/app/web
 
 ENV PATH="/home/app/.venv/bin:$PATH" \
     PYTHONUNBUFFERED=1 \

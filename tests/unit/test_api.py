@@ -61,8 +61,16 @@ def test_query_returns_503_when_retriever_unset() -> None:
     assert "ingest a corpus" in response.json()["detail"].lower()
 
 
-def test_root_returns_service_name() -> None:
+def test_root_serves_bundled_frontend() -> None:
+    """`/` is mounted to web/index.html via StaticFiles so the same container
+    serves API + UI. Verifies the mount is wired correctly and the HTML is
+    actually shipped (not stripped by some runtime image build)."""
     client = _make_client()
     response = client.get("/")
     assert response.status_code == 200
-    assert "multi-modal" in response.json()["service"].lower()
+    assert response.headers["content-type"].startswith("text/html")
+    body = response.text
+    assert "Multi-modal Paper RAG" in body
+    # Sanity: the static mount didn't shadow /docs (FastAPI matches explicit
+    # routes before the catch-all StaticFiles mount).
+    assert client.get("/docs").status_code == 200

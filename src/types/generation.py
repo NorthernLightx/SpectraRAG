@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
-from src.types.retrieval import RankedChunk
+from src.types.retrieval import RankedChunk, RetrievalResult
 
 
 class Citation(BaseModel):
@@ -25,10 +25,18 @@ class Context(BaseModel):
 
 
 class Answer(BaseModel):
-    """A generated answer with citations, model identity, and cost/latency."""
+    """A generated answer with citations, model identity, and cost/latency.
+
+    `retrieved` is populated by the API route layer (not the Generator) so
+    callers can render "what the LLM saw" alongside the answer — used by the
+    bundled web UI to show retrieved chunks + their source ('pipeline' vs
+    'visual'). Defaults to [] so eval / unit-test code paths that construct
+    Answer directly stay backwards-compatible.
+    """
 
     text: str
     citations: list[Citation] = Field(default_factory=list)
+    retrieved: list[RetrievalResult] = Field(default_factory=list)
     model: str
     prompt_version: str | None = None
     latency_ms: int = Field(ge=0)

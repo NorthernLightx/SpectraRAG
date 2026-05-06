@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
 from slowapi import _rate_limit_exceeded_handler
@@ -322,13 +323,18 @@ def create_app(*, log_file: Path | None = Path("logs/api.log")) -> FastAPI:
     api_key = settings.public_api_key.get_secret_value() if settings.public_api_key else None
     app.middleware("http")(make_api_key_middleware(api_key))
 
-    @app.get("/")
-    def root() -> dict[str, str]:
-        return {"service": "Multi-modal Paper RAG", "docs": "/docs"}
-
     app.include_router(health.router)
     app.include_router(query.router)
     app.include_router(answer.router)
+
+    # Static frontend mounted LAST at "/" so it doesn't shadow API routes —
+    # FastAPI matches explicit routes before mounted apps. `html=True` makes
+    # GET / serve index.html (instead of a directory listing). When the web/
+    # directory isn't present (e.g., a stripped runtime image) the mount
+    # silently skips so the API still boots.
+    web_dir = Path(__file__).resolve().parents[2] / "web"
+    if web_dir.is_dir():
+        app.mount("/", StaticFiles(directory=web_dir, html=True), name="web")
 
     # Auto-instrumentation must run after routers are added so per-route
     # spans are named correctly. HTTPXClientInstrumentor is a singleton

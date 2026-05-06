@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Multi-modal Paper RAG</title>
+    <style>
+      :root {
+        --bg: #0d1117;
+        --fg: #e6edf3;
+        --muted: #8b949e;
+        --accent: #58a6ff;
+        --border: #30363d;
+        --card: #161b22;
+        --ok: #3fb950;
+        --err: #f85149;
+        --code: #c9d1d9;
+        --code-bg: #1f242c;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+        font-size: 15px;
+        line-height: 1.55;
+      }
+      main {
+        max-width: 880px;
+        margin: 0 auto;
+        padding: 32px 24px 64px;
+      }
+      header {
+        margin-bottom: 28px;
+      }
+      h1 {
+        font-size: 26px;
+        margin: 0 0 4px;
+      }
+      header p {
+        margin: 0;
+        color: var(--muted);
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 20px;
+        margin: 16px 0;
+      }
+      label {
+        display: block;
+        font-size: 13px;
+        color: var(--muted);
+        margin-bottom: 6px;
+      }
+      input,
+      textarea {
+        width: 100%;
+        background: var(--bg);
+        color: var(--fg);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 10px 12px;
+        font-family: inherit;
+        font-size: 14px;
+      }
+      input:focus,
+      textarea:focus {
+        outline: none;
+        border-color: var(--accent);
+      }
+      textarea {
+        min-height: 100px;
+        resize: vertical;
+      }
+      button {
+        background: var(--accent);
+        color: #0d1117;
+        border: none;
+        border-radius: 6px;
+        padding: 10px 18px;
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .row {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        margin-top: 12px;
+      }
+      .muted {
+        color: var(--muted);
+        font-size: 13px;
+      }
+      pre,
+      code {
+        font-family:
+          ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, monospace;
+        font-size: 13px;
+      }
+      pre {
+        background: var(--code-bg);
+        color: var(--code);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 12px;
+        overflow-x: auto;
+        white-space: pre-wrap;
+      }
+      .answer {
+        white-space: pre-wrap;
+      }
+      details {
+        margin-top: 16px;
+      }
+      summary {
+        cursor: pointer;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .chunk {
+        border-top: 1px solid var(--border);
+        padding-top: 10px;
+        margin-top: 10px;
+      }
+      .chunk:first-of-type {
+        border-top: none;
+        padding-top: 0;
+      }
+      .chunk-meta {
+        color: var(--muted);
+        font-size: 12px;
+        margin-bottom: 4px;
+      }
+      .badge {
+        display: inline-block;
+        padding: 1px 6px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        margin-right: 6px;
+      }
+      .badge-pipeline {
+        background: rgba(88, 166, 255, 0.15);
+        color: var(--accent);
+      }
+      .badge-visual {
+        background: rgba(63, 185, 80, 0.15);
+        color: var(--ok);
+      }
+      .err {
+        color: var(--err);
+      }
+      footer {
+        margin-top: 40px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      footer a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>Multi-modal Paper RAG</h1>
+        <p>
+          BM25 + dense retrieval + BGE rerank, optionally fused with a ColQwen2
+          visual leg. Ask a question — the API retrieves and generates with
+          inline citations.
+        </p>
+      </header>
+
+      <section class="card">
+        <label for="apiKey"
+          >API key
+          <span class="muted"
+            >(only required when the server has
+            <code>RAG_PUBLIC_API_KEY</code> set)</span
+          ></label
+        >
+        <input id="apiKey" type="password" autocomplete="off" />
+
+        <label for="query" style="margin-top: 16px">Question</label>
+        <textarea
+          id="query"
+          placeholder="What is the inter-basin gain criterion?"
+        ></textarea>
+
+        <div class="row">
+          <button id="ask">Ask</button>
+          <span class="muted" id="status"></span>
+        </div>
+      </section>
+
+      <section id="result" class="card" hidden>
+        <label>Answer</label>
+        <div class="answer" id="answer"></div>
+        <details id="citationsWrap" hidden>
+          <summary>Citations</summary>
+          <div id="citations"></div>
+        </details>
+        <details id="chunksWrap" hidden>
+          <summary>Retrieved chunks</summary>
+          <div id="chunks"></div>
+        </details>
+        <div class="row muted" id="meta" style="margin-top: 14px"></div>
+      </section>
+
+      <footer>
+        Source on
+        <a href="https://github.com/NorthernLightx/multi-modal-rag">GitHub</a> ·
+        OpenAPI at <a href="/docs">/docs</a>
+      </footer>
+    </main>
+
+    <script>
+      // Persist API key in localStorage so refreshes don't lose it.
+      const apiKeyInput = document.getElementById("apiKey");
+      const queryInput = document.getElementById("query");
+      const askBtn = document.getElementById("ask");
+      const statusEl = document.getElementById("status");
+      const resultEl = document.getElementById("result");
+      const answerEl = document.getElementById("answer");
+      const citationsWrap = document.getElementById("citationsWrap");
+      const citationsEl = document.getElementById("citations");
+      const chunksWrap = document.getElementById("chunksWrap");
+      const chunksEl = document.getElementById("chunks");
+      const metaEl = document.getElementById("meta");
+
+      apiKeyInput.value = localStorage.getItem("rag.apiKey") || "";
+      apiKeyInput.addEventListener("change", () => {
+        localStorage.setItem("rag.apiKey", apiKeyInput.value);
+      });
+
+      askBtn.addEventListener("click", async () => {
+        const query = queryInput.value.trim();
+        if (!query) {
+          statusEl.textContent = "Type a question first.";
+          return;
+        }
+        askBtn.disabled = true;
+        statusEl.textContent = "Retrieving + generating...";
+        statusEl.classList.remove("err");
+        resultEl.hidden = true;
+
+        const headers = { "Content-Type": "application/json" };
+        if (apiKeyInput.value) headers["X-API-Key"] = apiKeyInput.value;
+
+        const started = performance.now();
+        try {
+          const res = await fetch("/answer", {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ text: query, top_k: 5 }),
+          });
+          const elapsed = Math.round(performance.now() - started);
+          if (!res.ok) {
+            const detail = await res.text();
+            throw new Error(`${res.status} ${res.statusText} — ${detail}`);
+          }
+          const data = await res.json();
+          render(data, elapsed);
+          statusEl.textContent = "";
+        } catch (err) {
+          statusEl.textContent = String(err.message || err);
+          statusEl.classList.add("err");
+        } finally {
+          askBtn.disabled = false;
+        }
+      });
+
+      // All rendering goes through DOM construction (no innerHTML) so any
+      // server-supplied string is treated as text, not markup. Prevents XSS
+      // even if a chunk's text or chunk_id ever contains HTML / JS.
+      function render(answer, elapsedMs) {
+        answerEl.textContent = answer.text || "(empty answer)";
+
+        clear(citationsEl);
+        if (answer.citations && answer.citations.length > 0) {
+          for (const c of answer.citations) {
+            const div = document.createElement("div");
+            div.className = "chunk";
+            const meta = document.createElement("span");
+            meta.className = "chunk-meta";
+            const code = document.createElement("code");
+            code.textContent = c.chunk_id || "";
+            meta.append(code, document.createTextNode(` — paper ${c.paper_id || ""}`));
+            const pages = (c.page_numbers || []).join(", ");
+            if (pages) meta.append(document.createTextNode(` · p${pages}`));
+            div.append(meta);
+            citationsEl.append(div);
+          }
+          citationsWrap.hidden = false;
+        } else {
+          citationsWrap.hidden = true;
+        }
+
+        clear(chunksEl);
+        if (answer.retrieved && answer.retrieved.length > 0) {
+          for (const r of answer.retrieved) {
+            chunksEl.append(renderChunk(r));
+          }
+          chunksWrap.hidden = false;
+        } else {
+          chunksWrap.hidden = true;
+        }
+
+        const tokens = `${answer.tokens_in || 0} in / ${answer.tokens_out || 0} out`;
+        metaEl.textContent =
+          `${answer.model || ""} · ${tokens} · ${elapsedMs} ms (client) · ` +
+          `server ${answer.latency_ms || 0} ms`;
+        resultEl.hidden = false;
+      }
+
+      function renderChunk(r) {
+        const div = document.createElement("div");
+        div.className = "chunk";
+        const meta = document.createElement("div");
+        meta.className = "chunk-meta";
+        const badge = document.createElement("span");
+        badge.className =
+          "badge " + (r.source === "visual" ? "badge-visual" : "badge-pipeline");
+        badge.textContent = r.source || "";
+        const code = document.createElement("code");
+        code.textContent = r.chunk_id || "";
+        meta.append(badge, code);
+        const pages = (r.page_numbers || []).join(", ");
+        if (pages) meta.append(document.createTextNode(` · p${pages}`));
+        const score = typeof r.score === "number" ? r.score : 0;
+        meta.append(document.createTextNode(` · score ${score.toFixed(3)}`));
+        const pre = document.createElement("pre");
+        const text = String(r.text || "");
+        pre.textContent =
+          text.length > 400 ? text.slice(0, 400) + "..." : text;
+        div.append(meta, pre);
+        return div;
+      }
+
+      function clear(node) {
+        while (node.firstChild) node.removeChild(node.firstChild);
+      }
+
+      // Submit on Cmd/Ctrl+Enter.
+      queryInput.addEventListener("keydown", (e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key === "Enter") askBtn.click();
+      });
+    </script>
+  </body>
+</html>

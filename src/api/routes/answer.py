@@ -15,10 +15,10 @@ from src.types import Answer, Query
 router = APIRouter()
 
 
-# Phase 2.2 — slowapi keys by `request.client.host`, so the `request: Request`
-# parameter is mandatory for the decorator to extract the IP. 10/minute is a
-# loose ceiling for a portfolio-demo backend; tune up or down as the demo
-# matures. Tests reset the limiter between cases so the limit doesn't leak.
+# slowapi keys by `request.client.host`, so the `request: Request` parameter
+# is mandatory for the decorator to extract the IP. 10/minute is a loose
+# ceiling sized for a low-traffic demo. Tests reset the limiter between cases
+# so the limit doesn't leak.
 @router.post("/answer", response_model=Answer)
 @limiter.limit("10/minute")
 async def answer(
@@ -43,4 +43,9 @@ async def answer(
         span.set_attribute("rag.citations.count", len(result.citations))
 
     trace_query(tracer, query=payload, retrieved=retrieved, answer=result)
-    return result
+    # The Generator doesn't know about the retrieval results it was handed
+    # (it only consumes them to build context). The bundled web UI wants to
+    # show "what the LLM saw" — the route layer attaches the list here so
+    # downstream eval / unit-test paths that construct Answer directly stay
+    # backwards-compatible (default `[]`).
+    return result.model_copy(update={"retrieved": retrieved})

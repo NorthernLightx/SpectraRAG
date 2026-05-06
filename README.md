@@ -112,7 +112,10 @@ Then start the API:
 uv run uvicorn src.api.main:app --reload --port 8000
 ```
 
-Verify:
+Verify in a browser at <http://localhost:8000/> — the bundled UI (`web/index.html`
+mounted as static files) lets you paste a question and see the answer + citations
++ retrieved chunks (with `pipeline` vs `visual` source badges). The same container
+also serves the API:
 
 ```bash
 curl http://localhost:8000/health
@@ -123,7 +126,7 @@ curl -X POST http://localhost:8000/answer \
 
 `/answer` returns 503 until both the OpenRouter key is set AND `bootstrap_corpus.py`
 has populated Qdrant — those are the two prerequisites the lifespan handler
-checks at startup.
+checks at startup. OpenAPI / Swagger UI lives at `/docs`.
 
 ---
 
@@ -161,6 +164,8 @@ Top-level packages:
 - `src/api/` — FastAPI app: `/health`, `/query` (hybrid retrieval), `/answer`
   (retrieve + generate, X-API-Key gated, rate-limited at 10/min, OTel + Langfuse
   traced). Generator + retriever auto-wire from settings via the lifespan handler.
+- `web/` — single-file static frontend (`index.html`, vanilla HTML/JS, no build
+  step). FastAPI mounts it at `/` so the same container serves both UI and API.
 - `src/ingestion/`, `src/rag/`, `src/prompts/`, `src/eval/`, `src/guardrails/`,
   `src/observability/` — built out across phases 1-3.
 
