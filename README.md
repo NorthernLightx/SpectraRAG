@@ -100,7 +100,8 @@ docker compose up -d qdrant postgres langfuse ollama
 docker exec rag-ollama ollama pull bge-m3   # one-off
 ```
 
-Ingest a corpus (idempotent — skips when the collection is already populated):
+Ingest the demo corpus — 20 arXiv ML papers in `data/papers/` (idempotent;
+skips when the collection is already populated):
 
 ```bash
 uv run python -m scripts.bootstrap_corpus --pdf-dir data/papers
@@ -150,6 +151,73 @@ curl -X POST http://localhost:8000/answer \
 `/answer` returns 503 until both the OpenRouter key is set AND `bootstrap_corpus.py`
 has populated Qdrant — those are the two prerequisites the lifespan handler
 checks at startup. OpenAPI / Swagger UI lives at `/docs`.
+
+---
+
+## Bring your own PDFs (local)
+
+The hosted demo (when live) runs against the same curated 20-paper corpus
+that's baked into the Docker image. To run the same pipeline against your
+own documents, point `bootstrap_corpus.py` at any directory of `.pdf` files
+and tell the API to read from a different collection:
+
+```bash
+mkdir -p mydocs                  # drop your .pdf files here
+uv run python -m scripts.bootstrap_corpus \
+    --pdf-dir ./mydocs \
+    --collection my_corpus
+```
+
+Then in `.env`:
+
+```
+RAG_CORPUS_COLLECTION=my_corpus
+```
+
+Restart `uvicorn` and your PDFs are queryable via `/query`, `/answer`, and
+the bundled UI. The whole eval harness (`scripts/run_eval.py`,
+`scripts/check_regression.py`) also works against any collection — write a
+golden YAML at `data/golden/<name>.yaml` and pass `--golden …`.
+
+For the visual retrieval leg (ColQwen2 + page-image generation), render the
+pages once and flip the multi-modal flag:
+
+```bash
+uv run python -m scripts.render_pages --pdf-dir ./mydocs --out-dir data/pages
+```
+
+```
+RAG_ENABLE_MULTIMODAL=true
+RAG_PAGES_DIR=data/pages
+```
+
+The visual leg needs a CUDA GPU (~7 GB VRAM for `vidore/colqwen2-v1.0`).
+Without one, leave `RAG_ENABLE_MULTIMODAL=false` (the default) — the text
+retriever still works; you lose the visual lift on figure/table-heavy
+queries documented in *Eval Results* below.
+
+---
+
+## Common issues
+
+The top setup gotchas, observed across ColPali / Ollama / Qdrant issue
+trackers:
+
+- **`PDFInfoNotInstalledError: poppler not installed`** — `pdf2image`
+  shells out to poppler. Linux: `apt install poppler-utils`. macOS:
+  `brew install poppler`. Windows: download from
+  [oschwartz10612/poppler-windows](https://github.com/oschwartz10612/poppler-windows)
+  and add the `bin/` dir to `PATH`.
+- **`model 'bge-m3' not found, try pulling it first`** — Ollama hasn't
+  pulled the embedding model. `docker exec rag-ollama ollama pull bge-m3`
+  (or `ollama pull bge-m3` if Ollama is outside compose).
+- **`Wrong input: Vector dimension error: expected 1024, got 768`** — the
+  Qdrant collection was created with a different embedder. Drop + re-ingest:
+  `bootstrap_corpus.py --pdf-dir … --force`.
+- **`torch.cuda.OutOfMemoryError` from ColQwen2** — the visual leg is
+  multi-vector and memory-heavy. Disable with `RAG_ENABLE_MULTIMODAL=false`,
+  or run on a GPU with ≥12 GB VRAM. CPU fallback works but is too slow for
+  interactive use.
 
 ---
 
