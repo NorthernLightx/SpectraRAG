@@ -74,10 +74,12 @@ jobs:
   publish:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
-    # First-run budget: 5 min PDF fetch + 3 min render + 1 min Ollama start +
-    # 5 min embedding + 20 min docker build (cold cache) + 3 min push.
-    # Warm cache cuts this in half.
-    timeout-minutes: 60
+    # Worst-case budget (cold bake cache + cold docker cache): ~30 min PDF
+    # fetch + render + Ollama embed loop on CPU + ~20 min docker build cold +
+    # ~3 min push. The bake-artifacts cache keyed on (manifest + ingestion +
+    # embeddings hash) collapses most subsequent runs to ~25 min — only
+    # changes to those paths trigger a re-bake.
+    timeout-minutes: 120
 
     steps:
       - uses: actions/checkout@v4
@@ -103,29 +105,44 @@ jobs:
         with:
           version: "0.5.4"
 
-      - name: Install dependencies
-        run: uv sync --frozen --no-dev
-
-      # arXiv PDFs are immutable per versioned ID — cache keyed on the manifest
-      # hash means we only fetch when the curated set changes.
-      - name: Cache curated PDFs
+      # Unified cache for the whole bake output. Key includes the manifest
+      # (which papers we fetch), ingestion pipeline + embeddings code (how
+      # we chunk + embed), and pyproject.toml (deps could change behaviour).
+      # Cache hit means we restore data/curated_demo + data/pages +
+      # qdrant_local from a prior run and skip every step that produces them.
+      - name: Cache bake artefacts
+        id: bake-cache
         uses: actions/cache@v4
         with:
-          path: data/curated_demo
-          key: pdfs-${{ hashFiles('data/curated_demo/papers.txt') }}
+          path: |
+            data/curated_demo
+            data/pages
+            qdrant_local
+          key: bake-v1-${{ hashFiles('data/curated_demo/papers.txt', 'src/ingestion/**/*.py', 'src/embeddings/**/*.py', 'pyproject.toml') }}
+
+      - name: Install dependencies
+        if: steps.bake-cache.outputs.cache-hit != 'true'
+        run: uv sync --frozen --no-dev
 
       - name: Fetch curated PDFs (skips IDs already restored from cache)
+        if: steps.bake-cache.outputs.cache-hit != 'true'
         run: uv run python -m scripts.fetch_papers --manifest data/curated_demo/papers.txt --out-dir data/curated_demo
 
       - name: Render page PNGs
+        if: steps.bake-cache.outputs.cache-hit != 'true'
         run: uv run python -m scripts.render_pages --pdf-dir data/curated_demo --out-dir data/pages
 
       # Ollama runs in a sidecar container so the embedding service is
       # reachable at localhost:11434 — same URL as a developer's local
-      # `docker compose up ollama`. bge-m3 is ~1.2 GB; not worth caching.
+      # `docker compose up ollama`. OLLAMA_NUM_PARALLEL=4 lets it load four
+      # bge-m3 contexts; combined with OMP_NUM_THREADS we get useful CPU
+      # parallelism for the ~600-chunk embed loop.
       - name: Start Ollama and pull bge-m3
+        if: steps.bake-cache.outputs.cache-hit != 'true'
         run: |
-          docker run -d --name ollama -p 11434:11434 ollama/ollama
+          docker run -d --name ollama -p 11434:11434 \
+            -e OLLAMA_NUM_PARALLEL=4 -e OLLAMA_MAX_LOADED_MODELS=1 \
+            ollama/ollama
           for i in $(seq 1 30); do
             sleep 1
             curl -sf http://localhost:11434/api/version && break
@@ -133,6 +150,7 @@ jobs:
           docker exec ollama ollama pull bge-m3
 
       - name: Bake Qdrant snapshot
+        if: steps.bake-cache.outputs.cache-hit != 'true'
         run: |
           uv run python -m scripts.bootstrap_corpus \
             --pdf-dir data/curated_demo \
@@ -141,7 +159,7 @@ jobs:
             --collection rag_corpus
 
       - name: Stop Ollama
-        if: always()
+        if: always() && steps.bake-cache.outputs.cache-hit != 'true'
         run: docker rm -f ollama || true
 
       - name: Set up Buildx
