@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from src.rag.vectorstore import QdrantVectorStore, VectorMatch
@@ -46,3 +48,26 @@ async def test_upsert_mismatched_lengths_raises(store: QdrantVectorStore) -> Non
 async def test_search_empty_collection_returns_empty(store: QdrantVectorStore) -> None:
     await store.ensure_collection()
     assert await store.search([0.0, 0.0, 0.0, 0.0], top_k=5) == []
+
+
+async def test_path_mode_persists_across_clients(tmp_path: Path) -> None:
+    """`url='path:<dir>'` writes a sqlite-backed local store. The deploy bakes
+    a snapshot into the Docker image with this mode so there's no external
+    Qdrant service. Verifies a chunk written by one client is readable by a
+    second client opened against the same path."""
+    url = f"path:{tmp_path / 'q'}"
+    store = QdrantVectorStore(url=url, collection_name="round", dim=4)
+    await store.ensure_collection()
+    chunks = [Chunk(chunk_id="paper::p1::c0", paper_id="paper", page_numbers=[1], text="hi")]
+    await store.upsert_chunks(chunks, [[0.1, 0.2, 0.3, 0.4]])
+    assert await store.count() == 1
+    # Release the file lock before reopening — qdrant-client local mode uses
+    # portalocker to enforce single-writer; the deploy never opens twice but
+    # this test does.
+    await store._client.close()
+
+    reopened = QdrantVectorStore(url=url, collection_name="round", dim=4)
+    assert await reopened.count() == 1
+    scrolled = await reopened.scroll_chunks()
+    assert [c.chunk_id for c in scrolled] == ["paper::p1::c0"]
+    await reopened._client.close()

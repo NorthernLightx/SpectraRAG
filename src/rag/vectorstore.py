@@ -83,8 +83,19 @@ class QdrantVectorStore:
         self._collection = collection_name
         self._dim = dim
         self._distance = distance
+        # Three url forms:
+        #   `:memory:`      — in-process, ephemeral. Tests + dev.
+        #   `path:/some/dir` — in-process, persistent file store. The deploy
+        #                      uses this with a snapshot baked into the
+        #                      Docker image so there's no external Qdrant
+        #                      service. qdrant-client's local mode supports
+        #                      the same hybrid query surface as the remote
+        #                      mode (sqlite-backed, sub-ms latency).
+        #   anything else   — treated as a remote http(s) URL.
         if url == ":memory:":
             self._client = AsyncQdrantClient(":memory:")
+        elif url.startswith("path:"):
+            self._client = AsyncQdrantClient(path=url.removeprefix("path:"))
         else:
             self._client = AsyncQdrantClient(url=url)
 

@@ -119,7 +119,26 @@ your browser to OpenRouter. When `RAG_PAGES_DIR` points to a populated
 directory (run `python -m scripts.render_pages --pdf-dir data/papers` once
 to fill it), the UI also attaches page PNGs as image content blocks so
 vision-capable models (gpt-4o, claude-sonnet-4.x, qwen3-vl) read pixels
-directly. The same container also serves the API:
+directly.
+
+For a fully self-contained Docker image (no external Qdrant required at
+runtime), build the local Qdrant snapshot before `docker build`:
+
+```bash
+uv run python -m scripts.bootstrap_corpus \
+    --pdf-dir data/papers \
+    --qdrant path:./qdrant_local \
+    --ollama http://localhost:11434 \
+    --collection rag_corpus
+uv run python -m scripts.render_pages --pdf-dir data/papers --out-dir data/pages
+docker build -t multi-modal-rag .
+```
+
+The Dockerfile bakes both `qdrant_local/` (vector index) and `data/pages/`
+(rendered page PNGs) into the image, sets `RAG_QDRANT_URL=path:/home/app/qdrant_local`,
+and serves everything from a single container — no external services.
+
+The same container also serves the API:
 
 ```bash
 curl http://localhost:8000/health

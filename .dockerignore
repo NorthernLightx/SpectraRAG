@@ -8,9 +8,12 @@ __pycache__
 .pytest_cache
 .mypy_cache
 .ruff_cache
-# `data/` is gitignored except `data/pages/` which we DO want baked into the
-# image so the deployed UI can serve page PNGs to OpenRouter as image content
-# blocks. Render via `python -m scripts.render_pages` before `docker build`.
+# `data/` is gitignored except `data/pages/` (page PNGs we serve via
+# StaticFiles) and `qdrant_local/` (baked vector index). Both flow into
+# the image so the deploy needs no external Qdrant or pages service.
+# Render via `python -m scripts.render_pages` and ingest via
+# `python -m scripts.bootstrap_corpus --qdrant path:./qdrant_local` before
+# `docker build`.
 data/eval
 data/golden
 data/papers

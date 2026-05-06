@@ -47,7 +47,21 @@ COPY --chown=app:app web /home/app/web
 # text-only retrieval).
 COPY --chown=app:app data/pages /home/app/data/pages
 
-ENV RAG_PAGES_DIR=/home/app/data/pages
+# Baked-in Qdrant snapshot. `qdrant-client` runs in embedded mode against
+# this directory (`url='path:/home/app/qdrant_local'`), so the deploy needs
+# no external Qdrant — the entire vector index ships inside the image.
+# Build it before `docker build`:
+#   uv run python -m scripts.bootstrap_corpus \
+#       --pdf-dir data/papers \
+#       --qdrant path:./qdrant_local \
+#       --ollama http://localhost:11434
+# When the directory is empty (only .gitkeep), the lifespan handler logs
+# `skip_empty_corpus` and /answer returns 503 — same fallback as a missing
+# pages_dir. Re-baking is idempotent in the source script.
+COPY --chown=app:app qdrant_local /home/app/qdrant_local
+
+ENV RAG_PAGES_DIR=/home/app/data/pages \
+    RAG_QDRANT_URL=path:/home/app/qdrant_local
 
 ENV PATH="/home/app/.venv/bin:$PATH" \
     PYTHONUNBUFFERED=1 \
