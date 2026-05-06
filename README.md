@@ -179,16 +179,45 @@ showed only +1.9 % on figure subsets while MMLongBench shows +15.3 %
 on the same category. ADR 0007 + `docs/decisions/0008` explain the
 mechanism; the `mmlb_*` numbers below are the empirical case.
 
-**One honest gap to call out.** Even when the visual leg surfaces the
-right page, the current generator is text-only and answers
-*"Not stated in the provided context."* on `mmlb_0008` and friends —
-it has no way to read the page image. So the visual win shows up
-cleanly in retrieval metrics but not in generation metrics. Wiring a
-vision-capable generator (Sonnet 4.6 vision, Qwen3-VL) into the
-hybrid path is a Phase 3.2.x candidate (the spike-stage script
-`scripts/spike_vision_generator.py` and follow-up experiment
-`scripts/experiment_vision_vs_text.py` cover the feasibility +
-golden-v3 null result; MMLongBench changes the calculus).
+**The generation gap (closed).** When the visual leg surfaces the
+right page, a text-only generator still cannot read the page image —
+it answers *"Not stated in the provided context."* on `mmlb_0008` and
+friends. We measured this directly:
+[`scripts/experiment_mmlb_gen.py`](./scripts/experiment_mmlb_gen.py) runs the
+same 106 in-corpus MMLongBench queries through `gpt-4o-mini` (text-only)
+vs `qwen/qwen3-vl-32b-instruct` (vision) with **identical context** —
+gold-evidence page text fed to both, plus the rendered page PNGs as
+additional content blocks for the vision model.
+
+| Aggregate (n=106) | text `gpt-4o-mini` | vision `qwen3-vl-32b` | Δ rel |
+|---|---|---|---|
+| **gold-answer match** | 0.330 | **0.623** | **+89 %** |
+| answer_relevance | 0.612 | 0.906 | +48 % |
+| faithfulness | 0.597 | 0.609 | +2 % (judge-bug bound) |
+
+Per-category, vision lift scales with how visual the category is — the
+right shape, not a uniform-everywhere preference:
+
+| category | n | text gold-match | vision gold-match | Δ abs |
+|---|---|---|---|---|
+| factual | 8 | 0.75 | 0.88 | +0.12 |
+| **figure** | **75** | **0.27** | **0.61** | **+0.35** |
+| table | 23 | 0.39 | 0.57 | +0.17 |
+
+**Why faithfulness stays flat.** The judge prompt sees only the text
+context. When vision answers *"the line is red"* (correct, gold-matched)
+and "red" isn't in the page text, the judge flags the claim unsupported.
+Programmatic gold-answer match bypasses this judge bias and is the
+channel to trust — it's a deterministic substring check against
+MMLongBench's expert-annotated gold answers.
+
+Run JSON: `data/eval/runs/exp_mmlb_gen_full.json`. Smoke-test design
+(7 visual-only queries first, full 106 only after the smoke confirmed
+the effect): `data/eval/runs/exp_mmlb_gen_smoke.json`. The smoke pre-
+registered the prediction that vision would win on the seven queries
+where the answer literally lives in pixels (chart colour, screenshot
+content, image identification) — 5/7 vision wins, 0/7 text wins,
+2/7 ties.
 
 ---
 
