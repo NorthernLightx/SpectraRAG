@@ -40,7 +40,10 @@ concurrency:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # Cold-cache builds run ~15-20 min because the runtime image bundles
+    # torch + colpali-engine wheels for the optional visual-retrieval path.
+    # Warm cache (cache-from/cache-to via gha) finishes in ~3 min.
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v4
@@ -71,7 +74,10 @@ jobs:
   publish:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # First-run budget: 5 min PDF fetch + 3 min render + 1 min Ollama start +
+    # 5 min embedding + 20 min docker build (cold cache) + 3 min push.
+    # Warm cache cuts this in half.
+    timeout-minutes: 60
 
     steps:
       - uses: actions/checkout@v4
