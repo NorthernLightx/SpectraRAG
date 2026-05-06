@@ -1,4 +1,4 @@
-"""End-to-end smoke for Phase 1.2/1.3: ingest a real PDF, query it, optionally answer.
+"""End-to-end smoke for the text-only retrieval path: ingest a real PDF, query it, optionally answer.
 
 Run: `uv run python -m scripts.smoke_phase1 --pdf data/papers/<file>.pdf "your query"`
 
@@ -74,7 +74,7 @@ async def main(
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="End-to-end smoke for Phase 1 retrieval.")
+    parser = argparse.ArgumentParser(description="End-to-end smoke for the text-only retrieval path.")
     parser.add_argument("--pdf", type=Path, required=True, help="Path to a PDF to ingest.")
     parser.add_argument("query", nargs="?", default="What does this paper introduce?")
     parser.add_argument(

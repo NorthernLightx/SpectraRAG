@@ -71,17 +71,17 @@ flowchart LR
 
 ## Status
 
-| Phase | Scope | Status |
-|-------|-------|--------|
-| 1 — Text-only baseline | BM25 + dense + RRF + BGE rerank, generator, RAGAS-style judge | ✅ closed (`baseline.json` = `7b5242df5b38`) |
-| 2.0 — Figure + table extraction | PyMuPDF figures + tables → chunks | ✅ accepted, opt-in via `--extract-figures --extract-tables` |
-| 2.1 — VLM captioning | Vision-LM captions for figures (recommended `minicpm-v:8b`) | ✅ accepted, opt-in via `--vlm-caption-model` |
-| 2.2 — Query expansion | LLM rewrite / HyDE / combo with RRF fusion | ❌ rejected default-off; per-query wins kept in tree |
-| 3 — Visual retrieval | ColQwen2 multi-vector + late-interaction MaxSim | ✅ accepted as complementary path (`scripts/eval_visual.py`) |
-| 3.1 — Hybrid text + visual fusion | Offline RRF over text+visual at page granularity, golden v3 | ✅ closed; rejected as default — figure/table subset shows +1.9% nDCG@5, motivating routing |
-| 3.2 — Per-query routing | Route by query category (text-only vs hybrid) per ADR 0008 | ✅ closed (run `6447247ef8e7` — hybrid-routed figure+table queries 0.876 nDCG@5 vs 0.732 on text-routed factual/equation; routing dispatches correctly per category) |
-| 3.3 — Multi-modal in `/answer` + regression gate | Visual leg + LLM classifier wired into the lifespan handler behind `RAG_ENABLE_MULTIMODAL`; MMLongBench retrieval baseline committed | ✅ closed (`baseline-mmlongbench.json` = `cc45831697b6`, recall@10 0.7469 over 107 scoreable queries; gate fails when text-only is the candidate at -9.18%) |
-| 4 — Production polish | Terraform / Azure Container Apps / OTel / Sentry | 🟡 scaffold landed; first apply pending |
+| Capability | Scope | Status |
+|---|---|---|
+| Text retrieval baseline | BM25 + dense + RRF + BGE rerank, generator, RAGAS-style judge | ✅ shipped (`baseline.json` = `7b5242df5b38`) |
+| Figure + table extraction | PyMuPDF figures + tables → chunks | ✅ accepted, opt-in via `--extract-figures --extract-tables` |
+| VLM captioning | Vision-LM captions for figures (recommended `minicpm-v:8b`) | ✅ accepted, opt-in via `--vlm-caption-model` |
+| Query expansion | LLM rewrite / HyDE / combo with RRF fusion | ❌ rejected default-off; per-query wins kept in tree |
+| Visual retrieval | ColQwen2 multi-vector + late-interaction MaxSim | ✅ accepted as complementary path (`scripts/eval_visual.py`) |
+| Hybrid text + visual fusion | Offline RRF over text+visual at page granularity, golden v3 | ✅ measured; rejected as default — figure/table subset shows +1.9% nDCG@5, motivating routing |
+| Per-query routing | Route by query category (text-only vs hybrid) per ADR 0008 | ✅ shipped (run `6447247ef8e7` — hybrid-routed figure+table queries 0.876 nDCG@5 vs 0.732 on text-routed factual/equation; routing dispatches correctly per category) |
+| Multi-modal in `/answer` + regression gate | Visual leg + LLM classifier wired into the lifespan handler behind `RAG_ENABLE_MULTIMODAL`; MMLongBench retrieval baseline committed | ✅ shipped (`baseline-mmlongbench.json` = `cc45831697b6`, recall@10 0.7469 over 107 scoreable queries; gate fails when text-only is the candidate at -9.18%) |
+| Production polish | Terraform / Azure Container Apps / OTel / Sentry | 🟡 scaffold landed; first apply pending |
 
 ADRs cover every non-obvious decision in [`docs/decisions/`](./docs/decisions/).
 
@@ -190,7 +190,7 @@ Top-level packages:
 - `web/` — single-file static frontend (`index.html`, vanilla HTML/JS, no build
   step). FastAPI mounts it at `/` so the same container serves both UI and API.
 - `src/ingestion/`, `src/rag/`, `src/prompts/`, `src/eval/`, `src/guardrails/`,
-  `src/observability/` — built out across phases 1-3.
+  `src/observability/` — heavier modules; design history in ADRs.
 
 ---
 
@@ -222,7 +222,7 @@ encode information as pixels — chart colours, layout geometry,
 screenshot content, image-only diagrams. It helps less when figures
 encode information as a text layer the PDF parser can extract — most
 modern arXiv preprints serialise even figure-internal labels and
-captions as selectable text, which is why golden v3's Phase 3.2 router
+captions as selectable text, which is why golden v3's per-query router
 showed only +1.9 % on figure subsets while MMLongBench shows +15.3 %
 on the same category. ADR 0007 + `docs/decisions/0008` explain the
 mechanism; the `mmlb_*` numbers below are the empirical case.
@@ -321,7 +321,7 @@ generate + judge.
 CI regression gate fails the build if any metric drops by > 5%
 (`scripts/check_regression.py`).
 
-Phase 3.1 follow-up — golden v3 (39 queries, 20 papers, retrieval-only):
+Corpus-expansion follow-up — golden v3 (39 queries, 20 papers, retrieval-only):
 
 | Stack | nDCG@5 | recall@10 | MRR |
 |---|---|---|---|
@@ -329,13 +329,13 @@ Phase 3.1 follow-up — golden v3 (39 queries, 20 papers, retrieval-only):
 | visual (ColQwen2-v1.0 only) | 0.6780 | 0.9677 | 0.6637 |
 | hybrid (RRF text + visual at page level) | 0.8226 | 1.0000 | 0.7826 |
 
-The split that motivates Phase 3.2 routing: on the 14 figure/table-targeted
+The split that motivates per-query routing: on the 14 figure/table-targeted
 queries (q24–q39 in-corpus), hybrid edges text @ page (+1.9% nDCG@5);
 on the 17 definitional v2 queries, hybrid loses (−10.6%).
 Full analysis in
 [`docs/decisions/0007-phase31-corpus-expansion-and-hybrid-fusion.md`](./docs/decisions/0007-phase31-corpus-expansion-and-hybrid-fusion.md).
 
-Phase 3.2 router — golden v3, retrieval-only with `--rerank --router`
+Per-query router — golden v3, retrieval-only with `--rerank --router`
 (run `6447247ef8e7`, ADR 0008):
 
 | Routed category | n | mean nDCG@5 | path |
@@ -402,10 +402,10 @@ regex classifier looks for. Table queries hit 0 hybrid dispatches —
 that's why the table-per-category metrics are identical across the
 two runs. **Oracle dispatch** (route from evidence_sources rather
 than query text) would have lifted hybrid coverage from ~17 % to
-~66 % — likely a much bigger Δ than what we observe. Phase 3.2.1
-candidate: classifier upgrade to LLM zero-shot or embedding-similarity
-for corpora where queries don't carry their own modality cue.
-See [`docs/decisions/0008-phase32-routing.md`](./docs/decisions/0008-phase32-routing.md).
+~66 % — likely a much bigger Δ than what we observe. This motivated
+the LLM zero-shot classifier upgrade documented above ("The dispatch
+gap (closed)"); see also
+[`docs/decisions/0008-phase32-routing.md`](./docs/decisions/0008-phase32-routing.md).
 
 ### Multi-modal regression gate
 

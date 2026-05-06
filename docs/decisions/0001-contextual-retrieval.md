@@ -318,6 +318,3 @@ Accepted or Rejected based on the rule above.
 
 - Anthropic, *Introducing Contextual Retrieval*, Sept 2024.
   <https://www.anthropic.com/news/contextual-retrieval>
-- PROJECT.md §3 (Architectural rules — Protocols only at real seams).
-  Contextual retrieval does **not** introduce a new protocol; it reuses
-  `LLMClient`. The `Ingester` protocol is still not justified.

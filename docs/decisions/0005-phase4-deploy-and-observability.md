@@ -8,14 +8,14 @@ deployed instance. Until then this is a green-on-CI scaffold.
 
 ## Context
 
-PROJECT.md §5 calls for: Terraform → Azure Container Apps deploy, GitHub
-Actions full CI/CD, OpenTelemetry SDK with auto-instrumentation, OTLP
-exporter, span hierarchy on `/answer`, OTel metrics for tokens / latency /
-errors, Sentry, W3C `traceparent` propagation, field-name-aware PII
-redaction, and a rotating-file handler decision. Phase 3 closed 2026-05-01
-(see ADR 0004). This ADR covers the scaffold subset the user requested:
-**deploy infra + OTel SDK + Sentry**. PII redaction, caching, demo, and a
-full `timed_event` → span migration are explicitly deferred.
+Phase 4 is the production-polish surface: Terraform → Azure Container Apps
+deploy, GitHub Actions full CI/CD, OpenTelemetry SDK with auto-instrumentation,
+OTLP exporter, span hierarchy on `/answer`, OTel metrics for tokens / latency /
+errors, Sentry, W3C `traceparent` propagation, field-name-aware PII redaction,
+and a rotating-file handler decision. Phase 3 closed 2026-05-01 (see ADR 0004).
+This ADR covers the scaffold subset: **deploy infra + OTel SDK + Sentry**.
+PII redaction, caching, demo, and a full `timed_event` → span migration are
+explicitly deferred.
 
 ## Decisions
 
@@ -35,12 +35,12 @@ Analytics ingestion picks it up. No rotating file handler in the container.
 to it). 12-factor; deferred to Phase 4.x if a separate handler is needed.
 
 ### 3. OTel and structlog coexist; no `timed_event` removal
-PROJECT.md §5 says spans "replace flat `*.done` events." In practice they
-serve different consumers (grep/jq vs. trace UI) and removing the log
-records would break the existing `logs/*.log` analysis workflow used for
-local debugging. Spans are added at the seams (`/answer`, retrieve, generate)
-as a working demonstration; the structlog records stay. Future migration
-is a separate ADR.
+The original Phase 4 plan called for spans to "replace flat `*.done` events."
+In practice they serve different consumers (grep/jq vs. trace UI) and
+removing the log records would break the existing `logs/*.log` analysis
+workflow used for local debugging. Spans are added at the seams (`/answer`,
+retrieve, generate) as a working demonstration; the structlog records stay.
+Migration is a separate ADR if and when it happens.
 
 ### 4. X-Request-ID stays; W3C traceparent is added alongside it
 The Phase 1.3 `request_context_middleware` is left untouched. OTel's
@@ -80,7 +80,6 @@ ship in their own commits.
 
 ## References
 
-- `PROJECT.md` §5.
 - `src/observability/langfuse.py` — pattern reference for no-op SDKs.
 - `src/observability/logging.py` — `truncate_long_strings()` placeholder.
 - ADR 0004 — Phase 3 (closed prerequisite).

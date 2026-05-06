@@ -8,13 +8,13 @@ Versioned YAML in [`data/golden/`](../data/golden/). One file per version.
 
 | Version | Queries | Papers | Note |
 |---|---|---|---|
-| v1 | 5 | 1 | Phase 1 baseline (`baseline.json` references it) |
-| v2 | 23 | 5 | Phase 1 corpus expansion |
-| v3 | 39 | 20 | Phase 3.1 — adds 16 figure/table queries |
+| v1 | 5 | 1 | smoke set; `baseline.json` references it |
+| v2 | 23 | 5 | first multi-paper expansion; production baseline |
+| v3 | 39 | 20 | 20-paper expansion adding 16 figure/table queries for routing analysis |
 
 Schema is `GoldenQuery` in [`src/types/eval.py`](../src/types/eval.py).
 Categories `factual`, `multi_hop`, `figure`, `table`, `equation`,
-`out_of_corpus` — same labels the Phase 3.2 router emits, so per-subset
+`out_of_corpus` — same labels the per-query router emits, so per-subset
 analysis cross-references cleanly.
 
 ## Metrics
@@ -47,7 +47,7 @@ Smoke (~3¢ on `gpt-4o-mini`, ~1 min):
     --rerank
 ```
 
-Full v3 with the Phase 3.2 router (retrieval-only, ~45 min on RTX 3070):
+Full v3 with the per-query router (retrieval-only, ~45 min on a single GPU):
 
 ```bash
 .venv/Scripts/python.exe -m scripts.eval_run \

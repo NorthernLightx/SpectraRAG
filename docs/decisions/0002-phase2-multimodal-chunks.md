@@ -9,9 +9,10 @@ context-precision regression.
 
 ## Context
 
-Phase 2 per `PROJECT.md §5` calls for figure extraction + VLM captioning,
-table extraction → markdown, and equation handling, with the deliverable
-"pipeline multi-modal vs text-only ablation."
+The next axis after the text-only Phase 1 baseline is multi-modal: figure
+extraction + VLM captioning, table extraction → markdown, and equation
+handling. The deliverable for this phase is a "pipeline multi-modal vs
+text-only ablation."
 
 Phase 2.0 implements the *infrastructure* — figure and table extraction
 from PDFs (PyMuPDF), conversion to first-class `Chunk`s with
@@ -155,7 +156,6 @@ Status `Accepted with caveat (opt-in default-off, recommended VLM
 
 ## References
 
-- PROJECT.md §5 Phase 2 deliverable.
 - `src/ingestion/figures.py`, `src/ingestion/tables.py`,
   `src/ingestion/chunking.py::figure_to_chunk/table_to_chunk`.
 - ADR 0001 (Contextual retrieval — Rejected).

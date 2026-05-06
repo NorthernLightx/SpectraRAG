@@ -10,9 +10,9 @@ future hybrid text+visual fusion (deferred).
 
 ## Context
 
-`PROJECT.md §5` Phase 3 calls for "ColQwen2 visual path … pipeline vs visual
-comparison — the headline result." After Phases 1, 2.0, 2.1, 2.2 the text
-path baseline is `7b5242df5b38` (`data/eval/baseline.json`):
+Phase 3 is the headline visual-retrieval comparison: ColQwen2 visual path
+vs the text pipeline on the same corpus. After Phases 1, 2.0, 2.1, 2.2 the
+text path baseline is `7b5242df5b38` (`data/eval/baseline.json`):
 
 - nDCG@5 0.7214, recall@10 0.9412, MRR 0.7437
 - p50 query latency ~73 s (whole-pipeline including generate + judge)
@@ -137,7 +137,6 @@ fooled it on a corpus where every paper has at least one heatmap.
 
 ## References
 
-- `PROJECT.md §5` Phase 3 deliverable.
 - `src/ingestion/visual.py`, `src/rag/retrievers/visual.py`,
   `scripts/eval_visual.py`, `tests/unit/test_visual_render.py`.
 - ADR 0001 (contextual retrieval — Rejected), ADR 0002 (multi-modal
