@@ -41,8 +41,52 @@ terraform init \
   -backend-config="container_name=tfstate" \
   -backend-config="key=rag.tfstate"
 
-terraform plan -var "prefix=$PREFIX" -var "env=prod"
+terraform plan -var "prefix=$PREFIX" -var "env=prod" -var "image_tag=baked-XXXXXXX"
 ```
+
+`image_tag` has no default and `terraform plan` will fail without it — the
+default `:main` tag would deploy a code-only image (the `qdrant_local/` and
+`data/pages/` bake artefacts are gitignored, so CI can't include them).
+
+## Baking the deploy image
+
+The Container App pulls the public image from
+`ghcr.io/<owner>/<repo>:<tag>`. CI (`.github/workflows/docker.yml`) only
+publishes on version tags (`v*`); the actual demo image is published from
+a developer machine that has the rendered page PNGs and Qdrant snapshot.
+
+Prereqs (one-time):
+
+```bash
+docker compose up -d ollama
+docker exec rag-ollama ollama pull bge-m3
+echo $GITHUB_PAT | docker login ghcr.io -u <gh-user> --password-stdin
+```
+
+Bake + push:
+
+```powershell
+.\scripts\bake_and_push.ps1
+```
+
+The script renders pages, builds the Qdrant snapshot via
+`bootstrap_corpus --qdrant path:./qdrant_local`, runs `docker build` +
+`docker push`, and prints the tag (e.g. `baked-693f6d4`). Pin that tag in
+the next `terraform apply` or in the deploy workflow input.
+
+## First apply
+
+```bash
+terraform apply \
+  -var "prefix=$PREFIX" \
+  -var "env=prod" \
+  -var "image_tag=baked-693f6d4"
+```
+
+Re-baking is idempotent — re-running `bake_and_push.ps1` only rebuilds the
+layers whose source changed, and the qdrant snapshot is skipped when the
+collection is already populated (override with `--force` from the script's
+internals if the corpus content changed).
 
 ## Setting secret values
 
