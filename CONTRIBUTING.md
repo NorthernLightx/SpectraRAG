@@ -52,7 +52,7 @@ Examples from this repo:
 feat(eval): --refusal-score-threshold CLI flag wires gate into eval_run
 fix(ci): drop unused pull-requests:write permission from deploy workflow
 docs(adr): 0006 — OOC refusal gate (accepted opt-in; judge artifact noted)
-chore(terraform): apply fmt + commit provider lock; gitignore .terraform/
+chore(deploy): tighten az containerapp create args; default min-replicas=0
 ```
 
 Keep commits **atomic** — each commit should pass `pytest -m "not integration"`

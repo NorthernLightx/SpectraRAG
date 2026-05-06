@@ -1,45 +1,30 @@
+# Single-shot deploy via `az` CLI. Idempotent — creates the Resource Group
+# + Container Apps Environment + Container App on first run, updates the
+# image on subsequent runs. No state file, no IaC tool: a one-Container-App
+# topology doesn't justify the overhead.
 name: deploy
 
 on:
   workflow_dispatch:
     inputs:
-      env:
-        description: "Deployment environment"
-        required: true
-        default: "prod"
-        type: choice
-        options: ["prod", "staging"]
       image_tag:
-        description: "Image tag (default 'main' = latest CI-baked image; or 'sha-abc1234' to pin)."
+        description: "Image tag (default 'main' = latest CI-baked)"
         required: true
         default: "main"
-
-  pull_request:
-    branches: [main]
-    paths:
-      - "terraform/**"
-      - ".github/workflows/deploy.yml"
 
 permissions:
   contents: read
   id-token: write    # OIDC to Azure
 
 concurrency:
-  group: deploy-${{ github.event.inputs.env || github.ref }}
+  group: deploy
   cancel-in-progress: false
 
 jobs:
-  plan:
+  deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: github.event_name == 'pull_request'
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: "1.9.8"
-
       - name: Azure login (OIDC)
         uses: azure/login@v2
         with:
@@ -47,57 +32,51 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Terraform init
-        working-directory: terraform
+      - name: Provision and deploy
+        env:
+          IMAGE_TAG: ${{ github.event.inputs.image_tag }}
+          REPO: ${{ github.repository }}
         run: |
-          terraform init \
-            -backend-config="resource_group_name=${{ secrets.TF_BACKEND_RG }}" \
-            -backend-config="storage_account_name=${{ secrets.TF_BACKEND_SA }}" \
-            -backend-config="container_name=tfstate" \
-            -backend-config="key=rag.tfstate"
+          set -euo pipefail
 
-      - name: Terraform plan
-        working-directory: terraform
-        run: |
-          terraform plan -no-color \
-            -var "env=prod" \
-            -var "image_tag=${{ github.sha }}"
+          RG=ragdemo-prod-rg
+          APP=ragdemo-prod-api
+          ENV_NAME=ragdemo-prod-env
+          LOC=westeurope
+          # GHCR namespaces are case-insensitive but the canonical form is
+          # lowercase; az pulls fail on mixed-case repository paths.
+          REPO_LOWER=$(echo "$REPO" | tr '[:upper:]' '[:lower:]')
+          IMAGE="ghcr.io/$REPO_LOWER:$IMAGE_TAG"
+          echo "Image: $IMAGE"
 
-  apply:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    if: github.event_name == 'workflow_dispatch'
-    environment: ${{ github.event.inputs.env }}
-    steps:
-      - uses: actions/checkout@v4
+          az group create -n "$RG" -l "$LOC" --output none
 
-      - uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: "1.9.8"
+          az containerapp env show -n "$ENV_NAME" -g "$RG" >/dev/null 2>&1 \
+            || az containerapp env create -n "$ENV_NAME" -g "$RG" -l "$LOC" --output none
 
-      - name: Azure login (OIDC)
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          if az containerapp show -n "$APP" -g "$RG" >/dev/null 2>&1; then
+            echo "Updating existing app to new image"
+            az containerapp update -n "$APP" -g "$RG" --image "$IMAGE" --output none
+          else
+            echo "Creating new app"
+            az containerapp create \
+              -n "$APP" -g "$RG" \
+              --environment "$ENV_NAME" \
+              --image "$IMAGE" \
+              --target-port 8000 \
+              --ingress external \
+              --min-replicas 0 \
+              --max-replicas 2 \
+              --cpu 0.5 \
+              --memory 1.0Gi \
+              --output none
+          fi
 
-      - name: Terraform init
-        working-directory: terraform
-        run: |
-          terraform init \
-            -backend-config="resource_group_name=${{ secrets.TF_BACKEND_RG }}" \
-            -backend-config="storage_account_name=${{ secrets.TF_BACKEND_SA }}" \
-            -backend-config="container_name=tfstate" \
-            -backend-config="key=rag.tfstate"
-
-      - name: Terraform apply
-        working-directory: terraform
-        run: |
-          terraform apply -auto-approve \
-            -var "env=${{ github.event.inputs.env }}" \
-            -var "image_tag=${{ github.event.inputs.image_tag }}"
-
-      - name: Output app FQDN
-        working-directory: terraform
-        run: terraform output container_app_fqdn
+          FQDN=$(az containerapp show -n "$APP" -g "$RG" \
+                 --query properties.configuration.ingress.fqdn -o tsv)
+          echo "::notice::Deployed to https://$FQDN"
+          {
+            echo "## Deployed"
+            echo "- URL: https://$FQDN"
+            echo "- Image: \`$IMAGE\`"
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -7,8 +7,8 @@
 #   then `docker build` + `docker push` to GHCR. ~15-20 min.
 #
 # This replaces the old "bake from your laptop, push from your laptop" flow:
-# the deploy image is now reproducible, no PAT needed locally, and `terraform
-# apply` can pin :sha-<short> straight off CI.
+# the deploy image is now reproducible, no PAT needed locally, and the deploy
+# workflow can pin :sha-<short> straight off CI.
 name: docker
 
 on:
