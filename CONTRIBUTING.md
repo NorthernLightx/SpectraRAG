@@ -11,7 +11,7 @@ Compose, and a CUDA-capable GPU if you want to run the visual or rerank
 stack locally.
 
 ```bash
-git clone https://github.com/NorthernLightx/multi-modal-rag.git
+git clone https://github.com/NorthernLightx/prismrag.git
 cd multi-modal-rag
 uv sync --extra dev
 cp .env.example .env

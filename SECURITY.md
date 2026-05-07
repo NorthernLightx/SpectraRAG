@@ -5,7 +5,7 @@
 If you believe you've found a security issue in this project, **please do
 not open a public issue**. Use GitHub's private vulnerability reporting:
 
-1. Go to the [Security tab](https://github.com/NorthernLightx/multi-modal-rag/security)
+1. Go to the [Security tab](https://github.com/NorthernLightx/prismrag/security)
    of this repository.
 2. Click **Report a vulnerability**.
 3. Describe the issue, including reproduction steps and impact assessment.

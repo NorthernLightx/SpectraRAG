@@ -1,8 +1,8 @@
 # Multi-modal Paper RAG
 
-[![ci](https://github.com/NorthernLightx/multi-modal-rag/actions/workflows/ci.yml/badge.svg)](https://github.com/NorthernLightx/multi-modal-rag/actions/workflows/ci.yml)
-[![docker](https://github.com/NorthernLightx/multi-modal-rag/actions/workflows/docker.yml/badge.svg)](https://github.com/NorthernLightx/multi-modal-rag/actions/workflows/docker.yml)
-[![security](https://github.com/NorthernLightx/multi-modal-rag/actions/workflows/security.yml/badge.svg)](https://github.com/NorthernLightx/multi-modal-rag/actions/workflows/security.yml)
+[![ci](https://github.com/NorthernLightx/prismrag/actions/workflows/ci.yml/badge.svg)](https://github.com/NorthernLightx/prismrag/actions/workflows/ci.yml)
+[![docker](https://github.com/NorthernLightx/prismrag/actions/workflows/docker.yml/badge.svg)](https://github.com/NorthernLightx/prismrag/actions/workflows/docker.yml)
+[![security](https://github.com/NorthernLightx/prismrag/actions/workflows/security.yml/badge.svg)](https://github.com/NorthernLightx/prismrag/actions/workflows/security.yml)
 [![python 3.12](https://img.shields.io/badge/python-3.12-blue)](https://www.python.org/downloads/release/python-3120/)
 [![license: MIT](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
 
@@ -55,7 +55,7 @@ Per-decision detail in [`docs/decisions/`](./docs/decisions/) (8 ADRs).
 ## Quickstart
 
 ```bash
-git clone https://github.com/NorthernLightx/multi-modal-rag
+git clone https://github.com/NorthernLightx/prismrag
 cd multi-modal-rag
 uv sync --extra dev
 cp .env.example .env
