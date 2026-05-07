@@ -1,82 +1,72 @@
-# Single-shot deploy via `az` CLI. Idempotent — creates the Resource Group
-# + Container Apps Environment + Container App on first run, updates the
-# image on subsequent runs. No state file, no IaC tool: a one-Container-App
-# topology doesn't justify the overhead.
+# Deploy to Google Cloud Run via Workload Identity Federation. The Cloud
+# Run service pulls the deploy image from an Artifact Registry remote
+# repository that proxies GHCR (Cloud Run can't pull from GHCR directly).
+#
+# One-time GCP-side setup is documented inline in the README's `Deploy`
+# section: AR remote repo + WIF pool + provider + service account + role
+# bindings.
 name: deploy
 
 on:
   workflow_dispatch:
     inputs:
       image_tag:
-        description: "Image tag (default 'main' = latest CI-baked)"
+        description: "GHCR image tag (default 'main' = latest CI-baked image)"
         required: true
         default: "main"
 
 permissions:
   contents: read
-  id-token: write    # OIDC to Azure
+  id-token: write    # required for WIF OIDC token
 
 concurrency:
   group: deploy
   cancel-in-progress: false
+
+env:
+  GCP_REGION: europe-west1
+  GHCR_REMOTE_REPO: ghcr-remote
+  SERVICE_NAME: multi-modal-rag
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Azure login (OIDC)
-        uses: azure/login@v2
+      - name: Authenticate to GCP (Workload Identity Federation)
+        uses: google-github-actions/auth@v3
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
 
-      - name: Provision and deploy
+      - name: Compute image URI
+        id: image
         env:
           IMAGE_TAG: ${{ github.event.inputs.image_tag }}
           REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-
-          RG=ragdemo-prod-rg
-          APP=ragdemo-prod-api
-          ENV_NAME=ragdemo-prod-env
-          LOC=westeurope
-          # GHCR namespaces are case-insensitive but the canonical form is
-          # lowercase; az pulls fail on mixed-case repository paths.
           REPO_LOWER=$(echo "$REPO" | tr '[:upper:]' '[:lower:]')
-          IMAGE="ghcr.io/$REPO_LOWER:$IMAGE_TAG"
-          echo "Image: $IMAGE"
+          URI="${GCP_REGION}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${GHCR_REMOTE_REPO}/${REPO_LOWER}:${IMAGE_TAG}"
+          echo "uri=$URI" >> "$GITHUB_OUTPUT"
+          echo "Image URI: $URI"
 
-          az group create -n "$RG" -l "$LOC" --output none
+      - name: Deploy to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v3
+        with:
+          service: ${{ env.SERVICE_NAME }}
+          image: ${{ steps.image.outputs.uri }}
+          region: ${{ env.GCP_REGION }}
+          flags: --port=8000 --memory=1Gi --cpu=1 --min-instances=0 --max-instances=2 --allow-unauthenticated
 
-          az containerapp env show -n "$ENV_NAME" -g "$RG" >/dev/null 2>&1 \
-            || az containerapp env create -n "$ENV_NAME" -g "$RG" -l "$LOC" --output none
-
-          if az containerapp show -n "$APP" -g "$RG" >/dev/null 2>&1; then
-            echo "Updating existing app to new image"
-            az containerapp update -n "$APP" -g "$RG" --image "$IMAGE" --output none
-          else
-            echo "Creating new app"
-            az containerapp create \
-              -n "$APP" -g "$RG" \
-              --environment "$ENV_NAME" \
-              --image "$IMAGE" \
-              --target-port 8000 \
-              --ingress external \
-              --min-replicas 0 \
-              --max-replicas 2 \
-              --cpu 0.5 \
-              --memory 1.0Gi \
-              --output none
-          fi
-
-          FQDN=$(az containerapp show -n "$APP" -g "$RG" \
-                 --query properties.configuration.ingress.fqdn -o tsv)
-          echo "::notice::Deployed to https://$FQDN"
+      - name: Print URL
+        run: |
+          URL="${{ steps.deploy.outputs.url }}"
+          echo "::notice::Deployed to $URL"
           {
             echo "## Deployed"
-            echo "- URL: https://$FQDN"
-            echo "- Image: \`$IMAGE\`"
+            echo "- URL: $URL"
+            echo "- Image: \`${{ steps.image.outputs.uri }}\`"
           } >> "$GITHUB_STEP_SUMMARY"

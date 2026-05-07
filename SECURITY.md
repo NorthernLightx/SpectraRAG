@@ -37,7 +37,11 @@ typical production service:
 - `pyproject.toml` author info uses GitHub's no-reply email pattern so
   contributor identities aren't scraped from package metadata.
 - The deploy workflow (`.github/workflows/deploy.yml`) authenticates to
-  Azure via short-lived OIDC tokens — no long-lived service-principal
-  secret stored in GitHub. Application secrets (e.g. OpenRouter API
-  keys for the optional server-side classifier) are set out-of-band on
-  the Container App via `az containerapp secret set`, not committed.
+  Google Cloud via Workload Identity Federation — short-lived OIDC
+  tokens, no long-lived service-account JSON key stored in GitHub. The
+  WIF provider's `attribute-condition` scopes the federation to this
+  repo's owner so only its workflows can mint tokens for the deploy
+  service account. Application secrets (e.g. OpenRouter API keys for
+  the optional server-side classifier) are injected into Cloud Run via
+  `gcloud run services update --update-secrets`, sourced from Google
+  Secret Manager — not committed to the repo.

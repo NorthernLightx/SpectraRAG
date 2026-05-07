@@ -87,8 +87,8 @@ ready).
 - **Generation** — OpenRouter via BYOK from the bundled UI; vision LLM gets
   page PNGs as image content blocks
 - **Production polish** — FastAPI + StaticFiles, OTel + Sentry + Langfuse,
-  GitHub Actions CI/CD (lint + typecheck + tests + container build), Azure
-  Container Apps deploy via `az` workflow
+  GitHub Actions CI/CD (lint + typecheck + tests + container build), Cloud
+  Run deploy via Workload Identity Federation (`google-github-actions/deploy-cloudrun`)
 
 ## Limitations
 
