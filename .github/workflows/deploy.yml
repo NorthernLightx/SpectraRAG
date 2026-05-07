@@ -39,6 +39,12 @@ jobs:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
+          # Mint an access token directly (vs default credentials-file mode)
+          # so downstream `gcloud` calls use the bearer token rather than
+          # re-impersonating the SA themselves. Avoids the "getAccessToken
+          # denied" failure mode where gcloud's auth refresh path can't
+          # impersonate even though the federated identity has tokenCreator.
+          token_format: "access_token"
 
       - name: Compute image URI
         id: image
