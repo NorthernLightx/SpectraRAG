@@ -5,6 +5,48 @@ Methodology lives in [`evals.md`](./evals.md); golden sets and committed
 baselines under [`data/golden/`](../data/golden/) and
 [`data/eval/`](../data/eval/).
 
+## Ablation summary
+
+Three independent A/B experiments on MMLongBench-Doc, each isolating one
+component's contribution. Raw run JSONs are linked from the run-id in
+each row; per-category breakdowns and methodology in the sections below.
+
+| Component | Baseline | Improved | Δ rel | Test set | Reference run |
+|---|---|---|---|---|---|
+| **Retrieval** (recall@10) | 0.6854 | **0.7515** | **+9.6 %** | n=111 in-corpus | router (`cc45831697b6`) vs text-only (`589f7269d617`) |
+| **Dispatch** (any→hybrid) | 17.4 % | **71.8 %** | **+54 pp** | n=149 queries | LLM classifier (`gpt-4o-mini`) vs regex (ADR 0008) |
+| **Generation** (gold-match) | 0.330 | **0.623** | **+89 %** | n=106, identical context | `qwen3-vl-32b` vision vs `gpt-4o-mini` text |
+
+Each experiment isolates one component; we don't have a single end-to-end
+run that turns all three on simultaneously, so the numbers don't compound
+multiplicatively. They DO compose architecturally: the dispatch upgrade
+fires the visual retriever more often (lifting retrieval coverage), and
+the visual retriever surfacing the right page is what unlocks the vision
+generator's lift on figure-grounded queries.
+
+## Latency profile
+
+Per-stage timings from [`scripts/profile_latency.py`](../scripts/profile_latency.py)
+over 6 representative queries against a 2,436-chunk corpus. Local dev
+stack (Ryzen 5800X / RTX 3070 / 16 GB; Ollama on CPU; Qdrant in Docker).
+
+| Stage | Backend | median | p95 | Notes |
+|---|---|---|---|---|
+| **Embed query** | Ollama `bge-m3`, CPU | 151 ms | 170 ms | Stable after warmup; first call ~3 s |
+| **Dense search** | Qdrant top-50 | 14 ms | 46 ms | HNSW; effectively constant in N |
+| **BM25 search** | `rank_bm25`, in-process | <5 ms | — | Bag-of-words; not measured (legacy schema, ingest fresh to measure) |
+| **RRF fusion** | pure Python | <1 ms | — | Rank-list math |
+| **Reranker** | BGE-rerank-v2-m3, GPU | ~5,500 ms | — | From v2 baseline; dominates whole-query latency |
+| **Generation** | `gpt-4o-mini` via OpenRouter | ~2,000 ms | — | Network + remote |
+| **Generation (alt)** | `qwen2.5:7b` via Ollama GPU | ~60 s | — | From v2 baseline |
+
+The retrieval-only path (embed + dense + BM25 + RRF) is sub-200 ms on
+this hardware. Reranker is the dominant whole-query cost at ~5.5 s — the
+right next thing to optimise (smaller cross-encoder, batching, or skip
+the rerank for queries the classifier knows are cheap). Generation
+latency is mostly network + provider; the BYOK browser-direct path adds
+no hops on our side.
+
 ## Why multi-modal? — one concrete example
 
 `mmlb_0008` from MMLongBench-Doc, paper `2310.05634v2`, gold page 8:
@@ -219,3 +261,77 @@ running it with the **text-only** run as candidate fails with
 change disabled the visual leg. CI doesn't run MMLongBench (it needs
 Qdrant + Ollama + 15 min of compute); this is a manual gate, run before
 merging any change that touches retrieval.
+
+## Failure modes — when this gets it wrong
+
+A repo without honest failure cases is a tutorial. Five curated examples
+from `data/eval/runs/exp_mmlb_gen_*.json` and `exp_classifier_dispatch.json`.
+
+### 1. Generation failure — text can't read chart numerics
+
+> **Q:** *"According to the chart on page 14 how much time was spent with
+> family and friends in 2010?"*
+> **Gold:** 21 %
+
+- **Text-only (`gpt-4o-mini`):** *"Not stated in the provided context."*
+- **Vision (`qwen3-vl-32b`):** *"21 %"* ✓
+
+Right page retrieved both ways; text-only LLM cannot extract numerics
+from a clock-diagram visualisation. Vision model reads the 2010 panel
+directly. Closed by the vision-generator path.
+
+### 2. Vision hallucinates plausibly when retrieval is weak
+
+> **Q:** *"What range does red color represent in approximate distance
+> from the Mississippi River in the chart that tracks the West Nile
+> Virus in Europe?"*
+> **Gold:** 0–375 miles
+
+- **Text-only:** *"Not stated in the provided context."* (no citations)
+- **Vision:** *"0 to 375 miles"* — looks correct, **faithfulness = 0.0** per judge
+
+The vision model produces the right answer but the judge rates
+faithfulness 0.0 because the retrieved page text doesn't support the
+claim. Color-legend semantics live in the image only — the claim is
+grounded in pixels, not the retrieved text, and the faithfulness signal
+correctly flags that.
+
+### 3. Correct refusal on out-of-corpus
+
+> **Q:** *"Will it rain on Mars tomorrow?"*
+
+- **System:** *"Not stated in the provided context."*
+- **Retrieval:** 10 unrelated chunks (nDCG@5 = 0, recall@10 = 0)
+- **Judge:** faithfulness 1.0, answer-relevance 1.0
+
+OOC handling works: zero retrieval signal, system declines rather than
+confabulating. The OOC refusal gate (ADR 0006) is what makes this score
+correctly on the LLM judge.
+
+### 4. Classifier mis-dispatch — LLM over-routes a factual query
+
+> **Q:** *"For dataset construction, which step takes the most word to
+> describe than the others?"*
+> **Gold category:** factual (text-answerable)
+
+- **Regex classifier:** routes text-only ✓
+- **LLM classifier (`gpt-4o-mini`):** routes hybrid ✗
+
+LLM gets confused by "step-wise" wording and routes to vision
+unnecessarily. The fail-safe is bounded — costs extra compute, doesn't
+break the answer — but it's the cost of the dispatch lift documented
+above.
+
+### 5. Comparative chart reading — vision wins clean
+
+> **Q:** *"Which category has the most increase from 2005 to 2010 for time
+> spent on weekends?"*
+> **Gold:** *Eating out*
+
+- **Text-only:** *"Not stated in the provided context."*
+- **Vision:** *"Eating out, rose from 10 % in 2005 to 17 % in 2010
+  (+7 pp)"* ✓
+
+Visual comparison across two time-indexed segments. Text extraction
+can't reconstruct the trend; vision reads both years and computes the
+delta.
