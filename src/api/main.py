@@ -197,12 +197,14 @@ async def _wire_retriever_from_settings(
     log = get_logger(__name__)
     try:
         if embedder is None:
-            if settings.embedder_backend == "fastembed":
-                # Deferred import keeps the heavy fastembed/ONNX import off
-                # the local-dev hot path where Ollama is the default.
-                from src.embeddings.fastembed_bge import FastEmbedBgeEmbedder
+            if settings.embedder_backend == "sentence_transformers":
+                # Deferred import keeps the heavy torch/sentence-transformers
+                # import off the local-dev hot path where Ollama is the default.
+                from src.embeddings.sentence_transformers_bge import (
+                    SentenceTransformersBgeEmbedder,
+                )
 
-                embedder = FastEmbedBgeEmbedder()
+                embedder = SentenceTransformersBgeEmbedder()
             else:
                 embedder = OllamaBgeEmbedder(base_url=settings.ollama_base_url)
         if vectorstore is None:

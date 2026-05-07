@@ -81,10 +81,11 @@ class Settings(BaseSettings):
     pages_dir: Path | None = None
 
     # Embedder backend for the FastAPI app's retrieval path. `ollama` is the
-    # local-dev default (uses the docker-compose ollama sidecar). `fastembed`
-    # is the deploy default (in-process ONNX inference, no external service).
-    # Both produce 1024-dim BGE-M3 vectors, so the same qdrant snapshot is
-    # readable by either path.
+    # local-dev default (uses the docker-compose ollama sidecar).
+    # `sentence_transformers` is the deploy default — in-process torch
+    # inference of the same BAAI/bge-m3 model, no external service. Both
+    # produce 1024-dim vectors, so the same qdrant snapshot is readable by
+    # either path.
     embedder_backend: str = "ollama"
     ollama_base_url: str = "http://localhost:11434"
     qdrant_url: str = "http://localhost:6333"
