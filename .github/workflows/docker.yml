@@ -1,14 +1,13 @@
 # Two jobs:
-# - validate: builds the Dockerfile on every push and PR. No bake artefacts; no
-#   GHCR push. Catches Dockerfile / src regressions in ~3 min.
-# - publish: runs only on main pushes and version tags. Fetches the curated
-#   demo PDFs from arXiv (via the committed manifest), runs the same
-#   render_pages + bootstrap_corpus pipeline a developer would run locally,
-#   then `docker build` + `docker push` to GHCR. ~15-20 min.
+# - validate: builds the Dockerfile on every push and PR. Fast, no GHCR push.
+# - publish: runs only on main + version-tag pushes. The bake artefacts
+#   (`data/pages/`, `qdrant_local/`) are committed to git, so this job is
+#   just `docker build` + `docker push`. ~10-15 min cold cache, ~3 min warm.
 #
-# This replaces the old "bake from your laptop, push from your laptop" flow:
-# the deploy image is now reproducible, no PAT needed locally, and the deploy
-# workflow can pin :sha-<short> straight off CI.
+# Why the artefacts are committed: the CPU bge-m3 embed loop on a free
+# GH runner takes ~100 min for the curated 20-paper corpus, blowing past
+# any reasonable timeout. ~110 MB of binary artefacts in git history
+# trades repo size for deploy reliability.
 name: docker
 
 on:
@@ -21,10 +20,9 @@ on:
       - "Dockerfile"
       - ".dockerignore"
       - "src/**"
-      - "scripts/render_pages.py"
-      - "scripts/bootstrap_corpus.py"
-      - "scripts/fetch_papers.py"
-      - "data/curated_demo/papers.txt"
+      - "web/**"
+      - "data/pages/**"
+      - "qdrant_local/**"
       - "pyproject.toml"
       - "uv.lock"
       - ".github/workflows/docker.yml"
@@ -40,9 +38,6 @@ concurrency:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    # Cold-cache builds run ~15-20 min because the runtime image bundles
-    # torch + colpali-engine wheels for the optional visual-retrieval path.
-    # Warm cache (cache-from/cache-to via gha) finishes in ~3 min.
     timeout-minutes: 30
 
     steps:
@@ -74,12 +69,7 @@ jobs:
   publish:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
-    # Worst-case budget (cold bake cache + cold docker cache): ~30 min PDF
-    # fetch + render + Ollama embed loop on CPU + ~20 min docker build cold +
-    # ~3 min push. The bake-artifacts cache keyed on (manifest + ingestion +
-    # embeddings hash) collapses most subsequent runs to ~25 min — only
-    # changes to those paths trigger a re-bake.
-    timeout-minutes: 120
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v4
@@ -94,73 +84,6 @@ jobs:
           large-packages: true
           docker-images: false
           swap-storage: true
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v3
-        with:
-          version: "0.5.4"
-
-      # Unified cache for the whole bake output. Key includes the manifest
-      # (which papers we fetch), ingestion pipeline + embeddings code (how
-      # we chunk + embed), and pyproject.toml (deps could change behaviour).
-      # Cache hit means we restore data/curated_demo + data/pages +
-      # qdrant_local from a prior run and skip every step that produces them.
-      - name: Cache bake artefacts
-        id: bake-cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            data/curated_demo
-            data/pages
-            qdrant_local
-          key: bake-v1-${{ hashFiles('data/curated_demo/papers.txt', 'src/ingestion/**/*.py', 'src/embeddings/**/*.py', 'pyproject.toml') }}
-
-      - name: Install dependencies
-        if: steps.bake-cache.outputs.cache-hit != 'true'
-        run: uv sync --frozen --no-dev
-
-      - name: Fetch curated PDFs (skips IDs already restored from cache)
-        if: steps.bake-cache.outputs.cache-hit != 'true'
-        run: uv run python -m scripts.fetch_papers --manifest data/curated_demo/papers.txt --out-dir data/curated_demo
-
-      - name: Render page PNGs
-        if: steps.bake-cache.outputs.cache-hit != 'true'
-        run: uv run python -m scripts.render_pages --pdf-dir data/curated_demo --out-dir data/pages
-
-      # Ollama runs in a sidecar container so the embedding service is
-      # reachable at localhost:11434 — same URL as a developer's local
-      # `docker compose up ollama`. OLLAMA_NUM_PARALLEL=4 lets it load four
-      # bge-m3 contexts; combined with OMP_NUM_THREADS we get useful CPU
-      # parallelism for the ~600-chunk embed loop.
-      - name: Start Ollama and pull bge-m3
-        if: steps.bake-cache.outputs.cache-hit != 'true'
-        run: |
-          docker run -d --name ollama -p 11434:11434 \
-            -e OLLAMA_NUM_PARALLEL=4 -e OLLAMA_MAX_LOADED_MODELS=1 \
-            ollama/ollama
-          for i in $(seq 1 30); do
-            sleep 1
-            curl -sf http://localhost:11434/api/version && break
-          done
-          docker exec ollama ollama pull bge-m3
-
-      - name: Bake Qdrant snapshot
-        if: steps.bake-cache.outputs.cache-hit != 'true'
-        run: |
-          uv run python -m scripts.bootstrap_corpus \
-            --pdf-dir data/curated_demo \
-            --qdrant "path:./qdrant_local" \
-            --ollama http://localhost:11434 \
-            --collection rag_corpus
-
-      - name: Stop Ollama
-        if: always() && steps.bake-cache.outputs.cache-hit != 'true'
-        run: docker rm -f ollama || true
 
       - name: Set up Buildx
         uses: docker/setup-buildx-action@v3

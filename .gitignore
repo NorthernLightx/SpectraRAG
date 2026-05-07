@@ -39,13 +39,23 @@ data/papers/
 data/golden/raw/
 data/eval/runs/
 data/figures/
+# data/pages/ holds rendered page PNGs. The 20-paper curated demo corpus
+# (arXiv ids 2604.*) is committed so CI can build the deploy image without
+# a slow CPU bge-m3 bake step. Other paper-id dirs (local user "BYO PDFs"
+# renders, MMLongBench scratch) stay gitignored.
 data/pages/*
 !data/pages/.gitkeep
-qdrant_local/*
-!qdrant_local/.gitkeep
-# Curated demo corpus: only the arXiv-ID manifest is checked in. The PDFs are
-# fetched from arXiv at CI build time (cached in actions/cache keyed on the
-# manifest hash) and never live in git history. Keeps the repo lean.
+!data/pages/2604.*
+# qdrant_local/ — baked Qdrant snapshot for the deploy image. Committed
+# alongside data/pages/2604.* so CI does only `docker build` + `docker push`.
+# Local users running bootstrap_corpus against their own PDFs would write
+# here too — those changes show as git diffs and can be ignored or
+# committed to a fork branch.
+# (Previously gitignored entirely; baked-in path mode now.)
+# Portalocker sentinel — transient on every open, no value in tracking.
+qdrant_local/.lock
+# Curated demo manifest only — the PDFs themselves are fetched from arXiv
+# on demand and never committed.
 data/curated_demo/*
 !data/curated_demo/papers.txt
 # MMLongBench-Doc parquet (~5 MB) + PDFs (~650 MB) — fetched by
