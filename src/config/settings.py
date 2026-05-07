@@ -80,6 +80,12 @@ class Settings(BaseSettings):
     # behaviour (the previous default).
     pages_dir: Path | None = None
 
+    # Embedder backend for the FastAPI app's retrieval path. `ollama` is the
+    # local-dev default (uses the docker-compose ollama sidecar). `fastembed`
+    # is the deploy default (in-process ONNX inference, no external service).
+    # Both produce 1024-dim BGE-M3 vectors, so the same qdrant snapshot is
+    # readable by either path.
+    embedder_backend: str = "ollama"
     ollama_base_url: str = "http://localhost:11434"
     qdrant_url: str = "http://localhost:6333"
     # Collection wired into the FastAPI retriever at startup. Must match the

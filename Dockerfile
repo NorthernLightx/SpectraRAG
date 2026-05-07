@@ -60,7 +60,16 @@ COPY --chown=app:app data/pages /home/app/data/pages
 # pages_dir. Re-baking is idempotent in the source script.
 COPY --chown=app:app qdrant_local /home/app/qdrant_local
 
-ENV RAG_PAGES_DIR=/home/app/data/pages \
+# Pre-download the BGE-M3 ONNX weights for `fastembed`. Bakes them into the
+# image so cold-start request latency doesn't include a 600 MB HuggingFace
+# fetch. Cache lives at /home/app/.cache/fastembed/ (default location for
+# the `app` user). Skipping this just means the first request after every
+# cold start does the download itself (~30 s, network-dependent).
+RUN /home/app/.venv/bin/python -c \
+    "from fastembed import TextEmbedding; TextEmbedding(model_name='BAAI/bge-m3')"
+
+ENV RAG_EMBEDDER_BACKEND=fastembed \
+    RAG_PAGES_DIR=/home/app/data/pages \
     RAG_QDRANT_URL=path:/home/app/qdrant_local
 
 ENV PATH="/home/app/.venv/bin:$PATH" \

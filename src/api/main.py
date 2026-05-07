@@ -197,7 +197,14 @@ async def _wire_retriever_from_settings(
     log = get_logger(__name__)
     try:
         if embedder is None:
-            embedder = OllamaBgeEmbedder(base_url=settings.ollama_base_url)
+            if settings.embedder_backend == "fastembed":
+                # Deferred import keeps the heavy fastembed/ONNX import off
+                # the local-dev hot path where Ollama is the default.
+                from src.embeddings.fastembed_bge import FastEmbedBgeEmbedder
+
+                embedder = FastEmbedBgeEmbedder()
+            else:
+                embedder = OllamaBgeEmbedder(base_url=settings.ollama_base_url)
         if vectorstore is None:
             vectorstore = QdrantVectorStore(
                 url=settings.qdrant_url,
