@@ -1,15 +1,25 @@
 """Vision-language captioning for extracted figures.
 
-Wraps Ollama's `/api/chat` with the `images` field (base64-encoded PNGs) so a
-local VLM (gemma3, qwen2.5vl, llava-llama3, …) can generate richer captions than
-the PDF-extracted ones. Captions populate `Figure.vlm_caption`; the existing
-`figure_to_chunk` then preferentially uses them at index time.
+Two backends share the same `caption(image_path) -> str` surface:
 
-Why a dedicated module instead of reusing `OllamaChatClient`:
-- Ollama's vision schema puts `images` at the message level, not in `options`,
-  so it doesn't fit the kwargs forwarding the chat client uses.
-- VLM captioning is an ingest-time concern; we don't want to broaden
-  `LLMClient` until a *second* concrete VLM impl forces a real protocol seam.
+- `OllamaVisionCaptioner`: local Ollama (`gemma3:4b`, `qwen2.5vl:7b`, …).
+  Free, fast on a small GPU, but quality on technical figures is mediocre
+  (tested gemma3:4b + qwen2.5vl:7b: both hallucinated "heatmap" / "gene
+  expression" on a scaling-law plot).
+- `OpenRouterVisionCaptioner`: cloud VLM via OpenRouter (`openai/gpt-4o-mini`,
+  `anthropic/claude-3.5-sonnet`, etc). Real cost, much higher caption
+  fidelity. ADR 0009 §"What this leaves open" flagged this as the next
+  layer; this is that layer.
+
+Captions populate `Figure.vlm_caption`; the existing `figure_to_chunk`
+preferentially uses them at index time. The `caption_figures` helper is
+provider-agnostic — it duck-types on `.caption(image_path)`.
+
+Why a dedicated module instead of reusing `OllamaChatClient` /
+`OpenRouterClient`:
+- Both providers' chat APIs work, but the captioner's prompt + parsing
+  is a single ingest-time concern; collapsing it into the LLMClient
+  protocol would broaden the protocol just to fit one user.
 """
 
 from __future__ import annotations
@@ -17,7 +27,7 @@ from __future__ import annotations
 import asyncio
 import base64
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol, runtime_checkable
 
 import httpx
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
@@ -120,10 +130,129 @@ class OllamaVisionCaptioner:
         return text
 
 
+@runtime_checkable
+class _Captioner(Protocol):
+    """Duck-typed interface both Ollama and OpenRouter captioners satisfy.
+
+    `caption_figures` accepts any object exposing this single async method.
+    Used so the eval harness can pick a backend at runtime without the
+    helper caring which provider is in use.
+    """
+
+    async def caption(self, image_path: Path) -> str: ...
+
+
+_OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
+
+
+class OpenRouterVisionCaptioner:
+    """Cloud-VLM captioner via OpenRouter's OpenAI-compatible chat API.
+
+    Mirrors `OllamaVisionCaptioner.caption(image_path) -> str`. Uses
+    OpenAI's vision schema (`content` is a list of `text` + `image_url`
+    blocks) — same shape `OpenRouterClient.chat` uses for in-context
+    images on `/answer`. No streaming; one image per request.
+
+    Permanent failures (auth error, model-not-found, malformed image)
+    return an empty string and log a warning — caller falls back to the
+    PDF caption. Transport errors (network blips) get up to 3 retries
+    with exponential backoff.
+
+    Cost-shape: gpt-4o-mini at vision is ~$0.0002 per low-detail image,
+    ~$0.001 per high-detail. For the v3 corpus (~80 figures) that's
+    $0.02-0.10 per ingestion pass. Worth it on a portfolio repo where
+    caption fidelity affects the demo story.
+    """
+
+    def __init__(
+        self,
+        api_key: str,
+        *,
+        model: str = "openai/gpt-4o-mini",
+        base_url: str = _OPENROUTER_BASE_URL,
+        timeout: float = _DEFAULT_TIMEOUT_SECONDS,
+        client: httpx.AsyncClient | None = None,
+        prompt: str = _DEFAULT_PROMPT,
+        temperature: float = 0.0,
+        max_tokens: int = 200,
+    ) -> None:
+        self._api_key = api_key
+        self._model = model
+        self._base_url = base_url.rstrip("/")
+        self._timeout = timeout
+        self._client = client
+        self._prompt = prompt
+        self._temperature = temperature
+        self._max_tokens = max_tokens
+
+    @retry(
+        retry=retry_if_exception_type((httpx.TransportError, httpx.RemoteProtocolError)),
+        wait=wait_exponential(multiplier=0.5, min=0.5, max=8),
+        stop=stop_after_attempt(3),
+        reraise=True,
+    )
+    async def caption(self, image_path: Path) -> str:
+        """Return a caption for `image_path`. Empty string on permanent failure."""
+        if not await asyncio.to_thread(image_path.exists):
+            _log.warning("vlm_caption.image_missing", path=str(image_path))
+            return ""
+
+        image_bytes = await asyncio.to_thread(image_path.read_bytes)
+        b64 = base64.b64encode(image_bytes).decode("ascii")
+        data_url = f"data:image/png;base64,{b64}"
+        payload: dict[str, Any] = {
+            "model": self._model,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": self._prompt},
+                        {"type": "image_url", "image_url": {"url": data_url}},
+                    ],
+                }
+            ],
+            "temperature": self._temperature,
+            "max_tokens": self._max_tokens,
+        }
+        headers = {
+            "Authorization": f"Bearer {self._api_key}",
+            "Content-Type": "application/json",
+        }
+        url = f"{self._base_url}/chat/completions"
+
+        client = self._client
+        if client is not None:
+            response = await client.post(url, json=payload, headers=headers, timeout=self._timeout)
+        else:
+            async with httpx.AsyncClient(timeout=self._timeout) as ad_hoc:
+                response = await ad_hoc.post(url, json=payload, headers=headers)
+
+        if response.status_code != 200:
+            _log.warning(
+                "vlm_caption.http_error",
+                model=self._model,
+                status=response.status_code,
+                path=str(image_path),
+            )
+            return ""
+
+        data = response.json()
+        if not isinstance(data, dict):
+            _log.warning("vlm_caption.bad_response", path=str(image_path))
+            return ""
+        choices = data.get("choices") or []
+        if not choices:
+            _log.warning("vlm_caption.no_choices", model=self._model, path=str(image_path))
+            return ""
+        message = choices[0].get("message") or {}
+        text = (message.get("content") or "").strip()
+        return text
+
+
 async def caption_figures(
     figures: list[Figure],
     *,
-    captioner: OllamaVisionCaptioner,
+    captioner: _Captioner,
     concurrency: int = _DEFAULT_CONCURRENCY,
 ) -> list[Figure]:
     """Populate `Figure.vlm_caption` for every figure (in-place clones via model_copy).

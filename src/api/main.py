@@ -65,6 +65,8 @@ def _wire_generator_from_settings(settings: Settings) -> bool:
             # for any visual RetrievalResult so a vision-capable default_chat_model
             # can read images directly. None = text-only behaviour (back-compat).
             pages_dir=settings.pages_dir,
+            # Calibrated refusal gate (settings docstring + ADR 0009 follow-up).
+            refusal_score_threshold=settings.refusal_score_threshold,
         )
     )
     return True

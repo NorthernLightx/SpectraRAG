@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from src.embeddings.protocol import Embedder
-from src.ingestion.captioner import OllamaVisionCaptioner, caption_figures
+from src.ingestion.captioner import _Captioner, caption_figures
 from src.ingestion.chunking import chunk_pages, figure_to_chunk, table_to_chunk
 from src.ingestion.contextualize import contextualize_chunks
 from src.ingestion.figures import extract_figures
@@ -49,7 +49,7 @@ async def ingest_paper(
     extract_figures_enabled: bool = False,
     extract_tables_enabled: bool = False,
     figures_out_dir: Path = Path("data/figures"),
-    vlm_captioner: OllamaVisionCaptioner | None = None,
+    vlm_captioner: _Captioner | None = None,
 ) -> IngestedPaper:
     """Full pipeline: extract pages, chunk, optionally contextualize, embed, index.
 

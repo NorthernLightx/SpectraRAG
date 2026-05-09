@@ -111,3 +111,29 @@ def test_public_api_key_loads_from_env(tmp_path: Path, monkeypatch: pytest.Monke
     settings = load_settings(config_path=yaml_file)
     assert isinstance(settings.public_api_key, SecretStr)
     assert settings.public_api_key.get_secret_value() == "shared-secret-xyz"
+
+
+def test_refusal_score_threshold_default_is_calibrated_value(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Tier 1: calibrated default of 0.105 ships in production. Picked from
+    scripts/calibrate_refusal.py output on the v3 corpus — closes q21's leak
+    (max_score=0.100) without misfiring on q6 (in-corpus max_score=0.111)."""
+    monkeypatch.delenv("RAG_REFUSAL_SCORE_THRESHOLD", raising=False)
+    assert Settings().refusal_score_threshold == pytest.approx(0.105)
+
+
+def test_refusal_score_threshold_overridable_via_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("RAG_REFUSAL_SCORE_THRESHOLD", "0.25")
+    assert Settings().refusal_score_threshold == pytest.approx(0.25)
+
+
+def test_refusal_score_threshold_disabled_via_yaml(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Set to null in YAML to disable the gate (no env var)."""
+    monkeypatch.delenv("RAG_REFUSAL_SCORE_THRESHOLD", raising=False)
+    yaml_file = tmp_path / "default.yaml"
+    yaml_file.write_text("refusal_score_threshold: null\n")
+    settings = load_settings(config_path=yaml_file)
+    assert settings.refusal_score_threshold is None

@@ -34,7 +34,7 @@ from src.eval.judges import LLMJudge
 from src.eval.report import write_run_json, write_run_markdown
 from src.eval.runner import evaluate
 from src.eval.storage import make_engine, write_eval_run
-from src.ingestion.captioner import OllamaVisionCaptioner
+from src.ingestion.captioner import OllamaVisionCaptioner, OpenRouterVisionCaptioner
 from src.ingestion.pipeline import ingest_paper
 from src.ingestion.visual import render_pages
 from src.llm.ollama_chat import OllamaChatClient
@@ -83,6 +83,7 @@ async def _main(
     rerank_length_norm: bool = False,
     rerank_length_threshold: int = 300,
     rerank_length_penalty: float = 0.5,
+    vlm_caption_provider: str = "ollama",
     contextualize: bool,
     contextualize_provider: str,
     contextualize_model: str,
@@ -135,10 +136,23 @@ async def _main(
         )
         print(f"Contextualizing chunks via {contextualize_provider} with {contextualize_model}")
 
-    vlm_captioner_obj: OllamaVisionCaptioner | None = None
+    vlm_captioner_obj: OllamaVisionCaptioner | OpenRouterVisionCaptioner | None = None
     if vlm_caption_model:
-        vlm_captioner_obj = OllamaVisionCaptioner(base_url=ollama_url, model=vlm_caption_model)
-        print(f"VLM captioning figures with {vlm_caption_model}")
+        if vlm_caption_provider == "openrouter":
+            api_key = os.environ.get("RAG_OPENROUTER_API_KEY") or os.environ.get(
+                "OPENROUTER_API_KEY"
+            )
+            if not api_key:
+                raise SystemExit(
+                    "--vlm-caption-provider=openrouter requires RAG_OPENROUTER_API_KEY "
+                    "(or OPENROUTER_API_KEY) in the environment."
+                )
+            vlm_captioner_obj = OpenRouterVisionCaptioner(api_key=api_key, model=vlm_caption_model)
+        else:
+            vlm_captioner_obj = OllamaVisionCaptioner(
+                base_url=ollama_url, model=vlm_caption_model
+            )
+        print(f"VLM captioning figures with {vlm_caption_provider}/{vlm_caption_model}")
 
     chunks_by_id: dict[str, Chunk] = {}
     paper_ids: list[str] = []
@@ -225,21 +239,46 @@ async def _main(
             f"Building visual retriever ({visual_model}, device={visual_device}) "
             f"over {sum(len(v) for v in pages_by_paper.values())} pages..."
         )
-        # On shared 8 GB GPUs the bge-m3 embedder (loaded by ollama for the
-        # ingest pass) holds ~1.2 GB and ColQwen2's bf16 load segfaults rather
-        # than OOMs cleanly. Force-evict bge-m3 before colqwen2 loads to free
-        # GPU headroom — only matters when visual_device targets cuda.
+        # On shared 8 GB GPUs anything loaded in Ollama (bge-m3 embedder ~1.2 GB,
+        # gemma3:4b VLM ~3.3 GB if --vlm-caption-model was active, etc.) competes
+        # with ColQwen2's bf16 load and segfaults rather than OOMs cleanly. Query
+        # /api/ps for all currently-resident models, then evict each via the
+        # appropriate endpoint (embeddings for embedders, generate for chat/VLM
+        # models — both honor keep_alive: 0). Only matters on cuda.
         if visual_device.startswith("cuda"):
             import httpx as _httpx  # local import keeps module-level deps clean
             try:
                 async with _httpx.AsyncClient(timeout=10.0) as _ev_client:
-                    await _ev_client.post(
-                        f"{ollama_url}/api/embeddings",
-                        json={"model": "bge-m3", "prompt": "x", "keep_alive": 0},
+                    ps = await _ev_client.get(f"{ollama_url}/api/ps")
+                    loaded = [m["name"] for m in (ps.json().get("models") or [])]
+                    for model_name in loaded:
+                        # bge-m3 is an embedder; everything else is chat/VLM.
+                        # Both endpoints accept keep_alive=0 to force eviction.
+                        if "bge-m3" in model_name or "embed" in model_name:
+                            await _ev_client.post(
+                                f"{ollama_url}/api/embeddings",
+                                json={"model": model_name, "prompt": "x", "keep_alive": 0},
+                            )
+                        else:
+                            await _ev_client.post(
+                                f"{ollama_url}/api/generate",
+                                json={
+                                    "model": model_name,
+                                    "prompt": "x",
+                                    "stream": False,
+                                    "keep_alive": 0,
+                                    "options": {"num_predict": 1},
+                                },
+                            )
+                if loaded:
+                    print(
+                        f"Evicted {len(loaded)} Ollama model(s) ({', '.join(loaded)}) "
+                        "before ColQwen2 cuda load."
                     )
-                print("Evicted bge-m3 from Ollama (free VRAM for ColQwen2 load).")
+                else:
+                    print("No Ollama models resident; skipping eviction step.")
             except _httpx.HTTPError as e:
-                print(f"bge-m3 eviction skipped ({e!r}); continuing.")
+                print(f"Ollama eviction skipped ({e!r}); continuing.")
         visual_retriever = await build_visual_retriever(
             pages_by_paper, model_name=visual_model, device=visual_device
         )
@@ -314,6 +353,7 @@ async def _main(
             "extract_figures": extract_figures,
             "extract_tables": extract_tables,
             "vlm_caption_model": vlm_caption_model,
+            "vlm_caption_provider": vlm_caption_provider if vlm_caption_model else None,
             "query_expansion": query_expansion,
             "query_expansion_mode": query_expansion_mode if query_expansion else None,
             "query_expansion_model": query_expansion_model if query_expansion else None,
@@ -526,10 +566,24 @@ if __name__ == "__main__":
         "--vlm-caption-model",
         default=None,
         help=(
-            "Vision Ollama model used to caption extracted figures "
-            "(e.g. 'gemma3:4b', 'qwen2.5vl:7b', 'llava-llama3:8b'). When set, "
-            "Figure.vlm_caption is filled and figure_to_chunk uses it as the "
-            "indexable text. Requires --extract-figures."
+            "Vision model used to caption extracted figures. Provider-dependent "
+            "shape: with --vlm-caption-provider=ollama (default), an Ollama tag "
+            "like 'gemma3:4b' / 'qwen2.5vl:7b'. With openrouter, an OpenRouter "
+            "model id like 'openai/gpt-4o-mini' or 'anthropic/claude-3.5-sonnet'. "
+            "When set, Figure.vlm_caption is filled and figure_to_chunk uses it "
+            "as the indexable text. Requires --extract-figures."
+        ),
+    )
+    parser.add_argument(
+        "--vlm-caption-provider",
+        choices=("ollama", "openrouter"),
+        default="ollama",
+        help=(
+            "Backend for VLM captioning. 'ollama' is local + free + fast on a "
+            "small GPU but mediocre on technical figures (gemma3:4b hallucinates "
+            "'heatmap' / 'gene expression' on a scaling-law plot). 'openrouter' "
+            "is cloud + costs ~$0.02-0.10 per ingestion pass on the v3 corpus "
+            "but produces fidelitous captions. Requires RAG_OPENROUTER_API_KEY."
         ),
     )
     parser.add_argument(
@@ -656,6 +710,7 @@ if __name__ == "__main__":
             rerank_length_norm=args.rerank_length_norm,
             rerank_length_threshold=args.rerank_length_threshold,
             rerank_length_penalty=args.rerank_length_penalty,
+            vlm_caption_provider=args.vlm_caption_provider,
             contextualize=args.contextualize,
             contextualize_provider=args.contextualize_provider,
             contextualize_model=contextualize_model,

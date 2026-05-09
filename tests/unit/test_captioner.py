@@ -7,7 +7,11 @@ from pathlib import Path
 import httpx
 import respx
 
-from src.ingestion.captioner import OllamaVisionCaptioner, caption_figures
+from src.ingestion.captioner import (
+    OllamaVisionCaptioner,
+    OpenRouterVisionCaptioner,
+    caption_figures,
+)
 from src.types import Figure
 
 
@@ -125,3 +129,81 @@ async def test_caption_figures_keeps_original_when_vlm_returns_empty(tmp_path: P
 async def test_caption_figures_returns_empty_for_no_figures() -> None:
     captioner = OllamaVisionCaptioner(model="gemma3:4b")
     assert await caption_figures([], captioner=captioner) == []
+
+
+# OpenRouterVisionCaptioner — cloud VLM via OpenRouter (gpt-4o-mini-vision etc).
+# Tests use respx to mock the chat-completions endpoint; no real API key needed.
+
+
+_OR_URL = "https://openrouter.ai/api/v1/chat/completions"
+
+
+@respx.mock
+async def test_openrouter_captioner_posts_data_url_with_image_block(tmp_path: Path) -> None:
+    image_path = _write_png(tmp_path / "fig1.png")
+    route = respx.post(_OR_URL).mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "id": "x",
+                "model": "openai/gpt-4o-mini",
+                "choices": [
+                    {"message": {"role": "assistant", "content": "A bar chart of accuracy by method."}}
+                ],
+            },
+        )
+    )
+
+    captioner = OpenRouterVisionCaptioner(api_key="test-key", model="openai/gpt-4o-mini")
+    caption = await captioner.caption(image_path)
+
+    assert route.called
+    assert caption == "A bar chart of accuracy by method."
+    request = route.calls.last.request
+    # OpenAI vision schema: content is a list with text + image_url blocks.
+    assert b'"image_url":' in request.content
+    assert b"data:image/png;base64," in request.content
+    assert request.headers["authorization"] == "Bearer test-key"
+
+
+@respx.mock
+async def test_openrouter_captioner_returns_empty_on_401(tmp_path: Path) -> None:
+    image_path = _write_png(tmp_path / "fig1.png")
+    respx.post(_OR_URL).mock(return_value=httpx.Response(401, json={"error": "unauthorized"}))
+    captioner = OpenRouterVisionCaptioner(api_key="bad-key", model="openai/gpt-4o-mini")
+    assert await captioner.caption(image_path) == ""
+
+
+@respx.mock
+async def test_openrouter_captioner_returns_empty_on_no_choices(tmp_path: Path) -> None:
+    """Defensive: malformed response with empty choices list."""
+    image_path = _write_png(tmp_path / "fig1.png")
+    respx.post(_OR_URL).mock(
+        return_value=httpx.Response(200, json={"id": "x", "model": "m", "choices": []})
+    )
+    captioner = OpenRouterVisionCaptioner(api_key="k", model="m")
+    assert await captioner.caption(image_path) == ""
+
+
+async def test_openrouter_captioner_returns_empty_when_image_missing(tmp_path: Path) -> None:
+    captioner = OpenRouterVisionCaptioner(api_key="k", model="openai/gpt-4o-mini")
+    assert await captioner.caption(tmp_path / "missing.png") == ""
+
+
+@respx.mock
+async def test_caption_figures_works_with_openrouter_captioner(tmp_path: Path) -> None:
+    """caption_figures duck-types on .caption() so any provider plugs in."""
+    figs = [_figure("f1", _write_png(tmp_path / "f1.png"))]
+    respx.post(_OR_URL).mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "id": "x",
+                "model": "openai/gpt-4o-mini",
+                "choices": [{"message": {"content": "Cloud VLM caption."}}],
+            },
+        )
+    )
+    captioner = OpenRouterVisionCaptioner(api_key="k", model="openai/gpt-4o-mini")
+    [out] = await caption_figures(figs, captioner=captioner)
+    assert out.vlm_caption == "Cloud VLM caption."

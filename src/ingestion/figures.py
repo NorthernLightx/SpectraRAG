@@ -83,14 +83,16 @@ def _figure_bbox(page: fitz.Page, xref: int) -> Bbox | None:
 
     Returns None when the rect list is empty (vector-art "images" that
     PyMuPDF tracks in xref but doesn't place via Image XObject), when the
-    rect is degenerate (zero width or height), or when Bbox validation
-    fails for any other reason. ADR 0009 §"Failure modes" #1.
+    rect has negative coordinates (off-page placement via CTM transformation
+    on the source PDF), or when Bbox validation fails for any other reason.
+    These failure modes are common on dense ArXiv figures; we log at debug,
+    not warning, to keep ingestion logs readable. ADR 0009 §"Failure modes" #1.
     """
     try:
         rects = page.get_image_rects(xref)
     except (RuntimeError, ValueError, AttributeError) as exc:
         # AttributeError trips on very old fitz builds without get_image_rects.
-        _log.warning("figure.bbox_unavailable", xref=xref, error=str(exc))
+        _log.debug("figure.bbox_unavailable", xref=xref, error=str(exc))
         return None
     if not rects:
         return None
@@ -98,8 +100,8 @@ def _figure_bbox(page: fitz.Page, xref: int) -> Bbox | None:
     try:
         return Bbox(x0=float(rect.x0), y0=float(rect.y0), x1=float(rect.x1), y1=float(rect.y1))
     except (ValueError, TypeError) as exc:
-        # Degenerate rect (zero w/h) or non-numeric coords.
-        _log.warning("figure.bbox_invalid", xref=xref, rect=str(rect), error=str(exc))
+        # Off-page CTM, degenerate rect (zero w/h), or non-numeric coords.
+        _log.debug("figure.bbox_invalid", xref=xref, rect=str(rect), error=str(exc))
         return None
 
 

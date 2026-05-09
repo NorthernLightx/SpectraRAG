@@ -17,10 +17,11 @@ from pathlib import Path
 
 import pytest
 
-from src.api.deps import _RetrieverState
+from src.api.deps import _GeneratorState, _RetrieverState
 from src.api.main import (
     _build_classifier_from_settings,
     _collect_pages_from_dir,
+    _wire_generator_from_settings,
     _wire_retriever_from_settings,
 )
 from src.config.settings import Settings
@@ -34,10 +35,12 @@ from tests.fakes import FakeEmbedder, FakeRetriever
 
 @pytest.fixture(autouse=True)
 def _reset_retriever_state() -> Iterator[None]:
-    """Module-level retriever leaks across tests; reset around each."""
+    """Module-level retriever + generator leak across tests; reset around each."""
     _RetrieverState.instance = None
+    _GeneratorState.instance = None
     yield
     _RetrieverState.instance = None
+    _GeneratorState.instance = None
 
 
 def _settings(
@@ -46,6 +49,7 @@ def _settings(
     enable_multimodal: bool = False,
     pages_dir: Path | None = None,
     openrouter_api_key: str | None = None,
+    refusal_score_threshold: float | None = 0.105,
 ) -> Settings:
     kwargs: dict[str, object] = {
         "env": "test",
@@ -54,6 +58,7 @@ def _settings(
         "corpus_collection": "wiring_test",
         "rerank_top_k": 20,
         "enable_multimodal": enable_multimodal,
+        "refusal_score_threshold": refusal_score_threshold,
     }
     if pages_dir is not None:
         kwargs["pages_dir"] = pages_dir
@@ -337,3 +342,42 @@ async def test_multimodal_routing_actually_dispatches_figure_to_hybrid() -> None
     results = await retriever.retrieve(Query(text="What does Figure 3 show?", top_k=3))
     sources = {r.source for r in results}
     assert "visual" in sources or any(r.source == "pipeline" for r in results)
+
+
+# Tier 1: refusal_score_threshold propagates from Settings to the production
+# Generator. Without this wiring the calibrated default is dead code.
+
+
+def test_wire_generator_propagates_refusal_threshold_default() -> None:
+    """Generator built from Settings inherits the calibrated 0.105 default."""
+    wired = _wire_generator_from_settings(_settings(openrouter_api_key="sk-test"))
+    assert wired is True
+    assert _GeneratorState.instance is not None
+    assert _GeneratorState.instance._refusal_score_threshold == pytest.approx(0.105)
+
+
+def test_wire_generator_propagates_explicit_threshold() -> None:
+    """Override via Settings is honored."""
+    wired = _wire_generator_from_settings(
+        _settings(openrouter_api_key="sk-test", refusal_score_threshold=0.4)
+    )
+    assert wired is True
+    assert _GeneratorState.instance is not None
+    assert _GeneratorState.instance._refusal_score_threshold == pytest.approx(0.4)
+
+
+def test_wire_generator_propagates_disabled_threshold() -> None:
+    """When threshold is None in Settings, the gate is off in the Generator."""
+    wired = _wire_generator_from_settings(
+        _settings(openrouter_api_key="sk-test", refusal_score_threshold=None)
+    )
+    assert wired is True
+    assert _GeneratorState.instance is not None
+    assert _GeneratorState.instance._refusal_score_threshold is None
+
+
+def test_wire_generator_skips_when_no_api_key() -> None:
+    """No OpenRouter key = no generator wired = /answer 503s."""
+    wired = _wire_generator_from_settings(_settings(openrouter_api_key=None))
+    assert wired is False
+    assert _GeneratorState.instance is None
