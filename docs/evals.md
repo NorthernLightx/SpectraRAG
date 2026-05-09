@@ -63,8 +63,11 @@ hash so identical config + per-query data produce the same id.
 ## Regression gate
 
 `scripts/check_regression.py` compares two run JSONs. CI runs it on every
-push against `data/eval/baseline.json` (currently v2 baseline
-`7b5242df5b38`):
+push against `data/eval/baseline.json` (currently v3 + router + visual +
+extract-figures + extract-tables + paper-id-filter + region-number-boost
++ rerank-length-norm + VLM-caption (gemma3:4b) + generate + judge
+baseline `f844619927e0`, run on 2026-05-09; replaced `d9bcd13b880f`
+which lacked length-norm and VLM captioning. ADR 0009 + 2nd follow-up):
 
 ```bash
 .venv/Scripts/python.exe -m scripts.check_regression \
