@@ -1,0 +1,703 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Multi-modal Paper RAG — chat</title>
+    <style>
+      :root {
+        --bg: #0d1117;
+        --fg: #e6edf3;
+        --muted: #8b949e;
+        --accent: #58a6ff;
+        --border: #30363d;
+        --card: #161b22;
+        --user: #1f2933;
+        --ok: #3fb950;
+        --err: #f85149;
+        --code: #c9d1d9;
+        --code-bg: #1f242c;
+      }
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        padding: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+        font-size: 15px;
+        line-height: 1.55;
+        height: 100%;
+      }
+      body { display: flex; flex-direction: column; height: 100vh; }
+      header {
+        max-width: 880px;
+        width: 100%;
+        margin: 0 auto;
+        padding: 20px 24px 12px;
+      }
+      h1 { font-size: 22px; margin: 0 0 4px; }
+      header p { margin: 0; color: var(--muted); font-size: 13px; }
+      .settings {
+        max-width: 880px;
+        width: 100%;
+        margin: 0 auto;
+        padding: 0 24px 12px;
+      }
+      .settings-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr auto;
+        gap: 12px;
+        align-items: end;
+      }
+      label {
+        display: block;
+        font-size: 12px;
+        color: var(--muted);
+        margin-bottom: 4px;
+      }
+      input, select, textarea {
+        width: 100%;
+        background: var(--bg);
+        color: var(--fg);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 8px 10px;
+        font-family: inherit;
+        font-size: 14px;
+      }
+      input:focus, select:focus, textarea:focus {
+        outline: none;
+        border-color: var(--accent);
+      }
+      button {
+        background: var(--accent);
+        color: #0d1117;
+        border: none;
+        border-radius: 6px;
+        padding: 8px 14px;
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+      }
+      button.ghost {
+        background: transparent;
+        color: var(--muted);
+        border: 1px solid var(--border);
+      }
+      button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+      .transcript {
+        flex: 1;
+        overflow-y: auto;
+        width: 100%;
+      }
+      .transcript-inner {
+        max-width: 880px;
+        margin: 0 auto;
+        padding: 12px 24px 24px;
+      }
+      .turn { margin: 16px 0; }
+      .turn-user {
+        background: var(--user);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 10px 14px;
+        white-space: pre-wrap;
+      }
+      .turn-assistant {
+        padding: 4px 2px;
+      }
+      .turn-assistant .answer { white-space: pre-wrap; }
+      .role-tag {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--muted);
+        margin-bottom: 6px;
+      }
+      .searched {
+        color: var(--muted);
+        font-size: 12px;
+        margin-bottom: 8px;
+        font-style: italic;
+      }
+      details { margin-top: 10px; }
+      summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+      .chunk {
+        border-top: 1px solid var(--border);
+        padding-top: 8px;
+        margin-top: 8px;
+      }
+      .chunk:first-of-type { border-top: none; padding-top: 0; }
+      .chunk-meta { color: var(--muted); font-size: 12px; margin-bottom: 4px; }
+      pre, code {
+        font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, monospace;
+        font-size: 13px;
+      }
+      pre {
+        background: var(--code-bg);
+        color: var(--code);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 10px;
+        overflow-x: auto;
+        white-space: pre-wrap;
+      }
+      .badge {
+        display: inline-block;
+        padding: 1px 6px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        margin-right: 6px;
+      }
+      .badge-pipeline { background: rgba(88, 166, 255, 0.15); color: var(--accent); }
+      .badge-visual { background: rgba(63, 185, 80, 0.15); color: var(--ok); }
+      .badge-multimodal { background: rgba(187, 128, 247, 0.18); color: #d2a8ff; }
+      .meta { color: var(--muted); font-size: 12px; margin-top: 10px; }
+      .err { color: var(--err); }
+
+      .composer {
+        border-top: 1px solid var(--border);
+        background: var(--card);
+      }
+      .composer-inner {
+        max-width: 880px;
+        margin: 0 auto;
+        padding: 14px 24px;
+        display: flex;
+        gap: 10px;
+        align-items: flex-end;
+      }
+      .composer textarea {
+        flex: 1;
+        min-height: 44px;
+        max-height: 180px;
+        resize: none;
+      }
+      .empty {
+        color: var(--muted);
+        text-align: center;
+        padding: 60px 0;
+        font-size: 14px;
+      }
+      .footer-note {
+        max-width: 880px;
+        margin: 0 auto;
+        padding: 0 24px 8px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .footer-note a { color: var(--accent); text-decoration: none; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Multi-modal Paper RAG — chat</h1>
+      <p>
+        Conversational variant. Each turn re-runs retrieval against the corpus;
+        from turn 2 onwards your message is condensed against the history into
+        a standalone search query (shown under the answer). Prior turns enter
+        the LLM context as text only — chunks and page images are not replayed.
+      </p>
+    </header>
+
+    <div class="settings">
+      <div class="settings-row">
+        <div>
+          <label for="apiKey">OpenRouter API key</label>
+          <input id="apiKey" type="password" autocomplete="off" placeholder="sk-or-v1-..." />
+        </div>
+        <div>
+          <label for="model">Model</label>
+          <select id="model">
+            <option value="openai/gpt-4o-mini">openai/gpt-4o-mini (vision, cheapest)</option>
+            <option value="anthropic/claude-sonnet-4.6">anthropic/claude-sonnet-4.6 (vision)</option>
+            <option value="openai/gpt-4o">openai/gpt-4o (vision)</option>
+            <option value="qwen/qwen3-vl-32b-instruct">qwen/qwen3-vl-32b-instruct (vision)</option>
+            <option value="meta-llama/llama-3.1-70b-instruct">meta-llama/llama-3.1-70b-instruct (text-only)</option>
+          </select>
+        </div>
+        <div>
+          <button class="ghost" id="reset">New conversation</button>
+        </div>
+      </div>
+      <div class="footer-note" id="modeHint">Multi-modal mode auto-detected from server.</div>
+    </div>
+
+    <div class="transcript" id="transcript">
+      <div class="transcript-inner" id="transcriptInner">
+        <div class="empty" id="empty">
+          Ask a question to start. Try: <em>What is the inter-basin gain criterion?</em>
+        </div>
+      </div>
+    </div>
+
+    <div class="composer">
+      <div class="composer-inner">
+        <textarea id="query" placeholder="Ask a question or follow up..." rows="1"></textarea>
+        <button id="ask">Ask</button>
+      </div>
+      <div class="footer-note">
+        <span id="status"></span>
+        Source on <a href="https://github.com/NorthernLightx/prismrag">GitHub</a> ·
+        Single-shot UI at <a href="/">/</a> · OpenAPI at <a href="/docs">/docs</a>
+      </div>
+    </div>
+
+    <script>
+      const apiKeyInput = document.getElementById("apiKey");
+      const modelSelect = document.getElementById("model");
+      const queryInput = document.getElementById("query");
+      const askBtn = document.getElementById("ask");
+      const resetBtn = document.getElementById("reset");
+      const statusEl = document.getElementById("status");
+      const transcriptEl = document.getElementById("transcript");
+      const transcriptInner = document.getElementById("transcriptInner");
+      const emptyEl = document.getElementById("empty");
+      const modeHint = document.getElementById("modeHint");
+
+      apiKeyInput.value = localStorage.getItem("rag.apiKey") || "";
+      modelSelect.value = localStorage.getItem("rag.model") || modelSelect.value;
+      apiKeyInput.addEventListener("change", () =>
+        localStorage.setItem("rag.apiKey", apiKeyInput.value)
+      );
+      modelSelect.addEventListener("change", () =>
+        localStorage.setItem("rag.model", modelSelect.value)
+      );
+
+      let pagesAvailable = false;
+      fetch("/health")
+        .then((r) => r.json())
+        .then((h) => {
+          pagesAvailable = !!h.pages_available;
+          modeHint.textContent = pagesAvailable
+            ? "Multi-modal: page images attached to vision-capable models on the latest turn."
+            : "Text-only: server has no pages_dir; vision models receive text chunks only.";
+        })
+        .catch(() => {
+          modeHint.textContent = "Server status unknown.";
+        });
+
+      // conversation: [{role, text, chunks?, citations?, searchedFor?, meta?}]
+      // role is 'user' | 'assistant'. The assistant entry is created up front
+      // so streaming output has a node to write into.
+      const conversation = [];
+
+      askBtn.addEventListener("click", askHandler);
+      resetBtn.addEventListener("click", () => {
+        conversation.length = 0;
+        clear(transcriptInner);
+        emptyEl.style.display = "";
+        transcriptInner.append(emptyEl);
+        setStatus("");
+      });
+      queryInput.addEventListener("keydown", (e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key === "Enter") askHandler();
+      });
+      // Auto-grow textarea up to its CSS max-height.
+      queryInput.addEventListener("input", () => {
+        queryInput.style.height = "auto";
+        queryInput.style.height = Math.min(180, queryInput.scrollHeight) + "px";
+      });
+
+      async function askHandler() {
+        const text = queryInput.value.trim();
+        const apiKey = apiKeyInput.value.trim();
+        const model = modelSelect.value;
+        if (!text) return setStatus("Type a question first.", true);
+        if (!apiKey) return setStatus("Paste an OpenRouter API key.", true);
+
+        emptyEl.style.display = "none";
+        askBtn.disabled = true;
+
+        // Append user turn synchronously so the UI reflects what's in flight.
+        const userTurn = { role: "user", text };
+        conversation.push(userTurn);
+        renderUserTurn(userTurn);
+
+        const assistantTurn = {
+          role: "assistant",
+          text: "",
+          chunks: [],
+          citations: [],
+          searchedFor: null,
+          meta: null,
+        };
+        conversation.push(assistantTurn);
+        const nodes = renderAssistantTurnSkeleton();
+
+        queryInput.value = "";
+        queryInput.style.height = "auto";
+
+        try {
+          // Step 1: condense to a standalone query (skip on first turn — the
+          // raw message is already standalone).
+          const priorTurns = conversation.slice(0, -2);
+          const standalone = priorTurns.length === 0
+            ? text
+            : await condense(apiKey, priorTurns, text);
+          assistantTurn.searchedFor = standalone;
+          nodes.searched.textContent = `Searched for: ${standalone}`;
+
+          // Step 2: retrieve fresh chunks for this turn.
+          setStatus("Retrieving chunks...");
+          const t0 = performance.now();
+          const chunks = await retrieveChunks(standalone);
+          const tRetrieve = performance.now() - t0;
+          assistantTurn.chunks = chunks;
+          renderChunksInto(nodes.chunksEl, chunks);
+          nodes.chunksWrap.hidden = chunks.length === 0;
+
+          if (chunks.length === 0) {
+            nodes.answer.textContent =
+              "No chunks retrieved — corpus may not be ingested for this query.";
+            assistantTurn.text = nodes.answer.textContent;
+            setStatus("");
+            return;
+          }
+
+          // Step 3: build messages including prior turns as text, current
+          // turn with chunks (+ images on vision models).
+          const useImages = pagesAvailable && supportsVision(model);
+          setStatus(
+            useImages
+              ? "Generating with vision (chunks + page images)..."
+              : "Generating (text-only)..."
+          );
+          const messages = buildMessages(priorTurns, text, chunks, useImages);
+
+          const tGenStart = performance.now();
+          const { text: out, usage } = await streamOpenRouter(
+            apiKey,
+            model,
+            messages,
+            (delta) => {
+              assistantTurn.text += delta;
+              nodes.answer.textContent = assistantTurn.text;
+              transcriptEl.scrollTop = transcriptEl.scrollHeight;
+            }
+          );
+          const tGen = performance.now() - tGenStart;
+          assistantTurn.text = out;
+          assistantTurn.citations = parseCitations(out);
+          renderCitationsInto(
+            nodes.citationsEl,
+            assistantTurn.citations,
+            chunks
+          );
+          nodes.citationsWrap.hidden = assistantTurn.citations.length === 0;
+          renderMetaInto(
+            nodes.meta,
+            model,
+            usage,
+            Math.round(tRetrieve),
+            Math.round(tGen),
+            useImages
+          );
+          assistantTurn.meta = nodes.meta.textContent;
+          setStatus("");
+        } catch (err) {
+          nodes.answer.textContent = `Error: ${err.message || err}`;
+          nodes.answer.classList.add("err");
+          assistantTurn.text = nodes.answer.textContent;
+          setStatus("");
+        } finally {
+          askBtn.disabled = false;
+          transcriptEl.scrollTop = transcriptEl.scrollHeight;
+        }
+      }
+
+      // Condense prior turns + the latest user message into a single search
+      // query. Non-streaming, low max_tokens. Uses the cheapest vision model
+      // regardless of the user's generation choice — this is a utility call.
+      async function condense(apiKey, priorTurns, latest) {
+        const transcript = priorTurns
+          .map((t) => `${t.role === "user" ? "User" : "Assistant"}: ${t.text}`)
+          .join("\n");
+        const messages = [
+          {
+            role: "system",
+            content:
+              "Rewrite the user's latest message into a single standalone search query " +
+              "that captures what they want to find from a corpus of research papers. " +
+              "Resolve pronouns and references using the conversation history. " +
+              "Output only the query — no quotes, no preamble, no explanation.",
+          },
+          {
+            role: "user",
+            content: `Conversation so far:\n${transcript}\n\nLatest user message: ${latest}\n\nStandalone search query:`,
+          },
+        ];
+        const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+            "HTTP-Referer": window.location.origin,
+            "X-Title": "Multi-modal Paper RAG (condense)",
+          },
+          body: JSON.stringify({
+            model: "openai/gpt-4o-mini",
+            messages,
+            temperature: 0,
+            max_tokens: 80,
+          }),
+        });
+        if (!res.ok) {
+          const detail = await res.text();
+          throw new Error(`Condense failed: ${res.status} — ${detail}`);
+        }
+        const data = await res.json();
+        const out = (data.choices?.[0]?.message?.content || "").trim();
+        return out || latest;
+      }
+
+      async function retrieveChunks(query) {
+        const res = await fetch("/query", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: query, top_k: 5 }),
+        });
+        if (!res.ok) {
+          const detail = await res.text();
+          throw new Error(`${res.status} ${res.statusText} — ${detail}`);
+        }
+        return res.json();
+      }
+
+      // Prior turns enter as plain text (no chunks, no images). Only the
+      // current user turn carries chunks and page-image content blocks. This
+      // keeps token + image cost flat across a conversation.
+      function buildMessages(priorTurns, latestUserText, chunks, useImages) {
+        const system = [
+          "You are a careful research assistant answering from the supplied context.",
+          "The user may ask follow-ups; prior turns are included for reference,",
+          "but the retrieved chunks for the current question are the only source",
+          "of truth. Cite chunks you used by their chunk_id in [brackets].",
+          "If the context doesn't support an answer, say so plainly.",
+        ].join(" ");
+
+        const messages = [{ role: "system", content: system }];
+        for (const t of priorTurns) {
+          messages.push({ role: t.role, content: t.text });
+        }
+
+        const content = [];
+        for (const c of chunks) {
+          content.push({
+            type: "text",
+            text: `[chunk ${c.chunk_id}] paper=${c.paper_id} pages=${(c.page_numbers || []).join(",")}\n${c.text || ""}`,
+          });
+          if (useImages && Array.isArray(c.page_numbers)) {
+            for (const page of c.page_numbers) {
+              const url = `${window.location.origin}/pages/${encodeURIComponent(c.paper_id)}/${encodeURIComponent(c.paper_id)}_p${page}.png`;
+              content.push({ type: "image_url", image_url: { url } });
+            }
+          }
+        }
+        content.push({ type: "text", text: `\nQuestion: ${latestUserText}` });
+        messages.push({ role: "user", content });
+        return messages;
+      }
+
+      function supportsVision(model) {
+        return !model.includes("llama-3.1-70b");
+      }
+
+      // SSE stream → onDelta(token) callback. Returns final text + usage.
+      async function streamOpenRouter(apiKey, model, messages, onDelta) {
+        const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+            "HTTP-Referer": window.location.origin,
+            "X-Title": "Multi-modal Paper RAG",
+          },
+          body: JSON.stringify({
+            model,
+            messages,
+            temperature: 0.2,
+            max_tokens: 800,
+            stream: true,
+            usage: { include: true },
+          }),
+        });
+        if (!res.ok || !res.body) {
+          const detail = await res.text();
+          throw new Error(`${res.status} ${res.statusText} — ${detail}`);
+        }
+        let acc = "";
+        let usage = { prompt_tokens: 0, completion_tokens: 0 };
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buf = "";
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+          let nl;
+          while ((nl = buf.indexOf("\n")) >= 0) {
+            const line = buf.slice(0, nl).trim();
+            buf = buf.slice(nl + 1);
+            if (!line.startsWith("data:")) continue;
+            const payload = line.slice(5).trim();
+            if (payload === "[DONE]") continue;
+            try {
+              const obj = JSON.parse(payload);
+              const delta = obj.choices?.[0]?.delta?.content || "";
+              if (delta) {
+                acc += delta;
+                onDelta(delta);
+              }
+              if (obj.usage) usage = obj.usage;
+            } catch {
+              // heartbeat / partial — skip
+            }
+          }
+        }
+        return { text: acc, usage };
+      }
+
+      function parseCitations(text) {
+        const seen = new Set();
+        const ids = [];
+        for (const m of text.matchAll(/\[([A-Za-z0-9_:.\-]+)\]/g)) {
+          if (!seen.has(m[1])) {
+            seen.add(m[1]);
+            ids.push(m[1]);
+          }
+        }
+        return ids;
+      }
+
+      function renderUserTurn(turn) {
+        const wrap = document.createElement("div");
+        wrap.className = "turn";
+        const tag = document.createElement("div");
+        tag.className = "role-tag";
+        tag.textContent = "You";
+        const body = document.createElement("div");
+        body.className = "turn-user";
+        body.textContent = turn.text;
+        wrap.append(tag, body);
+        transcriptInner.append(wrap);
+        transcriptEl.scrollTop = transcriptEl.scrollHeight;
+      }
+
+      function renderAssistantTurnSkeleton() {
+        const wrap = document.createElement("div");
+        wrap.className = "turn turn-assistant";
+        const tag = document.createElement("div");
+        tag.className = "role-tag";
+        tag.textContent = "Assistant";
+        const searched = document.createElement("div");
+        searched.className = "searched";
+        const answer = document.createElement("div");
+        answer.className = "answer";
+        const citationsWrap = document.createElement("details");
+        citationsWrap.hidden = true;
+        const citationsSummary = document.createElement("summary");
+        citationsSummary.textContent = "Citations";
+        const citationsEl = document.createElement("div");
+        citationsWrap.append(citationsSummary, citationsEl);
+        const chunksWrap = document.createElement("details");
+        chunksWrap.hidden = true;
+        const chunksSummary = document.createElement("summary");
+        chunksSummary.textContent = "Retrieved chunks";
+        const chunksEl = document.createElement("div");
+        chunksWrap.append(chunksSummary, chunksEl);
+        const meta = document.createElement("div");
+        meta.className = "meta";
+        wrap.append(tag, searched, answer, citationsWrap, chunksWrap, meta);
+        transcriptInner.append(wrap);
+        transcriptEl.scrollTop = transcriptEl.scrollHeight;
+        return { searched, answer, citationsWrap, citationsEl, chunksWrap, chunksEl, meta };
+      }
+
+      function renderCitationsInto(target, ids, chunks) {
+        clear(target);
+        if (ids.length === 0) return;
+        const byId = new Map(chunks.map((c) => [c.chunk_id, c]));
+        for (const id of ids) {
+          const c = byId.get(id);
+          const div = document.createElement("div");
+          div.className = "chunk";
+          const meta = document.createElement("span");
+          meta.className = "chunk-meta";
+          const code = document.createElement("code");
+          code.textContent = id;
+          meta.append(code);
+          if (c) {
+            const pages = (c.page_numbers || []).join(", ");
+            meta.append(
+              document.createTextNode(
+                ` — paper ${c.paper_id}${pages ? ` · p${pages}` : ""}`
+              )
+            );
+          } else {
+            meta.append(document.createTextNode(" — (not in retrieved set)"));
+          }
+          div.append(meta);
+          target.append(div);
+        }
+      }
+
+      function renderChunksInto(target, chunks) {
+        clear(target);
+        for (const r of chunks) target.append(renderChunk(r));
+      }
+
+      function renderChunk(r) {
+        const div = document.createElement("div");
+        div.className = "chunk";
+        const meta = document.createElement("div");
+        meta.className = "chunk-meta";
+        const badge = document.createElement("span");
+        badge.className =
+          "badge " + (r.source === "visual" ? "badge-visual" : "badge-pipeline");
+        badge.textContent = r.source || "";
+        const code = document.createElement("code");
+        code.textContent = r.chunk_id || "";
+        meta.append(badge, code);
+        const pages = (r.page_numbers || []).join(", ");
+        if (pages) meta.append(document.createTextNode(` · p${pages}`));
+        const score = typeof r.score === "number" ? r.score : 0;
+        meta.append(document.createTextNode(` · score ${score.toFixed(3)}`));
+        const pre = document.createElement("pre");
+        const text = String(r.text || "");
+        pre.textContent =
+          text.length > 400 ? text.slice(0, 400) + "..." : text;
+        div.append(meta, pre);
+        return div;
+      }
+
+      function renderMetaInto(target, model, usage, retrieveMs, generateMs, useImages) {
+        const tokens = `${usage.prompt_tokens || 0} in / ${usage.completion_tokens || 0} out`;
+        const modeBadge = document.createElement("span");
+        modeBadge.className = useImages ? "badge badge-multimodal" : "badge badge-pipeline";
+        modeBadge.textContent = useImages ? "multi-modal" : "text";
+        clear(target);
+        target.append(modeBadge);
+        target.append(
+          document.createTextNode(
+            ` ${model} · ${tokens} · retrieve ${retrieveMs} ms · generate ${generateMs} ms`
+          )
+        );
+      }
+
+      function setStatus(msg, isErr) {
+        statusEl.textContent = msg ? `${msg} ` : "";
+        statusEl.classList.toggle("err", !!isErr);
+      }
+
+      function clear(node) {
+        while (node.firstChild) node.removeChild(node.firstChild);
+      }
+    </script>
+  </body>
+</html>
