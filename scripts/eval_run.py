@@ -78,6 +78,11 @@ async def _main(
     output_dir: Path,
     top_k: int,
     collection: str,
+    paper_id_filter: bool = False,
+    region_number_boost: bool = False,
+    rerank_length_norm: bool = False,
+    rerank_length_threshold: int = 300,
+    rerank_length_penalty: float = 0.5,
     contextualize: bool,
     contextualize_provider: str,
     contextualize_model: str,
@@ -161,9 +166,21 @@ async def _main(
 
     reranker_obj: BgeReranker | None = None
     if rerank:
-        reranker_obj = BgeReranker(model_name=rerank_model, device=rerank_device)
+        reranker_obj = BgeReranker(
+            model_name=rerank_model,
+            device=rerank_device,
+            length_norm=rerank_length_norm,
+            length_threshold=rerank_length_threshold,
+            length_penalty=rerank_length_penalty,
+        )
+        suffix = (
+            f" + length_norm(threshold={rerank_length_threshold}, penalty={rerank_length_penalty})"
+            if rerank_length_norm
+            else ""
+        )
         print(
-            f"Reranking top-{rerank_input_size} with {rerank_model} (device={rerank_device or 'auto'})"
+            f"Reranking top-{rerank_input_size} with {rerank_model} "
+            f"(device={rerank_device or 'auto'}){suffix}"
         )
 
     pipeline_retriever = PipelineRetriever(
@@ -208,11 +225,35 @@ async def _main(
             f"Building visual retriever ({visual_model}, device={visual_device}) "
             f"over {sum(len(v) for v in pages_by_paper.values())} pages..."
         )
+        # On shared 8 GB GPUs the bge-m3 embedder (loaded by ollama for the
+        # ingest pass) holds ~1.2 GB and ColQwen2's bf16 load segfaults rather
+        # than OOMs cleanly. Force-evict bge-m3 before colqwen2 loads to free
+        # GPU headroom — only matters when visual_device targets cuda.
+        if visual_device.startswith("cuda"):
+            import httpx as _httpx  # local import keeps module-level deps clean
+            try:
+                async with _httpx.AsyncClient(timeout=10.0) as _ev_client:
+                    await _ev_client.post(
+                        f"{ollama_url}/api/embeddings",
+                        json={"model": "bge-m3", "prompt": "x", "keep_alive": 0},
+                    )
+                print("Evicted bge-m3 from Ollama (free VRAM for ColQwen2 load).")
+            except _httpx.HTTPError as e:
+                print(f"bge-m3 eviction skipped ({e!r}); continuing.")
         visual_retriever = await build_visual_retriever(
             pages_by_paper, model_name=visual_model, device=visual_device
         )
         retriever = RoutingRetriever(text=retriever, visual=visual_retriever)
         print("Routing enabled — text leg + ColQwen2 visual leg fused per query category.")
+
+    if region_number_boost:
+        from src.rag.retrievers.region_boost import RegionNumberBoostRetriever
+        retriever = RegionNumberBoostRetriever(base=retriever)
+        print(
+            "Region-number boost enabled — chunks whose text starts with "
+            "'Table N:' / 'Figure N:' bubble to the top when the query "
+            "explicitly references that number."
+        )
 
     golden_set = load_golden_set(golden_path)
     print(
@@ -248,6 +289,7 @@ async def _main(
         generator=generator_obj,
         judge=judge_obj,
         top_k=top_k,
+        paper_id_filter=paper_id_filter,
         config={
             "retriever": "pipeline",
             "rerank": rerank,
@@ -279,6 +321,11 @@ async def _main(
             "router": router,
             "visual_model": visual_model if router else None,
             "visual_device": visual_device if router else None,
+            "paper_id_filter": paper_id_filter,
+            "region_number_boost": region_number_boost,
+            "rerank_length_norm": rerank_length_norm,
+            "rerank_length_threshold": rerank_length_threshold if rerank_length_norm else None,
+            "rerank_length_penalty": rerank_length_penalty if rerank_length_norm else None,
         },
     )
 
@@ -427,6 +474,36 @@ if __name__ == "__main__":
         help="Device for the reranker ('cuda', 'cpu'). Default: auto (cuda if available).",
     )
     parser.add_argument(
+        "--rerank-length-norm",
+        action="store_true",
+        help=(
+            "ADR 0009 follow-up: subtract a smooth length penalty from "
+            "rerank scores so caption-stub chunks (~80 chars of PDF caption) "
+            "stop crowding rich text chunks (~1200 chars). 0 penalty above "
+            "--rerank-length-threshold; scales linearly to "
+            "--rerank-length-penalty at len=0."
+        ),
+    )
+    parser.add_argument(
+        "--rerank-length-threshold",
+        type=int,
+        default=300,
+        help=(
+            "Char-length threshold above which no length penalty is applied. "
+            "Calibrated to leave q8-style legitimately short answers (~250 chars) "
+            "with a small penalty and caption stubs (<150 chars) heavily penalised."
+        ),
+    )
+    parser.add_argument(
+        "--rerank-length-penalty",
+        type=float,
+        default=0.5,
+        help=(
+            "Maximum length penalty (subtracted from raw rerank score at len=0). "
+            "0.5 is calibrated for bge-reranker-v2-m3's [-5, 5] logit range."
+        ),
+    )
+    parser.add_argument(
         "--postgres-dsn",
         default=os.environ.get("RAG_POSTGRES_DSN"),
         help=(
@@ -524,6 +601,27 @@ if __name__ == "__main__":
         default=150,
         help="DPI for rendered page PNGs. Higher = better visual signal, larger files.",
     )
+    parser.add_argument(
+        "--paper-id-filter",
+        action="store_true",
+        help=(
+            "Eval-side fairness knob (ADR 0009 follow-up): scope retrieval to "
+            "the GoldenQuery.paper_id so paper-specific queries don't bleed "
+            "candidates from unrelated papers. Mirrors what a real user "
+            "implicitly knows ('I'm asking about paper X'); production "
+            "callers don't pass a paper hint, so this only affects evals."
+        ),
+    )
+    parser.add_argument(
+        "--region-number-boost",
+        action="store_true",
+        help=(
+            "Reorder retrieval results so chunks whose text starts with "
+            "'Table N:' or 'Figure N:' bubble to the top when the query "
+            "explicitly references that table/figure number. ADR 0009 "
+            "follow-up; closes 'wrong region picked' failures (q29-style)."
+        ),
+    )
     args = parser.parse_args()
 
     _provider_default_model = {
@@ -553,6 +651,11 @@ if __name__ == "__main__":
             output_dir=args.output_dir,
             top_k=args.top_k,
             collection=args.collection,
+            paper_id_filter=args.paper_id_filter,
+            region_number_boost=args.region_number_boost,
+            rerank_length_norm=args.rerank_length_norm,
+            rerank_length_threshold=args.rerank_length_threshold,
+            rerank_length_penalty=args.rerank_length_penalty,
             contextualize=args.contextualize,
             contextualize_provider=args.contextualize_provider,
             contextualize_model=contextualize_model,

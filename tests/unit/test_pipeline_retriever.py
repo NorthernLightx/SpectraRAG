@@ -95,3 +95,112 @@ async def test_retrieve_with_reranker_uses_rerank_scores() -> None:
     results = await retriever.retrieve(Query(text="anything", top_k=3))
     assert [r.chunk_id for r in results] == ["c3", "c1", "c2"]
     assert results[0].score == 0.95
+
+
+async def test_retrieve_with_paper_filter_scopes_to_one_paper() -> None:
+    """ADR 0009 follow-up: Query.filters['paper_id'] propagates to BM25 + Qdrant."""
+    embedder = FakeEmbedder(dim=8)
+    vectorstore = QdrantVectorStore(url=":memory:", collection_name="pf", dim=8)
+    await vectorstore.ensure_collection()
+    bm25 = Bm25Index()
+
+    chunks = [
+        Chunk(chunk_id="paperA::p1::c0", paper_id="paperA", page_numbers=[1], text="alpha topic"),
+        Chunk(chunk_id="paperB::p1::c0", paper_id="paperB", page_numbers=[1], text="alpha topic"),
+        Chunk(chunk_id="paperC::p1::c0", paper_id="paperC", page_numbers=[1], text="alpha topic"),
+    ]
+    embeddings = await embedder.embed_texts([c.text for c in chunks])
+    await vectorstore.upsert_chunks(chunks, embeddings)
+    bm25.add(chunks)
+
+    retriever = PipelineRetriever(
+        embedder=embedder,
+        vectorstore=vectorstore,
+        bm25=bm25,
+        chunks_by_id={c.chunk_id: c for c in chunks},
+    )
+    results = await retriever.retrieve(
+        Query(text="alpha topic", top_k=5, filters={"paper_id": "paperB"})
+    )
+    assert {r.paper_id for r in results} == {"paperB"}
+
+
+async def test_retrieve_without_paper_filter_unchanged() -> None:
+    """Empty filters dict is a no-op — existing behavior preserved."""
+    embedder = FakeEmbedder(dim=8)
+    vectorstore = QdrantVectorStore(url=":memory:", collection_name="pf2", dim=8)
+    await vectorstore.ensure_collection()
+    bm25 = Bm25Index()
+
+    chunks = [
+        Chunk(chunk_id="paperA::p1::c0", paper_id="paperA", page_numbers=[1], text="alpha"),
+        Chunk(chunk_id="paperB::p1::c0", paper_id="paperB", page_numbers=[1], text="alpha"),
+    ]
+    embeddings = await embedder.embed_texts([c.text for c in chunks])
+    await vectorstore.upsert_chunks(chunks, embeddings)
+    bm25.add(chunks)
+
+    retriever = PipelineRetriever(
+        embedder=embedder,
+        vectorstore=vectorstore,
+        bm25=bm25,
+        chunks_by_id={c.chunk_id: c for c in chunks},
+    )
+    results = await retriever.retrieve(Query(text="alpha", top_k=5))
+    assert {r.paper_id for r in results} == {"paperA", "paperB"}
+
+
+async def test_retrieve_carries_chunk_metadata_into_result_metadata() -> None:
+    """ADR 0009: Chunk.metadata (kind, bbox, image_path) must propagate to
+    RetrievalResult.metadata so Generator._extract_citations can pick up
+    bbox for region-grounded citations. Section is added on top — it lives
+    on the Chunk model itself, not in metadata."""
+    embedder = FakeEmbedder(dim=8)
+    vectorstore = QdrantVectorStore(url=":memory:", collection_name="md", dim=8)
+    await vectorstore.ensure_collection()
+    bm25 = Bm25Index()
+
+    fig_chunk = Chunk(
+        chunk_id="p1::p3::fig1",
+        paper_id="p1",
+        page_numbers=[3],
+        text="Figure 1: X.",
+        section=None,
+        metadata={
+            "kind": "figure",
+            "bbox": [10.0, 20.0, 110.0, 220.0],
+            "image_path": "/tmp/fig.png",
+            "has_vlm_caption": False,
+        },
+    )
+    text_chunk = Chunk(
+        chunk_id="p1::p1::c0",
+        paper_id="p1",
+        page_numbers=[1],
+        text="Plain text.",
+        section="1 Introduction",
+    )
+    chunks = [fig_chunk, text_chunk]
+    embeddings = await embedder.embed_texts([c.text for c in chunks])
+    await vectorstore.upsert_chunks(chunks, embeddings)
+    bm25.add(chunks)
+
+    retriever = PipelineRetriever(
+        embedder=embedder,
+        vectorstore=vectorstore,
+        bm25=bm25,
+        chunks_by_id={c.chunk_id: c for c in chunks},
+    )
+    results = await retriever.retrieve(Query(text="figure", top_k=2))
+    by_id = {r.chunk_id: r for r in results}
+
+    fig_result = by_id["p1::p3::fig1"]
+    assert fig_result.metadata.get("kind") == "figure"
+    assert fig_result.metadata.get("bbox") == [10.0, 20.0, 110.0, 220.0]
+    assert fig_result.metadata.get("image_path") == "/tmp/fig.png"
+    assert fig_result.metadata.get("has_vlm_caption") is False
+
+    text_result = by_id["p1::p1::c0"]
+    assert text_result.metadata.get("section") == "1 Introduction"
+    # Text chunks should not get a phantom bbox from metadata-merging logic.
+    assert "bbox" not in text_result.metadata or text_result.metadata.get("bbox") is None

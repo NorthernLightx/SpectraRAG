@@ -45,7 +45,14 @@ class Bm25Index:
             self._model = BM25Okapi(self._tokenized)
         return self._model
 
-    def search(self, query: str, top_k: int) -> list[Bm25Hit]:
+    def search(self, query: str, top_k: int, *, paper_filter: str | None = None) -> list[Bm25Hit]:
+        """Top-`top_k` BM25 hits, optionally filtered to one paper.
+
+        `paper_filter` matches `Chunk.paper_id` exactly. Used by the eval-side
+        paper-id-aware retrieval path (ADR 0009 follow-up) to scope queries
+        whose origin paper is known in the golden labels. Production callers
+        pass `None` (no filter) since they have no paper hint.
+        """
         model = self._ensure_model()
         if model is None:
             return []
@@ -53,5 +60,9 @@ class Bm25Index:
         if not tokens:
             return []
         scores = model.get_scores(tokens)
-        ranked = sorted(range(len(self._chunks)), key=lambda i: scores[i], reverse=True)[:top_k]
+        if paper_filter is not None:
+            allowed = [i for i, c in enumerate(self._chunks) if c.paper_id == paper_filter]
+        else:
+            allowed = list(range(len(self._chunks)))
+        ranked = sorted(allowed, key=lambda i: scores[i], reverse=True)[:top_k]
         return [Bm25Hit(chunk_id=self._chunks[i].chunk_id, score=float(scores[i])) for i in ranked]

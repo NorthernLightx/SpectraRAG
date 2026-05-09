@@ -37,9 +37,22 @@ class PipelineRetriever:
 
     async def retrieve(self, query: Query) -> list[RetrievalResult]:
         with timed_event(_log, "retrieve.done", query=query.text, top_k=query.top_k) as ctx:
+            # ADR 0009 follow-up: paper-id filter scopes retrieval to a single
+            # paper when the caller provides a hint. Eval populates from
+            # GoldenQuery.paper_id; production callers pass nothing. Filtering
+            # at the source (Qdrant + BM25) is required — post-filter on
+            # candidate_pool=50 across 20 papers leaves too few same-paper hits.
+            paper_filter = query.filters.get("paper_id") if query.filters else None
+            if not isinstance(paper_filter, str):
+                paper_filter = None
+            ctx["paper_filter"] = paper_filter or ""
             [vector] = await self._embedder.embed_texts([query.text])
-            dense_hits = await self._vectorstore.search(vector, top_k=self._candidate_pool)
-            sparse_hits = self._bm25.search(query.text, top_k=self._candidate_pool)
+            dense_hits = await self._vectorstore.search(
+                vector, top_k=self._candidate_pool, paper_filter=paper_filter
+            )
+            sparse_hits = self._bm25.search(
+                query.text, top_k=self._candidate_pool, paper_filter=paper_filter
+            )
             ctx["dense_hits"] = len(dense_hits)
             ctx["sparse_hits"] = len(sparse_hits)
             ctx["candidate_pool"] = self._candidate_pool
@@ -77,6 +90,14 @@ class PipelineRetriever:
             return results
 
     def _make_result(self, chunk: Chunk, score: float) -> RetrievalResult:
+        # Carry the chunk's metadata (kind, bbox, image_path, has_vlm_caption)
+        # through to the RetrievalResult so the citation surface (ADR 0009)
+        # can copy bbox into Citation when a region-grounded chunk is cited.
+        # `section` is added on top — it's stored alongside metadata on the
+        # Chunk model, not inside the metadata dict.
+        meta: dict[str, object] = dict(chunk.metadata)
+        if chunk.section:
+            meta["section"] = chunk.section
         return RetrievalResult(
             chunk_id=chunk.chunk_id,
             paper_id=chunk.paper_id,
@@ -84,5 +105,5 @@ class PipelineRetriever:
             text=chunk.text,
             page_numbers=chunk.page_numbers,
             source="pipeline",
-            metadata={"section": chunk.section} if chunk.section else {},
+            metadata=meta,
         )

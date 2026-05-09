@@ -8,12 +8,21 @@ from src.types.retrieval import RankedChunk, RetrievalResult
 
 
 class Citation(BaseModel):
-    """A citation pointing back to a retrieved chunk."""
+    """A citation pointing back to a retrieved chunk.
+
+    `bbox` is set when the cited chunk is a region-grounded figure or table
+    (ADR 0009): the 4-list `[x0, y0, x1, y1]` in PDF points (1/72 inch),
+    matching the source `Chunk.metadata['bbox']`. Demo UIs use it to draw
+    a highlight rectangle over the rendered page image (see Bbox docstring
+    in `src/types/documents.py` for the points→pixels conversion). `None`
+    for text chunks and for figures/tables whose bbox extraction failed.
+    """
 
     chunk_id: str
     paper_id: str
     page_numbers: list[int] = Field(min_length=1)
     quote: str | None = None
+    bbox: list[float] | None = None
 
 
 class Context(BaseModel):

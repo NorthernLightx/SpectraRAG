@@ -22,7 +22,7 @@ from pathlib import Path
 import fitz
 
 from src.observability.logging import get_logger
-from src.types import Figure
+from src.types import Bbox, Figure
 
 _log = get_logger(__name__)
 
@@ -70,6 +70,37 @@ def _save_pixmap(doc: fitz.Document, xref: int, out_path: Path) -> None:
         pix = fitz.Pixmap(fitz.csRGB, pix)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     pix.save(str(out_path))
+
+
+def _figure_bbox(page: fitz.Page, xref: int) -> Bbox | None:
+    """Return the bbox where `xref` is placed on `page`, or None.
+
+    PyMuPDF's `get_image_rects(xref)` returns the page-local rects where the
+    image is referenced (one xref can be placed multiple times on a single
+    page — e.g. a logo header on a wide layout). We take the first rect; for
+    figure-style images with one placement that's the right answer, and for
+    multi-placed images the first is good enough for citation purposes.
+
+    Returns None when the rect list is empty (vector-art "images" that
+    PyMuPDF tracks in xref but doesn't place via Image XObject), when the
+    rect is degenerate (zero width or height), or when Bbox validation
+    fails for any other reason. ADR 0009 §"Failure modes" #1.
+    """
+    try:
+        rects = page.get_image_rects(xref)
+    except (RuntimeError, ValueError, AttributeError) as exc:
+        # AttributeError trips on very old fitz builds without get_image_rects.
+        _log.warning("figure.bbox_unavailable", xref=xref, error=str(exc))
+        return None
+    if not rects:
+        return None
+    rect = rects[0]
+    try:
+        return Bbox(x0=float(rect.x0), y0=float(rect.y0), x1=float(rect.x1), y1=float(rect.y1))
+    except (ValueError, TypeError) as exc:
+        # Degenerate rect (zero w/h) or non-numeric coords.
+        _log.warning("figure.bbox_invalid", xref=xref, rect=str(rect), error=str(exc))
+        return None
 
 
 def extract_figures(
@@ -129,6 +160,7 @@ def extract_figures(
                         page_number=page_no,
                         caption=caption,
                         image_path=image_path,
+                        bbox=_figure_bbox(page, xref),
                     )
                 )
     return figures

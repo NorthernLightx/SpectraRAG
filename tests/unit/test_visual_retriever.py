@@ -151,3 +151,60 @@ async def test_score_query_uses_single_batched_call() -> None:
     retriever._processor.score_multi_vector = counting_score
     await retriever.retrieve(Query(text="q", top_k=10))
     assert call_count == 1, f"score_multi_vector called {call_count} times; should be 1"
+
+
+# ADR 0009 follow-up: paper_id filter scopes the visual leg too.
+
+
+async def test_retrieve_with_paper_filter_scopes_to_one_paper() -> None:
+    page_embeds = {
+        "paperA::p1::page": torch.zeros((20, 16)),
+        "paperB::p1::page": torch.zeros((20, 16)),
+        "paperC::p1::page": torch.zeros((20, 16)),
+    }
+    page_meta = {
+        "paperA::p1::page": ("paperA", 1),
+        "paperB::p1::page": ("paperB", 1),
+        "paperC::p1::page": ("paperC", 1),
+    }
+    score_by_chunk = {
+        "paperA::p1::page": 0.9,
+        "paperB::p1::page": 0.7,
+        "paperC::p1::page": 0.5,
+    }
+    proc = _StubProcessor(chunk_ids=list(page_embeds.keys()), score_by_chunk=score_by_chunk)
+    retriever = VisualRetriever(
+        model=_StubModel(),
+        processor=proc,
+        page_embeds=page_embeds,
+        page_meta=page_meta,
+        device="cpu",
+    )
+    out = await retriever.retrieve(
+        Query(text="q", top_k=5, filters={"paper_id": "paperB"})
+    )
+    assert {r.paper_id for r in out} == {"paperB"}
+    assert {r.chunk_id for r in out} == {"paperB::p1::page"}
+
+
+async def test_retrieve_no_paper_filter_returns_all() -> None:
+    """Empty filters dict — visual leg unchanged."""
+    page_embeds = {
+        "paperA::p1::page": torch.zeros((20, 16)),
+        "paperB::p1::page": torch.zeros((20, 16)),
+    }
+    page_meta = {
+        "paperA::p1::page": ("paperA", 1),
+        "paperB::p1::page": ("paperB", 1),
+    }
+    score_by_chunk = {"paperA::p1::page": 0.9, "paperB::p1::page": 0.7}
+    proc = _StubProcessor(chunk_ids=list(page_embeds.keys()), score_by_chunk=score_by_chunk)
+    retriever = VisualRetriever(
+        model=_StubModel(),
+        processor=proc,
+        page_embeds=page_embeds,
+        page_meta=page_meta,
+        device="cpu",
+    )
+    out = await retriever.retrieve(Query(text="q", top_k=5))
+    assert {r.paper_id for r in out} == {"paperA", "paperB"}

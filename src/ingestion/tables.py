@@ -18,7 +18,7 @@ from pathlib import Path
 import fitz
 
 from src.observability.logging import get_logger
-from src.types import Table
+from src.types import Bbox, Table
 
 _log = get_logger(__name__)
 
@@ -46,6 +46,34 @@ def _extract_captions(page_text: str) -> dict[int, str]:
             body = body.split("\n\n", 1)[0].strip()
         captions[number] = f"Table {number}: {body}".strip()
     return captions
+
+
+def _table_bbox(found: object) -> Bbox | None:
+    """Return the bbox of a PyMuPDF `Table` finder result, or None.
+
+    `fitz.table.Table.bbox` is a 4-tuple `(x0, y0, x1, y1)` in PDF points
+    (some versions expose it as a `Rect`). We coerce to a tuple of floats
+    so this works across PyMuPDF versions; on degenerate or absent bboxes
+    we return None and the citation surface degrades to page-level
+    (ADR 0009 §"Failure modes" #3).
+    """
+    raw = getattr(found, "bbox", None)
+    if raw is None:
+        return None
+    try:
+        coords = tuple(float(v) for v in raw)
+    except (ValueError, TypeError):
+        _log.warning("table.bbox_invalid", raw=str(raw))
+        return None
+    if len(coords) != 4:
+        return None
+    x0, y0, x1, y1 = coords
+    try:
+        return Bbox(x0=x0, y0=y0, x1=x1, y1=y1)
+    except ValueError as exc:
+        # Degenerate rect (zero w/h or wrong ordering).
+        _log.warning("table.bbox_invalid", raw=str(raw), error=str(exc))
+        return None
 
 
 def _cells_to_markdown(cells: list[list[str | None]]) -> str:
@@ -112,6 +140,7 @@ def extract_tables(paper_id: str, pdf_path: Path) -> list[Table]:
                         page_number=page_no,
                         markdown=markdown,
                         caption=captions.get(idx),
+                        bbox=_table_bbox(found),
                     )
                 )
     return tables

@@ -111,6 +111,11 @@ def figure_to_chunk(figure: Figure) -> Chunk:
     Figures with no caption at all become a stub chunk with just the figure id —
     better than dropping them, since BM25 might still match the id when an
     answer cites a figure.
+
+    `bbox` is packed into `metadata['bbox']` as `[x0, y0, x1, y1]` floats when
+    figure extraction captured one (ADR 0009). Citation surface picks it up
+    via `Generator._extract_citations` so demos can render region-precise
+    highlights on the page image.
     """
     primary = (
         figure.vlm_caption
@@ -119,17 +124,20 @@ def figure_to_chunk(figure: Figure) -> Chunk:
             figure.caption if figure.caption and figure.caption.strip() else f"[{figure.figure_id}]"
         )
     )
+    metadata: dict[str, object] = {
+        "kind": "figure",
+        "image_path": str(figure.image_path),
+        "has_vlm_caption": figure.vlm_caption is not None,
+    }
+    if figure.bbox is not None:
+        metadata["bbox"] = figure.bbox.as_list()
     return Chunk(
         chunk_id=figure.figure_id,
         paper_id=figure.paper_id,
         page_numbers=[figure.page_number],
         text=primary,
         section=None,
-        metadata={
-            "kind": "figure",
-            "image_path": str(figure.image_path),
-            "has_vlm_caption": figure.vlm_caption is not None,
-        },
+        metadata=metadata,
     )
 
 
@@ -138,13 +146,19 @@ def table_to_chunk(table: Table) -> Chunk:
 
     `text` is `caption\\n\\n<markdown>` so both caption-keyword queries and
     cell-content queries match. The markdown is preserved verbatim for display.
+
+    `bbox` is packed into `metadata['bbox']` as `[x0, y0, x1, y1]` floats when
+    PyMuPDF located the table on the page (ADR 0009).
     """
     parts = [p for p in (table.caption, table.markdown) if p]
+    metadata: dict[str, object] = {"kind": "table"}
+    if table.bbox is not None:
+        metadata["bbox"] = table.bbox.as_list()
     return Chunk(
         chunk_id=table.table_id,
         paper_id=table.paper_id,
         page_numbers=[table.page_number],
         text="\n\n".join(parts) if parts else f"[{table.table_id}]",
         section=None,
-        metadata={"kind": "table"},
+        metadata=metadata,
     )

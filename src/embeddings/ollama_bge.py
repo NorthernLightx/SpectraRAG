@@ -54,9 +54,14 @@ class OllamaBgeEmbedder:
         reraise=True,
     )
     async def _embed_one(self, text: str, client: httpx.AsyncClient) -> list[float]:
+        # keep_alive: short idle TTL so bge-m3 evicts from VRAM during the
+        # visual-leg build, freeing GPU headroom for ColQwen2 on shared 8 GB
+        # cards. Sequential ingest/query bursts keep the model warm; only the
+        # gap to GPU-heavy phases (visual index build, reranker warmup) lets
+        # eviction fire.
         response = await client.post(
             f"{self._base_url}/api/embeddings",
-            json={"model": self._model, "prompt": text},
+            json={"model": self._model, "prompt": text, "keep_alive": "10s"},
             timeout=self._timeout,
         )
         if response.status_code == 500:

@@ -10,8 +10,8 @@ from src.rag.vectorstore import QdrantVectorStore, VectorMatch
 from src.types import Chunk
 
 
-def _chunk(chunk_id: str, text: str) -> Chunk:
-    return Chunk(chunk_id=chunk_id, paper_id="p1", page_numbers=[1], text=text)
+def _chunk(chunk_id: str, text: str, paper_id: str = "p1") -> Chunk:
+    return Chunk(chunk_id=chunk_id, paper_id=paper_id, page_numbers=[1], text=text)
 
 
 @pytest.fixture
@@ -48,6 +48,45 @@ async def test_upsert_mismatched_lengths_raises(store: QdrantVectorStore) -> Non
 async def test_search_empty_collection_returns_empty(store: QdrantVectorStore) -> None:
     await store.ensure_collection()
     assert await store.search([0.0, 0.0, 0.0, 0.0], top_k=5) == []
+
+
+# ADR 0009 follow-up: paper_filter scopes Qdrant search to a single paper.
+
+
+async def test_search_with_paper_filter_drops_other_papers(store: QdrantVectorStore) -> None:
+    await store.ensure_collection()
+    await store.upsert_chunks(
+        [
+            _chunk("paperA::c0", "x", paper_id="paperA"),
+            _chunk("paperB::c0", "y", paper_id="paperB"),
+        ],
+        [[1.0, 0.0, 0.0, 0.0], [1.0, 0.0, 0.0, 0.0]],
+    )
+    hits = await store.search([1.0, 0.0, 0.0, 0.0], top_k=10, paper_filter="paperB")
+    assert [h.chunk_id for h in hits] == ["paperB::c0"]
+
+
+async def test_search_no_filter_unchanged(store: QdrantVectorStore) -> None:
+    """Default path (no filter) returns all matching points."""
+    await store.ensure_collection()
+    await store.upsert_chunks(
+        [
+            _chunk("paperA::c0", "x", paper_id="paperA"),
+            _chunk("paperB::c0", "y", paper_id="paperB"),
+        ],
+        [[1.0, 0.0, 0.0, 0.0], [1.0, 0.0, 0.0, 0.0]],
+    )
+    hits = await store.search([1.0, 0.0, 0.0, 0.0], top_k=10)
+    assert {h.chunk_id for h in hits} == {"paperA::c0", "paperB::c0"}
+
+
+async def test_search_with_unmatched_paper_filter_returns_empty(store: QdrantVectorStore) -> None:
+    await store.ensure_collection()
+    await store.upsert_chunks(
+        [_chunk("paperA::c0", "x", paper_id="paperA")],
+        [[1.0, 0.0, 0.0, 0.0]],
+    )
+    assert await store.search([1.0, 0.0, 0.0, 0.0], top_k=10, paper_filter="paperZ") == []
 
 
 async def test_path_mode_persists_across_clients(tmp_path: Path) -> None:

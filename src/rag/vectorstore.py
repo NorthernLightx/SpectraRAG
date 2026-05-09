@@ -137,11 +137,33 @@ class QdrantVectorStore:
         result = await self._client.count(collection_name=self._collection, exact=True)
         return int(result.count)
 
-    async def search(self, vector: list[float], top_k: int) -> list[VectorMatch]:
+    async def search(
+        self, vector: list[float], top_k: int, *, paper_filter: str | None = None
+    ) -> list[VectorMatch]:
+        """Top-`top_k` dense hits, optionally filtered to one paper.
+
+        `paper_filter` issues a Qdrant payload filter on `paper_id`. Used by
+        the eval-side paper-id-aware retrieval path; production callers pass
+        `None`. Filtering at the Qdrant layer (rather than post-filtering
+        results) keeps the candidate pool size meaningful — without it,
+        `top_k=50` returned across 20 papers leaves only ~2.5 same-paper hits
+        for rerank on a paper-specific query.
+        """
+        qdrant_filter: qdrant_models.Filter | None = None
+        if paper_filter is not None:
+            qdrant_filter = qdrant_models.Filter(
+                must=[
+                    qdrant_models.FieldCondition(
+                        key="paper_id",
+                        match=qdrant_models.MatchValue(value=paper_filter),
+                    )
+                ]
+            )
         response = await self._client.query_points(
             collection_name=self._collection,
             query=vector,
             limit=top_k,
+            query_filter=qdrant_filter,
         )
         return [
             VectorMatch(chunk_id=str(point.payload["chunk_id"]), score=float(point.score))

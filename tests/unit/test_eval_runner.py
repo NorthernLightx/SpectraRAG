@@ -6,6 +6,7 @@ from typing import Any, cast
 
 import pytest
 
+from src.eval.judges import JudgeOutput, LLMJudge
 from src.eval.runner import evaluate
 from src.rag.generate import Generator
 from src.types import (
@@ -133,3 +134,226 @@ async def test_evaluate_records_config_block() -> None:
     run = await evaluate(retriever=retriever, golden_set=gs, config=cfg)
     assert run.config == cfg
     assert run.per_query == []
+
+
+# Deterministic refusal handling per docs/evals.md OOC convention.
+# The LLM judge was empirically unreliable on refusal answers (run
+# c92f3f1bee19: 5 of 6 OOC refusals scored 0.0 on faithfulness despite
+# the documented convention that they should score 1.0). The runner now
+# detects refusal sentinels and short-circuits faithfulness +
+# answer_relevance scoring. context_precision still goes through the
+# judge — it scores retrieved chunks, orthogonal to refusal status.
+
+
+class _RecordingJudge:
+    """Records every judge call. Returns 0.5 by default — visibly different
+    from the deterministic 1.0/0.0 the runner produces for refusals, so
+    accidental fallthrough surfaces as a test failure."""
+
+    def __init__(self) -> None:
+        self.faithfulness_calls = 0
+        self.answer_relevance_calls = 0
+        self.context_precision_calls = 0
+
+    async def faithfulness(
+        self, *, query: str, answer: str, retrieved: list[RetrievalResult]
+    ) -> JudgeOutput:
+        self.faithfulness_calls += 1
+        return JudgeOutput(score=0.5, rationale="stub", model="stub", prompt_version="stub-v0")
+
+    async def answer_relevance(self, *, query: str, answer: str) -> JudgeOutput:
+        self.answer_relevance_calls += 1
+        return JudgeOutput(score=0.5, rationale="stub", model="stub", prompt_version="stub-v0")
+
+    async def context_precision(
+        self, *, query: str, retrieved: list[RetrievalResult]
+    ) -> JudgeOutput:
+        self.context_precision_calls += 1
+        return JudgeOutput(score=0.5, rationale="stub", model="stub", prompt_version="stub-v0")
+
+
+def _refusal_answer() -> Answer:
+    return Answer(
+        text="Not stated in the provided context.  \nCitations: None",
+        citations=[],
+        model="stub",
+        prompt_version="stub-v0",
+        latency_ms=0,
+        tokens_in=10,
+        tokens_out=12,
+    )
+
+
+def _substantive_answer() -> Answer:
+    return Answer(
+        text="From [c1] we conclude X.",
+        citations=[Citation(chunk_id="c1", paper_id="p1", page_numbers=[1])],
+        model="stub",
+        prompt_version="stub-v0",
+        latency_ms=0,
+        tokens_in=42,
+        tokens_out=12,
+    )
+
+
+async def test_refusal_on_ooc_scores_one_without_llm_judge() -> None:
+    retriever = _CannedRetriever([_retrieval("c1")])
+    judge = _RecordingJudge()
+    gs = GoldenSet(
+        name="tiny",
+        version="v1",
+        queries=[_golden("q_oc", category="out_of_corpus", relevant=[])],
+    )
+
+    run = await evaluate(
+        retriever=retriever,
+        golden_set=gs,
+        generator=cast(Generator, _CannedGenerator(_refusal_answer())),
+        judge=cast(LLMJudge, judge),
+    )
+
+    pq = run.per_query[0]
+    assert pq.generation is not None
+    assert pq.generation.faithfulness == pytest.approx(1.0)
+    assert pq.generation.answer_relevance == pytest.approx(1.0)
+    assert pq.generation.context_precision == pytest.approx(0.5)
+    assert judge.faithfulness_calls == 0
+    assert judge.answer_relevance_calls == 0
+    assert judge.context_precision_calls == 1
+
+
+async def test_refusal_on_in_corpus_scores_zero_without_llm_judge() -> None:
+    retriever = _CannedRetriever([_retrieval("c1")])
+    judge = _RecordingJudge()
+    gs = GoldenSet(
+        name="tiny",
+        version="v1",
+        queries=[_golden("q1", category="factual", relevant=["c1"])],
+    )
+
+    run = await evaluate(
+        retriever=retriever,
+        golden_set=gs,
+        generator=cast(Generator, _CannedGenerator(_refusal_answer())),
+        judge=cast(LLMJudge, judge),
+    )
+
+    pq = run.per_query[0]
+    assert pq.generation is not None
+    assert pq.generation.faithfulness == pytest.approx(0.0)
+    assert pq.generation.answer_relevance == pytest.approx(0.0)
+    assert judge.faithfulness_calls == 0
+    assert judge.answer_relevance_calls == 0
+
+
+async def test_substantive_answer_uses_llm_judge() -> None:
+    retriever = _CannedRetriever([_retrieval("c1")])
+    judge = _RecordingJudge()
+    gs = GoldenSet(
+        name="tiny",
+        version="v1",
+        queries=[_golden("q1", category="factual", relevant=["c1"])],
+    )
+
+    run = await evaluate(
+        retriever=retriever,
+        golden_set=gs,
+        generator=cast(Generator, _CannedGenerator(_substantive_answer())),
+        judge=cast(LLMJudge, judge),
+    )
+
+    pq = run.per_query[0]
+    assert pq.generation is not None
+    assert pq.generation.faithfulness == pytest.approx(0.5)
+    assert pq.generation.answer_relevance == pytest.approx(0.5)
+    assert pq.generation.context_precision == pytest.approx(0.5)
+    assert judge.faithfulness_calls == 1
+    assert judge.answer_relevance_calls == 1
+    assert judge.context_precision_calls == 1
+
+
+async def test_refusal_on_ooc_with_alternate_gate_phrase() -> None:
+    retriever = _CannedRetriever([_retrieval("c1")])
+    judge = _RecordingJudge()
+    gate_refusal = Answer(
+        text="I cannot answer this question from the provided corpus.",
+        citations=[],
+        model="refusal-gate",
+        prompt_version="refusal-v1",
+        latency_ms=0,
+        tokens_in=0,
+        tokens_out=0,
+    )
+    gs = GoldenSet(
+        name="tiny",
+        version="v1",
+        queries=[_golden("q_oc", category="out_of_corpus", relevant=[])],
+    )
+
+    run = await evaluate(
+        retriever=retriever,
+        golden_set=gs,
+        generator=cast(Generator, _CannedGenerator(gate_refusal)),
+        judge=cast(LLMJudge, judge),
+    )
+
+    pq = run.per_query[0]
+    assert pq.generation is not None
+    assert pq.generation.faithfulness == pytest.approx(1.0)
+    assert pq.generation.answer_relevance == pytest.approx(1.0)
+    assert judge.faithfulness_calls == 0
+    assert judge.answer_relevance_calls == 0
+
+
+# ADR 0009 follow-up: paper_id_filter populates Query.filters['paper_id']
+# from GoldenQuery.paper_id, scoping retrieval to a single paper for
+# queries whose origin is known.
+
+
+class _FilterCapturingRetriever:
+    """Records the filters dict each query was retrieved with."""
+
+    def __init__(self, results: list[RetrievalResult]) -> None:
+        self._results = results
+        self.captured_filters: list[dict[str, Any]] = []
+
+    async def retrieve(self, query: Query) -> list[RetrievalResult]:
+        self.captured_filters.append(dict(query.filters))
+        return self._results[: query.top_k]
+
+
+async def test_paper_id_filter_off_passes_empty_filters() -> None:
+    """Default behavior: no filter populated."""
+    captor = _FilterCapturingRetriever([_retrieval("c1")])
+    gs = GoldenSet(
+        name="tiny",
+        version="v1",
+        queries=[_golden("q1", category="factual", relevant=["c1"])],
+    )
+    await evaluate(retriever=captor, golden_set=gs, paper_id_filter=False)
+    assert captor.captured_filters == [{}]
+
+
+async def test_paper_id_filter_on_populates_from_golden() -> None:
+    """When the flag is on, filters['paper_id'] = golden.paper_id."""
+    captor = _FilterCapturingRetriever([_retrieval("c1")])
+    gs = GoldenSet(
+        name="tiny",
+        version="v1",
+        queries=[_golden("q1", category="factual", relevant=["c1"])],
+    )
+    await evaluate(retriever=captor, golden_set=gs, paper_id_filter=True)
+    assert captor.captured_filters == [{"paper_id": "p1"}]
+
+
+async def test_paper_id_filter_on_works_for_ooc_queries_too() -> None:
+    """OOC queries also have a paper_id label; filter applies uniformly. Result
+    is fine — OOC retrieval is 0 by construction regardless of filter."""
+    captor = _FilterCapturingRetriever([])
+    gs = GoldenSet(
+        name="tiny",
+        version="v1",
+        queries=[_golden("q_oc", category="out_of_corpus", relevant=[])],
+    )
+    await evaluate(retriever=captor, golden_set=gs, paper_id_filter=True)
+    assert captor.captured_filters == [{"paper_id": "p1"}]

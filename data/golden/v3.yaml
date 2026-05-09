@@ -220,7 +220,12 @@ queries:
     text: "Which surrogate losses are compared in Table 1 by their convexity, smoothness, and consistency?"
     paper_id: "2604.27742v1"
     category: table
-    relevant_chunk_ids: ["2604.27742v1::p2::c5"]
+    # ADR 0009: Table 1 is on page 2; the table chunk itself is also a valid
+    # answer (the markdown holds the comparison rows directly). Pre-ADR-0009
+    # this golden credited only the surrounding text c5.
+    relevant_chunk_ids:
+      - "2604.27742v1::p2::c5"
+      - "2604.27742v1::p2::tab1"
     expected_facts:
       - "Hinge Loss, Squared-Hinge, and others compared on convexity, smoothness, consistency bound, and rate."
     note: "v3. Table-content. Comparison table; rows are losses."
@@ -230,7 +235,10 @@ queries:
     text: "What benchmark and resolution does Table 4 evaluate in the FD-loss paper?"
     paper_id: "2604.28190v1"
     category: table
-    relevant_chunk_ids: ["2604.28190v1::p10::c47"]
+    # ADR 0009: Table 4 itself (caption + markdown) is also a valid answer.
+    relevant_chunk_ids:
+      - "2604.28190v1::p10::c47"
+      - "2604.28190v1::p10::tab4"
     expected_facts:
       - "Table 4 reports a system-level comparison on ImageNet 256×256."
     note: "v3. Table-content (caption-derivable). Tests whether visual ranks the table page above the surrounding text."
@@ -278,7 +286,11 @@ queries:
     text: "What does Figure 1 in HERMES++ illustrate about the proposed framework?"
     paper_id: "2604.28196v1"
     category: figure
-    relevant_chunk_ids: ["2604.28196v1::p2::c7"]
+    # ADR 0009: Figure 1's caption chunk is also a valid answer for figure
+    # queries — it's literally what the figure illustrates.
+    relevant_chunk_ids:
+      - "2604.28196v1::p2::c7"
+      - "2604.28196v1::p2::fig1"
     expected_facts:
       - "Figure 1 contrasts (a) prior driving world models that focus on generative scene evolution prediction, (b) LLMs for driving limited to scene understanding, and (c) the proposed HERMES++ framework that unifies 3D scene understanding and generation."
     note: "v3. Figure-content. Three-panel comparison figure."

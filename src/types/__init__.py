@@ -1,6 +1,6 @@
 """Public types shared across modules."""
 
-from src.types.documents import Chunk, Figure, Page, Paper, Table
+from src.types.documents import Bbox, Chunk, Figure, Page, Paper, Table
 from src.types.eval import (
     EvalRun,
     GenerationMetrics,
@@ -15,6 +15,7 @@ from src.types.retrieval import Query, RankedChunk, RetrievalResult, RetrievalSo
 
 __all__ = [
     "Answer",
+    "Bbox",
     "Chunk",
     "Citation",
     "Context",

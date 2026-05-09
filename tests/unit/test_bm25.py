@@ -6,8 +6,8 @@ from src.rag.bm25 import Bm25Index
 from src.types import Chunk
 
 
-def _chunk(chunk_id: str, text: str) -> Chunk:
-    return Chunk(chunk_id=chunk_id, paper_id="p1", page_numbers=[1], text=text)
+def _chunk(chunk_id: str, text: str, paper_id: str = "p1") -> Chunk:
+    return Chunk(chunk_id=chunk_id, paper_id=paper_id, page_numbers=[1], text=text)
 
 
 def test_search_returns_chunks_ranked_by_term_overlap() -> None:
@@ -52,3 +52,38 @@ def test_add_after_search_rebuilds_index() -> None:
     index.add([_chunk("c4", "rare-term zeta only-here")])
     hits = index.search("rare-term zeta", top_k=1)
     assert hits[0].chunk_id == "c4"
+
+
+# ADR 0009 follow-up: paper_filter scopes BM25 to a single paper's chunks.
+
+
+def test_paper_filter_drops_other_papers() -> None:
+    index = Bm25Index()
+    index.add(
+        [
+            _chunk("paperA::c0", "scaling law optimization", paper_id="paperA"),
+            _chunk("paperB::c0", "scaling law optimization", paper_id="paperB"),
+            _chunk("paperC::c0", "scaling law optimization", paper_id="paperC"),
+        ]
+    )
+    hits = index.search("scaling law", top_k=10, paper_filter="paperB")
+    assert [h.chunk_id for h in hits] == ["paperB::c0"]
+
+
+def test_paper_filter_none_returns_all() -> None:
+    """Default behavior (no filter) is unchanged."""
+    index = Bm25Index()
+    index.add(
+        [
+            _chunk("paperA::c0", "scaling law", paper_id="paperA"),
+            _chunk("paperB::c0", "scaling law", paper_id="paperB"),
+        ]
+    )
+    hits = index.search("scaling law", top_k=10)
+    assert {h.chunk_id for h in hits} == {"paperA::c0", "paperB::c0"}
+
+
+def test_paper_filter_with_no_matching_chunks_returns_empty() -> None:
+    index = Bm25Index()
+    index.add([_chunk("paperA::c0", "scaling law", paper_id="paperA")])
+    assert index.search("scaling law", top_k=10, paper_filter="paperZ") == []

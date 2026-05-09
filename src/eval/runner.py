@@ -8,7 +8,7 @@ from typing import Any
 from uuid import uuid4
 
 from src.eval.judges import LLMJudge
-from src.eval.metrics_generation import citation_grounding
+from src.eval.metrics_generation import citation_grounding, is_refusal_answer
 from src.eval.metrics_retrieval import ndcg_at_k, recall_at_k, reciprocal_rank
 from src.observability.logging import get_logger, timed_event
 from src.rag.generate import Generator
@@ -34,6 +34,7 @@ async def evaluate(
     judge: LLMJudge | None = None,
     top_k: int = 10,
     config: dict[str, Any] | None = None,
+    paper_id_filter: bool = False,
 ) -> EvalRun:
     """Run every query in `golden_set` through `retriever` (and `generator` if given).
 
@@ -56,7 +57,9 @@ async def evaluate(
         started_at = datetime.now(UTC)
         per_query: list[PerQueryResult] = []
         for query in golden_set.queries:
-            per_query.append(await _run_one(query, retriever, generator, judge, top_k))
+            per_query.append(
+                await _run_one(query, retriever, generator, judge, top_k, paper_id_filter)
+            )
         finished_at = datetime.now(UTC)
         ctx["mean_ndcg5"] = (
             sum(r.retrieval.ndcg_at_5 for r in per_query) / len(per_query) if per_query else 0.0
@@ -78,10 +81,22 @@ async def _run_one(
     generator: Generator | None,
     judge: LLMJudge | None,
     top_k: int,
+    paper_id_filter: bool = False,
 ) -> PerQueryResult:
-    """Retrieve, optionally generate, optionally judge, compute per-query metrics."""
+    """Retrieve, optionally generate, optionally judge, compute per-query metrics.
+
+    `paper_id_filter` is the eval-side fairness knob added in the ADR 0009
+    follow-up: when True, populate `Query.filters['paper_id']` from the
+    golden's `paper_id`. This scopes retrieval to one paper for queries
+    whose origin is known — closes the cross-paper bleed pattern observed
+    in run ad4fab3bb28d (q9_baselines top-1 was a table from the wrong
+    paper). Off by default so non-router eval paths are unchanged.
+    """
     started = time.monotonic()
-    rag_query = Query(text=query.text, top_k=top_k)
+    filters: dict[str, Any] = {}
+    if paper_id_filter and query.paper_id:
+        filters["paper_id"] = query.paper_id
+    rag_query = Query(text=query.text, top_k=top_k, filters=filters)
     retrieved = await retriever.retrieve(rag_query)
     retrieved_chunk_ids = [r.chunk_id for r in retrieved]
 
@@ -110,12 +125,29 @@ async def _run_one(
 
     if judge is not None:
         if answer_text is not None:
-            faithfulness = (
-                await judge.faithfulness(query=query.text, answer=answer_text, retrieved=retrieved)
-            ).score
-            answer_relevance = (
-                await judge.answer_relevance(query=query.text, answer=answer_text)
-            ).score
+            # Per docs/evals.md: a refusal answer ("Not stated in the provided
+            # context.") is correct on out_of_corpus queries (faith=ans_rel=1.0)
+            # and wrong on answerable queries (0.0). The LLM judge is unreliable
+            # on these — observed in run c92f3f1bee19, where 5 of 6 OOC refusals
+            # scored 0.0 on faithfulness despite the documented convention. We
+            # short-circuit deterministically; LLM judge is only called for
+            # non-refusal answers, where it's actually evaluating content.
+            if is_refusal_answer(answer_text):
+                if query.category == "out_of_corpus":
+                    faithfulness = 1.0
+                    answer_relevance = 1.0
+                else:
+                    faithfulness = 0.0
+                    answer_relevance = 0.0
+            else:
+                faithfulness = (
+                    await judge.faithfulness(
+                        query=query.text, answer=answer_text, retrieved=retrieved
+                    )
+                ).score
+                answer_relevance = (
+                    await judge.answer_relevance(query=query.text, answer=answer_text)
+                ).score
         context_precision = (
             await judge.context_precision(query=query.text, retrieved=retrieved)
         ).score

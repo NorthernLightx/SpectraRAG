@@ -167,11 +167,26 @@ class Generator:
             r = by_id.get(cid)
             if r is None:
                 continue
+            # ADR 0009: when the cited chunk is a region-grounded figure or
+            # table, copy its bbox into the Citation so the demo UI can
+            # render a region-precise highlight on the page image. `bbox`
+            # is stored as a 4-list in chunk metadata by figure_to_chunk /
+            # table_to_chunk; we validate the shape before passing through
+            # to keep Citation's typed contract clean.
+            bbox_raw = r.metadata.get("bbox")
+            bbox: list[float] | None = None
+            if (
+                isinstance(bbox_raw, list)
+                and len(bbox_raw) == 4
+                and all(isinstance(v, (int, float)) for v in bbox_raw)
+            ):
+                bbox = [float(v) for v in bbox_raw]
             citations.append(
                 Citation(
                     chunk_id=r.chunk_id,
                     paper_id=r.paper_id,
                     page_numbers=r.page_numbers,
+                    bbox=bbox,
                 )
             )
         return citations

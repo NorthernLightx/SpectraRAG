@@ -62,8 +62,20 @@ class VisualRetriever:
         if not self._page_embeds:
             return []
 
+        # ADR 0009 follow-up: paper-id filter is honored if the caller passes
+        # one in `query.filters['paper_id']`. The visual leg's index is
+        # in-memory `page_meta[chunk_id] = (paper_id, page_no)`, so filtering
+        # is a dict-key check before scoring.
+        paper_filter = query.filters.get("paper_id") if query.filters else None
+        if not isinstance(paper_filter, str):
+            paper_filter = None
+
         with timed_event(_log, "visual_retrieve.done", query=query.text, top_k=query.top_k) as ctx:
             scores = await asyncio.to_thread(self._score_query, query.text)
+            if paper_filter is not None:
+                scores = {
+                    cid: s for cid, s in scores.items() if self._page_meta[cid][0] == paper_filter
+                }
             ranked = sorted(scores.items(), key=lambda kv: kv[1], reverse=True)[: query.top_k]
             results: list[RetrievalResult] = []
             for chunk_id, score in ranked:
@@ -79,6 +91,7 @@ class VisualRetriever:
                     )
                 )
             ctx["candidate_pool"] = len(self._page_embeds)
+            ctx["paper_filter"] = paper_filter or ""
             ctx["returned"] = len(results)
             ctx["top_chunk"] = results[0].chunk_id if results else None
             return results
