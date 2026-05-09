@@ -5,17 +5,50 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Multi-modal Paper RAG</title>
     <style>
-      :root {
+      :root,
+      [data-theme="dark"] {
         --bg: #0d1117;
+        --canvas: #161b22;
+        --canvas-elevated: #1f242c;
         --fg: #e6edf3;
+        --fg-strong: #ffffff;
         --muted: #8b949e;
-        --accent: #58a6ff;
         --border: #30363d;
-        --card: #161b22;
+        --border-subtle: #21262d;
+        --accent: #58a6ff;
+        --accent-strong: #1f6feb;
+        --accent-tint: rgba(88, 166, 255, 0.15);
         --ok: #3fb950;
+        --ok-tint: rgba(63, 185, 80, 0.15);
         --err: #f85149;
+        --vis: #d2a8ff;
+        --vis-tint: rgba(187, 128, 247, 0.18);
         --code: #c9d1d9;
         --code-bg: #1f242c;
+        --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+        --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.45);
+      }
+      [data-theme="light"] {
+        --bg: #ffffff;
+        --canvas: #f6f8fa;
+        --canvas-elevated: #ffffff;
+        --fg: #1f2328;
+        --fg-strong: #0d1117;
+        --muted: #59636e;
+        --border: #d1d9e0;
+        --border-subtle: #e4e7eb;
+        --accent: #0969da;
+        --accent-strong: #0550ae;
+        --accent-tint: rgba(9, 105, 218, 0.1);
+        --ok: #1a7f37;
+        --ok-tint: rgba(26, 127, 55, 0.12);
+        --err: #d1242f;
+        --vis: #8250df;
+        --vis-tint: rgba(130, 80, 223, 0.12);
+        --code: #1f2328;
+        --code-bg: #f6f8fa;
+        --shadow-sm: 0 1px 2px rgba(31, 35, 40, 0.06);
+        --shadow-md: 0 4px 14px rgba(31, 35, 40, 0.08);
       }
       * { box-sizing: border-box; }
       html, body {
@@ -26,107 +59,234 @@
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
         font-size: 15px;
         line-height: 1.55;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
       }
-      main { max-width: 880px; margin: 0 auto; padding: 32px 24px 64px; }
-      header { margin-bottom: 28px; }
-      h1 { font-size: 26px; margin: 0 0 4px; }
-      header p { margin: 0; color: var(--muted); }
-      .card {
-        background: var(--card);
+      body { transition: background 0.18s ease, color 0.18s ease; }
+      main { max-width: 880px; margin: 0 auto; padding: 22px 24px 64px; }
+
+      header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 6px;
+      }
+      .title-block { flex: 1; min-width: 0; }
+      h1 {
+        font-size: 26px;
+        margin: 0 0 4px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        color: var(--fg-strong);
+      }
+      header p { margin: 0; color: var(--muted); font-size: 14px; }
+      .icon-btn {
+        background: transparent;
         border: 1px solid var(--border);
         border-radius: 8px;
+        width: 36px;
+        height: 36px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--fg);
+        cursor: pointer;
+        transition: background 0.15s ease, border-color 0.15s ease;
+      }
+      .icon-btn:hover { background: var(--canvas); border-color: var(--accent); }
+      .icon-btn svg { width: 16px; height: 16px; }
+      [data-theme="light"] .icon-btn .icon-moon,
+      [data-theme="dark"] .icon-btn .icon-sun { display: none; }
+
+      .nav {
+        display: flex;
+        gap: 4px;
+        font-size: 13px;
+        margin: 14px 0 18px;
+      }
+      .nav a {
+        padding: 4px 10px;
+        border-radius: 999px;
+        color: var(--muted);
+        text-decoration: none;
+        transition: background 0.15s ease, color 0.15s ease;
+      }
+      .nav a:hover { background: var(--canvas); color: var(--fg); }
+      .nav a.active {
+        background: var(--accent-tint);
+        color: var(--accent);
+        font-weight: 600;
+      }
+
+      .card {
+        background: var(--canvas);
+        border: 1px solid var(--border);
+        border-radius: 10px;
         padding: 20px;
         margin: 16px 0;
+        box-shadow: var(--shadow-sm);
       }
       label {
         display: block;
-        font-size: 13px;
+        font-size: 12px;
+        font-weight: 500;
         color: var(--muted);
-        margin-bottom: 6px;
+        margin-bottom: 4px;
       }
       input, select, textarea {
         width: 100%;
-        background: var(--bg);
+        background: var(--canvas-elevated);
         color: var(--fg);
         border: 1px solid var(--border);
-        border-radius: 6px;
-        padding: 10px 12px;
+        border-radius: 8px;
+        padding: 9px 11px;
         font-family: inherit;
         font-size: 14px;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease;
       }
       input:focus, select:focus, textarea:focus {
         outline: none;
         border-color: var(--accent);
+        box-shadow: 0 0 0 3px var(--accent-tint);
       }
       textarea { min-height: 100px; resize: vertical; }
       button {
         background: var(--accent);
-        color: #0d1117;
-        border: none;
-        border-radius: 6px;
+        color: #ffffff;
+        border: 1px solid transparent;
+        border-radius: 8px;
         padding: 10px 18px;
         font-weight: 600;
         font-size: 14px;
         cursor: pointer;
+        font-family: inherit;
+        transition: background 0.15s ease, transform 0.06s ease;
       }
-      button:disabled { opacity: 0.5; cursor: not-allowed; }
+      button:hover:not(:disabled) { background: var(--accent-strong); }
+      button:active:not(:disabled) { transform: translateY(1px); }
+      button:disabled { opacity: 0.55; cursor: not-allowed; }
+
       .row { display: flex; gap: 12px; align-items: center; margin-top: 12px; }
       .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
       .muted { color: var(--muted); font-size: 13px; }
+
       pre, code {
         font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, monospace;
-        font-size: 13px;
+        font-size: 12.5px;
       }
       pre {
         background: var(--code-bg);
         color: var(--code);
-        border: 1px solid var(--border);
+        border: 1px solid var(--border-subtle);
         border-radius: 6px;
-        padding: 12px;
+        padding: 10px;
         overflow-x: auto;
         white-space: pre-wrap;
       }
       .answer { white-space: pre-wrap; }
-      details { margin-top: 16px; }
-      summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+      .answer:empty::after {
+        content: "";
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--muted);
+        animation: pulse 1.2s ease-in-out infinite;
+      }
+      @keyframes pulse {
+        0%, 100% { opacity: 0.3; transform: scale(0.85); }
+        50% { opacity: 1; transform: scale(1); }
+      }
+
+      details {
+        margin-top: 14px;
+        border: 1px solid var(--border-subtle);
+        border-radius: 8px;
+        background: var(--canvas-elevated);
+      }
+      summary {
+        cursor: pointer;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 500;
+        padding: 8px 12px;
+        list-style: none;
+        user-select: none;
+      }
+      summary::-webkit-details-marker { display: none; }
+      summary::before {
+        content: "▸";
+        display: inline-block;
+        margin-right: 6px;
+        transition: transform 0.15s ease;
+      }
+      details[open] > summary::before { transform: rotate(90deg); }
+      .details-body { padding: 4px 12px 12px; }
+
       .chunk {
-        border-top: 1px solid var(--border);
+        border-top: 1px solid var(--border-subtle);
         padding-top: 10px;
         margin-top: 10px;
       }
-      .chunk:first-of-type { border-top: none; padding-top: 0; }
+      .chunk:first-of-type { border-top: none; padding-top: 0; margin-top: 0; }
       .chunk-meta { color: var(--muted); font-size: 12px; margin-bottom: 4px; }
       .badge {
         display: inline-block;
-        padding: 1px 6px;
-        border-radius: 4px;
-        font-size: 11px;
-        font-weight: 600;
+        padding: 2px 7px;
+        border-radius: 999px;
+        font-size: 10.5px;
+        font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 0.4px;
+        letter-spacing: 0.05em;
         margin-right: 6px;
+        vertical-align: 1px;
       }
-      .badge-pipeline { background: rgba(88, 166, 255, 0.15); color: var(--accent); }
-      .badge-visual { background: rgba(63, 185, 80, 0.15); color: var(--ok); }
-      .badge-multimodal { background: rgba(187, 128, 247, 0.18); color: #d2a8ff; }
+      .badge-pipeline { background: var(--accent-tint); color: var(--accent); }
+      .badge-visual { background: var(--ok-tint); color: var(--ok); }
+      .badge-multimodal { background: var(--vis-tint); color: var(--vis); }
       .err { color: var(--err); }
-      footer { margin-top: 40px; color: var(--muted); font-size: 12px; }
+      footer {
+        margin-top: 36px;
+        color: var(--muted);
+        font-size: 12px;
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
       footer a { color: var(--accent); text-decoration: none; }
+      footer a:hover { text-decoration: underline; }
       .hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
     </style>
   </head>
   <body>
     <main>
       <header>
-        <h1>Multi-modal Paper RAG</h1>
-        <p>
-          Bring your own OpenRouter key. Retrieval runs on this server (BM25 +
-          dense + RRF + rerank). Generation calls OpenRouter from your browser
-          with the retrieved chunks — and, when a vision model is selected and
-          page images are available, the page PNGs ride along as image content
-          blocks. Your key is never sent to this server.
-        </p>
+        <div class="title-block">
+          <h1>Multi-modal Paper RAG</h1>
+          <p>
+            Bring your own OpenRouter key. Retrieval runs on this server (BM25 +
+            dense + RRF + rerank). Generation calls OpenRouter from your browser
+            with the retrieved chunks — and, when a vision model is selected and
+            page images are available, the page PNGs ride along as image content
+            blocks. Your key is never sent to this server.
+          </p>
+        </div>
+        <button class="icon-btn" id="themeToggle" aria-label="Toggle theme" title="Toggle theme">
+          <svg class="icon-sun" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <path d="M8 12a4 4 0 1 1 0-8 4 4 0 0 1 0 8ZM8 0a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0V.75A.75.75 0 0 1 8 0Zm0 13a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0v-1.5A.75.75 0 0 1 8 13Zm8-5a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 16 8ZM3 8a.75.75 0 0 1-.75.75H.75a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 3 8Zm10.657-5.657a.75.75 0 0 1 0 1.06l-1.06 1.061a.75.75 0 1 1-1.061-1.06l1.06-1.061a.75.75 0 0 1 1.061 0Zm-9.193 9.193a.75.75 0 0 1 0 1.061l-1.06 1.06a.75.75 0 1 1-1.061-1.06l1.06-1.06a.75.75 0 0 1 1.061 0Zm9.193 2.121a.75.75 0 0 1-1.06 0l-1.061-1.06a.75.75 0 1 1 1.06-1.061l1.061 1.06a.75.75 0 0 1 0 1.061ZM4.464 4.464a.75.75 0 0 1-1.06 0l-1.061-1.06a.75.75 0 1 1 1.06-1.061l1.061 1.06a.75.75 0 0 1 0 1.061Z"/>
+          </svg>
+          <svg class="icon-moon" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <path d="M9.598 1.591a.749.749 0 0 1 .785-.175 7.001 7.001 0 1 1-8.967 8.967.75.75 0 0 1 .961-.96 5.5 5.5 0 0 0 7.046-7.046.75.75 0 0 1 .175-.786Zm1.616 1.945a7 7 0 0 1-7.678 7.678 5.499 5.499 0 1 0 7.678-7.678Z"/>
+          </svg>
+        </button>
       </header>
+
+      <nav class="nav">
+        <a href="/" class="active">Single-shot</a>
+        <a href="/chat.html">Chat</a>
+      </nav>
 
       <section class="card">
         <div class="grid-2">
@@ -165,18 +325,19 @@
         <div class="answer" id="answer"></div>
         <details id="citationsWrap" hidden>
           <summary>Citations</summary>
-          <div id="citations"></div>
+          <div class="details-body" id="citations"></div>
         </details>
         <details id="chunksWrap" hidden>
           <summary>Retrieved chunks</summary>
-          <div id="chunks"></div>
+          <div class="details-body" id="chunks"></div>
         </details>
         <div class="row muted" id="meta" style="margin-top: 14px"></div>
       </section>
 
       <footer>
-        Source on <a href="https://github.com/NorthernLightx/prismrag">GitHub</a> ·
-        OpenAPI at <a href="/docs">/docs</a>
+        <a href="https://github.com/NorthernLightx/prismrag">Source on GitHub</a>
+        <a href="/docs">OpenAPI</a>
+        <a href="/chat.html">Chat variant</a>
       </footer>
     </main>
 
@@ -185,6 +346,7 @@
       const modelSelect = document.getElementById("model");
       const queryInput = document.getElementById("query");
       const askBtn = document.getElementById("ask");
+      const themeBtn = document.getElementById("themeToggle");
       const statusEl = document.getElementById("status");
       const resultEl = document.getElementById("result");
       const answerEl = document.getElementById("answer");
@@ -195,6 +357,19 @@
       const metaEl = document.getElementById("meta");
       const modeHint = document.getElementById("modeHint");
 
+      const savedTheme = localStorage.getItem("rag.theme");
+      const prefersLight = window.matchMedia("(prefers-color-scheme: light)").matches;
+      document.documentElement.setAttribute(
+        "data-theme",
+        savedTheme || (prefersLight ? "light" : "dark")
+      );
+      themeBtn.addEventListener("click", () => {
+        const next =
+          document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+        document.documentElement.setAttribute("data-theme", next);
+        localStorage.setItem("rag.theme", next);
+      });
+
       apiKeyInput.value = localStorage.getItem("rag.apiKey") || "";
       modelSelect.value = localStorage.getItem("rag.model") || modelSelect.value;
       apiKeyInput.addEventListener("change", () =>
@@ -204,9 +379,6 @@
         localStorage.setItem("rag.model", modelSelect.value)
       );
 
-      // Cache server's pages-available status — drives whether we attach
-      // image content blocks. When false, the deploy skipped the page-render
-      // bake step, so we run text-only.
       let pagesAvailable = false;
       fetch("/health")
         .then((r) => r.json())
@@ -233,7 +405,7 @@
         if (!apiKey) return setStatus("Paste an OpenRouter API key.", true);
 
         askBtn.disabled = true;
-        setStatus("Retrieving chunks...", false);
+        setStatus("Retrieving chunks…", false);
         clearAnswer();
         resultEl.hidden = true;
 
@@ -257,14 +429,11 @@
           return;
         }
 
-        // Build the messages array for OpenRouter. Page image URLs are
-        // resolved by the browser against the same origin (/pages/...).
-        // The vision model sees the actual page pixels alongside the text.
         const useImages = pagesAvailable && supportsVision(model);
         setStatus(
           useImages
-            ? "Generating with vision (chunks + page images)..."
-            : "Generating (text-only)...",
+            ? "Generating with vision (chunks + page images)…"
+            : "Generating (text-only)…",
           false
         );
 
@@ -326,15 +495,9 @@
       }
 
       function supportsVision(model) {
-        // Trivial allow-list — every option in the dropdown except the
-        // explicit text-only Llama is vision-capable. Models that don't
-        // accept image content blocks will return 400; the user gets the
-        // raw OpenRouter error so the failure mode is visible.
         return !model.includes("llama-3.1-70b");
       }
 
-      // Streams an SSE response from OpenRouter, accumulating text as it
-      // arrives. Returns the final concatenated text + the usage block.
       async function streamOpenRouter(apiKey, model, messages) {
         const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
           method: "POST",
@@ -383,15 +546,13 @@
               }
               if (obj.usage) usage = obj.usage;
             } catch {
-              // Heartbeat / partial — skip.
+              // heartbeat / partial — skip
             }
           }
         }
         return { text: acc, usage };
       }
 
-      // Pull [chunk_id]-style references out of the LLM output. matchAll
-      // returns an iterator so we can de-dupe on first occurrence.
       function parseCitations(text) {
         const seen = new Set();
         const ids = [];

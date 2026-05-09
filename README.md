@@ -66,12 +66,15 @@ uv run python -m scripts.bootstrap_corpus --pdf-dir data/papers
 uv run uvicorn src.api.main:app --reload --port 8000
 ```
 
-Open <http://localhost:8000/> for the BYOK UI — paste your own OpenRouter
-key (never sent to this server), the browser calls `/query` for retrieval
-and dispatches the chat call directly to OpenRouter. Vision-capable models
-(`gpt-4o`, `claude-sonnet-4.x`, `qwen3-vl`) read page PNGs as image
-content blocks when `RAG_PAGES_DIR` is set (run
-`python -m scripts.render_pages --pdf-dir data/papers` to fill it).
+Open <http://localhost:8000/> for the single-shot BYOK UI, or
+<http://localhost:8000/chat.html> for the conversational variant
+(per-turn fresh retrieval + condense step on follow-ups). Both share
+a light/dark theme toggle. Paste your own OpenRouter key — never sent
+to this server; the browser calls `/query` for retrieval and dispatches
+the chat call directly to OpenRouter. Vision-capable models (`gpt-4o`,
+`claude-sonnet-4.x`, `qwen3-vl`) read page PNGs as image content blocks
+when `RAG_PAGES_DIR` is set (run `python -m scripts.render_pages
+--pdf-dir data/papers` to fill it).
 
 `/health` gates the lifespan handler's wiring; `/answer` exists for direct
 API users (returns 503 until OpenRouter key + Qdrant collection are both
