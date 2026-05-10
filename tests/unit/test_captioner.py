@@ -207,3 +207,28 @@ async def test_caption_figures_works_with_openrouter_captioner(tmp_path: Path) -
     captioner = OpenRouterVisionCaptioner(api_key="k", model="openai/gpt-4o-mini")
     [out] = await caption_figures(figs, captioner=captioner)
     assert out.vlm_caption == "Cloud VLM caption."
+
+
+@respx.mock
+async def test_default_max_tokens_fits_reasoning_vlms(tmp_path: Path) -> None:
+    """Reasoning VLMs (Nemotron Nano 12B VL etc.) emit CoT tokens before
+    the final caption. With the old 200-token default, Nemotron truncated
+    mid-reasoning and returned empty content; 400 covers it."""
+    image_path = _write_png(tmp_path / "fig1.png")
+    route = respx.post(_OR_URL).mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "id": "x",
+                "model": "nvidia/nemotron-nano-12b-v2-vl:free",
+                "choices": [{"message": {"content": "Heatmap of values across 2D grid."}}],
+            },
+        )
+    )
+    captioner = OpenRouterVisionCaptioner(
+        api_key="k", model="nvidia/nemotron-nano-12b-v2-vl:free"
+    )
+    caption = await captioner.caption(image_path)
+    assert caption == "Heatmap of values across 2D grid."
+    body = route.calls.last.request.content
+    assert b'"max_tokens":400' in body or b'"max_tokens": 400' in body

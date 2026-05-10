@@ -39,6 +39,13 @@ _log = get_logger(__name__)
 
 _DEFAULT_TIMEOUT_SECONDS = 600.0
 _DEFAULT_CONCURRENCY = 2
+# Reasoning-style VLMs (Nemotron Nano 12B VL, gemini-thinking, etc.) emit
+# chain-of-thought tokens before the final caption. With the old 200-token
+# cap they truncated mid-reasoning and returned empty `content`. 400 covers
+# observed reasoning-heavy outputs (~150-300 reasoning + ~100 caption) and
+# is still bounded for cost. gpt-4o-mini and gemma3:4b finish earlier so
+# this is a no-op for non-reasoning models.
+_DEFAULT_MAX_TOKENS = 400
 
 _DEFAULT_PROMPT = (
     "You are captioning a figure from a scientific paper. In 1-3 sentences, describe: "
@@ -66,7 +73,7 @@ class OllamaVisionCaptioner:
         client: httpx.AsyncClient | None = None,
         prompt: str = _DEFAULT_PROMPT,
         temperature: float = 0.0,
-        max_tokens: int = 200,
+        max_tokens: int = _DEFAULT_MAX_TOKENS,
     ) -> None:
         self._base_url = base_url.rstrip("/")
         self._model = model
@@ -174,7 +181,7 @@ class OpenRouterVisionCaptioner:
         client: httpx.AsyncClient | None = None,
         prompt: str = _DEFAULT_PROMPT,
         temperature: float = 0.0,
-        max_tokens: int = 200,
+        max_tokens: int = _DEFAULT_MAX_TOKENS,
     ) -> None:
         self._api_key = api_key
         self._model = model

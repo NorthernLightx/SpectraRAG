@@ -202,7 +202,7 @@ async def test_judge_multi_seed_averages_scores_and_reports_std() -> None:
     assert len(llm.calls) == 3
 
 
-async def test_judge_multi_seed_reports_zero_std_when_all_scores_match() -> None:
+async def test_judge_multi_seed_zero_std_on_agreement() -> None:
     """Three identical scores → stddev is 0.0 (model is consistent here)."""
     llm = _StubLLM(["0.5\na", "0.5\nb", "0.5\nc"])
     judge = _make_judge(llm, n_samples=3)
