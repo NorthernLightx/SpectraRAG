@@ -30,10 +30,25 @@ from pathlib import Path
 from typing import Any, Protocol, runtime_checkable
 
 import httpx
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
+from tenacity import (
+    retry,
+    retry_if_exception,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 from src.observability.logging import get_logger, timed_event
 from src.types import Figure
+
+
+def _should_retry_vlm_request(exc: BaseException) -> bool:
+    """Same retry policy as OpenRouterClient: transport errors + HTTP 429."""
+    if isinstance(exc, (httpx.TransportError, httpx.RemoteProtocolError)):
+        return True
+    return (
+        isinstance(exc, httpx.HTTPStatusError) and exc.response.status_code == 429
+    )
 
 _log = get_logger(__name__)
 
@@ -193,13 +208,19 @@ class OpenRouterVisionCaptioner:
         self._max_tokens = max_tokens
 
     @retry(
-        retry=retry_if_exception_type((httpx.TransportError, httpx.RemoteProtocolError)),
-        wait=wait_exponential(multiplier=0.5, min=0.5, max=8),
-        stop=stop_after_attempt(3),
+        retry=retry_if_exception(_should_retry_vlm_request),
+        wait=wait_exponential(multiplier=2, min=2, max=60),
+        stop=stop_after_attempt(6),
         reraise=True,
     )
     async def caption(self, image_path: Path) -> str:
-        """Return a caption for `image_path`. Empty string on permanent failure."""
+        """Return a caption for `image_path`. Empty string on permanent failure.
+
+        Free-tier OpenRouter VLMs commonly return 429 under burst load;
+        we raise on 429 so tenacity retries with exponential backoff.
+        Other non-200 (401, 404, 5xx after retries) become a logged
+        warning and an empty string — caller falls back to the PDF caption.
+        """
         if not await asyncio.to_thread(image_path.exists):
             _log.warning("vlm_caption.image_missing", path=str(image_path))
             return ""
@@ -234,6 +255,11 @@ class OpenRouterVisionCaptioner:
             async with httpx.AsyncClient(timeout=self._timeout) as ad_hoc:
                 response = await ad_hoc.post(url, json=payload, headers=headers)
 
+        if response.status_code == 429:
+            # Raise so tenacity retries with backoff. _should_retry_vlm_request
+            # returns True for HTTPStatusError(429); other 4xx/5xx fall through
+            # to the warning + empty-string graceful path below.
+            response.raise_for_status()
         if response.status_code != 200:
             _log.warning(
                 "vlm_caption.http_error",

@@ -210,6 +210,45 @@ async def test_caption_figures_works_with_openrouter_captioner(tmp_path: Path) -
 
 
 @respx.mock
+async def test_openrouter_captioner_retries_on_429(tmp_path: Path) -> None:
+    """Free-tier VLMs (Nemotron Nano 12B VL) hit 429 under burst eval load.
+    Without 429 retry, the eval crashes mid-run (verified empirically on
+    run b30k0s5pu). Tenacity retries up to 6 times with exponential backoff."""
+    image_path = _write_png(tmp_path / "fig1.png")
+    route = respx.post(_OR_URL).mock(
+        side_effect=[
+            httpx.Response(429, json={"error": "rate limit"}),
+            httpx.Response(429, json={"error": "rate limit"}),
+            httpx.Response(
+                200,
+                json={
+                    "id": "x",
+                    "model": "nvidia/nemotron-nano-12b-v2-vl:free",
+                    "choices": [{"message": {"content": "After backoff: a heatmap."}}],
+                },
+            ),
+        ]
+    )
+    captioner = OpenRouterVisionCaptioner(
+        api_key="k",
+        model="nvidia/nemotron-nano-12b-v2-vl:free",
+        # Use httpx client without real backoff sleep so the test is fast.
+    )
+    # Patch tenacity's sleep so the test doesn't actually wait.
+    import tenacity
+
+    original_sleep = tenacity.nap.sleep
+    tenacity.nap.sleep = lambda _: None  # type: ignore[assignment]
+    try:
+        caption = await captioner.caption(image_path)
+    finally:
+        tenacity.nap.sleep = original_sleep  # type: ignore[assignment]
+
+    assert caption == "After backoff: a heatmap."
+    assert route.call_count == 3  # two 429s, then a 200
+
+
+@respx.mock
 async def test_default_max_tokens_fits_reasoning_vlms(tmp_path: Path) -> None:
     """Reasoning VLMs (Nemotron Nano 12B VL etc.) emit CoT tokens before
     the final caption. With the old 200-token default, Nemotron truncated
