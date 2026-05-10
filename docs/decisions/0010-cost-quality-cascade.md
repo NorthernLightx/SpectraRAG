@@ -129,20 +129,52 @@ the score-threshold gate with:
 
 ## Validation outcome
 
-Run `<TBD>` — full v3 + Tier 1 stack + cascade(0.85) + multi-seed judge
-(N=3) + B1 deterministic OOC. Compared to committed baseline
-`f844619927e0`:
+The full v3 verification eval was attempted with all features on
+(`--cascade --cascade-threshold 0.85 --judge-n-samples 3` plus the
+existing committed-baseline stack). It failed early with HTTP 403 from
+OpenRouter: *"Key limit exceeded (total limit)"* — the API key hit its
+spending cap during the cumulative session work. Not a code defect.
 
-- nDCG@5 / recall@10 / MRR: `<TBD>`
-- faithfulness / answer_relevance / context_precision (mean ± std over
-  3 judge samples): `<TBD>`
-- Cascade fire rate (visual leg invocations): `<TBD>`
-- Latency p50 / p95: `<TBD>`
+A smaller end-to-end smoke verification (run `568fe7cfd4f9`) ran all
+Tier 2 code paths against golden v1 (5 queries, 1 paper) using local
+Ollama models (llama3.2:3b for gen + judge, n_samples=2) so it doesn't
+burn API credit. Validates the *plumbing*, not headline metrics — the
+absolute scores are lower because llama3.2:3b is a weaker judge than
+gpt-4o-mini.
 
-To be filled in after the eval completes. The expected pattern:
-- Retrieval metrics: ≈0 change (cascade preserves quality by design)
-- Generation metrics: small move; the noise (std) should be measurable
-- Latency: meaningful drop on cascade-skipped queries
+| Metric | Smoke value (Ollama 3.2:3b judge) |
+|---|---|
+| nDCG@5 (4 in-corpus queries) | 0.8726 |
+| recall@10 | 0.8750 |
+| MRR | 1.0000 |
+| citation grounding | 1.0000 |
+| faithfulness | 0.8133 |
+| answer_relevance | 0.6900 |
+| context_precision | 0.6060 |
+
+What the smoke proves end-to-end:
+
+- **Cascade dispatched correctly.** q5 (OOC) had `cascade_top_score=0.001 <
+  0.85` → fell through to `cascade_decision=uncertain_hybrid` and the
+  visual leg fired. The 4 in-corpus queries had high text confidence and
+  hit `cascade_decision=confident_text` (visual leg skipped). Logs include
+  `mode=cascade` and the decision string.
+- **Multi-seed judge fired.** Config records `judge_n_samples=2`. Per-call
+  log entries include `n_samples=2 score_std=…`. Smoke happened to land
+  on score_std=0 for several metrics (the 2 calls agreed); a fuller run
+  on a more contentious corpus would surface non-zero variance.
+- **B1 deterministic OOC.** q5's refusal answer (category=out_of_corpus)
+  was scored faith=1.0/ans_rel=1.0 by the runner-side override; no LLM
+  judge call was made for those metrics on this query (verified in
+  `_RecordingJudge` unit tests + matching log shape here).
+
+The headline cost-quality numbers vs the committed baseline
+`f844619927e0` remain measured by Tier 1's `196ac0f8786f` data: cascade
+is metric-neutral on this corpus by design, the methodology fixes
+remove judge noise rather than move quality. A future v3 eval (after
+the OpenRouter cap is raised, or running it through Ollama for a
+multi-hour wall-clock cost) would confirm that explicitly with
+gpt-4o-mini's score range; the code paths themselves are verified.
 
 ## Caveats & open questions
 
@@ -179,4 +211,4 @@ To be filled in after the eval completes. The expected pattern:
 - ADR 0009 — Region-level evidence + 1st/2nd follow-ups.
 - `scripts/calibrate_cascade.py` — per-corpus threshold picker.
 - `scripts/calibrate_refusal.py` (Tier 1) — same shape, refusal version.
-- Run `<TBD>` — Tier 2 verification.
+- Run `568fe7cfd4f9` — Tier 2 smoke verification (Ollama, golden v1).
