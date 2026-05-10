@@ -272,6 +272,47 @@ async def test_substantive_answer_uses_llm_judge() -> None:
     assert judge.context_precision_calls == 1
 
 
+async def test_non_refusal_on_ooc_scores_zero_without_llm_judge() -> None:
+    """B1 (deterministic OOC scoring): a non-refusal answer to an OOC query
+    is wrong by construction — no LLM judge needed. Eliminates the
+    q33-style judge-call variance observed in run 196ac0f8786f."""
+    retriever = _CannedRetriever([_retrieval("c1")])
+    judge = _RecordingJudge()
+    leaked_answer = Answer(
+        text="The hyperparameters are learning rate 1e-5, 15000 steps, ...",
+        citations=[Citation(chunk_id="c1", paper_id="p1", page_numbers=[1])],
+        model="stub",
+        prompt_version="stub-v0",
+        latency_ms=0,
+        tokens_in=42,
+        tokens_out=12,
+    )
+    gs = GoldenSet(
+        name="tiny",
+        version="v1",
+        queries=[_golden("q_oc", category="out_of_corpus", relevant=[])],
+    )
+
+    run = await evaluate(
+        retriever=retriever,
+        golden_set=gs,
+        generator=cast(Generator, _CannedGenerator(leaked_answer)),
+        judge=cast(LLMJudge, judge),
+    )
+
+    pq = run.per_query[0]
+    assert pq.generation is not None
+    assert pq.generation.faithfulness == pytest.approx(0.0)
+    assert pq.generation.answer_relevance == pytest.approx(0.0)
+    # context_precision still goes through the judge — orthogonal to whether
+    # the answer was a leak.
+    assert pq.generation.context_precision == pytest.approx(0.5)
+    # Critical: faithfulness/answer_relevance LLM judge calls are SKIPPED.
+    assert judge.faithfulness_calls == 0
+    assert judge.answer_relevance_calls == 0
+    assert judge.context_precision_calls == 1
+
+
 async def test_refusal_on_ooc_with_alternate_gate_phrase() -> None:
     retriever = _CannedRetriever([_retrieval("c1")])
     judge = _RecordingJudge()

@@ -1,14 +1,22 @@
 """LLM-as-judge metrics: faithfulness, answer relevance, context precision.
 
-Each judge calls the LLM once with a versioned prompt, parses a single decimal
-score from the first line of the response, and returns it alongside the
-rationale text. The first-line-decimal format is deliberately simple so small
-local models (e.g. qwen2.5:7b) can produce parseable output reliably; strict
-JSON tends to fail at this size.
+Each judge calls the LLM with a versioned prompt and parses a single decimal
+score from the first line of the response. The first-line-decimal format is
+deliberately simple so small local models (e.g. qwen2.5:7b) can produce
+parseable output reliably; strict JSON tends to fail at this size.
+
+Multi-seed averaging (B2 / Tier 2): when `n_samples > 1`, each metric is
+sampled `n_samples` times in parallel at a non-zero `sampling_temperature`.
+The output's `.score` is the mean across samples; `.score_std` is the
+sample standard deviation. This converts the "did q33 happen to score 1.0
+or 0.5 this run?" judge variance from a hidden source of metric noise into
+a measurable quantity, so future feature deltas are interpretable.
 """
 
 from __future__ import annotations
 
+import asyncio
+import math
 import re
 from dataclasses import dataclass
 
@@ -24,12 +32,21 @@ _FIRST_DECIMAL_RE = re.compile(r"-?\d+(?:\.\d+)?")
 
 @dataclass(frozen=True)
 class JudgeOutput:
-    """One judgment: a clamped 0-1 score and the model's rationale."""
+    """One judgment: a clamped 0-1 score and the model's rationale.
+
+    `score_std` is the sample standard deviation across `n_samples` calls
+    when multi-seed averaging is enabled (B2). 0.0 when `n_samples == 1`
+    (single call, no variance to measure). The mean is in `score`.
+    `n_samples` records how many calls were averaged so downstream
+    reporting can format `score ± score_std (n=N)` honestly.
+    """
 
     score: float
     rationale: str
     model: str
     prompt_version: str
+    score_std: float = 0.0
+    n_samples: int = 1
 
 
 def _parse_score(raw: str) -> tuple[float, str]:
@@ -60,7 +77,15 @@ def _parse_score(raw: str) -> tuple[float, str]:
 
 
 class LLMJudge:
-    """LLM-as-judge for generation metrics. One LLM call per (query, metric)."""
+    """LLM-as-judge for generation metrics.
+
+    By default makes one LLM call per (query, metric). Set `n_samples > 1`
+    to enable multi-seed averaging (B2 / Tier 2): each metric becomes N
+    parallel calls at `sampling_temperature` (defaults to 0.7 — high enough
+    to surface judge variance without making the scores nonsense), with
+    the mean reported as `JudgeOutput.score` and the sample stddev as
+    `JudgeOutput.score_std`.
+    """
 
     def __init__(
         self,
@@ -72,7 +97,11 @@ class LLMJudge:
         context_precision_prompt: Prompt,
         temperature: float = 0.0,
         max_tokens: int = 256,
+        n_samples: int = 1,
+        sampling_temperature: float = 0.7,
     ) -> None:
+        if n_samples < 1:
+            raise ValueError(f"n_samples must be >= 1, got {n_samples}")
         self._llm = llm
         self._model = model
         self._faithfulness_prompt = faithfulness_prompt
@@ -80,6 +109,10 @@ class LLMJudge:
         self._context_precision_prompt = context_precision_prompt
         self._temperature = temperature
         self._max_tokens = max_tokens
+        self._n_samples = n_samples
+        # Single-seed callers stay at deterministic temperature=0; only
+        # bump to sampling_temperature when multi-seed is requested.
+        self._sampling_temperature = sampling_temperature if n_samples > 1 else temperature
 
     async def faithfulness(
         self, *, query: str, answer: str, retrieved: list[RetrievalResult]
@@ -129,24 +162,56 @@ class LLMJudge:
             metric=metric,
             model=self._model,
             prompt_version=prompt.version,
+            n_samples=self._n_samples,
         ) as ctx:
-            response = await self._llm.chat(
-                messages=messages,
-                model=self._model,
-                temperature=self._temperature,
-                max_tokens=self._max_tokens,
-            )
-            score, rationale = _parse_score(response.text)
-            ctx["score"] = score
-            ctx["tokens_in"] = response.tokens_in
-            ctx["tokens_out"] = response.tokens_out
+            # Multi-seed averaging (B2): when n_samples > 1, fire all N calls
+            # in parallel at a non-zero sampling_temperature, then average.
+            # When n_samples == 1, this collapses to a single call and matches
+            # the previous behavior exactly.
+            tasks = [
+                self._llm.chat(
+                    messages=messages,
+                    model=self._model,
+                    temperature=self._sampling_temperature,
+                    max_tokens=self._max_tokens,
+                )
+                for _ in range(self._n_samples)
+            ]
+            responses = await asyncio.gather(*tasks)
+            scored = [_parse_score(r.text) for r in responses]
+            scores = [s for s, _ in scored]
+            mean_score = sum(scores) / len(scores)
+            score_std = _stddev(scores)
+            # Report rationale + token usage from the first sample; aggregate
+            # accounting (sum across samples) on the otel span so cost is
+            # observable.
+            _, first_rationale = scored[0]
+            tokens_in_total = sum(r.tokens_in for r in responses)
+            tokens_out_total = sum(r.tokens_out for r in responses)
+            ctx["score"] = mean_score
+            ctx["score_std"] = score_std
+            ctx["tokens_in"] = tokens_in_total
+            ctx["tokens_out"] = tokens_out_total
 
         return JudgeOutput(
-            score=score,
-            rationale=rationale,
-            model=response.model,
+            score=mean_score,
+            score_std=score_std,
+            n_samples=self._n_samples,
+            rationale=first_rationale,
+            model=responses[0].model,
             prompt_version=prompt.version,
         )
+
+
+def _stddev(values: list[float]) -> float:
+    """Sample standard deviation. Returns 0.0 for n < 2 — there's no
+    variance to measure with a single sample, and ddof=1 would divide by 0."""
+    n = len(values)
+    if n < 2:
+        return 0.0
+    mean = sum(values) / n
+    variance = sum((v - mean) ** 2 for v in values) / (n - 1)
+    return math.sqrt(variance)
 
 
 def _format_chunks(retrieved: list[RetrievalResult]) -> str:

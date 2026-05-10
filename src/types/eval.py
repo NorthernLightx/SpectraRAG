@@ -48,12 +48,21 @@ class RetrievalMetrics(BaseModel):
 
 class GenerationMetrics(BaseModel):
     """Per-query generation metrics. Optional fields populated only when an
-    LLM judge is configured (else `None`)."""
+    LLM judge is configured (else `None`).
+
+    `*_std` fields hold the sample standard deviation across `judge_n_samples`
+    parallel judge calls when multi-seed averaging is enabled (B2). `None`
+    when the metric was deterministic (refusal-override path), `0.0` when
+    only one sample was taken.
+    """
 
     citation_rate: float | None = None
     faithfulness: float | None = None
     answer_relevance: float | None = None
     context_precision: float | None = None
+    faithfulness_std: float | None = None
+    answer_relevance_std: float | None = None
+    context_precision_std: float | None = None
 
 
 class PerQueryResult(BaseModel):

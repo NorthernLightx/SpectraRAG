@@ -158,3 +158,104 @@ async def test_judge_clamps_unparseable_to_zero() -> None:
     result = await judge.answer_relevance(query="Q?", answer="A.")
     assert result.score == 0.0
     assert "I am a small model" in result.rationale
+
+
+# B2: multi-seed judge averaging — score = mean across N samples,
+# score_std = sample stddev, n_samples recorded for honest reporting.
+
+
+def _make_judge(llm: _StubLLM, *, n_samples: int = 1) -> LLMJudge:
+    return LLMJudge(
+        llm=llm,
+        model="m",
+        faithfulness_prompt=load_prompt_by_name("judge_faithfulness"),
+        answer_relevance_prompt=load_prompt_by_name("judge_answer_relevance"),
+        context_precision_prompt=load_prompt_by_name("judge_context_precision"),
+        n_samples=n_samples,
+    )
+
+
+async def test_judge_single_seed_default_returns_zero_std() -> None:
+    """n_samples=1 (default) preserves prior behavior: one LLM call, std=0."""
+    llm = _StubLLM(["0.85\nrationale"])
+    judge = _make_judge(llm)
+    result = await judge.faithfulness(
+        query="q", answer="a", retrieved=[_retrieval_result("c1", "x")]
+    )
+    assert result.score == 0.85
+    assert result.score_std == 0.0
+    assert result.n_samples == 1
+    assert len(llm.calls) == 1
+
+
+async def test_judge_multi_seed_averages_scores_and_reports_std() -> None:
+    """n_samples=3 fires 3 parallel calls; score is the mean, std is sample stddev."""
+    # Three samples: 0.6, 0.8, 1.0 → mean 0.8, sample stddev = sqrt(0.04) = 0.2
+    llm = _StubLLM(["0.6\nr1", "0.8\nr2", "1.0\nr3"])
+    judge = _make_judge(llm, n_samples=3)
+    result = await judge.faithfulness(
+        query="q", answer="a", retrieved=[_retrieval_result("c1", "x")]
+    )
+    assert result.score == pytest.approx(0.8)
+    assert result.score_std == pytest.approx(0.2)
+    assert result.n_samples == 3
+    assert len(llm.calls) == 3
+
+
+async def test_judge_multi_seed_reports_zero_std_when_all_scores_match() -> None:
+    """Three identical scores → stddev is 0.0 (model is consistent here)."""
+    llm = _StubLLM(["0.5\na", "0.5\nb", "0.5\nc"])
+    judge = _make_judge(llm, n_samples=3)
+    result = await judge.context_precision(
+        query="q", retrieved=[_retrieval_result("c1", "x")]
+    )
+    assert result.score == pytest.approx(0.5)
+    assert result.score_std == pytest.approx(0.0)
+    assert result.n_samples == 3
+
+
+async def test_judge_multi_seed_uses_sampling_temperature() -> None:
+    """When n_samples > 1, the LLM is called at sampling_temperature, not 0."""
+    llm = _StubLLM(["0.7\na", "0.7\nb"])
+    judge = LLMJudge(
+        llm=llm,
+        model="m",
+        faithfulness_prompt=load_prompt_by_name("judge_faithfulness"),
+        answer_relevance_prompt=load_prompt_by_name("judge_answer_relevance"),
+        context_precision_prompt=load_prompt_by_name("judge_context_precision"),
+        n_samples=2,
+        sampling_temperature=0.9,
+    )
+    await judge.answer_relevance(query="q", answer="a")
+    assert llm.calls[0]["temperature"] == pytest.approx(0.9)
+    assert llm.calls[1]["temperature"] == pytest.approx(0.9)
+
+
+async def test_judge_single_seed_keeps_temperature_zero() -> None:
+    """Single-seed default temperature stays at 0 (deterministic), even though
+    sampling_temperature is set — the latter only kicks in for n_samples > 1."""
+    llm = _StubLLM(["0.7\na"])
+    judge = LLMJudge(
+        llm=llm,
+        model="m",
+        faithfulness_prompt=load_prompt_by_name("judge_faithfulness"),
+        answer_relevance_prompt=load_prompt_by_name("judge_answer_relevance"),
+        context_precision_prompt=load_prompt_by_name("judge_context_precision"),
+        n_samples=1,
+        sampling_temperature=0.9,
+    )
+    await judge.answer_relevance(query="q", answer="a")
+    assert llm.calls[0]["temperature"] == pytest.approx(0.0)
+
+
+def test_judge_rejects_zero_n_samples() -> None:
+    """ValueError on n_samples < 1 — would divide by zero in stddev."""
+    with pytest.raises(ValueError, match=r"n_samples must be >= 1"):
+        LLMJudge(
+            llm=_StubLLM([]),
+            model="m",
+            faithfulness_prompt=load_prompt_by_name("judge_faithfulness"),
+            answer_relevance_prompt=load_prompt_by_name("judge_answer_relevance"),
+            context_precision_prompt=load_prompt_by_name("judge_context_precision"),
+            n_samples=0,
+        )

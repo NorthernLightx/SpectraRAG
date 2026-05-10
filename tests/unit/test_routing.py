@@ -261,3 +261,139 @@ async def test_top_k_limits_hybrid_fused_results() -> None:
     results = await router.retrieve(Query(text="Compare Figure 1 vs Figure 2", top_k=3))
 
     assert len(results) == 3
+
+
+# ADR 0010: cascade mode — text first, fall back to visual only on uncertainty.
+
+
+def test_cascade_mode_requires_threshold() -> None:
+    """cascade mode without a threshold is a config error — fail fast at init."""
+    text = _RecordingRetriever("text", [])
+    visual = _RecordingRetriever("visual", [])
+    with pytest.raises(ValueError, match="cascade_confidence_threshold"):
+        RoutingRetriever(text=text, visual=visual, mode="cascade")
+
+
+@pytest.mark.asyncio
+async def test_cascade_confident_text_skips_visual_call() -> None:
+    """Top-1 text score ≥ threshold → return text-only, visual leg NOT called."""
+    text = _RecordingRetriever(
+        "text",
+        [_text_chunk("paper1::p1::c0", score=0.9, page=1)],
+    )
+    visual = _RecordingRetriever("visual", [_visual_page(page=1, score=0.5)])
+    router = RoutingRetriever(
+        text=text, visual=visual, mode="cascade", cascade_confidence_threshold=0.5
+    )
+
+    results = await router.retrieve(Query(text="What is X?"))
+
+    assert text.calls == 1
+    assert visual.calls == 0  # critical: visual leg skipped on confident text
+    assert results[0].chunk_id == "paper1::p1::c0"
+
+
+@pytest.mark.asyncio
+async def test_cascade_uncertain_text_invokes_visual_and_fuses() -> None:
+    """Top-1 text score < threshold → run visual leg, RRF-fuse."""
+    text = _RecordingRetriever(
+        "text",
+        [_text_chunk("paper1::p1::c0", score=0.3, page=1)],
+    )
+    visual = _RecordingRetriever("visual", [_visual_page(page=2, score=0.8)])
+    router = RoutingRetriever(
+        text=text, visual=visual, mode="cascade", cascade_confidence_threshold=0.5
+    )
+
+    results = await router.retrieve(Query(text="What is X?"))
+
+    assert text.calls == 1
+    assert visual.calls == 1  # visual leg ran
+    # RRF over two disjoint legs returns both; with top_k default=5, both fit.
+    chunk_ids = {r.chunk_id for r in results}
+    assert "paper1::p1::c0" in chunk_ids
+    assert "paper1::p2::page" in chunk_ids
+
+
+@pytest.mark.asyncio
+async def test_cascade_force_route_text_skips_visual() -> None:
+    """Explicit force_route='text' overrides confidence — never call visual."""
+    text = _RecordingRetriever(
+        "text",
+        [_text_chunk("paper1::p1::c0", score=0.1, page=1)],  # low score, would normally fall back
+    )
+    visual = _RecordingRetriever("visual", [_visual_page(page=1, score=0.9)])
+    router = RoutingRetriever(
+        text=text, visual=visual, mode="cascade", cascade_confidence_threshold=0.5
+    )
+
+    results = await router.retrieve(Query(text="X?", force_route="text"))
+
+    assert visual.calls == 0
+    assert results[0].chunk_id == "paper1::p1::c0"
+
+
+@pytest.mark.asyncio
+async def test_cascade_force_route_hybrid_invokes_visual() -> None:
+    """force_route='hybrid' overrides confidence — always call visual."""
+    text = _RecordingRetriever(
+        "text",
+        [_text_chunk("paper1::p1::c0", score=0.99, page=1)],  # high score, would normally skip visual
+    )
+    visual = _RecordingRetriever("visual", [_visual_page(page=2, score=0.5)])
+    router = RoutingRetriever(
+        text=text, visual=visual, mode="cascade", cascade_confidence_threshold=0.5
+    )
+
+    await router.retrieve(Query(text="X?", force_route="hybrid"))
+
+    assert visual.calls == 1
+
+
+@pytest.mark.asyncio
+async def test_cascade_visual_failure_falls_back_to_text() -> None:
+    """If the visual leg crashes, cascade returns text-only — same graceful
+    degrade as the category-mode hybrid path."""
+    text = _RecordingRetriever(
+        "text",
+        [_text_chunk("paper1::p1::c0", score=0.3, page=1)],
+    )
+    failing_visual = _FailingRetriever(RuntimeError("CUDA OOM"))
+    router = RoutingRetriever(
+        text=text, visual=failing_visual, mode="cascade", cascade_confidence_threshold=0.5
+    )
+
+    results = await router.retrieve(Query(text="X?"))
+
+    assert failing_visual.calls == 1  # we tried
+    assert results[0].chunk_id == "paper1::p1::c0"  # but degraded to text
+
+
+@pytest.mark.asyncio
+async def test_cascade_empty_text_results_falls_back_to_hybrid() -> None:
+    """No text results → top_score=0.0 < threshold → invoke visual fallback."""
+    text = _RecordingRetriever("text", [])
+    visual = _RecordingRetriever("visual", [_visual_page(page=1, score=0.7)])
+    router = RoutingRetriever(
+        text=text, visual=visual, mode="cascade", cascade_confidence_threshold=0.5
+    )
+
+    results = await router.retrieve(Query(text="X?"))
+
+    assert visual.calls == 1
+    assert results[0].chunk_id == "paper1::p1::page"
+
+
+@pytest.mark.asyncio
+async def test_category_mode_default_unchanged() -> None:
+    """Sanity: default mode='category' preserves the exact prior dispatch behavior."""
+    text = _RecordingRetriever("text", [_text_chunk("paper1::p1::c0", score=0.3, page=1)])
+    visual = _RecordingRetriever("visual", [_visual_page(page=1, score=0.5)])
+    router = RoutingRetriever(text=text, visual=visual)  # no mode arg → category
+
+    # Definitional query → category=definitional → text-only path
+    results = await router.retrieve(Query(text="What is exploration hacking?"))
+
+    assert text.calls == 1
+    assert visual.calls == 0
+    assert results[0].chunk_id == "paper1::p1::c0"

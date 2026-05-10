@@ -114,6 +114,9 @@ async def _run_one(
     faithfulness: float | None = None
     answer_relevance: float | None = None
     context_precision: float | None = None
+    faithfulness_std: float | None = None
+    answer_relevance_std: float | None = None
+    context_precision_std: float | None = None
 
     if generator is not None:
         answer = await generator.answer(query.text, retrieved)
@@ -125,32 +128,49 @@ async def _run_one(
 
     if judge is not None:
         if answer_text is not None:
-            # Per docs/evals.md: a refusal answer ("Not stated in the provided
-            # context.") is correct on out_of_corpus queries (faith=ans_rel=1.0)
-            # and wrong on answerable queries (0.0). The LLM judge is unreliable
-            # on these — observed in run c92f3f1bee19, where 5 of 6 OOC refusals
-            # scored 0.0 on faithfulness despite the documented convention. We
-            # short-circuit deterministically; LLM judge is only called for
-            # non-refusal answers, where it's actually evaluating content.
+            # Deterministic generation scoring for (category, refusal) (B1):
+            #
+            #   answer is refusal:
+            #     OOC      → 1/1  (correct refusal — docs/evals.md convention)
+            #     in-corpus → 0/0 (wrong refusal — model gave up on a real query)
+            #
+            #   answer is NOT a refusal:
+            #     OOC      → 0/0 (the model leaked content for an unanswerable
+            #                     query — wrong by construction; no LLM judge
+            #                     needed. Eliminates the q33-style judge-call
+            #                     variance observed in run 196ac0f8786f.)
+            #     in-corpus → LLM judge runs (real content evaluation)
+            #
+            # context_precision still goes through the LLM judge — it scores
+            # retrieved chunks, which is orthogonal to whether the answer
+            # was a refusal or a leak.
+            is_ooc = query.category == "out_of_corpus"
             if is_refusal_answer(answer_text):
-                if query.category == "out_of_corpus":
-                    faithfulness = 1.0
-                    answer_relevance = 1.0
-                else:
-                    faithfulness = 0.0
-                    answer_relevance = 0.0
+                faithfulness = 1.0 if is_ooc else 0.0
+                answer_relevance = 1.0 if is_ooc else 0.0
+            elif is_ooc:
+                faithfulness = 0.0
+                answer_relevance = 0.0
             else:
-                faithfulness = (
-                    await judge.faithfulness(
-                        query=query.text, answer=answer_text, retrieved=retrieved
-                    )
-                ).score
-                answer_relevance = (
-                    await judge.answer_relevance(query=query.text, answer=answer_text)
-                ).score
-        context_precision = (
-            await judge.context_precision(query=query.text, retrieved=retrieved)
-        ).score
+                faith_out = await judge.faithfulness(
+                    query=query.text, answer=answer_text, retrieved=retrieved
+                )
+                ans_out = await judge.answer_relevance(
+                    query=query.text, answer=answer_text
+                )
+                faithfulness = faith_out.score
+                answer_relevance = ans_out.score
+                # Std fields surface multi-seed variance (B2). For single-seed
+                # the std is 0.0; the deterministic-override paths above leave
+                # these fields None to signal "no measurable variance, by
+                # construction".
+                faithfulness_std = faith_out.score_std
+                answer_relevance_std = ans_out.score_std
+        ctx_prec_out = await judge.context_precision(
+            query=query.text, retrieved=retrieved
+        )
+        context_precision = ctx_prec_out.score
+        context_precision_std = ctx_prec_out.score_std
 
     generation_metrics: GenerationMetrics | None = None
     if generator is not None or judge is not None:
@@ -159,6 +179,9 @@ async def _run_one(
             faithfulness=faithfulness,
             answer_relevance=answer_relevance,
             context_precision=context_precision,
+            faithfulness_std=faithfulness_std,
+            answer_relevance_std=answer_relevance_std,
+            context_precision_std=context_precision_std,
         )
 
     return PerQueryResult(

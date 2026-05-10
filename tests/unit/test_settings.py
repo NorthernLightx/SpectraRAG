@@ -137,3 +137,28 @@ def test_refusal_score_threshold_disabled_via_yaml(
     yaml_file.write_text("refusal_score_threshold: null\n")
     settings = load_settings(config_path=yaml_file)
     assert settings.refusal_score_threshold is None
+
+
+# ADR 0010: routing_mode + cascade_confidence_threshold defaults.
+
+
+def test_routing_mode_defaults_to_category(monkeypatch: pytest.MonkeyPatch) -> None:
+    """ADR 0008's category-based dispatch is the safe default; cascade is opt-in."""
+    monkeypatch.delenv("RAG_ROUTING_MODE", raising=False)
+    assert Settings().routing_mode == "category"
+
+
+def test_routing_mode_can_be_set_to_cascade(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("RAG_ROUTING_MODE", "cascade")
+    assert Settings().routing_mode == "cascade"
+
+
+def test_cascade_threshold_defaults_to_none(monkeypatch: pytest.MonkeyPatch) -> None:
+    """No default; cascade requires an explicit calibrated value."""
+    monkeypatch.delenv("RAG_CASCADE_CONFIDENCE_THRESHOLD", raising=False)
+    assert Settings().cascade_confidence_threshold is None
+
+
+def test_cascade_threshold_overridable_via_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("RAG_CASCADE_CONFIDENCE_THRESHOLD", "0.85")
+    assert Settings().cascade_confidence_threshold == pytest.approx(0.85)
