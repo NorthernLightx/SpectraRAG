@@ -247,7 +247,7 @@ async def test_openrouter_captioner_retries_on_429(tmp_path: Path) -> None:
     try:
         caption = await captioner.caption(image_path)
     finally:
-        tenacity.nap.sleep = original_sleep  # type: ignore[assignment]
+        tenacity.nap.sleep = original_sleep
 
     assert caption == "After backoff: a heatmap."
     assert route.call_count == 3  # two 429s, then a 200

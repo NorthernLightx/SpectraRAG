@@ -98,7 +98,7 @@ async def test_chat_retries_on_429_then_succeeds() -> None:
             model="nvidia/nemotron-3-super-120b-a12b:free",
         )
     finally:
-        tenacity.nap.sleep = original  # type: ignore[assignment]
+        tenacity.nap.sleep = original
     assert resp.text == "OK"
     assert route.call_count == 3
 
