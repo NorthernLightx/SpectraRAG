@@ -7,12 +7,28 @@ from pathlib import Path
 from typing import Any
 
 import httpx
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
+from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
 from src.llm.protocol import ChatResponse, Message
 
 _OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 _DEFAULT_TIMEOUT_SECONDS = 60.0
+
+
+def _should_retry_request(exc: BaseException) -> bool:
+    """Retry on transport errors and on HTTP 429 (rate limit). 4xx other than
+    429 are not retryable (auth errors, model not found, etc); 5xx are
+    retryable but typically transient. We cover transport + 429 explicitly;
+    other 5xx surface immediately so they fail fast for the operator.
+
+    Free-tier OpenRouter models commonly return 429 under burst eval load;
+    without 429 retry the eval crashes on the first burst (run b30k0s5pu
+    hit this on call ~120 of a v3 run). Exponential backoff with a longer
+    cap (60s) covers minute-bounded rate windows.
+    """
+    if isinstance(exc, (httpx.TransportError, httpx.RemoteProtocolError)):
+        return True
+    return isinstance(exc, httpx.HTTPStatusError) and exc.response.status_code == 429
 
 
 def _encode_image(path: Path) -> str:
@@ -56,9 +72,9 @@ class OpenRouterClient:
         return data
 
     @retry(
-        retry=retry_if_exception_type((httpx.TransportError, httpx.RemoteProtocolError)),
-        wait=wait_exponential(multiplier=0.5, min=0.5, max=8),
-        stop=stop_after_attempt(3),
+        retry=retry_if_exception(_should_retry_request),
+        wait=wait_exponential(multiplier=2, min=2, max=60),
+        stop=stop_after_attempt(6),
         reraise=True,
     )
     async def chat(

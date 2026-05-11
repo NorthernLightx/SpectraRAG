@@ -30,15 +30,37 @@ from pathlib import Path
 from typing import Any, Protocol, runtime_checkable
 
 import httpx
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
+from tenacity import (
+    retry,
+    retry_if_exception,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 from src.observability.logging import get_logger, timed_event
 from src.types import Figure
+
+
+def _should_retry_vlm_request(exc: BaseException) -> bool:
+    """Same retry policy as OpenRouterClient: transport errors + HTTP 429."""
+    if isinstance(exc, (httpx.TransportError, httpx.RemoteProtocolError)):
+        return True
+    return (
+        isinstance(exc, httpx.HTTPStatusError) and exc.response.status_code == 429
+    )
 
 _log = get_logger(__name__)
 
 _DEFAULT_TIMEOUT_SECONDS = 600.0
 _DEFAULT_CONCURRENCY = 2
+# Reasoning-style VLMs (Nemotron Nano 12B VL, gemini-thinking, etc.) emit
+# chain-of-thought tokens before the final caption. With the old 200-token
+# cap they truncated mid-reasoning and returned empty `content`. 400 covers
+# observed reasoning-heavy outputs (~150-300 reasoning + ~100 caption) and
+# is still bounded for cost. gpt-4o-mini and gemma3:4b finish earlier so
+# this is a no-op for non-reasoning models.
+_DEFAULT_MAX_TOKENS = 400
 
 _DEFAULT_PROMPT = (
     "You are captioning a figure from a scientific paper. In 1-3 sentences, describe: "
@@ -66,7 +88,7 @@ class OllamaVisionCaptioner:
         client: httpx.AsyncClient | None = None,
         prompt: str = _DEFAULT_PROMPT,
         temperature: float = 0.0,
-        max_tokens: int = 200,
+        max_tokens: int = _DEFAULT_MAX_TOKENS,
     ) -> None:
         self._base_url = base_url.rstrip("/")
         self._model = model
@@ -174,7 +196,7 @@ class OpenRouterVisionCaptioner:
         client: httpx.AsyncClient | None = None,
         prompt: str = _DEFAULT_PROMPT,
         temperature: float = 0.0,
-        max_tokens: int = 200,
+        max_tokens: int = _DEFAULT_MAX_TOKENS,
     ) -> None:
         self._api_key = api_key
         self._model = model
@@ -186,13 +208,19 @@ class OpenRouterVisionCaptioner:
         self._max_tokens = max_tokens
 
     @retry(
-        retry=retry_if_exception_type((httpx.TransportError, httpx.RemoteProtocolError)),
-        wait=wait_exponential(multiplier=0.5, min=0.5, max=8),
-        stop=stop_after_attempt(3),
+        retry=retry_if_exception(_should_retry_vlm_request),
+        wait=wait_exponential(multiplier=2, min=2, max=60),
+        stop=stop_after_attempt(6),
         reraise=True,
     )
     async def caption(self, image_path: Path) -> str:
-        """Return a caption for `image_path`. Empty string on permanent failure."""
+        """Return a caption for `image_path`. Empty string on permanent failure.
+
+        Free-tier OpenRouter VLMs commonly return 429 under burst load;
+        we raise on 429 so tenacity retries with exponential backoff.
+        Other non-200 (401, 404, 5xx after retries) become a logged
+        warning and an empty string — caller falls back to the PDF caption.
+        """
         if not await asyncio.to_thread(image_path.exists):
             _log.warning("vlm_caption.image_missing", path=str(image_path))
             return ""
@@ -227,6 +255,11 @@ class OpenRouterVisionCaptioner:
             async with httpx.AsyncClient(timeout=self._timeout) as ad_hoc:
                 response = await ad_hoc.post(url, json=payload, headers=headers)
 
+        if response.status_code == 429:
+            # Raise so tenacity retries with backoff. _should_retry_vlm_request
+            # returns True for HTTPStatusError(429); other 4xx/5xx fall through
+            # to the warning + empty-string graceful path below.
+            response.raise_for_status()
         if response.status_code != 200:
             _log.warning(
                 "vlm_caption.http_error",

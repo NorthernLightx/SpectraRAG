@@ -84,6 +84,8 @@ async def _main(
     rerank_length_threshold: int = 300,
     rerank_length_penalty: float = 0.5,
     vlm_caption_provider: str = "ollama",
+    cascade: bool = False,
+    cascade_threshold: float | None = None,
     contextualize: bool,
     contextualize_provider: str,
     contextualize_model: str,
@@ -97,6 +99,7 @@ async def _main(
     judge_provider: str,
     judge_model: str,
     judge_num_ctx: int | None,
+    judge_n_samples: int,
     rerank: bool,
     rerank_model: str,
     rerank_input_size: int,
@@ -281,8 +284,25 @@ async def _main(
         visual_retriever = await build_visual_retriever(
             pages_by_paper, model_name=visual_model, device=visual_device
         )
-        retriever = RoutingRetriever(text=retriever, visual=visual_retriever)
-        print("Routing enabled — text leg + ColQwen2 visual leg fused per query category.")
+        if cascade:
+            if cascade_threshold is None:
+                raise SystemExit("--cascade requires --cascade-threshold (float)")
+            retriever = RoutingRetriever(
+                text=retriever,
+                visual=visual_retriever,
+                mode="cascade",
+                cascade_confidence_threshold=cascade_threshold,
+            )
+            print(
+                f"Routing enabled (cascade mode, threshold={cascade_threshold}) — text leg "
+                "first; visual leg fires only when text confidence is below the threshold."
+            )
+        else:
+            retriever = RoutingRetriever(text=retriever, visual=visual_retriever)
+            print(
+                "Routing enabled (category mode) — text leg + ColQwen2 visual leg fused "
+                "per query category."
+            )
 
     if region_number_boost:
         from src.rag.retrievers.region_boost import RegionNumberBoostRetriever
@@ -319,8 +339,10 @@ async def _main(
             faithfulness_prompt=load_prompt_by_name("judge_faithfulness"),
             answer_relevance_prompt=load_prompt_by_name("judge_answer_relevance"),
             context_precision_prompt=load_prompt_by_name("judge_context_precision"),
+            n_samples=judge_n_samples,
         )
-        print(f"Judging answers via {judge_provider} with {judge_model}")
+        suffix = f" x {judge_n_samples} samples" if judge_n_samples > 1 else ""
+        print(f"Judging answers via {judge_provider} with {judge_model}{suffix}")
 
     run = await evaluate(
         retriever=retriever,
@@ -350,6 +372,7 @@ async def _main(
             "judge_provider": judge_provider if judge else None,
             "judge_model": judge_model if judge else None,
             "judge_num_ctx": judge_num_ctx if judge else None,
+            "judge_n_samples": judge_n_samples if judge else None,
             "extract_figures": extract_figures,
             "extract_tables": extract_tables,
             "vlm_caption_model": vlm_caption_model,
@@ -366,6 +389,8 @@ async def _main(
             "rerank_length_norm": rerank_length_norm,
             "rerank_length_threshold": rerank_length_threshold if rerank_length_norm else None,
             "rerank_length_penalty": rerank_length_penalty if rerank_length_norm else None,
+            "cascade": cascade,
+            "cascade_threshold": cascade_threshold if cascade else None,
         },
     )
 
@@ -488,6 +513,18 @@ if __name__ == "__main__":
         type=int,
         default=None,
         help="Override Ollama num_ctx for the judge. Bump for long context_precision prompts.",
+    )
+    parser.add_argument(
+        "--judge-n-samples",
+        type=int,
+        default=1,
+        help=(
+            "Multi-seed judge averaging (B2). When >1, each metric is sampled "
+            "N times in parallel at temperature=0.7 and the score is the mean; "
+            "GenerationMetrics gain *_std fields with the sample stddev. "
+            "Eliminates single-call judge variance (e.g. q33 in run 196ac0f8786f). "
+            "Cost: Nx judge tokens. Default 1 = previous behavior."
+        ),
     )
     parser.add_argument(
         "--rerank",
@@ -667,6 +704,25 @@ if __name__ == "__main__":
         ),
     )
     parser.add_argument(
+        "--cascade",
+        action="store_true",
+        help=(
+            "ADR 0010: cascade routing mode. Run text leg first; only invoke "
+            "the visual leg if top-1 rerank score < --cascade-threshold. "
+            "Cuts ColQwen2 invocations on confident text queries. Requires "
+            "--router."
+        ),
+    )
+    parser.add_argument(
+        "--cascade-threshold",
+        type=float,
+        default=None,
+        help=(
+            "Cascade confidence threshold. Calibrated per-corpus via "
+            "scripts/calibrate_cascade.py. Required when --cascade is set."
+        ),
+    )
+    parser.add_argument(
         "--region-number-boost",
         action="store_true",
         help=(
@@ -711,6 +767,8 @@ if __name__ == "__main__":
             rerank_length_threshold=args.rerank_length_threshold,
             rerank_length_penalty=args.rerank_length_penalty,
             vlm_caption_provider=args.vlm_caption_provider,
+            cascade=args.cascade,
+            cascade_threshold=args.cascade_threshold,
             contextualize=args.contextualize,
             contextualize_provider=args.contextualize_provider,
             contextualize_model=contextualize_model,
@@ -724,6 +782,7 @@ if __name__ == "__main__":
             judge_provider=args.judge_provider,
             judge_model=judge_model,
             judge_num_ctx=args.judge_num_ctx,
+            judge_n_samples=args.judge_n_samples,
             rerank=args.rerank,
             rerank_model=args.rerank_model,
             rerank_input_size=args.rerank_input_size,

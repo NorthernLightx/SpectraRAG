@@ -1,10 +1,16 @@
 """Per-query routing — classify queries to text-only or hybrid (text+visual).
 
-ADR 0008 pins the design: regex/keyword classifier emits one of five categories;
-{figure, table, multi_hop} route to hybrid (RRF over text + visual at page
-granularity), {factual, definitional} route to text-only. Misclassification cost
-is bounded — the worst case routes a figure query through text-only, which is
-the strong baseline (text @ page nDCG@5 = 0.86 per ADR 0007).
+ADR 0008 pins the original design: regex/keyword classifier emits one of five
+categories; {figure, table, multi_hop} route to hybrid (RRF over text + visual
+at page granularity), {factual, definitional} route to text-only.
+
+ADR 0010 adds a second mode — **cascade** — that dispatches by *retrieval
+confidence* instead of query category. Always runs the text leg first; only
+invokes the visual leg if the top-1 rerank score falls below
+`cascade_confidence_threshold`. This is a cost-quality knob: when text is
+already confident, ColQwen2 inference is skipped (~30 % of total per-query
+latency on the v3 corpus). The threshold is calibrated via
+`scripts/calibrate_cascade.py`.
 """
 
 from __future__ import annotations
@@ -33,6 +39,7 @@ _RRF_K = 60
 
 Category = Literal["table", "figure", "multi_hop", "factual", "definitional"]
 RoutingPath = Literal["text", "hybrid"]
+RoutingMode = Literal["category", "cascade"]
 
 # Precedence-ordered patterns. Order matters: a query like "compare Figure 3 vs
 # Figure 4" matches both `figure` and `multi_hop`; precedence picks `figure`.
@@ -115,12 +122,24 @@ class RoutingRetriever:
         text: Retriever,
         visual: Retriever,
         classifier: LLMQueryClassifier | None = None,
+        mode: RoutingMode = "category",
+        cascade_confidence_threshold: float | None = None,
     ) -> None:
+        if mode == "cascade" and cascade_confidence_threshold is None:
+            raise ValueError(
+                "RoutingRetriever(mode='cascade') requires a "
+                "cascade_confidence_threshold (float in [0, 1] is typical)."
+            )
         self._text = text
         self._visual = visual
         self._classifier = classifier
+        self._mode = mode
+        self._cascade_threshold = cascade_confidence_threshold
 
     async def retrieve(self, query: Query) -> list[RetrievalResult]:
+        if self._mode == "cascade":
+            return await self._retrieve_cascade(query)
+
         if self._classifier is not None:
             category = await self._classifier.classify(query.text)
         else:
@@ -134,11 +153,13 @@ class RoutingRetriever:
         span.set_attribute("routing.category", category)
         span.set_attribute("routing.path", path)
         span.set_attribute("routing.forced", forced)
+        span.set_attribute("routing.mode", "category")
 
         if path == "text":
             text_results = await self._text.retrieve(query)
             _log.info(
                 "routing.dispatched",
+                mode="category",
                 category=category,
                 path=path,
                 forced=forced,
@@ -170,6 +191,7 @@ class RoutingRetriever:
         fused = self._fuse_page_level(text_results, visual_results, top_k=query.top_k)
         _log.info(
             "routing.dispatched",
+            mode="category",
             category=category,
             path=path,
             forced=forced,
@@ -178,6 +200,109 @@ class RoutingRetriever:
             fused_pages=len(fused),
         )
         return fused
+
+    async def _retrieve_cascade(self, query: Query) -> list[RetrievalResult]:
+        """Cascade dispatch: text first, fall back to hybrid only if uncertain.
+
+        ADR 0010. Always runs the text leg first; if its top-1 rerank score
+        meets `cascade_confidence_threshold`, return text-only (skipping the
+        visual leg entirely). Else run the visual leg and RRF-fuse like the
+        `category` hybrid path. `force_route="hybrid"` short-circuits to
+        always-hybrid; `force_route="text"` short-circuits to always-text.
+        """
+        assert self._cascade_threshold is not None  # narrowed by __init__
+        span = trace.get_current_span()
+        span.set_attribute("routing.mode", "cascade")
+
+        # Always run text first; cheap and we need it for the decision.
+        text_results = await self._text.retrieve(query)
+
+        # force_route overrides the confidence-based decision.
+        if query.force_route == "text":
+            self._log_cascade(
+                path="text", decision="forced_text", forced=True,
+                text_results=text_results, visual_results=None, fused_n=len(text_results),
+            )
+            span.set_attribute("routing.path", "text")
+            return text_results
+        if query.force_route == "hybrid":
+            return await self._cascade_run_visual_and_fuse(
+                query, span, text_results, decision="forced_hybrid", forced=True, top_score=0.0,
+            )
+
+        top_score = text_results[0].score if text_results else 0.0
+        span.set_attribute("routing.cascade_top_score", float(top_score))
+        span.set_attribute("routing.cascade_threshold", self._cascade_threshold)
+
+        if top_score >= self._cascade_threshold:
+            self._log_cascade(
+                path="text", decision="confident_text", forced=False,
+                text_results=text_results, visual_results=None,
+                fused_n=len(text_results), top_score=top_score,
+            )
+            span.set_attribute("routing.path", "text")
+            return text_results
+
+        return await self._cascade_run_visual_and_fuse(
+            query, span, text_results, decision="uncertain_hybrid",
+            forced=False, top_score=top_score,
+        )
+
+    async def _cascade_run_visual_and_fuse(
+        self,
+        query: Query,
+        span: Span,
+        text_results: list[RetrievalResult],
+        *,
+        decision: str,
+        forced: bool,
+        top_score: float,
+    ) -> list[RetrievalResult]:
+        """Cascade fall-back: run the visual leg, RRF-fuse with text_results."""
+        visual_results = await self._safe_visual_retrieve(query, span)
+        if visual_results is None:
+            self._log_cascade(
+                path="text", decision=f"{decision}_visual_failed", forced=forced,
+                text_results=text_results, visual_results=None, fused_n=len(text_results),
+                top_score=top_score, visual_failed=True,
+            )
+            span.set_attribute("routing.path", "text")
+            return text_results
+        fused = self._fuse_page_level(text_results, visual_results, top_k=query.top_k)
+        self._log_cascade(
+            path="hybrid", decision=decision, forced=forced,
+            text_results=text_results, visual_results=visual_results, fused_n=len(fused),
+            top_score=top_score,
+        )
+        span.set_attribute("routing.path", "hybrid")
+        return fused
+
+    def _log_cascade(
+        self,
+        *,
+        path: RoutingPath,
+        decision: str,
+        forced: bool,
+        text_results: list[RetrievalResult],
+        visual_results: list[RetrievalResult] | None,
+        fused_n: int,
+        top_score: float = 0.0,
+        visual_failed: bool = False,
+    ) -> None:
+        kwargs: dict[str, object] = {
+            "mode": "cascade",
+            "path": path,
+            "forced": forced,
+            "cascade_decision": decision,
+            "cascade_top_score": float(top_score),
+            "cascade_threshold": self._cascade_threshold,
+            "text_n": len(text_results),
+            "visual_n": len(visual_results) if visual_results is not None else 0,
+            "fused_pages": fused_n,
+        }
+        if visual_failed:
+            kwargs["visual_failed"] = True
+        _log.info("routing.dispatched", **kwargs)
 
     async def _safe_visual_retrieve(self, query: Query, span: Span) -> list[RetrievalResult] | None:
         """Run the visual retriever; on any exception, log and return None to

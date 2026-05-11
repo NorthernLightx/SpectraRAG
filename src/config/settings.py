@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import yaml
 from pydantic import Field, SecretStr
@@ -81,6 +81,17 @@ class Settings(BaseSettings):
     # misfiring on the lowest-scoring legitimate in-corpus query
     # (q6_basin_definition at 0.111). Set to None to disable the gate.
     refusal_score_threshold: float | None = 0.105
+
+    # ADR 0010: cost-quality cascade routing. When `routing_mode='cascade'`,
+    # the RoutingRetriever runs the text leg first; only invokes the visual
+    # leg if the top-1 rerank score falls below `cascade_confidence_threshold`.
+    # Saves one ColQwen2 call per confident query (~30 % of total per-query
+    # latency on v3). Default `category` preserves ADR 0008's category-based
+    # dispatch. The threshold is None by default (cascade mode requires it
+    # explicitly via Settings or the CLI flag); calibrated per-corpus via
+    # scripts/calibrate_cascade.py.
+    routing_mode: Literal["category", "cascade"] = "category"
+    cascade_confidence_threshold: float | None = None
 
     # When set, the production Generator attaches the rendered page PNG
     # (`<pages_dir>/<paper>/<paper>_pN.png`) for any visual RetrievalResult to

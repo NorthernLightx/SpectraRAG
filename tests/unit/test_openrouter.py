@@ -64,3 +64,55 @@ async def test_chat_raises_on_http_error() -> None:
             messages=[Message(role="user", content="Hi")],
             model="anthropic/claude-3.5-sonnet",
         )
+
+
+@respx.mock
+async def test_chat_retries_on_429_then_succeeds() -> None:
+    """Free-tier OpenRouter models hit 429 under burst eval load (verified
+    empirically on run b30k0s5pu). The retry decorator catches 429 with
+    exponential backoff up to 6 attempts so the eval survives rate windows."""
+    route = respx.post("https://openrouter.ai/api/v1/chat/completions").mock(
+        side_effect=[
+            httpx.Response(429, json={"error": "rate limit"}),
+            httpx.Response(429, json={"error": "rate limit"}),
+            httpx.Response(
+                200,
+                json={
+                    "id": "x",
+                    "model": "nvidia/nemotron-3-super-120b-a12b:free",
+                    "choices": [{"message": {"content": "OK"}}],
+                    "usage": {"prompt_tokens": 1, "completion_tokens": 1},
+                },
+            ),
+        ]
+    )
+    # Patch tenacity's sleep so the test runs fast (no real backoff wait).
+    import tenacity
+
+    original = tenacity.nap.sleep
+    tenacity.nap.sleep = lambda _: None  # type: ignore[assignment]
+    try:
+        client = OpenRouterClient(api_key="sk-test")
+        resp = await client.chat(
+            messages=[Message(role="user", content="ping")],
+            model="nvidia/nemotron-3-super-120b-a12b:free",
+        )
+    finally:
+        tenacity.nap.sleep = original  # type: ignore[assignment]
+    assert resp.text == "OK"
+    assert route.call_count == 3
+
+
+@respx.mock
+async def test_chat_does_not_retry_on_401() -> None:
+    """4xx other than 429 is non-retryable (auth errors won't get better)."""
+    route = respx.post("https://openrouter.ai/api/v1/chat/completions").mock(
+        return_value=httpx.Response(401, json={"error": "unauthorized"})
+    )
+    client = OpenRouterClient(api_key="sk-bad")
+    with pytest.raises(httpx.HTTPStatusError):
+        await client.chat(
+            messages=[Message(role="user", content="ping")],
+            model="any/model",
+        )
+    assert route.call_count == 1  # no retries
