@@ -16,6 +16,8 @@ from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
+from starlette.responses import Response
+from starlette.types import Scope
 
 from src.api.auth import make_api_key_middleware
 from src.api.deps import set_generator, set_retriever
@@ -44,6 +46,23 @@ if TYPE_CHECKING:
 # reads: `<pages_dir>/<paper_id>/<paper_id>_p<N>.png`. The paper id allows
 # arbitrary characters except `/`, so we anchor on the trailing `_p<N>.png`.
 _PAGE_FILE_RE = re.compile(r"^(?P<paper>.+)_p(?P<page>\d+)\.png$")
+
+
+class _NoCacheHTMLStatic(StaticFiles):
+    """StaticFiles that disables browser caching for HTML responses.
+
+    Without this, the default `text/html` response carries only ETag /
+    Last-Modified — and browsers apply heuristic caching (often hours)
+    before they bother revalidating. Setting `Cache-Control: no-cache`
+    forces a revalidation request on every page load; the server still
+    returns a cheap 304 when the file is unchanged.
+    """
+
+    async def get_response(self, path: str, scope: Scope) -> Response:
+        response = await super().get_response(path, scope)
+        if response.headers.get("content-type", "").startswith("text/html"):
+            response.headers["Cache-Control"] = "no-cache"
+        return response
 
 
 def _wire_generator_from_settings(settings: Settings) -> bool:
@@ -352,9 +371,14 @@ def create_app(*, log_file: Path | None = Path("logs/api.log")) -> FastAPI:
     # GET / serve index.html (instead of a directory listing). When the web/
     # directory isn't present (e.g., a stripped runtime image) the mount
     # silently skips so the API still boots.
+    #
+    # `Cache-Control: no-cache` is set on HTML responses so browsers
+    # revalidate on every reload (cheap 304 via ETag) instead of serving
+    # stale HTML after a deploy. Without this, the FastAPI static handler's
+    # default heuristic caching keeps old UIs visible for hours.
     web_dir = Path(__file__).resolve().parents[2] / "web"
     if web_dir.is_dir():
-        app.mount("/", StaticFiles(directory=web_dir, html=True), name="web")
+        app.mount("/", _NoCacheHTMLStatic(directory=web_dir, html=True), name="web")
 
     # Auto-instrumentation must run after routers are added so per-route
     # spans are named correctly. HTTPXClientInstrumentor is a singleton

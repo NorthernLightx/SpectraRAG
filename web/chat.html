@@ -4,6 +4,21 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Multi-modal Paper RAG — chat</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"
+      crossorigin="anonymous"
+    />
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
+      crossorigin="anonymous"
+    ></script>
     <style>
       :root,
       [data-theme="dark"] {
@@ -664,6 +679,7 @@
           );
           const tGen = performance.now() - tGenStart;
           assistantTurn.text = out;
+          renderMath(nodes.answer);
           assistantTurn.citations = parseCitations(out);
           renderCitationsInto(nodes.citationsEl, assistantTurn.citations, chunks);
           nodes.citationsWrap.hidden = assistantTurn.citations.length === 0;
@@ -993,6 +1009,26 @@
 
       function clear(node) {
         while (node.firstChild) node.removeChild(node.firstChild);
+      }
+
+      // KaTeX is loaded async from a CDN. By the time the user finishes
+      // typing and the model finishes streaming, `renderMathInElement`
+      // will be defined; if for some reason it isn't (offline, blocked),
+      // we silently skip rendering and leave the raw LaTeX visible.
+      function renderMath(el) {
+        if (typeof window.renderMathInElement !== "function") return;
+        try {
+          window.renderMathInElement(el, {
+            delimiters: [
+              { left: "$$", right: "$$", display: true },
+              { left: "\\[", right: "\\]", display: true },
+              { left: "\\(", right: "\\)", display: false },
+            ],
+            throwOnError: false,
+          });
+        } catch (_) {
+          // graceful: leave text as-is on render error
+        }
       }
     </script>
   </body>
