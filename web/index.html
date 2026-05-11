@@ -200,6 +200,17 @@
         overflow-x: auto;
         white-space: pre-wrap;
       }
+      .chunk-text {
+        background: var(--code-bg);
+        color: var(--fg);
+        border: 1px solid var(--border-subtle);
+        border-radius: 6px;
+        padding: 10px 12px;
+        margin: 4px 0 0;
+        font-size: 13px;
+        line-height: 1.5;
+        white-space: pre-line;
+      }
       .answer { white-space: pre-wrap; }
       .answer:empty::after {
         content: "";
@@ -737,6 +748,35 @@
         for (const r of chunks) chunksEl.append(renderChunk(r));
       }
 
+      // PDF text extraction inserts a newline at every visual line wrap,
+      // which makes raw chunk text render as fragmented short lines once
+      // we drop the monospace `<pre>` wrapper. Collapse single newlines
+      // into spaces and preserve paragraph breaks (>=2 consecutive
+      // newlines). Truncate to ~480 chars at a sentence boundary when
+      // possible, falling back to the hard limit otherwise.
+      function previewText(raw) {
+        const text = String(raw || "")
+          .split(/\n{2,}/)
+          .map((para) =>
+            para
+              .replace(/[ \t]*\n[ \t]*/g, " ")
+              .replace(/[ \t]{2,}/g, " ")
+              .trim()
+          )
+          .filter(Boolean)
+          .join("\n\n");
+        const HARD = 480;
+        if (text.length <= HARD) return text;
+        const slice = text.slice(0, HARD);
+        const lastSentence = Math.max(
+          slice.lastIndexOf(". "),
+          slice.lastIndexOf("! "),
+          slice.lastIndexOf("? ")
+        );
+        const cut = lastSentence > 280 ? lastSentence + 1 : HARD;
+        return text.slice(0, cut).trim() + "…";
+      }
+
       function renderChunk(r) {
         const div = document.createElement("div");
         div.className = "chunk";
@@ -753,11 +793,10 @@
         if (pages) meta.append(document.createTextNode(` · p${pages}`));
         const score = typeof r.score === "number" ? r.score : 0;
         meta.append(document.createTextNode(` · score ${score.toFixed(3)}`));
-        const pre = document.createElement("pre");
-        const text = String(r.text || "");
-        pre.textContent =
-          text.length > 400 ? text.slice(0, 400) + "..." : text;
-        div.append(meta, pre);
+        const body = document.createElement("div");
+        body.className = "chunk-text";
+        body.textContent = previewText(r.text);
+        div.append(meta, body);
         return div;
       }
 

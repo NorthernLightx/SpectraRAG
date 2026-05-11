@@ -397,6 +397,17 @@
         white-space: pre-wrap;
         margin: 4px 0 0;
       }
+      .chunk-text {
+        background: var(--code-bg);
+        color: var(--fg);
+        border: 1px solid var(--border-subtle);
+        border-radius: 6px;
+        padding: 10px 12px;
+        margin: 4px 0 0;
+        font-size: 13px;
+        line-height: 1.5;
+        white-space: pre-line;
+      }
       .badge {
         display: inline-block;
         padding: 2px 7px;
@@ -1106,13 +1117,16 @@
       // newlines). Truncate to ~480 chars at a sentence boundary when
       // possible, falling back to the hard limit otherwise.
       function previewText(raw) {
-        let text = String(raw || "")
-          .replace(/[ \t]+\n/g, "\n")
-          .replace(/\n{2,}/g, "")
-          .replace(/\n+/g, " ")
-          .replace(//g, "\n\n")
-          .replace(/[ \t]{2,}/g, " ")
-          .trim();
+        const text = String(raw || "")
+          .split(/\n{2,}/)
+          .map((para) =>
+            para
+              .replace(/[ \t]*\n[ \t]*/g, " ")
+              .replace(/[ \t]{2,}/g, " ")
+              .trim()
+          )
+          .filter(Boolean)
+          .join("\n\n");
         const HARD = 480;
         if (text.length <= HARD) return text;
         const slice = text.slice(0, HARD);
