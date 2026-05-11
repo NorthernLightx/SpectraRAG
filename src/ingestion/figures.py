@@ -139,9 +139,7 @@ def _captions_with_bboxes(page: fitz.Page) -> dict[str, tuple[str, Bbox | None]]
             if label not in captions or bbox_by_label[label] is not None:
                 continue
             try:
-                bbox_by_label[label] = Bbox(
-                    x0=float(x0), y0=float(y0), x1=float(x1), y1=float(y1)
-                )
+                bbox_by_label[label] = Bbox(x0=float(x0), y0=float(y0), x1=float(x1), y1=float(y1))
             except (ValueError, TypeError) as exc:
                 _log.debug("figure.caption_bbox_invalid", label=label, error=str(exc))
 
@@ -228,9 +226,7 @@ def _assign_xrefs_to_captions(
           or no caption on the page has a bbox to anchor against). These
           fall through to per-XREF extraction in `extract_figures`.
     """
-    bboxed_captions = {
-        label: bbox for label, (_text, bbox) in captions.items() if bbox is not None
-    }
+    bboxed_captions = {label: bbox for label, (_text, bbox) in captions.items() if bbox is not None}
     if not bboxed_captions:
         return {}, list(xrefs)
 
@@ -300,7 +296,9 @@ def extract_figures(
                 if width < min_dim or height < min_dim:
                     continue
                 page_xrefs.append(
-                    _XrefRecord(xref=xref, bbox=_figure_bbox(page, xref), width=width, height=height)
+                    _XrefRecord(
+                        xref=xref, bbox=_figure_bbox(page, xref), width=width, height=height
+                    )
                 )
 
             if not page_xrefs:

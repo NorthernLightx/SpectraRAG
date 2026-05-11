@@ -206,9 +206,7 @@ async def test_judge_multi_seed_zero_std_on_agreement() -> None:
     """Three identical scores → stddev is 0.0 (model is consistent here)."""
     llm = _StubLLM(["0.5\na", "0.5\nb", "0.5\nc"])
     judge = _make_judge(llm, n_samples=3)
-    result = await judge.context_precision(
-        query="q", retrieved=[_retrieval_result("c1", "x")]
-    )
+    result = await judge.context_precision(query="q", retrieved=[_retrieval_result("c1", "x")])
     assert result.score == pytest.approx(0.5)
     assert result.score_std == pytest.approx(0.0)
     assert result.n_samples == 3

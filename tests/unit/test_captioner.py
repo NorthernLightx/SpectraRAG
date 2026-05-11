@@ -269,9 +269,7 @@ async def test_default_max_tokens_fits_reasoning_vlms(tmp_path: Path) -> None:
             },
         )
     )
-    captioner = OpenRouterVisionCaptioner(
-        api_key="k", model="nvidia/nemotron-nano-12b-v2-vl:free"
-    )
+    captioner = OpenRouterVisionCaptioner(api_key="k", model="nvidia/nemotron-nano-12b-v2-vl:free")
     caption = await captioner.caption(image_path)
     assert caption == "Heatmap of values across 2D grid."
     body = route.calls.last.request.content

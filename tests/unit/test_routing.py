@@ -338,7 +338,9 @@ async def test_cascade_force_route_hybrid_invokes_visual() -> None:
     """force_route='hybrid' overrides confidence — always call visual."""
     text = _RecordingRetriever(
         "text",
-        [_text_chunk("paper1::p1::c0", score=0.99, page=1)],  # high score, would normally skip visual
+        [
+            _text_chunk("paper1::p1::c0", score=0.99, page=1)
+        ],  # high score, would normally skip visual
     )
     visual = _RecordingRetriever("visual", [_visual_page(page=2, score=0.5)])
     router = RoutingRetriever(

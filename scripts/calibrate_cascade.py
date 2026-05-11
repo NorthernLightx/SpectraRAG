@@ -129,8 +129,10 @@ async def _calibrate(
         region_boost=region_boost,
     )
     golden_set = load_golden_set(golden_path)
-    print(f"Calibrating cascade against {len(golden_set.queries)} queries from "
-          f"{golden_set.name}/{golden_set.version}")
+    print(
+        f"Calibrating cascade against {len(golden_set.queries)} queries from "
+        f"{golden_set.name}/{golden_set.version}"
+    )
     print(f"Corpus: {n_chunks} chunks in '{collection}'")
     print("Mode: text-leg only (mirrors cascade's first pass).")
     print()
@@ -176,7 +178,7 @@ async def _calibrate(
         ss = sorted(scores)
         print(
             f"  {cat:15s} n={len(ss):2d} "
-            f"min={ss[0]:.3f} med={ss[len(ss)//2]:.3f} max={ss[-1]:.3f}"
+            f"min={ss[0]:.3f} med={ss[len(ss) // 2]:.3f} max={ss[-1]:.3f}"
         )
     print()
 
@@ -186,7 +188,9 @@ async def _calibrate(
 
     # Counterfactual: at this threshold, how many queries would fire visual?
     if threshold is not None:
-        would_fire = [r for r in records if r["max_score"] is not None and r["max_score"] < threshold]
+        would_fire = [
+            r for r in records if r["max_score"] is not None and r["max_score"] < threshold
+        ]
         wf_by_cat: dict[str, int] = {}
         for r in would_fire:
             wf_by_cat[str(r["category"])] = wf_by_cat.get(str(r["category"]), 0) + 1
@@ -196,8 +200,10 @@ async def _calibrate(
         )
         print()
         print(f"At threshold={threshold:.4f}:")
-        print(f"  visual leg would fire on {len(would_fire)}/{len(records)} queries; "
-              f"by category: {wf_by_cat}")
+        print(
+            f"  visual leg would fire on {len(would_fire)}/{len(records)} queries; "
+            f"by category: {wf_by_cat}"
+        )
         print(f"  visual leg would SKIP on {text_skipped} in-corpus queries (cost saved)")
 
     if out_path:

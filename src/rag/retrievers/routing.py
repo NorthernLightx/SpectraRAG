@@ -220,14 +220,23 @@ class RoutingRetriever:
         # force_route overrides the confidence-based decision.
         if query.force_route == "text":
             self._log_cascade(
-                path="text", decision="forced_text", forced=True,
-                text_results=text_results, visual_results=None, fused_n=len(text_results),
+                path="text",
+                decision="forced_text",
+                forced=True,
+                text_results=text_results,
+                visual_results=None,
+                fused_n=len(text_results),
             )
             span.set_attribute("routing.path", "text")
             return text_results
         if query.force_route == "hybrid":
             return await self._cascade_run_visual_and_fuse(
-                query, span, text_results, decision="forced_hybrid", forced=True, top_score=0.0,
+                query,
+                span,
+                text_results,
+                decision="forced_hybrid",
+                forced=True,
+                top_score=0.0,
             )
 
         top_score = text_results[0].score if text_results else 0.0
@@ -236,16 +245,24 @@ class RoutingRetriever:
 
         if top_score >= self._cascade_threshold:
             self._log_cascade(
-                path="text", decision="confident_text", forced=False,
-                text_results=text_results, visual_results=None,
-                fused_n=len(text_results), top_score=top_score,
+                path="text",
+                decision="confident_text",
+                forced=False,
+                text_results=text_results,
+                visual_results=None,
+                fused_n=len(text_results),
+                top_score=top_score,
             )
             span.set_attribute("routing.path", "text")
             return text_results
 
         return await self._cascade_run_visual_and_fuse(
-            query, span, text_results, decision="uncertain_hybrid",
-            forced=False, top_score=top_score,
+            query,
+            span,
+            text_results,
+            decision="uncertain_hybrid",
+            forced=False,
+            top_score=top_score,
         )
 
     async def _cascade_run_visual_and_fuse(
@@ -262,16 +279,25 @@ class RoutingRetriever:
         visual_results = await self._safe_visual_retrieve(query, span)
         if visual_results is None:
             self._log_cascade(
-                path="text", decision=f"{decision}_visual_failed", forced=forced,
-                text_results=text_results, visual_results=None, fused_n=len(text_results),
-                top_score=top_score, visual_failed=True,
+                path="text",
+                decision=f"{decision}_visual_failed",
+                forced=forced,
+                text_results=text_results,
+                visual_results=None,
+                fused_n=len(text_results),
+                top_score=top_score,
+                visual_failed=True,
             )
             span.set_attribute("routing.path", "text")
             return text_results
         fused = self._fuse_page_level(text_results, visual_results, top_k=query.top_k)
         self._log_cascade(
-            path="hybrid", decision=decision, forced=forced,
-            text_results=text_results, visual_results=visual_results, fused_n=len(fused),
+            path="hybrid",
+            decision=decision,
+            forced=forced,
+            text_results=text_results,
+            visual_results=visual_results,
+            fused_n=len(fused),
             top_score=top_score,
         )
         span.set_attribute("routing.path", "hybrid")

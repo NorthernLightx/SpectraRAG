@@ -46,9 +46,8 @@ def _should_retry_vlm_request(exc: BaseException) -> bool:
     """Same retry policy as OpenRouterClient: transport errors + HTTP 429."""
     if isinstance(exc, (httpx.TransportError, httpx.RemoteProtocolError)):
         return True
-    return (
-        isinstance(exc, httpx.HTTPStatusError) and exc.response.status_code == 429
-    )
+    return isinstance(exc, httpx.HTTPStatusError) and exc.response.status_code == 429
+
 
 _log = get_logger(__name__)
 

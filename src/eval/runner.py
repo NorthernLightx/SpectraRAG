@@ -155,9 +155,7 @@ async def _run_one(
                 faith_out = await judge.faithfulness(
                     query=query.text, answer=answer_text, retrieved=retrieved
                 )
-                ans_out = await judge.answer_relevance(
-                    query=query.text, answer=answer_text
-                )
+                ans_out = await judge.answer_relevance(query=query.text, answer=answer_text)
                 faithfulness = faith_out.score
                 answer_relevance = ans_out.score
                 # Std fields surface multi-seed variance (B2). For single-seed
@@ -166,9 +164,7 @@ async def _run_one(
                 # construction".
                 faithfulness_std = faith_out.score_std
                 answer_relevance_std = ans_out.score_std
-        ctx_prec_out = await judge.context_precision(
-            query=query.text, retrieved=retrieved
-        )
+        ctx_prec_out = await judge.context_precision(query=query.text, retrieved=retrieved)
         context_precision = ctx_prec_out.score
         context_precision_std = ctx_prec_out.score_std
 
