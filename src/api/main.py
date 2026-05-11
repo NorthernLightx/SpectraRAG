@@ -23,7 +23,7 @@ from src.api.auth import make_api_key_middleware
 from src.api.deps import set_generator, set_retriever
 from src.api.middleware import request_context_middleware
 from src.api.rate_limit import limiter
-from src.api.routes import answer, health, query
+from src.api.routes import answer, health, papers, query
 from src.config.settings import Settings, load_settings
 from src.embeddings.ollama_bge import OllamaBgeEmbedder
 from src.embeddings.protocol import Embedder
@@ -356,6 +356,7 @@ def create_app(*, log_file: Path | None = Path("logs/api.log")) -> FastAPI:
     app.include_router(health.router)
     app.include_router(query.router)
     app.include_router(answer.router)
+    app.include_router(papers.router)
 
     # Page PNGs served at /pages/<paper>/<paper>_pN.png. The browser pulls
     # these URLs into OpenRouter `image_url` content blocks so a vision-

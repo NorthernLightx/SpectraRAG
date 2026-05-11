@@ -253,8 +253,35 @@
         color: var(--muted);
         font-size: 12.5px;
       }
-      .citation-list li { margin: 4px 0; }
+      .citation-list li { margin: 8px 0; }
       .citation-list code { color: var(--code); }
+      .citation-list .cite-thumb {
+        display: block;
+        width: 96px;
+        height: auto;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        margin: 6px 0 0;
+        background: var(--canvas);
+      }
+      .citation-list .cite-thumb:hover { border-color: var(--accent); }
+      .cite-ref {
+        color: var(--accent);
+        text-decoration: none;
+        cursor: pointer;
+      }
+      .cite-ref:hover { text-decoration: underline; }
+      .papers-list {
+        margin: 0;
+        padding-left: 0;
+        list-style: none;
+        font-size: 13px;
+      }
+      .papers-list li { margin: 4px 0; }
+      .papers-list code { color: var(--code); margin-right: 6px; }
+      .papers-list a { color: var(--accent); text-decoration: none; }
+      .papers-list a:hover { text-decoration: underline; }
+      .papers-list .muted { color: var(--muted); }
       .badge {
         display: inline-block;
         padding: 2px 7px;
@@ -343,6 +370,11 @@
         </div>
       </section>
 
+      <details id="papersWrap" hidden class="card" style="padding: 12px 16px">
+        <summary>Papers in this demo</summary>
+        <div class="details-body" id="papers"></div>
+      </details>
+
       <section id="result" class="card" hidden>
         <label>Answer</label>
         <div class="answer" id="answer"></div>
@@ -379,6 +411,8 @@
       const chunksEl = document.getElementById("chunks");
       const metaEl = document.getElementById("meta");
       const modeHint = document.getElementById("modeHint");
+      const papersWrap = document.getElementById("papersWrap");
+      const papersEl = document.getElementById("papers");
 
       const savedTheme = localStorage.getItem("rag.theme");
       const prefersLight = window.matchMedia("(prefers-color-scheme: light)").matches;
@@ -414,6 +448,7 @@
         .catch(() => {
           modeHint.textContent = "Server status unknown.";
         });
+      loadPapers();
 
       askBtn.addEventListener("click", askHandler);
       queryInput.addEventListener("keydown", (e) => {
@@ -467,7 +502,8 @@
           const tGen = performance.now() - tGenStart;
           const { newText, ids } = renumberCitations(text);
           renderAnswer(newText);
-          renderCitations(ids, chunks);
+          makeCitationsClickable(answerEl, "cite");
+          renderCitations(ids, chunks, "cite");
           renderMeta(model, usage, Math.round(tRetrieve), Math.round(tGen), useImages);
           setStatus("");
         } catch (err) {
@@ -617,7 +653,7 @@
         metaEl.textContent = "";
       }
 
-      function renderCitations(ids, chunks) {
+      function renderCitations(ids, chunks, anchorPrefix) {
         clear(citationsEl);
         if (ids.length === 0) {
           citationsWrap.hidden = true;
@@ -626,9 +662,10 @@
         const byId = new Map(chunks.map((c) => [c.chunk_id, c]));
         const ol = document.createElement("ol");
         ol.className = "citation-list";
-        for (const id of ids) {
+        ids.forEach((id, i) => {
           const c = byId.get(id);
           const li = document.createElement("li");
+          li.id = `${anchorPrefix}-${i + 1}`;
           const code = document.createElement("code");
           code.textContent = id;
           li.append(code);
@@ -639,13 +676,106 @@
                 ` — paper ${c.paper_id}${pages ? ` · p${pages}` : ""}`
               )
             );
+            const firstPage = (c.page_numbers || [])[0];
+            if (firstPage) {
+              const a = document.createElement("a");
+              a.href = `/pages/${c.paper_id}/${c.paper_id}_p${firstPage}.png`;
+              a.target = "_blank";
+              a.rel = "noopener";
+              const img = document.createElement("img");
+              img.className = "cite-thumb";
+              img.src = a.href;
+              img.alt = `Page ${firstPage} of ${c.paper_id}`;
+              img.loading = "lazy";
+              a.append(img);
+              li.append(a);
+            }
           } else {
             li.append(document.createTextNode(" — (not in retrieved set)"));
           }
           ol.append(li);
-        }
+        });
         citationsEl.append(ol);
         citationsWrap.hidden = false;
+      }
+
+      // After KaTeX has rendered (math is now in spans, citations remain
+      // as plain text `[N]`), walk the remaining text nodes and replace
+      // each `[N]` marker with an anchor that jumps to the matching <li>
+      // in the citation list. Skips nodes inside .katex spans so math
+      // expressions like `\[x_{[i]}\]` are never rewritten.
+      function makeCitationsClickable(rootEl, anchorPrefix) {
+        const walker = document.createTreeWalker(rootEl, NodeFilter.SHOW_TEXT, {
+          acceptNode(n) {
+            return n.parentElement && n.parentElement.closest(".katex")
+              ? NodeFilter.FILTER_REJECT
+              : NodeFilter.FILTER_ACCEPT;
+          },
+        });
+        const targets = [];
+        let n;
+        while ((n = walker.nextNode())) {
+          if (/\[\d+\]/.test(n.nodeValue)) targets.push(n);
+        }
+        for (const textNode of targets) {
+          const parent = textNode.parentNode;
+          const parts = textNode.nodeValue.split(/(\[\d+\])/);
+          for (const part of parts) {
+            if (/^\[\d+\]$/.test(part)) {
+              const num = part.slice(1, -1);
+              const a = document.createElement("a");
+              a.href = `#${anchorPrefix}-${num}`;
+              a.className = "cite-ref";
+              a.textContent = part;
+              parent.insertBefore(a, textNode);
+            } else if (part) {
+              parent.insertBefore(document.createTextNode(part), textNode);
+            }
+          }
+          parent.removeChild(textNode);
+        }
+      }
+
+      async function loadPapers() {
+        try {
+          const res = await fetch("/papers");
+          if (!res.ok) return;
+          const papers = await res.json();
+          if (!Array.isArray(papers) || papers.length === 0) return;
+          const ul = document.createElement("ul");
+          ul.className = "papers-list";
+          for (const p of papers) {
+            const li = document.createElement("li");
+            const code = document.createElement("code");
+            code.textContent = p.paper_id;
+            li.append(code);
+            const tail = document.createElement("span");
+            tail.className = "muted";
+            tail.textContent = `${p.page_count} pages`;
+            li.append(tail);
+            if (p.arxiv_url) {
+              li.append(document.createTextNode(" · "));
+              const abs = document.createElement("a");
+              abs.href = p.arxiv_url;
+              abs.target = "_blank";
+              abs.rel = "noopener";
+              abs.textContent = "abstract";
+              li.append(abs);
+              li.append(document.createTextNode(" · "));
+              const pdf = document.createElement("a");
+              pdf.href = p.pdf_url;
+              pdf.target = "_blank";
+              pdf.rel = "noopener";
+              pdf.textContent = "PDF";
+              li.append(pdf);
+            }
+            ul.append(li);
+          }
+          papersEl.append(ul);
+          papersWrap.hidden = false;
+        } catch (_) {
+          // graceful: section stays hidden if /papers fails
+        }
       }
 
       function renderChunks(chunks) {
