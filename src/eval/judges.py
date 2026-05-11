@@ -96,7 +96,7 @@ class LLMJudge:
         answer_relevance_prompt: Prompt,
         context_precision_prompt: Prompt,
         temperature: float = 0.0,
-        max_tokens: int = 256,
+        max_tokens: int = 1024,
         n_samples: int = 1,
         sampling_temperature: float = 0.7,
     ) -> None:
