@@ -15,7 +15,7 @@ trigger CPU fallback. The flow:
 Run:
   uv run python -m scripts.eval_visual \\
       --pdf data/papers/2604.22753v1.pdf data/papers/2604.28180v1.pdf ... \\
-      --golden data/golden/v2.yaml \\
+      --golden data/golden/v3.yaml \\
       --output-dir data/eval/runs
 
 Prerequisites: a CUDA-capable PyTorch (the rerank GPU unlock from earlier),
@@ -159,7 +159,7 @@ async def _main(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--pdf", type=Path, required=True, nargs="+")
-    parser.add_argument("--golden", type=Path, default=Path("data/golden/v2.yaml"))
+    parser.add_argument("--golden", type=Path, default=Path("data/golden/v3.yaml"))
     parser.add_argument("--output-dir", type=Path, default=Path("data/eval/runs"))
     parser.add_argument("--pages-dir", type=Path, default=Path("data/pages"))
     parser.add_argument("--top-k", type=int, default=10)

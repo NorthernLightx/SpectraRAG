@@ -25,7 +25,7 @@ Run:
   uv run python -m scripts.eval_hybrid \\
       --text-run data/eval/runs/run-20260501-190915.json \\
       --visual-run data/eval/runs/run-visual-20260501-215441.json \\
-      --golden data/golden/v2.yaml
+      --golden data/golden/v3.yaml
 """
 
 from __future__ import annotations
@@ -299,7 +299,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--text-run", type=Path, required=True)
     parser.add_argument("--visual-run", type=Path, required=True)
-    parser.add_argument("--golden", type=Path, default=Path("data/golden/v2.yaml"))
+    parser.add_argument("--golden", type=Path, default=Path("data/golden/v3.yaml"))
     parser.add_argument("--output-dir", type=Path, default=Path("data/eval/runs"))
     parser.add_argument("--rrf-k", type=int, default=60)
     parser.add_argument("--top-k", type=int, default=10)
