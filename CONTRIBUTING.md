@@ -82,12 +82,13 @@ This repo is open-source by design. Be defensive about leakage:
   `.parquet`, anything > 1 MB unless it's a versioned artifact like
   `data/eval/baseline.json`. Use the fetch scripts to reproduce locally.
 - ❌ **Ephemeral local state** — `.venv/`, `logs/`, `.coverage*`,
-  `__pycache__/`, `qdrant_storage/`, `postgres_data/`, IDE configs,
-  agent-tooling state (`.claude/`, `.cursor/`, `CLAUDE.md`,
-  `docs/superpowers/`). The `.gitignore` covers these defensively.
-- ❌ **Internal-only docs** — running-state notes (`STATUS.md`),
-  scratchpad plans, agent-generated planning files. Keep them local; what
-  belongs in the repo is the ADR after the decision is made.
+  `__pycache__/`, `qdrant_storage/`, `postgres_data/`, IDE configs.
+  These are covered by `.gitignore`; if you introduce a new tool whose
+  state isn't already gitignored, add it to `.gitignore` in the same PR.
+- ❌ **Work-in-progress notes** — `STATUS.md`-style running logs,
+  scratchpad plans, one-off task lists, anything intended as a personal
+  thinking aid. What belongs in the repo is the ADR *after* the decision
+  is made, not the deliberation that led to it.
 
 If you accidentally commit something sensitive, **do not just delete it in a
 follow-up commit** — the data stays in history. Use `git filter-repo` to
