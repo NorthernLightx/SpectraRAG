@@ -327,9 +327,9 @@ def create_app(*, log_file: Path | None = Path("logs/api.log")) -> FastAPI:
         yield
 
     app = FastAPI(
-        title="Multi-modal Paper RAG",
+        title="PrismRAG",
         version="0.1.0",
-        description="RAG over scientific papers comparing pipeline vs visual retrieval.",
+        description="Multi-modal PDF RAG comparing text-pipeline vs visual retrieval.",
         lifespan=lifespan,
     )
     # slowapi needs:

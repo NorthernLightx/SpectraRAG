@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Multi-modal Paper RAG — chat</title>
+    <title>PrismRAG — chat</title>
     <link
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"
@@ -378,6 +378,11 @@
         cursor: pointer;
       }
       .cite-ref:hover { text-decoration: underline; }
+      .cite-source {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      .cite-source:hover { text-decoration: underline; }
       pre, code {
         font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, monospace;
         font-size: 12.5px;
@@ -483,7 +488,7 @@
   <body>
     <header>
       <div class="title-block">
-        <h1>Multi-modal Paper RAG</h1>
+        <h1>PrismRAG</h1>
         <p>
           Conversational variant. Each turn re-runs retrieval; from turn 2
           onwards your message is condensed into a standalone search query
@@ -765,7 +770,7 @@
             "Content-Type": "application/json",
             Authorization: `Bearer ${apiKey}`,
             "HTTP-Referer": window.location.origin,
-            "X-Title": "Multi-modal Paper RAG (condense)",
+            "X-Title": "PrismRAG (condense)",
           },
           body: JSON.stringify({
             model,
@@ -839,7 +844,7 @@
             "Content-Type": "application/json",
             Authorization: `Bearer ${apiKey}`,
             "HTTP-Referer": window.location.origin,
-            "X-Title": "Multi-modal Paper RAG",
+            "X-Title": "PrismRAG",
           },
           body: JSON.stringify({
             model,
@@ -993,11 +998,19 @@
           li.append(code);
           if (c) {
             const pages = (c.page_numbers || []).join(", ");
-            li.append(
-              document.createTextNode(
-                ` — paper ${c.paper_id}${pages ? ` · p${pages}` : ""}`
-              )
-            );
+            const sourceText = `paper ${c.paper_id}${pages ? ` · p${pages}` : ""}`;
+            li.append(document.createTextNode(" — "));
+            if (/^\d{4}\.\d{4,5}(v\d+)?$/.test(c.paper_id)) {
+              const a = document.createElement("a");
+              a.href = `https://arxiv.org/abs/${c.paper_id}`;
+              a.target = "_blank";
+              a.rel = "noopener";
+              a.className = "cite-source";
+              a.textContent = sourceText;
+              li.append(a);
+            } else {
+              li.append(document.createTextNode(sourceText));
+            }
             const firstPage = (c.page_numbers || [])[0];
             if (firstPage) {
               const a = document.createElement("a");
@@ -1079,12 +1092,37 @@
         if (pages) meta.append(document.createTextNode(` · p${pages}`));
         const score = typeof r.score === "number" ? r.score : 0;
         meta.append(document.createTextNode(` · score ${score.toFixed(3)}`));
-        const pre = document.createElement("pre");
-        const text = String(r.text || "");
-        pre.textContent =
-          text.length > 400 ? text.slice(0, 400) + "..." : text;
-        div.append(meta, pre);
+        const body = document.createElement("div");
+        body.className = "chunk-text";
+        body.textContent = previewText(r.text);
+        div.append(meta, body);
         return div;
+      }
+
+      // PDF text extraction inserts a newline at every visual line wrap,
+      // which makes raw chunk text render as fragmented short lines once
+      // we drop the monospace `<pre>` wrapper. Collapse single newlines
+      // into spaces and preserve paragraph breaks (>=2 consecutive
+      // newlines). Truncate to ~480 chars at a sentence boundary when
+      // possible, falling back to the hard limit otherwise.
+      function previewText(raw) {
+        let text = String(raw || "")
+          .replace(/[ \t]+\n/g, "\n")
+          .replace(/\n{2,}/g, "")
+          .replace(/\n+/g, " ")
+          .replace(//g, "\n\n")
+          .replace(/[ \t]{2,}/g, " ")
+          .trim();
+        const HARD = 480;
+        if (text.length <= HARD) return text;
+        const slice = text.slice(0, HARD);
+        const lastSentence = Math.max(
+          slice.lastIndexOf(". "),
+          slice.lastIndexOf("! "),
+          slice.lastIndexOf("? ")
+        );
+        const cut = lastSentence > 280 ? lastSentence + 1 : HARD;
+        return text.slice(0, cut).trim() + "…";
       }
 
       function renderMetaInto(target, model, usage, retrieveMs, generateMs, useImages) {

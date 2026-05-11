@@ -15,7 +15,7 @@ router = APIRouter()
 
 def _service_version() -> str:
     try:
-        return version("multi-modal-paper-rag")
+        return version("prismrag")
     except PackageNotFoundError:
         return "0.0.0+local"
 

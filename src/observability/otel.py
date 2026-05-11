@@ -41,7 +41,7 @@ def configure_otel() -> bool:
     if not endpoint:
         return False
 
-    service_name = os.environ.get("OTEL_SERVICE_NAME", "multi-modal-paper-rag")
+    service_name = os.environ.get("OTEL_SERVICE_NAME", "prismrag")
     resource = Resource.create({"service.name": service_name})
 
     tracer_provider = TracerProvider(resource=resource)

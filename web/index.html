@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Multi-modal Paper RAG</title>
+    <title>PrismRAG</title>
     <link
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"
@@ -271,6 +271,11 @@
         cursor: pointer;
       }
       .cite-ref:hover { text-decoration: underline; }
+      .cite-source {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      .cite-source:hover { text-decoration: underline; }
       .badge {
         display: inline-block;
         padding: 2px 7px;
@@ -303,7 +308,7 @@
     <main>
       <header>
         <div class="title-block">
-          <h1>Multi-modal Paper RAG</h1>
+          <h1>PrismRAG</h1>
           <p>
             Bring your own OpenRouter key. Retrieval runs on this server (BM25 +
             dense + RRF + rerank). Generation calls OpenRouter from your browser
@@ -547,7 +552,7 @@
             "Content-Type": "application/json",
             Authorization: `Bearer ${apiKey}`,
             "HTTP-Referer": window.location.origin,
-            "X-Title": "Multi-modal Paper RAG",
+            "X-Title": "PrismRAG",
           },
           body: JSON.stringify({
             model,
@@ -653,11 +658,19 @@
           li.append(code);
           if (c) {
             const pages = (c.page_numbers || []).join(", ");
-            li.append(
-              document.createTextNode(
-                ` — paper ${c.paper_id}${pages ? ` · p${pages}` : ""}`
-              )
-            );
+            const sourceText = `paper ${c.paper_id}${pages ? ` · p${pages}` : ""}`;
+            li.append(document.createTextNode(" — "));
+            if (/^\d{4}\.\d{4,5}(v\d+)?$/.test(c.paper_id)) {
+              const a = document.createElement("a");
+              a.href = `https://arxiv.org/abs/${c.paper_id}`;
+              a.target = "_blank";
+              a.rel = "noopener";
+              a.className = "cite-source";
+              a.textContent = sourceText;
+              li.append(a);
+            } else {
+              li.append(document.createTextNode(sourceText));
+            }
             const firstPage = (c.page_numbers || [])[0];
             if (firstPage) {
               const a = document.createElement("a");

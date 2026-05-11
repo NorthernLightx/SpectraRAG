@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "multi-modal-paper-rag"
+name = "prismrag"
 version = "0.1.0"
-description = "Production-grade RAG comparing visual document retrieval (ColQwen2) against a multi-modal pipeline."
+description = "Multi-modal PDF RAG comparing text-pipeline vs visual retrieval."
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
