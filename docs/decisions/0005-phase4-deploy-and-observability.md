@@ -1,8 +1,11 @@
 # ADR 0005 — Phase 4 deploy + observability scaffold
 
-**Status:** Accepted (scaffold). Production rollout gated on a successful
-`terraform apply` against a real Azure subscription + a soak run against the
-deployed instance. Until then this is a green-on-CI scaffold.
+**Status:** Accepted (scaffold). **Decision §5 (Terraform/azurerm) superseded
+in a later PR**: the deploy workflow now targets Google Cloud Run via
+`google-github-actions/deploy-cloudrun` rather than Azure Container Apps
+(see `.github/workflows/deploy.yml`). The other decisions in this ADR
+(no-op SDK pattern, stdout logging, OTel+structlog coexistence, X-Request-ID
++ W3C traceparent, manual CD, `/answer` span seeding) still apply.
 **Date:** 2026-05-01.
 **Phase:** 4 (scaffold subset: deploy infra + OTel + Sentry).
 
