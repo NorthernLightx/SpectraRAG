@@ -354,6 +354,14 @@
       }
       .chunk:first-of-type { border-top: none; padding-top: 0; margin-top: 0; }
       .chunk-meta { color: var(--muted); font-size: 12px; margin-bottom: 4px; }
+      .citation-list {
+        margin: 0;
+        padding-left: 24px;
+        color: var(--muted);
+        font-size: 12.5px;
+      }
+      .citation-list li { margin: 4px 0; }
+      .citation-list code { color: var(--code); }
       pre, code {
         font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, monospace;
         font-size: 12.5px;
@@ -678,10 +686,12 @@
             }
           );
           const tGen = performance.now() - tGenStart;
-          assistantTurn.text = out;
+          const { newText, ids } = renumberCitations(out);
+          assistantTurn.text = newText;
+          nodes.answer.textContent = newText;
           renderMath(nodes.answer);
-          assistantTurn.citations = parseCitations(out);
-          renderCitationsInto(nodes.citationsEl, assistantTurn.citations, chunks);
+          assistantTurn.citations = ids;
+          renderCitationsInto(nodes.citationsEl, ids, chunks);
           nodes.citationsWrap.hidden = assistantTurn.citations.length === 0;
           renderMetaInto(
             nodes.meta,
@@ -853,16 +863,30 @@
         return { text: acc, usage };
       }
 
-      function parseCitations(text) {
-        const seen = new Set();
-        const ids = [];
-        for (const m of text.matchAll(/\[([A-Za-z0-9_:.\-]+)\]/g)) {
-          if (!seen.has(m[1])) {
-            seen.add(m[1]);
-            ids.push(m[1]);
-          }
-        }
-        return ids;
+      // Rewrite the LLM's inline chunk-id citations into compact numeric
+      // references. The model emits either `[chunks ID, ID]` or `[ID]`
+      // (where ID matches `<paper>::p<N>::c<N>`); we replace each one with
+      // `[1]`, `[2]`, ... preserving the order the model first cited each
+      // chunk. Returns the rewritten text plus the ordered chunk-id list so
+      // the citation panel can render a matching <ol>.
+      function renumberCitations(text) {
+        const idMap = new Map();
+        const orderedIds = [];
+        const chunkIdRe = /[A-Za-z0-9_.\-]+::p\d+::c\d+/g;
+        const newText = text.replace(/\[([^\]]+)\]/g, (match, inner) => {
+          const ids = inner.match(chunkIdRe);
+          if (!ids || ids.length === 0) return match;
+          return ids
+            .map((id) => {
+              if (!idMap.has(id)) {
+                idMap.set(id, orderedIds.length + 1);
+                orderedIds.push(id);
+              }
+              return `[${idMap.get(id)}]`;
+            })
+            .join("");
+        });
+        return { newText, ids: orderedIds };
       }
 
       function renderUserTurn(turn) {
@@ -935,28 +959,27 @@
         clear(target);
         if (ids.length === 0) return;
         const byId = new Map(chunks.map((c) => [c.chunk_id, c]));
+        const ol = document.createElement("ol");
+        ol.className = "citation-list";
         for (const id of ids) {
           const c = byId.get(id);
-          const div = document.createElement("div");
-          div.className = "chunk";
-          const meta = document.createElement("span");
-          meta.className = "chunk-meta";
+          const li = document.createElement("li");
           const code = document.createElement("code");
           code.textContent = id;
-          meta.append(code);
+          li.append(code);
           if (c) {
             const pages = (c.page_numbers || []).join(", ");
-            meta.append(
+            li.append(
               document.createTextNode(
                 ` — paper ${c.paper_id}${pages ? ` · p${pages}` : ""}`
               )
             );
           } else {
-            meta.append(document.createTextNode(" — (not in retrieved set)"));
+            li.append(document.createTextNode(" — (not in retrieved set)"));
           }
-          div.append(meta);
-          target.append(div);
+          ol.append(li);
         }
+        target.append(ol);
       }
 
       function renderChunksInto(target, chunks) {
