@@ -149,9 +149,7 @@ async def _main(
                 )
             vlm_captioner_obj = OpenRouterVisionCaptioner(api_key=api_key, model=vlm_caption_model)
         else:
-            vlm_captioner_obj = OllamaVisionCaptioner(
-                base_url=ollama_url, model=vlm_caption_model
-            )
+            vlm_captioner_obj = OllamaVisionCaptioner(base_url=ollama_url, model=vlm_caption_model)
         print(f"VLM captioning figures with {vlm_caption_provider}/{vlm_caption_model}")
 
     chunks_by_id: dict[str, Chunk] = {}
@@ -247,6 +245,7 @@ async def _main(
         # models — both honor keep_alive: 0). Only matters on cuda.
         if visual_device.startswith("cuda"):
             import httpx as _httpx  # local import keeps module-level deps clean
+
             try:
                 async with _httpx.AsyncClient(timeout=10.0) as _ev_client:
                     ps = await _ev_client.get(f"{ollama_url}/api/ps")
@@ -287,6 +286,7 @@ async def _main(
 
     if region_number_boost:
         from src.rag.retrievers.region_boost import RegionNumberBoostRetriever
+
         retriever = RegionNumberBoostRetriever(base=retriever)
         print(
             "Region-number boost enabled — chunks whose text starts with "

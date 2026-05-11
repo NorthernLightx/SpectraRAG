@@ -101,8 +101,14 @@ def _print_summary(run: dict[str, Any]) -> None:
         ("recall@10 (in-corpus)", _macro_mean(per_query, "recall_at_10", in_corpus_only=True)),
         ("MRR (in-corpus)", _macro_mean(per_query, "mrr", in_corpus_only=True)),
         ("faithfulness (all)", _macro_mean(per_query, "faithfulness", in_corpus_only=False)),
-        ("answer_relevance (all)", _macro_mean(per_query, "answer_relevance", in_corpus_only=False)),
-        ("context_precision (all)", _macro_mean(per_query, "context_precision", in_corpus_only=False)),
+        (
+            "answer_relevance (all)",
+            _macro_mean(per_query, "answer_relevance", in_corpus_only=False),
+        ),
+        (
+            "context_precision (all)",
+            _macro_mean(per_query, "context_precision", in_corpus_only=False),
+        ),
     ]
     print(f"Rebaselined run_id={run.get('run_id')} against {run.get('rebaselined_against')}")
     for label, value in rows:

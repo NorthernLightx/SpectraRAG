@@ -87,8 +87,15 @@ def test_rebaseline_preserves_generation_metrics(tmp_path: Path) -> None:
     golden = tmp_path / "v.yaml"
     _write_golden(
         golden,
-        [{"query_id": "q1", "text": "x", "paper_id": "p1", "category": "factual",
-          "relevant_chunk_ids": ["p1::p2::c5"]}],
+        [
+            {
+                "query_id": "q1",
+                "text": "x",
+                "paper_id": "p1",
+                "category": "factual",
+                "relevant_chunk_ids": ["p1::p2::c5"],
+            }
+        ],
     )
 
     run_path = tmp_path / "run.json"
@@ -130,8 +137,15 @@ def test_rebaseline_keeps_ooc_at_zero(tmp_path: Path) -> None:
     golden = tmp_path / "v.yaml"
     _write_golden(
         golden,
-        [{"query_id": "q1", "text": "x", "paper_id": "p1",
-          "category": "out_of_corpus", "relevant_chunk_ids": []}],
+        [
+            {
+                "query_id": "q1",
+                "text": "x",
+                "paper_id": "p1",
+                "category": "out_of_corpus",
+                "relevant_chunk_ids": [],
+            }
+        ],
     )
 
     run_path = tmp_path / "run.json"
@@ -168,8 +182,15 @@ def test_rebaseline_records_provenance(tmp_path: Path) -> None:
     golden = tmp_path / "v.yaml"
     _write_golden(
         golden,
-        [{"query_id": "q1", "text": "x", "paper_id": "p1",
-          "category": "factual", "relevant_chunk_ids": ["p1::p1::c0"]}],
+        [
+            {
+                "query_id": "q1",
+                "text": "x",
+                "paper_id": "p1",
+                "category": "factual",
+                "relevant_chunk_ids": ["p1::p1::c0"],
+            }
+        ],
     )
 
     run_path = tmp_path / "run.json"
@@ -204,8 +225,15 @@ def test_rebaseline_handles_query_absent_in_updated_goldens(tmp_path: Path) -> N
     golden = tmp_path / "v.yaml"
     _write_golden(
         golden,
-        [{"query_id": "q_kept", "text": "y", "paper_id": "p1",
-          "category": "factual", "relevant_chunk_ids": ["p1::p1::c0"]}],
+        [
+            {
+                "query_id": "q_kept",
+                "text": "y",
+                "paper_id": "p1",
+                "category": "factual",
+                "relevant_chunk_ids": ["p1::p1::c0"],
+            }
+        ],
     )
 
     run_path = tmp_path / "run.json"

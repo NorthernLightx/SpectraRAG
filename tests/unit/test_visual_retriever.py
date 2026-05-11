@@ -180,9 +180,7 @@ async def test_retrieve_with_paper_filter_scopes_to_one_paper() -> None:
         page_meta=page_meta,
         device="cpu",
     )
-    out = await retriever.retrieve(
-        Query(text="q", top_k=5, filters={"paper_id": "paperB"})
-    )
+    out = await retriever.retrieve(Query(text="q", top_k=5, filters={"paper_id": "paperB"}))
     assert {r.paper_id for r in out} == {"paperB"}
     assert {r.chunk_id for r in out} == {"paperB::p1::page"}
 

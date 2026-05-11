@@ -148,7 +148,12 @@ async def test_openrouter_captioner_posts_data_url_with_image_block(tmp_path: Pa
                 "id": "x",
                 "model": "openai/gpt-4o-mini",
                 "choices": [
-                    {"message": {"role": "assistant", "content": "A bar chart of accuracy by method."}}
+                    {
+                        "message": {
+                            "role": "assistant",
+                            "content": "A bar chart of accuracy by method.",
+                        }
+                    }
                 ],
             },
         )

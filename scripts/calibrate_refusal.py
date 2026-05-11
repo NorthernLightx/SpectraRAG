@@ -143,10 +143,14 @@ async def _calibrate(
         region_boost=region_boost,
     )
     golden_set = load_golden_set(golden_path)
-    print(f"Calibrating against {len(golden_set.queries)} queries from {golden_set.name}/{golden_set.version}")
+    print(
+        f"Calibrating against {len(golden_set.queries)} queries from {golden_set.name}/{golden_set.version}"
+    )
     print(f"Corpus: {n_chunks} chunks in Qdrant collection '{collection}'")
-    print(f"Config: length_norm={rerank_length_norm}, region_boost={region_boost}, "
-          f"paper_id_filter={paper_id_filter}")
+    print(
+        f"Config: length_norm={rerank_length_norm}, region_boost={region_boost}, "
+        f"paper_id_filter={paper_id_filter}"
+    )
     print()
 
     records: list[dict[str, Any]] = []
@@ -180,7 +184,9 @@ async def _calibrate(
     print("-" * 100)
     for r in sorted(records, key=lambda x: (x["category"], -(x["max_score"] or -999))):
         score_str = f"{r['max_score']:.4f}" if r["max_score"] is not None else "(no results)"
-        print(f"{r['query_id']:40s} {r['category']:14s} {score_str:>10s}  {r['top_chunk_id'] or ''}")
+        print(
+            f"{r['query_id']:40s} {r['category']:14s} {score_str:>10s}  {r['top_chunk_id'] or ''}"
+        )
     print()
 
     # Bucket aggregates

@@ -145,7 +145,13 @@ async def test_citation_picks_up_bbox_from_figure_chunk_metadata() -> None:
     gen = Generator(llm=llm, prompt=_prompt(), model="m")
     answer = await gen.answer(
         "q",
-        [_result(fig_id, "fig caption", metadata={"kind": "figure", "bbox": [10.0, 20.0, 110.0, 220.0]})],
+        [
+            _result(
+                fig_id,
+                "fig caption",
+                metadata={"kind": "figure", "bbox": [10.0, 20.0, 110.0, 220.0]},
+            )
+        ],
     )
     [cit] = answer.citations
     assert cit.bbox == [10.0, 20.0, 110.0, 220.0]
@@ -157,7 +163,11 @@ async def test_citation_picks_up_bbox_from_table_chunk_metadata() -> None:
     gen = Generator(llm=llm, prompt=_prompt(), model="m")
     answer = await gen.answer(
         "q",
-        [_result(tab_id, "table md", metadata={"kind": "table", "bbox": [50.0, 100.0, 450.0, 300.0]})],
+        [
+            _result(
+                tab_id, "table md", metadata={"kind": "table", "bbox": [50.0, 100.0, 450.0, 300.0]}
+            )
+        ],
     )
     [cit] = answer.citations
     assert cit.bbox == [50.0, 100.0, 450.0, 300.0]
