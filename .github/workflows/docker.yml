@@ -64,7 +64,11 @@ jobs:
           file: ./Dockerfile
           push: false
           cache-from: type=gha
-          cache-to: type=gha
+          # ignore-error: a cancelled prior run (cancel-in-progress) can
+          # orphan cache entries, and the multi-GB bge-m3 + uv layers can
+          # exceed the 10GB GHA cache quota mid-export. Don't gate a
+          # successful build on best-effort cache writes.
+          cache-to: type=gha,ignore-error=true
 
   publish:
     if: github.event_name == 'push'
@@ -115,4 +119,4 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
-          cache-to: type=gha
+          cache-to: type=gha,ignore-error=true
