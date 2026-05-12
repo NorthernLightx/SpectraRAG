@@ -32,9 +32,7 @@ from src.types import Query, RetrievalResult, RoutingInfo
 # propagated through asyncio.gather, so the visual-leg branch can write to it
 # from inside a Task without leaking to other requests. The /query endpoint
 # reads this after retrieve() to attach the decision to its response body.
-_routing_info_var: ContextVar[RoutingInfo | None] = ContextVar(
-    "routing_info", default=None
-)
+_routing_info_var: ContextVar[RoutingInfo | None] = ContextVar("routing_info", default=None)
 
 
 def get_last_routing_info() -> RoutingInfo | None:
@@ -42,6 +40,7 @@ def get_last_routing_info() -> RoutingInfo | None:
     current task didn't go through a RoutingRetriever (e.g. PipelineRetriever
     wired directly with no routing layer)."""
     return _routing_info_var.get()
+
 
 if TYPE_CHECKING:
     from src.rag.retrievers.classifier_llm import LLMQueryClassifier

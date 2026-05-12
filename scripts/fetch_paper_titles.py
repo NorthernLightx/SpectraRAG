@@ -97,7 +97,9 @@ def main() -> None:
         print(f"No arxiv-format papers found under {args.pages_dir}")
         return
 
-    print(f"Resolving {len(paper_ids)} titles from arxiv (≈{len(paper_ids) * _REQUEST_DELAY_SEC:.0f}s)...")
+    print(
+        f"Resolving {len(paper_ids)} titles from arxiv (≈{len(paper_ids) * _REQUEST_DELAY_SEC:.0f}s)..."
+    )
     titles = asyncio.run(fetch_all(paper_ids))
 
     # Merge with any existing file so manually-edited entries survive a re-run.

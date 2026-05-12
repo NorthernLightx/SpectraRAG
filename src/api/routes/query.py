@@ -13,9 +13,7 @@ router = APIRouter()
 
 
 @router.post("/query", response_model=RetrievalResponse)
-async def query(
-    payload: Query, retriever: Retriever = Depends(get_retriever)
-) -> RetrievalResponse:
+async def query(payload: Query, retriever: Retriever = Depends(get_retriever)) -> RetrievalResponse:
     results = await retriever.retrieve(payload)
     # When the retriever is a RoutingRetriever, it has populated the contextvar
     # with its decision; PipelineRetriever wired directly leaves it at None.
