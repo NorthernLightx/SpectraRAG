@@ -76,5 +76,5 @@ class RetrievalResponse(BaseModel):
     PipelineRetriever with no routing layer).
     """
 
-    results: list["RetrievalResult"]
+    results: list[RetrievalResult]
     routing: RoutingInfo | None = None
