@@ -43,7 +43,8 @@
         line-height: 1.55;
       }
       header {
-        max-width: 1200px;
+        max-width: 880px;
+        width: 100%;
         margin: 0 auto;
         padding: 24px 24px 8px;
         display: flex;
@@ -80,24 +81,31 @@
       [data-theme="light"] .icon-moon { display: none; }
 
       .nav {
-        max-width: 1200px;
+        max-width: 880px;
+        width: 100%;
         margin: 0 auto;
-        padding: 0 24px 16px;
+        padding: 4px 24px 16px;
         display: flex;
-        gap: 18px;
-        font-size: 14px;
-        border-bottom: 1px solid var(--border-subtle);
+        gap: 4px;
+        font-size: 13px;
       }
       .nav a {
+        padding: 4px 10px;
+        border-radius: 999px;
         color: var(--muted);
         text-decoration: none;
-        padding: 6px 0;
+        transition: background 0.15s ease, color 0.15s ease;
       }
-      .nav a:hover { color: var(--fg); }
-      .nav a.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
+      .nav a:hover { background: var(--canvas); color: var(--fg); }
+      .nav a.active {
+        background: var(--accent-tint);
+        color: var(--accent);
+        font-weight: 600;
+      }
 
       .controls {
-        max-width: 1200px;
+        max-width: 880px;
+        width: 100%;
         margin: 0 auto;
         padding: 16px 24px;
         display: flex;
@@ -123,7 +131,8 @@
       }
 
       main {
-        max-width: 1200px;
+        max-width: 880px;
+        width: 100%;
         margin: 0 auto;
         padding: 0 24px 32px;
       }
@@ -207,12 +216,10 @@
   <body>
     <header>
       <div class="title-block">
-        <h1>PrismRAG — figures</h1>
+        <h1>PrismRAG</h1>
         <p>
-          Every figure-kind chunk in the indexed corpus. The highlighted
-          rectangle marks the figure's bbox on its page (ADR 0009 region
-          grounding); the caption below is the VLM caption when available,
-          otherwise the extracted PDF caption.
+          Every figure across the demo corpus, with bbox-highlighted
+          thumbnails and captions. Filter by paper or search caption text.
         </p>
       </div>
       <button class="icon-btn" id="themeToggle" aria-label="Toggle theme" title="Toggle theme">
