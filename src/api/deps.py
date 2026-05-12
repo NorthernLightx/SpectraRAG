@@ -10,6 +10,7 @@ from src.config.settings import Settings, load_settings
 from src.observability.langfuse import LangfuseLike
 from src.rag.generate import Generator
 from src.rag.retrievers.protocol import Retriever
+from src.types import Chunk
 
 
 class _RetrieverState:
@@ -24,6 +25,14 @@ class _GeneratorState:
 
 class _TracerState:
     instance: LangfuseLike | None = None
+
+
+class _ChunksState:
+    """Read-only chunk index keyed by chunk_id. Populated at lifespan startup
+    alongside the retriever; used by /figures to enumerate figure-kind chunks
+    without re-scrolling Qdrant on each request."""
+
+    instance: dict[str, Chunk] | None = None
 
 
 @lru_cache(maxsize=1)
@@ -67,3 +76,17 @@ def get_tracer() -> LangfuseLike | None:
 
 def set_tracer(tracer: LangfuseLike | None) -> None:
     _TracerState.instance = tracer
+
+
+def get_chunks() -> dict[str, Chunk]:
+    """Return the loaded chunk index, or raise 503 if no corpus is loaded."""
+    if _ChunksState.instance is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Corpus not loaded. Ingest a corpus before listing figures.",
+        )
+    return _ChunksState.instance
+
+
+def set_chunks(chunks: dict[str, Chunk]) -> None:
+    _ChunksState.instance = chunks
