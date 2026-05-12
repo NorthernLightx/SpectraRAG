@@ -70,6 +70,9 @@
         --user-border: #b6e3ff;
       }
       * { box-sizing: border-box; }
+      html {
+        scroll-behavior: smooth;
+      }
       html, body {
         margin: 0;
         padding: 0;
@@ -259,6 +262,7 @@
         flex: 1;
         overflow-y: auto;
         width: 100%;
+        scroll-behavior: smooth;
       }
       .transcript-inner {
         max-width: 880px;
@@ -412,6 +416,13 @@
         background: var(--canvas);
       }
       .citation-list .cite-thumb:hover { border-color: var(--accent); }
+      .citation-list li:target {
+        animation: cite-flash 1.5s ease-out;
+      }
+      @keyframes cite-flash {
+        0%   { outline: 2px solid var(--accent); outline-offset: 4px; }
+        100% { outline: 2px solid transparent; outline-offset: 4px; }
+      }
       .cite-ref {
         color: var(--accent);
         text-decoration: none;
@@ -541,10 +552,9 @@
       <div class="title-block">
         <h1>PrismRAG</h1>
         <p>
-          Conversational variant. Each turn re-runs retrieval; from turn 2
-          onwards your message is condensed into a standalone search query
-          (shown under the answer). Prior turns enter the LLM context as text
-          only — chunks and page images are not replayed.
+          Ask follow-up questions across 20 research papers; each turn
+          re-retrieves against the right context. Paste your OpenRouter
+          key below — it stays in your browser.
         </p>
       </div>
       <button class="icon-btn" id="themeToggle" aria-label="Toggle theme" title="Toggle theme">
@@ -876,7 +886,7 @@
           assistantTurn.meta = nodes.meta.textContent;
           setStatus("");
         } catch (err) {
-          nodes.answer.textContent = `Error: ${err.message || err}`;
+          nodes.answer.textContent = `Request failed: ${err.message || err}. Either the server isn't reachable, or your OpenRouter key is invalid.`;
           nodes.answer.classList.add("err");
           assistantTurn.text = nodes.answer.textContent;
           setStatus("");

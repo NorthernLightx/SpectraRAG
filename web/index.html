@@ -66,6 +66,9 @@
         --shadow-md: 0 4px 14px rgba(31, 35, 40, 0.08);
       }
       * { box-sizing: border-box; }
+      html {
+        scroll-behavior: smooth;
+      }
       html, body {
         margin: 0;
         padding: 0;
@@ -316,6 +319,13 @@
         background: var(--canvas);
       }
       .citation-list .cite-thumb:hover { border-color: var(--accent); }
+      .citation-list li:target {
+        animation: cite-flash 1.5s ease-out;
+      }
+      @keyframes cite-flash {
+        0%   { outline: 2px solid var(--accent); outline-offset: 4px; }
+        100% { outline: 2px solid transparent; outline-offset: 4px; }
+      }
       .cite-ref {
         color: var(--accent);
         text-decoration: none;
@@ -361,11 +371,10 @@
         <div class="title-block">
           <h1>PrismRAG</h1>
           <p>
-            This is the PrismRAG demo, with 20 research papers already in the
-            corpus (see the Papers tab). Retrieval runs on this server (BM25 +
-            dense + RRF + rerank), then generation calls OpenRouter from your
-            browser with the retrieved chunks. Vision models also get the page
-            PNGs. Bring your own OpenRouter key; it never reaches this server.
+            Ask questions about 20 research papers and get answers
+            grounded in the exact passages and figures, with clickable
+            citations. Paste your OpenRouter key below — it stays in
+            your browser.
           </p>
         </div>
         <button class="icon-btn" id="themeToggle" aria-label="Toggle theme" title="Toggle theme">
@@ -597,7 +606,10 @@
           chunks = await retrieveChunks(query);
         } catch (err) {
           askBtn.disabled = false;
-          return setStatus(`Retrieval failed: ${err.message || err}`, true);
+          return setStatus(
+            `Retrieval failed: ${err.message || err}. The server may be starting up — try again in a few seconds.`,
+            true,
+          );
         }
         const tRetrieve = performance.now() - t0;
 
@@ -631,7 +643,10 @@
           renderMeta(model, usage, Math.round(tRetrieve), Math.round(tGen), useImages, chunks._routing);
           setStatus("");
         } catch (err) {
-          setStatus(`Generation failed: ${err.message || err}`, true);
+          setStatus(
+            `Generation failed: ${err.message || err}. Check that your OpenRouter key is valid and has credits.`,
+            true,
+          );
         } finally {
           askBtn.disabled = false;
         }
