@@ -12,7 +12,7 @@ stack locally.
 
 ```bash
 git clone https://github.com/NorthernLightx/prismrag.git
-cd multi-modal-rag
+cd prismrag
 uv sync --extra dev
 cp .env.example .env
 docker compose up -d qdrant postgres langfuse ollama
