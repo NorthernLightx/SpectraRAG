@@ -424,7 +424,7 @@
               <label for="route">
                 Force route
                 <span class="info-icon"
-                      title="Override the routing classifier for this query. 'Text only' skips ColQwen2; 'Text + visual' always runs the visual leg and RRF-fuses with text. Useful for A/B comparing the two paths on the same question.">i</span>
+                      title="Force the retrieval path: text-only or text + visual. Lets you compare paths on the same query.">i</span>
               </label>
               <select id="route">
                 <option value="">Auto (classifier)</option>
@@ -436,7 +436,7 @@
               <label for="routingMode">
                 Routing mode
                 <span class="info-icon"
-                      title="Category = intent-based (regex or LLM classifier dispatches by query category). Cascade = confidence-based (run text first, fall back to visual only when text confidence is low). Cascade uses 0.85 as the threshold when the server hasn't been configured with one (ADR 0010).">i</span>
+                      title="Category routes by query intent; cascade routes by confidence — text first, visual fallback when text is uncertain.">i</span>
               </label>
               <select id="routingMode">
                 <option value="">Server default</option>
@@ -448,7 +448,7 @@
               <label for="topK">
                 Top K
                 <span class="info-icon"
-                      title="Number of retrieved chunks fed to the generator. Higher = more context, more cost. Default 5.">i</span>
+                      title="Chunks fed to the generator. Higher = more context, more cost.">i</span>
               </label>
               <input id="topK" type="number" min="1" max="20" value="5" />
             </div>
@@ -456,7 +456,7 @@
               <label for="paperFilter">
                 Paper
                 <span class="info-icon"
-                      title="Restrict retrieval to one paper. Useful when you already know which paper the answer lives in. Leave blank to search the whole corpus.">i</span>
+                      title="Limit to one paper, or leave blank to search the whole corpus.">i</span>
               </label>
               <select id="paperFilter">
                 <option value="">All papers</option>
