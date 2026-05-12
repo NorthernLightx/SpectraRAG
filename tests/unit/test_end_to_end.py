@@ -67,6 +67,7 @@ async def test_full_pipeline_end_to_end(tmp_path: Path) -> None:
 
     assert response.status_code == 200
     body = response.json()
-    assert len(body) >= 1
-    assert all(item["paper_id"] == "ts1" for item in body)
-    assert any("transformer" in item["text"].lower() for item in body)
+    results = body["results"]
+    assert len(results) >= 1
+    assert all(item["paper_id"] == "ts1" for item in results)
+    assert any("transformer" in item["text"].lower() for item in results)

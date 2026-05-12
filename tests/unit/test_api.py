@@ -50,8 +50,8 @@ def test_query_returns_results_from_retriever() -> None:
     response = client.post("/query", json={"text": "x", "top_k": 5})
     assert response.status_code == 200
     body = response.json()
-    assert body[0]["chunk_id"] == "c1"
-    assert body[0]["source"] == "pipeline"
+    assert body["results"][0]["chunk_id"] == "c1"
+    assert body["results"][0]["source"] == "pipeline"
 
 
 def test_query_validates_input() -> None:
