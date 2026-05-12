@@ -74,7 +74,7 @@ build if any retrieval metric regresses by more than 5 %.
 
 ```bash
 git clone https://github.com/NorthernLightx/prismrag
-cd multi-modal-rag
+cd prismrag
 uv sync --extra dev
 cp .env.example .env
 docker compose up -d qdrant postgres langfuse ollama
@@ -83,6 +83,10 @@ docker exec rag-ollama ollama pull bge-m3
 uv run python -m scripts.bootstrap_corpus --pdf-dir data/papers
 uv run uvicorn src.api.main:app --reload --port 8000
 ```
+
+Edit `.env` and set `RAG_OPENROUTER_API_KEY` if you want the server-side
+`/answer` endpoint to work. The browser BYOK UI at `/` and `/chat.html`
+doesn't need a server key — yours stays in your browser.
 
 Then open one of:
 
