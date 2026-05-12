@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import asyncio
 import re
+from contextvars import ContextVar
 from typing import TYPE_CHECKING, Literal
 
 from opentelemetry import trace
@@ -25,7 +26,22 @@ from opentelemetry.trace import Span
 from src.observability.logging import get_logger
 from src.rag.hybrid import RankedItem, reciprocal_rank_fusion
 from src.rag.retrievers.protocol import Retriever
-from src.types import Query, RetrievalResult
+from src.types import Query, RetrievalResult, RoutingInfo
+
+# Per-task channel for the most recent routing decision. contextvars are
+# propagated through asyncio.gather, so the visual-leg branch can write to it
+# from inside a Task without leaking to other requests. The /query endpoint
+# reads this after retrieve() to attach the decision to its response body.
+_routing_info_var: ContextVar[RoutingInfo | None] = ContextVar(
+    "routing_info", default=None
+)
+
+
+def get_last_routing_info() -> RoutingInfo | None:
+    """Public reader for the per-task routing decision. None when the
+    current task didn't go through a RoutingRetriever (e.g. PipelineRetriever
+    wired directly with no routing layer)."""
+    return _routing_info_var.get()
 
 if TYPE_CHECKING:
     from src.rag.retrievers.classifier_llm import LLMQueryClassifier
@@ -37,6 +53,12 @@ _log = get_logger(__name__)
 # production router's fused ranking tracks that eval methodology.
 _RRF_K = 60
 
+# Per-query cascade override default. When a client asks for cascade dispatch
+# via Query.routing_mode but the server wasn't started with a threshold, fall
+# back to ADR 0010's verification value (0.85). Operators who want a different
+# value still set it server-side via Settings.cascade_confidence_threshold.
+_DEFAULT_CASCADE_THRESHOLD = 0.85
+
 Category = Literal["table", "figure", "multi_hop", "factual", "definitional"]
 RoutingPath = Literal["text", "hybrid"]
 RoutingMode = Literal["category", "cascade"]
@@ -46,7 +68,8 @@ RoutingMode = Literal["category", "cascade"]
 # Both route to hybrid so the choice only affects the observability label.
 _TABLE_RE = re.compile(r"\btable\s+\d+|\bcell\b|\brow\b|\bcolumn\b", re.IGNORECASE)
 _FIGURE_RE = re.compile(
-    r"\bfigure\s+\d+|\bfig\.\s*\d+|\bplot\b|\bdiagram\b|\bchart\b", re.IGNORECASE
+    r"\bfigure\s+\d+|\bfig\.\s*\d+|\bplot\b|\bdiagram\b|\bchart\b|\bgraphs?\b",
+    re.IGNORECASE,
 )
 _MULTIHOP_RE = re.compile(
     r"\bcompare\b|\bvs\.?\b|\bversus\b|\bdifferences?\b|\bbetween\b", re.IGNORECASE
@@ -137,7 +160,11 @@ class RoutingRetriever:
         self._cascade_threshold = cascade_confidence_threshold
 
     async def retrieve(self, query: Query) -> list[RetrievalResult]:
-        if self._mode == "cascade":
+        # query.routing_mode overrides the constructor mode for this call only.
+        # Lets the demo UI A/B compare category vs cascade dispatch without
+        # restarting the server.
+        effective_mode = query.routing_mode or self._mode
+        if effective_mode == "cascade":
             return await self._retrieve_cascade(query)
 
         if self._classifier is not None:
@@ -157,6 +184,9 @@ class RoutingRetriever:
 
         if path == "text":
             text_results = await self._text.retrieve(query)
+            _routing_info_var.set(
+                RoutingInfo(mode="category", path="text", forced=forced, category=category)
+            )
             _log.info(
                 "routing.dispatched",
                 mode="category",
@@ -176,6 +206,15 @@ class RoutingRetriever:
 
         if visual_results is None:
             # Visual failed; degrade to text-only so demos don't die from GPU hiccups
+            _routing_info_var.set(
+                RoutingInfo(
+                    mode="category",
+                    path="text",
+                    forced=forced,
+                    category=category,
+                    visual_failed=True,
+                )
+            )
             _log.info(
                 "routing.dispatched",
                 category=category,
@@ -189,6 +228,9 @@ class RoutingRetriever:
             return text_results
 
         fused = self._fuse_page_level(text_results, visual_results, top_k=query.top_k)
+        _routing_info_var.set(
+            RoutingInfo(mode="category", path="hybrid", forced=forced, category=category)
+        )
         _log.info(
             "routing.dispatched",
             mode="category",
@@ -210,7 +252,14 @@ class RoutingRetriever:
         `category` hybrid path. `force_route="hybrid"` short-circuits to
         always-hybrid; `force_route="text"` short-circuits to always-text.
         """
-        assert self._cascade_threshold is not None  # narrowed by __init__
+        # Per-query cascade requests (Query.routing_mode='cascade' against a
+        # category-mode server) won't have a configured threshold. Fall back
+        # to ADR 0010's verification value so the demo UI can A/B compare.
+        threshold = (
+            self._cascade_threshold
+            if self._cascade_threshold is not None
+            else _DEFAULT_CASCADE_THRESHOLD
+        )
         span = trace.get_current_span()
         span.set_attribute("routing.mode", "cascade")
 
@@ -241,9 +290,9 @@ class RoutingRetriever:
 
         top_score = text_results[0].score if text_results else 0.0
         span.set_attribute("routing.cascade_top_score", float(top_score))
-        span.set_attribute("routing.cascade_threshold", self._cascade_threshold)
+        span.set_attribute("routing.cascade_threshold", threshold)
 
-        if top_score >= self._cascade_threshold:
+        if top_score >= threshold:
             self._log_cascade(
                 path="text",
                 decision="confident_text",
@@ -315,13 +364,29 @@ class RoutingRetriever:
         top_score: float = 0.0,
         visual_failed: bool = False,
     ) -> None:
+        effective_threshold = (
+            self._cascade_threshold
+            if self._cascade_threshold is not None
+            else _DEFAULT_CASCADE_THRESHOLD
+        )
+        _routing_info_var.set(
+            RoutingInfo(
+                mode="cascade",
+                path=path,
+                forced=forced,
+                cascade_decision=decision,
+                cascade_top_score=float(top_score),
+                cascade_threshold=effective_threshold,
+                visual_failed=visual_failed,
+            )
+        )
         kwargs: dict[str, object] = {
             "mode": "cascade",
             "path": path,
             "forced": forced,
             "cascade_decision": decision,
             "cascade_top_score": float(top_score),
-            "cascade_threshold": self._cascade_threshold,
+            "cascade_threshold": effective_threshold,
             "text_n": len(text_results),
             "visual_n": len(visual_results) if visual_results is not None else 0,
             "fused_pages": fused_n,

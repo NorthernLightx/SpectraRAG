@@ -166,6 +166,46 @@
         gap: 12px;
         align-items: end;
       }
+      .advanced { margin-top: 10px; }
+      .advanced summary {
+        cursor: pointer;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 500;
+        user-select: none;
+        padding: 4px 0;
+        list-style: none;
+      }
+      .advanced summary::before {
+        content: "▸ ";
+        display: inline-block;
+        transition: transform 0.15s ease;
+      }
+      .advanced[open] summary::before { transform: rotate(90deg); }
+      .advanced summary:hover { color: var(--fg); }
+      .advanced[open] summary { color: var(--fg); }
+      .advanced-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 12px;
+        margin-top: 8px;
+      }
+      .info-icon {
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        line-height: 12px;
+        text-align: center;
+        border-radius: 50%;
+        background: var(--canvas);
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 700;
+        margin-left: 4px;
+        cursor: help;
+        border: 1px solid var(--border);
+        vertical-align: middle;
+      }
       label {
         display: block;
         font-size: 12px;
@@ -521,6 +561,7 @@
       <a href="/">Single-shot</a>
       <a href="/chat.html" class="active">Chat</a>
       <a href="/papers.html">Papers</a>
+      <a href="/figures.html">Figures</a>
     </nav>
 
     <div class="settings">
@@ -543,6 +584,54 @@
           <button class="ghost" id="reset">New chat</button>
         </div>
       </div>
+
+      <details class="advanced">
+        <summary>Advanced retrieval settings</summary>
+        <div class="advanced-grid">
+          <div>
+            <label for="route">
+              Force route
+              <span class="info-icon"
+                    title="Override the routing classifier for this query. 'Text only' skips ColQwen2; 'Text + visual' always runs the visual leg and RRF-fuses with text. Useful for A/B comparing the two paths on the same question.">i</span>
+            </label>
+            <select id="route">
+              <option value="">Auto (classifier)</option>
+              <option value="text">Text only</option>
+              <option value="hybrid">Text + visual</option>
+            </select>
+          </div>
+          <div>
+            <label for="routingMode">
+              Routing mode
+              <span class="info-icon"
+                    title="Category = intent-based (regex or LLM classifier dispatches by query category). Cascade = confidence-based (run text first, fall back to visual only when text confidence is low). Cascade uses 0.85 as the threshold when the server hasn't been configured with one (ADR 0010).">i</span>
+            </label>
+            <select id="routingMode">
+              <option value="">Server default</option>
+              <option value="category">Category (classifier)</option>
+              <option value="cascade">Cascade (confidence)</option>
+            </select>
+          </div>
+          <div>
+            <label for="topK">
+              Top K
+              <span class="info-icon"
+                    title="Number of retrieved chunks fed to the generator. Higher = more context, more cost. Default 5.">i</span>
+            </label>
+            <input id="topK" type="number" min="1" max="20" value="5" />
+          </div>
+          <div>
+            <label for="paperFilter">
+              Paper
+              <span class="info-icon"
+                    title="Restrict retrieval to one paper. Useful for follow-up questions where you already know which paper the answer lives in. Leave blank to search the whole corpus.">i</span>
+            </label>
+            <select id="paperFilter">
+              <option value="">All papers</option>
+            </select>
+          </div>
+        </div>
+      </details>
     </div>
 
     <div class="transcript" id="transcript">
@@ -570,6 +659,10 @@
     <script>
       const apiKeyInput = document.getElementById("apiKey");
       const modelSelect = document.getElementById("model");
+      const routeSelect = document.getElementById("route");
+      const routingModeSelect = document.getElementById("routingMode");
+      const topKInput = document.getElementById("topK");
+      const paperFilterSelect = document.getElementById("paperFilter");
       const queryInput = document.getElementById("query");
       const askBtn = document.getElementById("ask");
       const resetBtn = document.getElementById("reset");
@@ -597,12 +690,51 @@
 
       apiKeyInput.value = localStorage.getItem("rag.apiKey") || "";
       modelSelect.value = localStorage.getItem("rag.model") || modelSelect.value;
+      routeSelect.value = localStorage.getItem("rag.route") || "";
+      routingModeSelect.value = localStorage.getItem("rag.routingMode") || "";
+      topKInput.value = localStorage.getItem("rag.topK") || "5";
+      // Paper filter is hydrated AFTER /papers populates the <option> list
+      // (search for "rag.paperFilter" below). Setting it here would race the
+      // fetch and clobber empty selections.
       apiKeyInput.addEventListener("change", () =>
         localStorage.setItem("rag.apiKey", apiKeyInput.value)
       );
       modelSelect.addEventListener("change", () =>
         localStorage.setItem("rag.model", modelSelect.value)
       );
+      routeSelect.addEventListener("change", () =>
+        localStorage.setItem("rag.route", routeSelect.value)
+      );
+      routingModeSelect.addEventListener("change", () =>
+        localStorage.setItem("rag.routingMode", routingModeSelect.value)
+      );
+      topKInput.addEventListener("change", () =>
+        localStorage.setItem("rag.topK", topKInput.value)
+      );
+      paperFilterSelect.addEventListener("change", () =>
+        localStorage.setItem("rag.paperFilter", paperFilterSelect.value)
+      );
+
+      // Populate the paper filter from /papers. Best-effort: if it fails or
+      // returns empty, the user keeps the "All papers" default.
+      fetch("/papers")
+        .then((r) => (r.ok ? r.json() : []))
+        .then((papers) => {
+          for (const p of papers || []) {
+            const opt = document.createElement("option");
+            opt.value = p.paper_id;
+            // Show the human-readable title when /papers supplies one
+            // (data/paper_titles.json is the source). Fall back to the
+            // arxiv-style paper_id for un-titled entries.
+            opt.textContent = p.title ? `${p.title} (${p.paper_id})` : p.paper_id;
+            paperFilterSelect.append(opt);
+          }
+          const saved = localStorage.getItem("rag.paperFilter") || "";
+          if (saved && Array.from(paperFilterSelect.options).some((o) => o.value === saved)) {
+            paperFilterSelect.value = saved;
+          }
+        })
+        .catch(() => {});
 
       let pagesAvailable = false;
       fetch("/health")
@@ -738,7 +870,8 @@
             usage,
             Math.round(tRetrieve),
             Math.round(tGen),
-            useImages
+            useImages,
+            chunks._routing
           );
           assistantTurn.meta = nodes.meta.textContent;
           setStatus("");
@@ -800,26 +933,45 @@
       }
 
       async function retrieveChunks(query) {
+        const topK = parseInt(topKInput.value, 10) || 5;
+        const body = { text: query, top_k: Math.min(Math.max(topK, 1), 20) };
+        if (routeSelect.value) body.force_route = routeSelect.value;
+        if (routingModeSelect.value) body.routing_mode = routingModeSelect.value;
+        if (paperFilterSelect.value) {
+          body.filters = { paper_id: paperFilterSelect.value };
+        }
         const res = await fetch("/query", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: query, top_k: 5 }),
+          body: JSON.stringify(body),
         });
         if (!res.ok) {
           const detail = await res.text();
           throw new Error(`${res.status} ${res.statusText} — ${detail}`);
         }
-        return res.json();
+        const data = await res.json();
+        // The route now wraps results with routing metadata. Stash the routing
+        // info on the array so the caller can read it without changing the
+        // signature; the chunks themselves stay iterable as before.
+        const results = data.results || [];
+        results._routing = data.routing || null;
+        return results;
       }
 
       function buildMessages(priorTurns, latestUserText, chunks, useImages) {
+        // Mirrors src/prompts/library/answer.yaml v5 so the chat path inherits
+        // the same strict refusal contract as the server-side /answer route.
+        // Includes one additional clause about prior turns since chat is
+        // multi-turn while /answer is single-shot.
         const system = [
-          "You are a careful research assistant answering from the supplied context.",
-          "The user may ask follow-ups; prior turns are included for reference,",
-          "but the retrieved chunks for the current question are the only source",
-          "of truth. Cite chunks you used by their chunk_id in [brackets].",
-          "If the context doesn't support an answer, say so plainly.",
-        ].join(" ");
+          "You are a careful research assistant answering questions from the supplied documents.",
+          "- Use only the provided context. If the context does not contain the answer, say exactly \"Not stated in the provided context.\" — do not speculate.",
+          "- Out-of-domain questions (e.g. about a topic completely unrelated to the chunks) must be refused with the exact phrase above. Do not produce a generic summary of the chunks instead.",
+          "- If the user asks to see a figure, plot, or graph and the retrieved chunks don't contain one matching the question, say so plainly — do not claim you cannot display images.",
+          "- Cite specific chunk IDs when making factual claims by wrapping the literal id in square brackets. Example: if a chunk header is [2604.22753v1::p5::c24], cite it as [2604.22753v1::p5::c24] — NOT [chunk_id 2604.22753v1::p5::c24] and NOT [chunk 24]. Use only ids that appear in the provided context.",
+          "- Prior turns are included for reference, but the retrieved chunks for the current question are the only source of truth.",
+          "- Keep answers concise (3-6 sentences unless the question demands more).",
+        ].join("\n");
 
         const messages = [{ role: "system", content: system }];
         for (const t of priorTurns) {
@@ -1006,21 +1158,21 @@
           li.id = `${anchorPrefix}-${i + 1}`;
           const code = document.createElement("code");
           code.textContent = id;
-          li.append(code);
           if (c) {
             const pages = (c.page_numbers || []).join(", ");
             const sourceText = `paper ${c.paper_id}${pages ? ` · p${pages}` : ""}`;
-            li.append(document.createTextNode(" — "));
             if (/^\d{4}\.\d{4,5}(v\d+)?$/.test(c.paper_id)) {
               const a = document.createElement("a");
               a.href = `https://arxiv.org/abs/${c.paper_id}`;
               a.target = "_blank";
               a.rel = "noopener";
               a.className = "cite-source";
-              a.textContent = sourceText;
+              a.append(code);
+              a.append(document.createTextNode(` — ${sourceText}`));
               li.append(a);
             } else {
-              li.append(document.createTextNode(sourceText));
+              li.append(code);
+              li.append(document.createTextNode(` — ${sourceText}`));
             }
             const firstPage = (c.page_numbers || [])[0];
             if (firstPage) {
@@ -1037,6 +1189,7 @@
               li.append(a);
             }
           } else {
+            li.append(code);
             li.append(document.createTextNode(" — (not in retrieved set)"));
           }
           ol.append(li);
@@ -1139,7 +1292,7 @@
         return text.slice(0, cut).trim() + "…";
       }
 
-      function renderMetaInto(target, model, usage, retrieveMs, generateMs, useImages) {
+      function renderMetaInto(target, model, usage, retrieveMs, generateMs, useImages, routing) {
         const tokens = `${usage.prompt_tokens || 0} in / ${usage.completion_tokens || 0} out`;
         const modeBadge = document.createElement("span");
         modeBadge.className = useImages ? "badge badge-multimodal" : "badge badge-pipeline";
@@ -1151,6 +1304,36 @@
             ` ${model} · ${tokens} · retrieve ${retrieveMs} ms · generate ${generateMs} ms`
           )
         );
+        if (routing) {
+          const routeBadge = document.createElement("span");
+          routeBadge.className = "badge";
+          routeBadge.title = formatRoutingTitle(routing);
+          routeBadge.textContent = formatRoutingLabel(routing);
+          target.append(document.createTextNode(" · "));
+          target.append(routeBadge);
+        }
+      }
+
+      function formatRoutingLabel(r) {
+        if (r.mode === "cascade") {
+          return `cascade → ${r.path}`;
+        }
+        const cat = r.category ? ` (${r.category})` : "";
+        const forced = r.forced ? " forced" : "";
+        return `${r.path}${cat}${forced}`;
+      }
+
+      function formatRoutingTitle(r) {
+        const parts = [`mode: ${r.mode}`, `path: ${r.path}`];
+        if (r.category) parts.push(`category: ${r.category}`);
+        if (r.forced) parts.push("force_route applied");
+        if (r.cascade_decision) parts.push(`decision: ${r.cascade_decision}`);
+        if (r.cascade_top_score != null)
+          parts.push(`text top-1: ${r.cascade_top_score.toFixed(3)}`);
+        if (r.cascade_threshold != null)
+          parts.push(`threshold: ${r.cascade_threshold.toFixed(2)}`);
+        if (r.visual_failed) parts.push("visual leg failed (degraded)");
+        return parts.join("\n");
       }
 
       function setStatus(msg, isErr) {

@@ -187,6 +187,15 @@ gpt-4o-mini's score range; the code paths themselves are verified.
    signal (score margin, entropy) or a corpus where the reranker has
    genuinely uncertain regions.
 
+   *Update 2026-05-12:* `Query.routing_mode` accepts a per-query
+   `category` | `cascade` override. The demo UI exposes it under
+   "Advanced retrieval settings" so visitors can flip a single query
+   between modes without restarting the server. When cascade is
+   requested per-query against a category-wired server,
+   `RoutingRetriever` uses 0.85 (the value the v3 verification ran
+   with) as the threshold; operators who want a different default
+   still set `Settings.cascade_confidence_threshold` at boot.
+
 2. **Multi-seed averaging shifts the cost story.** N=3 triples the
    judge call cost. Negligible on gpt-4o-mini; meaningful if a future
    judge is more expensive. Default stays at 1; opt-in via

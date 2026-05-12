@@ -121,6 +121,10 @@ services:
       RAG_LANGFUSE_HOST: http://langfuse:3000
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
       OTEL_SERVICE_NAME: rag-api-dev
+      # Optional, picked up from the host shell. When set, the server wires the
+      # LLMQueryClassifier. Without it, routing falls back to the regex, which
+      # misses synonyms like "graph", "image", or "bottom panel of...".
+      RAG_OPENROUTER_API_KEY: ${RAG_OPENROUTER_API_KEY:-}
       # SENTRY_DSN intentionally unset; sentry stays in no-op mode locally.
     ports:
       - "8000:8000"

@@ -161,6 +161,15 @@ figure-caption aggregation.
 - **Production polish**: FastAPI + StaticFiles, OpenTelemetry, Sentry
   and Langfuse hooks, GitHub Actions CI/CD (lint, typecheck, tests,
   container build), Cloud Run deploy via Workload Identity Federation
+- **Demo-UI knobs**: an Advanced panel on the Chat and Single-shot
+  pages can force the retrieval route, toggle intent vs cascade
+  routing, set top-K, and filter by paper. The response meta shows
+  the routing decision the server actually picked.
+- **Figure browser** (`/figures.html`): catalogue of every figure-kind
+  chunk in the corpus, with bbox-highlighted thumbnails and caption
+  search. Handles the "show me figures" *browse* intent that
+  retrieval was never designed for — separate from question answering
+  via `/query` and `/answer`
 
 ## Limitations
 

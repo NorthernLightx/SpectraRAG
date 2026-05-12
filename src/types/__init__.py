@@ -11,7 +11,14 @@ from src.types.eval import (
     RetrievalMetrics,
 )
 from src.types.generation import Answer, Citation, Context
-from src.types.retrieval import Query, RankedChunk, RetrievalResult, RetrievalSource
+from src.types.retrieval import (
+    Query,
+    RankedChunk,
+    RetrievalResponse,
+    RetrievalResult,
+    RetrievalSource,
+    RoutingInfo,
+)
 
 __all__ = [
     "Answer",
@@ -31,7 +38,9 @@ __all__ = [
     "QueryCategory",
     "RankedChunk",
     "RetrievalMetrics",
+    "RetrievalResponse",
     "RetrievalResult",
     "RetrievalSource",
+    "RoutingInfo",
     "Table",
 ]

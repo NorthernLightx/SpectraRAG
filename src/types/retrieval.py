@@ -22,6 +22,11 @@ class Query(BaseModel):
     # comparison") and for debugging. Not exposed in the public OpenAPI
     # schema (caveat §5 in ADR 0008).
     force_route: Literal["text", "hybrid"] | None = None
+    # ADR 0010: per-query routing-mode override. When None, the server's
+    # configured mode is used. When set, RoutingRetriever switches dispatch
+    # logic for this call only. Cascade dispatch falls back to a 0.85
+    # threshold when the server wasn't started with one configured.
+    routing_mode: Literal["category", "cascade"] | None = None
 
 
 class RetrievalResult(BaseModel):
@@ -43,3 +48,33 @@ class RankedChunk(BaseModel):
     score: float
     rerank_score: float | None = None
     rank: int = Field(ge=1)
+
+
+class RoutingInfo(BaseModel):
+    """Per-call routing decision surfaced to the API caller.
+
+    Captures what RoutingRetriever did for this query — which mode it ran in,
+    which path it chose, and (for cascade) the confidence-based decision.
+    The /query endpoint includes this so the demo UI can show "routed: ..."
+    next to timings.
+    """
+
+    mode: Literal["category", "cascade"]
+    path: Literal["text", "hybrid"]
+    forced: bool = False
+    category: str | None = None  # set only when mode=category
+    cascade_decision: str | None = None  # set only when mode=cascade
+    cascade_top_score: float | None = None
+    cascade_threshold: float | None = None
+    visual_failed: bool = False
+
+
+class RetrievalResponse(BaseModel):
+    """Wrapper for /query — chunks plus the routing decision that produced them.
+
+    `routing` is None when the wired retriever doesn't expose a decision (e.g.
+    PipelineRetriever with no routing layer).
+    """
+
+    results: list["RetrievalResult"]
+    routing: RoutingInfo | None = None

@@ -162,6 +162,12 @@ choice only affects observability labels.
    added to `Query` so it works via the JSON body, but we won't
    document it in `/docs` until the eval harness consumes it. Avoids
    committing to a public contract on a debug-shaped knob.
+
+   *Update 2026-05-12:* the demo UI (`web/chat.html` and `web/index.html`)
+   now exposes `force_route` via an "Advanced retrieval settings" panel
+   so visitors can A/B compare text-only vs hybrid dispatch on the same
+   query. The field remains absent from `/docs` — the demo UI is a
+   first-party consumer, not a public API contract.
 6. **Phase 3.2.1 vs 3.2.** The router lands in 3.2 with regex
    classification + production wiring. Open candidates for 3.2.1:
    per-category RRF weights, LLM/embedding fallback for unclassified

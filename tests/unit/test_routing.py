@@ -13,6 +13,7 @@ from src.rag.retrievers.routing import (
     Category,
     RoutingRetriever,
     classify_query,
+    get_last_routing_info,
 )
 from src.types import Query, RetrievalResult
 
@@ -79,6 +80,8 @@ def _visual_page(page: int, score: float, paper: str = "paper1") -> RetrievalRes
         ("Look at Fig. 5 in the appendix", "figure"),
         ("What does the chart show?", "figure"),
         ("Describe the diagram on page 7", "figure"),
+        ("show me the graph", "figure"),
+        ("summarize graphs in the paper", "figure"),
         # ---- multi_hop (precedence 3) ----
         ("How does method X compare to method Y?", "multi_hop"),
         ("Method A versus Method B", "multi_hop"),
@@ -399,3 +402,105 @@ async def test_category_mode_default_unchanged() -> None:
     assert text.calls == 1
     assert visual.calls == 0
     assert results[0].chunk_id == "paper1::p1::c0"
+
+
+# --------------------------------------------------------------------------
+# Per-query routing_mode override (the demo-UI A/B knob)
+# --------------------------------------------------------------------------
+
+
+def test_query_routing_mode_defaults_to_none() -> None:
+    assert Query(text="hello", top_k=5).routing_mode is None
+
+
+def test_query_routing_mode_accepts_category_and_cascade() -> None:
+    assert Query(text="hello", top_k=5, routing_mode="category").routing_mode == "category"
+    assert Query(text="hello", top_k=5, routing_mode="cascade").routing_mode == "cascade"
+
+
+def test_query_routing_mode_rejects_invalid_literal() -> None:
+    with pytest.raises(ValidationError):
+        Query(text="hello", top_k=5, routing_mode="cascadex")
+
+
+@pytest.mark.asyncio
+async def test_query_routing_mode_cascade_overrides_category_server() -> None:
+    """Server wired with mode='category', query asks for cascade — uses default 0.85.
+
+    Text score 0.99 (>= 0.85) → cascade returns text-only, visual leg skipped.
+    """
+    text = _RecordingRetriever("text", [_text_chunk("paper1::p1::c0", score=0.99, page=1)])
+    visual = _RecordingRetriever("visual", [_visual_page(page=2, score=0.5)])
+    router = RoutingRetriever(text=text, visual=visual)  # category mode, no threshold
+
+    results = await router.retrieve(Query(text="show me the chart", routing_mode="cascade"))
+
+    assert text.calls == 1
+    assert visual.calls == 0  # cascade dispatch decided text was confident
+    assert results[0].chunk_id == "paper1::p1::c0"
+
+
+@pytest.mark.asyncio
+async def test_query_routing_mode_cascade_invokes_visual_when_uncertain() -> None:
+    """Same category server, but low text score → cascade falls through to hybrid."""
+    text = _RecordingRetriever("text", [_text_chunk("paper1::p1::c0", score=0.3, page=1)])
+    visual = _RecordingRetriever("visual", [_visual_page(page=2, score=0.7)])
+    router = RoutingRetriever(text=text, visual=visual)  # category mode
+
+    await router.retrieve(Query(text="show me the chart", routing_mode="cascade"))
+
+    assert visual.calls == 1
+
+
+@pytest.mark.asyncio
+async def test_routing_info_captures_category_text_path() -> None:
+    text = _RecordingRetriever("text", [_text_chunk("paper1::p1::c0", score=0.9)])
+    visual = _RecordingRetriever("visual", [])
+    router = RoutingRetriever(text=text, visual=visual)
+
+    await router.retrieve(Query(text="explain X"))  # definitional → text
+
+    info = get_last_routing_info()
+    assert info is not None
+    assert info.mode == "category"
+    assert info.path == "text"
+    assert info.category == "definitional"
+    assert info.forced is False
+
+
+@pytest.mark.asyncio
+async def test_routing_info_captures_cascade_decision() -> None:
+    text = _RecordingRetriever("text", [_text_chunk("paper1::p1::c0", score=0.99)])
+    visual = _RecordingRetriever("visual", [_visual_page(page=2, score=0.5)])
+    router = RoutingRetriever(
+        text=text, visual=visual, mode="cascade", cascade_confidence_threshold=0.5
+    )
+
+    await router.retrieve(Query(text="X?"))
+
+    info = get_last_routing_info()
+    assert info is not None
+    assert info.mode == "cascade"
+    assert info.path == "text"
+    assert info.cascade_decision == "confident_text"
+    assert info.cascade_top_score == pytest.approx(0.99)
+    assert info.cascade_threshold == pytest.approx(0.5)
+
+
+@pytest.mark.asyncio
+async def test_query_routing_mode_category_overrides_cascade_server() -> None:
+    """Server wired with mode='cascade', query asks for category — uses regex dispatch.
+
+    Definitional query → text-only path regardless of text-score confidence.
+    """
+    text = _RecordingRetriever("text", [_text_chunk("paper1::p1::c0", score=0.1, page=1)])
+    visual = _RecordingRetriever("visual", [_visual_page(page=1, score=0.9)])
+    router = RoutingRetriever(
+        text=text, visual=visual, mode="cascade", cascade_confidence_threshold=0.5
+    )
+
+    # Per-cascade-logic the low text score would fall through to visual. The
+    # category override should route definitional → text-only and skip visual.
+    await router.retrieve(Query(text="explain the approach", routing_mode="category"))
+
+    assert visual.calls == 0
