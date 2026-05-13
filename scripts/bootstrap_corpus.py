@@ -36,6 +36,7 @@ import asyncio
 from pathlib import Path
 
 from src.embeddings.ollama_bge import OllamaBgeEmbedder
+from src.ingestion.captioner import OllamaVisionCaptioner
 from src.ingestion.pipeline import ingest_paper
 from src.observability.logging import configure_logging, get_logger
 from src.rag.bm25 import Bm25Index
@@ -50,6 +51,8 @@ async def _main(
     ollama_url: str,
     collection: str,
     force: bool,
+    extract_figures: bool,
+    vlm_caption_model: str | None,
 ) -> None:
     log = get_logger("scripts.bootstrap_corpus")
     pdf_paths = sorted(pdf_dir.glob("*.pdf"))
@@ -75,6 +78,11 @@ async def _main(
     await vectorstore.ensure_collection()
     bm25 = Bm25Index()  # in-process, throwaway — see module docstring caveats
 
+    vlm_captioner: OllamaVisionCaptioner | None = None
+    if extract_figures and vlm_caption_model:
+        vlm_captioner = OllamaVisionCaptioner(base_url=ollama_url, model=vlm_caption_model)
+        print(f"VLM captioning enabled via Ollama model {vlm_caption_model!r}")
+
     total_chunks = 0
     for pdf_path in pdf_paths:
         paper = Paper(paper_id=pdf_path.stem, title=pdf_path.stem, pdf_path=pdf_path)
@@ -86,9 +94,9 @@ async def _main(
             contextualizer_llm=None,
             contextualizer_model=None,
             contextualizer_concurrency=4,
-            extract_figures_enabled=False,
+            extract_figures_enabled=extract_figures,
             extract_tables_enabled=False,
-            vlm_captioner=None,
+            vlm_captioner=vlm_captioner,
         )
         total_chunks += ingested.chunk_count
         print(f"  {pdf_path.name}: {ingested.chunk_count} chunks")
@@ -120,6 +128,18 @@ if __name__ == "__main__":
         action="store_true",
         help="Re-ingest even if the collection already contains points.",
     )
+    parser.add_argument(
+        "--no-extract-figures",
+        dest="extract_figures",
+        action="store_false",
+        help="Skip figure extraction. Default: on (figures show up in /figures gallery).",
+    )
+    parser.add_argument(
+        "--vlm-caption-model",
+        default=None,
+        help="Ollama vision model for figure captions (e.g. qwen2.5vl:7b). Default: PDF captions only.",
+    )
+    parser.set_defaults(extract_figures=True)
     args = parser.parse_args()
 
     configure_logging(level="INFO", env="local", log_file=None)
@@ -130,5 +150,7 @@ if __name__ == "__main__":
             ollama_url=args.ollama,
             collection=args.collection,
             force=args.force,
+            extract_figures=args.extract_figures,
+            vlm_caption_model=args.vlm_caption_model,
         )
     )
