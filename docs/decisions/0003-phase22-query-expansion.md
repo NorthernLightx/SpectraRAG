@@ -1,15 +1,14 @@
-# ADR 0003 — Phase 2.2 query expansion (LLM rewrite + HyDE + combo)
+# ADR 0003 — Query expansion (LLM rewrite + HyDE + combo)
 
 **Status:** Rejected (default-off). Three configurations tested; none beat
 the GPU-rerank baseline on aggregate retrieval. Real per-query wins on
 multi-hop / term-mismatch queries are reproducibly cancelled by losses on
 factual queries.
 **Date:** 2026-05-01.
-**Phase:** 2.2.
 
 ## Context
 
-After Phase 2.1, the strongest local stack (BM25+dense+RRF → BGE-v2-m3
+After the VLM-captioning ablations, the strongest local stack (BM25+dense+RRF → BGE-v2-m3
 GPU rerank → qwen2.5:7b generate+judge) produced these in-corpus
 aggregates over 17 queries on 5 papers (golden v2, baseline run
 `7b5242df5b38`):

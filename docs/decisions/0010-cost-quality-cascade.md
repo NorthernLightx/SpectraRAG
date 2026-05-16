@@ -4,7 +4,6 @@
 default; eval methodology improvements (B1 deterministic OOC scoring, B2
 multi-seed judge averaging, B3 smoke pre-flight) ship on by default.
 **Date:** 2026-05-10.
-**Phase:** 4.0 (Tier 2).
 
 ## Context
 
@@ -215,7 +214,7 @@ gpt-4o-mini's score range; the code paths themselves are verified.
 
 ## References
 
-- ADR 0008 — Phase 3.2 routing (the category-mode dispatch this ADR
+- ADR 0008 — Routing (the category-mode dispatch this ADR
   augments).
 - ADR 0009 — Region-level evidence + 1st/2nd follow-ups.
 - `scripts/calibrate_cascade.py` — per-corpus threshold picker.

@@ -1,17 +1,16 @@
-# ADR 0008 — Phase 3.2 per-query routing (text-only vs hybrid)
+# ADR 0008 — Per-query routing (text-only vs hybrid)
 
 **Status:** Accepted (2026-05-03 design; implementation closed against this design — see run `6447247ef8e7` referenced in the README).
 **Date:** 2026-05-03.
-**Phase:** 3.2.
 
 ## Context
 
-ADR 0007 closed Phase 3.1 with a sign-flip on the v3-only subset:
+ADR 0007 closed with a sign-flip on the v3-only subset:
 hybrid (RRF over text + visual) edges text-only by **+1.9 % nDCG@5** on
 the 14 figure/table/image-grounded queries, while losing **−10.6 %** on
 the 17 definitional/factual queries (`docs/decisions/0007-...md` §"Per-subset").
 On aggregate text-only still wins (0.8628 vs 0.8226), so blanket-on
-hybrid is rejected. ADR 0007 promoted **per-query routing** to Phase 3.2
+hybrid is rejected. ADR 0007 promoted **per-query routing** as the
 priority and sketched the heuristic: "detect category via length / lexical
 heuristics on the query text, and only invoke the visual path when the
 classifier signals figure / table / multi-hop."
@@ -114,8 +113,8 @@ choice only affects observability labels.
   die from GPU hiccups.
 - **Both legs return empty**: standard upstream behaviour — `/answer`'s
   refusal gate (ADR 0006) handles it; no special routing logic.
-- **`force_route="hybrid"` but visual retriever is None** (Phase 3.2.1 toggle
-  off): error 400 from the API layer. Don't silently degrade — the caller
+- **`force_route="hybrid"` but visual retriever is None** (visual leg
+  disabled by toggle): error 400 from the API layer. Don't silently degrade — the caller
   asked for hybrid explicitly.
 
 ## Observability
@@ -138,7 +137,7 @@ choice only affects observability labels.
    *"the bottom panel of the network architecture"* (no `figure`/`fig.`/`plot`
    token) classifies as `definitional` and routes text-only. False
    negatives are recoverable (text @ page is the strong baseline) but
-   measurable. Phase 3.2.1 adds a misclassification telemetry counter
+   measurable. A later change adds a misclassification telemetry counter
    and revisits if the rate exceeds an as-yet-unset threshold.
 2. **Factual heuristic is heuristic.** Year mentions ("after 2024") match
    the numeric pattern and label as `factual` rather than `definitional`.
@@ -147,7 +146,7 @@ choice only affects observability labels.
    look factual-by-numerics but are conceptually definitional. Acceptable.
 3. **RRF k=60 is the literature default, not tuned.** ADR 0007's offline
    eval used the same default. Tuning k against the v3 hybrid subset is
-   a Phase 3.2.1 candidate — could be worth ±0.5 % nDCG, not enough to
+   a later candidate — could be worth ±0.5 % nDCG, not enough to
    block production routing.
 4. **Page-level fusion changes the production result granularity.**
    Pre-routing `/answer` returned chunk-level results. Routed-hybrid
@@ -168,24 +167,24 @@ choice only affects observability labels.
    so visitors can A/B compare text-only vs hybrid dispatch on the same
    query. The field remains absent from `/docs` — the demo UI is a
    first-party consumer, not a public API contract.
-6. **Phase 3.2.1 vs 3.2.** The router lands in 3.2 with regex
-   classification + production wiring. Open candidates for 3.2.1:
+6. **Follow-up scope.** The router lands here with regex
+   classification + production wiring. Open follow-up candidates:
    per-category RRF weights, LLM/embedding fallback for unclassified
    queries, expose `force_route` in OpenAPI, golden v3.1 with edge
    queries (panel-of-figure phrasings, equation-without-LaTeX), and
    tuning RRF k.
 7. **Visual retriever build is one-shot at startup**, currently the
    slowest part of the boot sequence (ADR 0004 caveat). The router
-   doesn't change this — it just adds a wiring path. Phase 4.x can
+   doesn't change this — it just adds a wiring path. A later change can
    revisit lazy-load if cold-start latency becomes a Container Apps
    concern.
 
 ## References
 
-- ADR 0004 — Phase 3 visual retrieval (visual accepted as complementary,
+- ADR 0004 — Visual retrieval (visual accepted as complementary,
   hybrid deferred).
 - ADR 0006 — OOC refusal gate (interaction with empty-both-legs case).
-- ADR 0007 — Phase 3.1 corpus expansion + offline hybrid re-evaluation
+- ADR 0007 — Corpus expansion + offline hybrid re-evaluation
   (the empirical case for routing — read this for the +1.9 % subset
   number and the visual-vs-hybrid per-query analysis).
 - `src/rag/hybrid.py:reciprocal_rank_fusion` — existing RRF, reused as-is.

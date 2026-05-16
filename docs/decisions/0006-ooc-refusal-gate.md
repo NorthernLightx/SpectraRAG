@@ -4,7 +4,6 @@
 via `RAG_REFUSAL_SCORE_THRESHOLD` or CLI `--refusal-score-threshold`. Baseline
 unchanged.
 **Date:** 2026-05-02.
-**Phase:** post-Phase-4 eval refinement.
 
 ## Context
 

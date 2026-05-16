@@ -12,7 +12,6 @@ baseline `f844619927e0` lifts nDCG@5 +2.6 %, faithfulness +3.4 %,
 answer_relevance +1.3 %** vs the prior committed baseline, with all
 metrics PASS on the regression gate.
 **Date:** 2026-05-09.
-**Phase:** 3.3.
 
 ## Context
 
@@ -422,12 +421,12 @@ remaining region citation is more defensible.
 
 ## References
 
-- ADR 0002 — Phase 2 multimodal chunks (introduced `figure_to_chunk` /
+- ADR 0002 — Multimodal chunks (introduced `figure_to_chunk` /
   `table_to_chunk` and the `extract_figures` / `extract_tables` ingest
   flags; this ADR adds bbox + bbox-aware citations on top).
-- ADR 0004 — Phase 3 visual retrieval (page-level ColQwen2; not changed).
-- ADR 0007 — Phase 3.1 corpus expansion + offline hybrid re-evaluation.
-- ADR 0008 — Phase 3.2 routing (text vs hybrid by query category; not
+- ADR 0004 — Visual retrieval (page-level ColQwen2; not changed).
+- ADR 0007 — Corpus expansion + offline hybrid re-evaluation.
+- ADR 0008 — Routing (text vs hybrid by query category; not
   changed).
 - `data/eval/baseline.json` — current baseline `c92f3f1bee19`.
 - `docs/evals.md` — eval framework reference, including OOC scoring

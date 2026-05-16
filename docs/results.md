@@ -26,7 +26,7 @@ generator's lift on figure-grounded queries.
 
 ## Latency profile
 
-Per-stage timings from [`scripts/profile_latency.py`](../scripts/profile_latency.py)
+Per-stage timings from [`scripts/legacy/profile_latency.py`](../scripts/legacy/profile_latency.py)
 over 6 representative queries against a 2,436-chunk corpus. Local dev
 stack (Ryzen 5800X / RTX 3070 / 16 GB; Ollama on CPU; Qdrant in Docker).
 
@@ -64,7 +64,7 @@ extracted text — the answer lives in the chart's colour-coding. The text
 retriever can't surface page 8 because the relevant signal was never in the
 text layer; the visual leg (ColQwen2 multi-vector + late-interaction MaxSim
 on the rendered page image) recovers it. 6 more queries with the same
-shape are listed in the output of `scripts/find_visual_wins.py`.
+shape are listed in the output of `scripts/legacy/find_visual_wins.py`.
 
 **The honest tradeoff.** Multi-modal retrieval helps when figures encode
 information as pixels — chart colours, layout geometry, screenshot content,
@@ -81,7 +81,7 @@ mechanism.
 When the visual leg surfaces the right page, a text-only generator still
 cannot read the page image — it answers *"Not stated in the provided
 context."* on `mmlb_0008` and friends.
-[`scripts/experiment_mmlb_gen.py`](../scripts/experiment_mmlb_gen.py) runs
+[`scripts/legacy/experiment_mmlb_gen.py`](../scripts/legacy/experiment_mmlb_gen.py) runs
 106 in-corpus MMLongBench queries through `gpt-4o-mini` (text-only) vs
 `qwen/qwen3-vl-32b-instruct` (vision) with **identical context** —
 gold-evidence page text fed to both, plus the rendered page PNGs as
@@ -119,7 +119,7 @@ The retrieval section flagged that the regex classifier dispatched only
 — a 75 % under-fire on a corpus where natural-language questions don't say
 "Figure X" / "Table N". `src/rag/retrievers/classifier_llm.py` adds an LLM
 zero-shot classifier as an alternative to the regex.
-[`scripts/exp_classifier_dispatch.py`](../scripts/exp_classifier_dispatch.py)
+[`scripts/legacy/exp_classifier_dispatch.py`](../scripts/legacy/exp_classifier_dispatch.py)
 ran both over the same 149 queries:
 
 | | regex (ADR 0008) | LLM (gpt-4o-mini) | Δ abs |

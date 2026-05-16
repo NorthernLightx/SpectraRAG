@@ -1,16 +1,15 @@
-# ADR 0007 — Phase 3.1 corpus expansion + golden v3 + offline hybrid re-evaluation
+# ADR 0007 — Corpus expansion + golden v3 + offline hybrid re-evaluation
 
 **Status:** Accepted. Hybrid (text + visual) RRF fusion remains rejected as a
 default — but the per-subset evidence is strong enough that **per-query
-routing is promoted to Phase 3.2 priority**: figure/table-category queries
+routing is promoted as the priority (taken up in ADR 0008)**: figure/table-category queries
 should route through hybrid, definitional/factual queries should stay
 text-only.
 **Date:** 2026-05-03.
-**Phase:** 3.1.
 
 ## Context
 
-ADR 0004 deferred hybrid text+visual fusion as the natural Phase 3.1
+ADR 0004 deferred hybrid text+visual fusion as the natural
 follow-up: text wins on definitional precision, visual wins on multi-hop /
 term-mismatch coverage, both have complementary failure modes, RRF should
 combine them.
@@ -29,7 +28,7 @@ hybrid −5.8% nDCG@5 and −11.4% MRR vs text @ page. Two confounds:
    content the text path can't index well, but we weren't asking those
    queries.
 
-Phase 3.1 fixes both:
+This decision fixes both:
 
 - Expand the corpus 5 → 20 papers.
 - Add 16 figure/table-targeted queries (golden v3).
@@ -174,7 +173,7 @@ classifier signals figure / table / multi-hop.
    substrate** for visual-vs-text comparisons going forward. v3-only
    queries (q24–q39) are added on top of the unchanged v2 queries.
 
-3. **Promote per-query routing to Phase 3.2 priority.** The empirical case
+3. **Promote per-query routing as the priority (taken up in ADR 0008).** The empirical case
    was already in ADR 0003 (query-expansion) and ADR 0004 (visual);
    v3-only's +1.9 % closes it: route by query category, not by retriever.
 
@@ -182,7 +181,7 @@ classifier signals figure / table / multi-hop.
    baseline (`7b5242df5b38`) for now.** The new v3 page-level numbers are
    an alternative track, not a replacement; promoting them changes the
    regression-gate semantics and should wait until v3 queries are
-   reviewed and we have a Phase 3.2 router number to baseline.
+   reviewed and we have a router number to baseline (see ADR 0008).
 
 ## Caveats & open questions
 
@@ -218,7 +217,7 @@ classifier signals figure / table / multi-hop.
 
 - ADR 0003 — query expansion (rejected, per-query wins on multi-hop /
   term-mismatch — same routing lesson).
-- ADR 0004 — Phase 3 visual retrieval (accepted complementary; deferred
+- ADR 0004 — Visual retrieval (accepted complementary; deferred
   hybrid).
 - `scripts/eval_hybrid.py` — offline RRF fusion of two existing run JSONs.
 - `scripts/inspect_candidates.py` — visual-richness scoring used for the

@@ -5,7 +5,6 @@ recall@10 (-14.3%). With rerank: contextual is *neutralized* — identical metri
 to rerank-only baseline. Production will use rerank, so contextual provides no
 marginal value while costing an LLM call per chunk at ingest time.
 **Date:** 2026-04-28 (initial); 2026-04-30 (runs #1–#3); 2026-05-01 (run #4 + verdict).
-**Phase:** 1.4b.
 
 ## Context
 

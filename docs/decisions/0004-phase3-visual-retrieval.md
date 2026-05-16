@@ -1,4 +1,4 @@
-# ADR 0004 — Phase 3 visual retrieval (ColQwen2 / ColPali-style)
+# ADR 0004 — Visual retrieval (ColQwen2 / ColPali-style)
 
 **Status:** Accepted as a complementary path. Visual and text retrievers have
 fundamentally different strengths on this corpus; neither dominates.
@@ -6,13 +6,13 @@ Production recommendation is text-path baseline; visual ships in-tree as
 `scripts/eval_visual.py` for ablation work and as the foundation for a
 future hybrid text+visual fusion (deferred).
 **Date:** 2026-05-01.
-**Phase:** 3.
 
 ## Context
 
-Phase 3 is the headline visual-retrieval comparison: ColQwen2 visual path
-vs the text pipeline on the same corpus. After Phases 1, 2.0, 2.1, 2.2 the
-text path baseline is `7b5242df5b38` (`data/eval/baseline.json`):
+This decision is the headline visual-retrieval comparison: ColQwen2 visual path
+vs the text pipeline on the same corpus. After the prior text, multi-modal, and
+query-expansion work the text path baseline is `7b5242df5b38`
+(`data/eval/baseline.json`):
 
 - nDCG@5 0.7214, recall@10 0.9412, MRR 0.7437
 - p50 query latency ~73 s (whole-pipeline including generate + judge)
@@ -108,8 +108,8 @@ fooled it on a corpus where every paper has at least one heatmap.
   both retrievers' top-K — text for definitional precision, visual for
   multi-hop / term-mismatch coverage. The `VisualRetriever` already
   duck-types the protocol so a `MultiSourceRetriever` decorator
-  (analogous to `MultiQueryRetriever`) is small. Deferred to Phase 3.1
-  if and when we want to chase that combined number.
+  (analogous to `MultiQueryRetriever`) is small. Deferred (pursued in a
+  later ADR) if and when we want to chase that combined number.
 - Latency (~300 ms p50 retrieve) is genuinely production-worthy — visual
   is **17× faster than text at the retrieve stage** on this corpus
   because ColQwen2 query embedding + MaxSim is GPU-bound and direct,
@@ -129,7 +129,7 @@ fooled it on a corpus where every paper has at least one heatmap.
    the text-path semantic signal.
 3. **Generation + judge not run on visual path.** A text generator on
    page-image chunks would need a vision-language model in the
-   generation step (e.g., the Phase 2.1 minicpm-v:8b captioner repurposed
+   generation step (e.g., the minicpm-v:8b captioner repurposed
    as generator). Out of scope for this ADR.
 4. **`vidore/colqwen2-v1.0`** weights are 7 GB on disk, ~5 GB GPU at bf16.
    Coexists fine with nothing else loaded; can't run alongside the text

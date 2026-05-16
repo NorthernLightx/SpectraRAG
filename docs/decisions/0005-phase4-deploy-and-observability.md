@@ -1,4 +1,4 @@
-# ADR 0005 — Phase 4 deploy + observability scaffold
+# ADR 0005 — Deploy + observability scaffold
 
 **Status:** Accepted (scaffold). **Decision §5 (Terraform/azurerm) superseded
 in a later PR**: the deploy workflow now targets Google Cloud Run via
@@ -7,15 +7,14 @@ in a later PR**: the deploy workflow now targets Google Cloud Run via
 (no-op SDK pattern, stdout logging, OTel+structlog coexistence, X-Request-ID
 + W3C traceparent, manual CD, `/answer` span seeding) still apply.
 **Date:** 2026-05-01.
-**Phase:** 4 (scaffold subset: deploy infra + OTel + Sentry).
 
 ## Context
 
-Phase 4 is the production-polish surface: Terraform → Azure Container Apps
+This decision covers the production-polish surface: Terraform → Azure Container Apps
 deploy, GitHub Actions full CI/CD, OpenTelemetry SDK with auto-instrumentation,
 OTLP exporter, span hierarchy on `/answer`, OTel metrics for tokens / latency /
 errors, Sentry, W3C `traceparent` propagation, field-name-aware PII redaction,
-and a rotating-file handler decision. Phase 3 closed 2026-05-01 (see ADR 0004).
+and a rotating-file handler decision. Visual retrieval closed 2026-05-01 (see ADR 0004).
 This ADR covers the scaffold subset: **deploy infra + OTel SDK + Sentry**.
 PII redaction, caching, demo, and a full `timed_event` → span migration are
 explicitly deferred.
@@ -35,10 +34,10 @@ fixtures, FastAPI reload) don't double-register handlers.
 The Container App writes JSON to stdout; Container Apps' built-in Log
 Analytics ingestion picks it up. No rotating file handler in the container.
 `logs/api.log` stays as the local-dev sink (FastAPI factory still defaults
-to it). 12-factor; deferred to Phase 4.x if a separate handler is needed.
+to it). 12-factor; a separate handler is out of scope here.
 
 ### 3. OTel and structlog coexist; no `timed_event` removal
-The original Phase 4 plan called for spans to "replace flat `*.done` events."
+The original plan called for spans to "replace flat `*.done` events."
 In practice they serve different consumers (grep/jq vs. trace UI) and
 removing the log records would break the existing `logs/*.log` analysis
 workflow used for local debugging. Spans are added at the seams (`/answer`,
@@ -46,7 +45,7 @@ retrieve, generate) as a working demonstration; the structlog records stay.
 Migration is a separate ADR if and when it happens.
 
 ### 4. X-Request-ID stays; W3C traceparent is added alongside it
-The Phase 1.3 `request_context_middleware` is left untouched. OTel's
+The existing `request_context_middleware` is left untouched. OTel's
 FastAPI auto-instrumentation honors inbound `traceparent` and emits one
 on outbound httpx calls. The two IDs serve different audiences (humans
 grepping logs vs. distributed-trace consumers); echoing both is harmless.
@@ -85,4 +84,4 @@ ship in their own commits.
 
 - `src/observability/langfuse.py` — pattern reference for no-op SDKs.
 - `src/observability/logging.py` — `truncate_long_strings()` placeholder.
-- ADR 0004 — Phase 3 (closed prerequisite).
+- ADR 0004 — Visual retrieval (closed prerequisite).

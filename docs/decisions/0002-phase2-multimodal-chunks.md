@@ -1,23 +1,22 @@
-# ADR 0002 — Phase 2.0 multi-modal: PDF-extracted figure/table chunks
+# ADR 0002 — Multi-modal: PDF-extracted figure/table chunks
 
 **Status:** Accepted with caveat — multi-modal chunks land in tree as opt-in
 (`--extract-figures`, `--extract-tables`, `--vlm-caption-model`); default
 eval pipeline stays text-only until a stronger judge or VLM resolves the
 context-precision regression.
-**Date:** 2026-05-01 (initial); updated 2026-05-01 after Phase 2.1 ablations.
-**Phase:** 2.0 + 2.1.
+**Date:** 2026-05-01 (initial); updated 2026-05-01 after VLM-captioning ablations.
 
 ## Context
 
-The next axis after the text-only Phase 1 baseline is multi-modal: figure
+The next axis after the text-only baseline is multi-modal: figure
 extraction + VLM captioning, table extraction → markdown, and equation
 handling. The deliverable for this phase is a "pipeline multi-modal vs
 text-only ablation."
 
-Phase 2.0 implements the *infrastructure* — figure and table extraction
+This decision implements the *infrastructure* — figure and table extraction
 from PDFs (PyMuPDF), conversion to first-class `Chunk`s with
 `metadata['kind']`, and integration into the existing embed + BM25 +
-Qdrant pipeline. VLM captioning is deliberately deferred to Phase 2.1
+Qdrant pipeline. VLM captioning is deliberately deferred
 because it's a separate decision (which provider, what cost) and we
 wanted to first measure how far we get with PDF-extracted captions
 alone.
@@ -54,14 +53,14 @@ extra chunks crowd out the borderline-best-fitting text answer.
 
 ## Decision
 
-Adopt Phase 2.0 chunk types as **opt-in**, gated by
+Adopt these chunk types as **opt-in**, gated by
 `--extract-figures` / `--extract-tables` CLI flags (default: off).
 The committed `data/eval/baseline.json` stays the text-only run since
-that's the production-recommended config until Phase 2.1 lands.
+that's the production-recommended config until VLM captioning lands.
 
 Reasons to keep multi-modal *in tree but off by default*:
 1. Infrastructure is correct and tested (15 unit tests).
-2. The `Figure.vlm_caption` slot is the seam Phase 2.1 plugs into;
+2. The `Figure.vlm_caption` slot is the seam VLM captioning plugs into;
    nothing here needs to be re-done.
 3. context_precision improvement (+9%) is genuine signal that even
    weak (PDF-only) figure/table chunks add useful retrieval signal —
@@ -77,7 +76,7 @@ Reasons to *not* enable by default yet:
    in the LLM's context window — it tries to summarise the table
    instead of using its data to answer.
 
-## Phase 2.1 — VLM captioning ablations (2026-05-01)
+## VLM captioning ablations (2026-05-01)
 
 `src/ingestion/captioner.py` (`OllamaVisionCaptioner`) wraps Ollama's
 `/api/chat` with the `images` field. `caption_figures()` async function
@@ -90,8 +89,8 @@ generate + judge stack:
 
 | Config (in-corpus n=17 retrieval / RAGAS over 23) | nDCG@5 | recall@10 | MRR | faith | ar | cp |
 |---|---|---|---|---|---|---|
-| Phase 1 baseline (text-only) | **0.7214** | 0.9412 | **0.7437** | 0.8261 | 0.7957 | 0.6261 |
-| Phase 2.0 (PDF captions only) | 0.7033 | 0.9412 | 0.7369 | 0.8174 | 0.7391 | **0.6826** |
+| Text-only baseline | **0.7214** | 0.9412 | **0.7437** | 0.8261 | 0.7957 | 0.6261 |
+| PDF captions only | 0.7033 | 0.9412 | 0.7369 | 0.8174 | 0.7391 | **0.6826** |
 | **2.1a — gemma3:4b VLM-only** | 0.7173 | 0.9412 | 0.7377 | **0.8587** | 0.7609 | 0.6391 |
 | 2.1b — concat (PDF + VLM) | 0.6769 | 0.9412 | 0.6977 | 0.8261 | 0.7174 | 0.6261 |
 | **2.1c — minicpm-v:8b VLM-only** | 0.7173 | 0.9412 | 0.7377 | **0.8587** | **0.8043** | 0.6043 |
@@ -104,7 +103,7 @@ Run IDs (in `data/eval/runs/`):
 ### Findings
 
 1. **`figure_to_chunk` should pick the strongest single caption source,
-   not concatenate both.** Phase 2.1b tested PDF + VLM concatenation and
+   not concatenate both.** 2.1b tested PDF + VLM concatenation and
    regressed −6.16% on nDCG@5, −9.84% on ar — the longer combined text
    surfaced weaker figure chunks over strong text-chunk competitors at
    the rerank step. Reverted in `chunking.py` after the run.
@@ -118,7 +117,7 @@ Run IDs (in `data/eval/runs/`):
    was too large for the 8 GB VRAM (tried, fell back to CPU).
 
 3. **Despite weak captions, minicpm-v:8b *did* improve answer quality.**
-   2.1c lifted answer_relevance to 0.8043 (above Phase 1 baseline) and
+   2.1c lifted answer_relevance to 0.8043 (above the text-only baseline) and
    faithfulness to 0.8587 (+3.95% vs baseline) — multi-hop q4 went from
    ar 0.5 → 1.0 and equation q14 went from 0.8 → 1.0. The captions
    apparently help the *generator* situate retrieved chunks even when
@@ -137,7 +136,7 @@ Keep multi-modal chunks **opt-in default-off**, but document that:
 - **`minicpm-v:8b` is the recommended local VLM** when running
   `--extract-figures --vlm-caption-model minicpm-v:8b`. It clears the
   ar bar and bumps faithfulness without trip­ping the regression gate.
-- The ADR adoption rule's `cp ≥ 0.6826` (Phase 2.0 level) condition is
+- The ADR adoption rule's `cp ≥ 0.6826` (PDF-captions-only level) condition is
   unmet but is now considered a **judge-calibration artifact** rather
   than a real signal — the chunks that improve generated-answer quality
   are simultaneously scored "less precise" by the same model that wrote
