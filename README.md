@@ -13,9 +13,6 @@
 
 **▶ Live demo: <https://prismrag-ar6wxit42a-ew.a.run.app>**
 
-CPU-only on Cloud Run: the text leg plus browser-BYOK generation. It
-scales to zero, so the first request after it's been idle is slow.
-
 Most PDFs carry information a text extractor can't see: chart
 colours, plot geometries, screenshots, image-only diagrams. Ask a
 text-only RAG system *"In Figure 5, what colour is the line that
