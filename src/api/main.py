@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import asyncio
 import os
 from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -78,9 +79,26 @@ def create_app(*, log_file: Path | None = Path("logs/api.log")) -> FastAPI:
         # that construct ``TestClient(app)`` without ``with`` skip lifespan and
         # rely on ``dependency_overrides`` for an injected retriever — that's
         # exactly the pre-existing pattern, no test changes needed.
-        retriever_on = await _wire_retriever_from_settings(settings)
-        log.info("api.lifespan.startup", retriever=retriever_on)
-        yield
+        #
+        # Wiring runs as a background task, not awaited before yield: it loads
+        # the ~2 GB bge-m3 weights and scrolls the whole corpus, and on Cloud
+        # Run scale-to-zero that work would otherwise block every cold-start
+        # request behind it. Deferring lets the container report ready at once
+        # so /health and the static demo respond immediately; /query, /answer
+        # and /figures keep returning the existing 503 ("not configured")
+        # until the task lands — same contract as a not-yet-ingested corpus.
+        async def _wire() -> None:
+            retriever_on = await _wire_retriever_from_settings(settings)
+            log.info("api.lifespan.startup", retriever=retriever_on)
+
+        wire_task = asyncio.create_task(_wire())
+        try:
+            yield
+        finally:
+            if not wire_task.done():
+                wire_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await wire_task
 
     app = FastAPI(
         title="PrismRAG",

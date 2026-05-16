@@ -200,8 +200,10 @@ figure-caption aggregation.
   underrated when the answer lives in pixels (e.g. *"the line is
   red"*, where the judge sees only text). MMLongBench-Doc
   gold-answer match is the channel to trust.
-- **Scale-to-zero.** Demo `min-instances=0` means cold-start latency
-  on the first request after idle.
+- **Scale-to-zero.** Demo `min-instances=0` means the page loads fast
+  after idle, but the first query waits while the model and index load
+  in the background; the UI shows a warm-up notice and retries until
+  it's ready.
 
 ## Bring your own PDFs
 

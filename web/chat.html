@@ -950,22 +950,38 @@
         if (paperFilterSelect.value) {
           body.filters = { paper_id: paperFilterSelect.value };
         }
-        const res = await fetch("/query", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-        if (!res.ok) {
+        // /query returns 503 ("Retriever not configured") during the
+        // post-cold-start warm-up, while the model + index load in the
+        // background. That is "wait", not "failed": show an honest notice
+        // and retry until it's ready, rather than surfacing it as an error
+        // the visitor reads as broken. Any other non-OK status, or 503 past
+        // the warm-up budget, falls through to the existing thrown error.
+        const warmupDeadline = performance.now() + 120000;
+        while (true) {
+          const res = await fetch("/query", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            // The route now wraps results with routing metadata. Stash the
+            // routing info on the array so the caller can read it without
+            // changing the signature; the chunks stay iterable as before.
+            const results = data.results || [];
+            results._routing = data.routing || null;
+            return results;
+          }
           const detail = await res.text();
+          if (res.status === 503 && performance.now() < warmupDeadline) {
+            setStatus(
+              "Server is warming up after a cold start — the first query loads the model and index and can take a minute or two. Retrying automatically…",
+            );
+            await new Promise((r) => setTimeout(r, 3000));
+            continue;
+          }
           throw new Error(`${res.status} ${res.statusText} — ${detail}`);
         }
-        const data = await res.json();
-        // The route now wraps results with routing metadata. Stash the routing
-        // info on the array so the caller can read it without changing the
-        // signature; the chunks themselves stay iterable as before.
-        const results = data.results || [];
-        results._routing = data.routing || null;
-        return results;
       }
 
       function buildMessages(priorTurns, latestUserText, chunks, useImages) {

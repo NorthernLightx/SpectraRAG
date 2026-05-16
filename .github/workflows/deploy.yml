@@ -65,7 +65,7 @@ jobs:
           service: ${{ env.SERVICE_NAME }}
           image: ${{ steps.image.outputs.uri }}
           region: ${{ env.GCP_REGION }}
-          flags: --port=8000 --memory=4Gi --cpu=2 --min-instances=0 --max-instances=2 --allow-unauthenticated
+          flags: --port=8000 --memory=4Gi --cpu=2 --cpu-boost --min-instances=0 --max-instances=2 --allow-unauthenticated
 
       - name: Print URL
         run: |

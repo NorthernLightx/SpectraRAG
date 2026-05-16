@@ -9,6 +9,7 @@ into the two ``_wire_*`` entry points here.
 
 from __future__ import annotations
 
+import asyncio
 import re
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -190,13 +191,21 @@ async def _wire_retriever_from_settings(
     try:
         if embedder is None:
             if settings.embedder_backend == "sentence_transformers":
-                # Deferred import keeps the heavy torch/sentence-transformers
-                # import off the local-dev hot path where Ollama is the default.
-                from src.embeddings.sentence_transformers_bge import (
-                    SentenceTransformersBgeEmbedder,
-                )
+                # Both the torch/sentence-transformers import (deferred to keep
+                # it off the local-dev hot path where Ollama is the default)
+                # and the constructor's ~2 GB bge-m3 weight load are
+                # synchronous and slow. Run the whole thing off-thread so it
+                # can't stall the event loop while the lifespan background
+                # wiring task runs — otherwise /health and the static demo
+                # would hang for the duration of import + load on cold start.
+                def _build_st_embedder() -> Embedder:
+                    from src.embeddings.sentence_transformers_bge import (
+                        SentenceTransformersBgeEmbedder,
+                    )
 
-                embedder = SentenceTransformersBgeEmbedder()
+                    return SentenceTransformersBgeEmbedder()
+
+                embedder = await asyncio.to_thread(_build_st_embedder)
             else:
                 embedder = OllamaBgeEmbedder(base_url=settings.ollama_base_url)
         if vectorstore is None:
