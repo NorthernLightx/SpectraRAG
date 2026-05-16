@@ -11,9 +11,11 @@
 [![python 3.12](https://img.shields.io/badge/python-3.12-blue)](https://www.python.org/downloads/release/python-3120/)
 [![license: MIT](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
 
-**▶ Live demo: <https://prismrag-ar6wxit42a-ew.a.run.app>** — hosted
-on Cloud Run (CPU-only: text retrieval + browser-BYOK generation;
-cold-starts from idle). See [Deploy](#deploy) for how it ships.
+**▶ Live demo: <https://prismrag-ar6wxit42a-ew.a.run.app>**
+
+CPU-only on Cloud Run: the text leg plus browser-BYOK generation. It
+scales to zero, so the first request after it's been idle is slow.
+[Deploy](#deploy) covers how it ships.
 
 Most PDFs carry information a text extractor can't see: chart
 colours, plot geometries, screenshots, image-only diagrams. Ask a
@@ -285,69 +287,27 @@ commit" rules are in [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 
 ## Deploy
 
-The hosted demo runs on Google Cloud Run, shipped by the
-[`deploy`](./.github/workflows/deploy.yml) workflow
-(`workflow_dispatch`; `image_tag` defaults to `main` = the latest
-CI-baked image). Auth is keyless: GitHub Actions mints an OIDC
-token and federates into GCP via Workload Identity — no
-service-account JSON is stored anywhere. Cloud Run can't pull from
-GHCR directly, so the image is fetched through an Artifact Registry
-**remote repository** that proxies GHCR.
-
-### One-time GCP setup
-
-Done once by the maintainer; the workflow assumes it exists. Values
-in `deploy.yml`'s `env:` block (`europe-west1`, `ghcr-remote`,
-`prismrag`) are referenced below.
-
-1. **Artifact Registry remote repo** proxying GHCR:
-
-   ```bash
-   gcloud artifacts repositories create ghcr-remote \
-     --repository-format=docker --location=europe-west1 \
-     --mode=remote-repository --remote-docker-repo=https://ghcr.io
-   ```
-
-2. **Workload Identity pool + provider**, scoped to this repo:
-
-   ```bash
-   gcloud iam workload-identity-pools create github --location=global
-   gcloud iam workload-identity-pools providers create-oidc github \
-     --location=global --workload-identity-pool=github \
-     --issuer-uri=https://token.actions.githubusercontent.com \
-     --attribute-mapping=google.subject=assertion.sub,attribute.repository=assertion.repository \
-     --attribute-condition="assertion.repository=='NorthernLightx/PrismRAG'"
-   ```
-
-3. **Deploy service account** with `roles/run.admin`,
-   `roles/iam.serviceAccountUser`, `roles/artifactregistry.reader`,
-   plus a `roles/iam.workloadIdentityUser` binding letting the
-   federated identity impersonate it.
-
-4. **GitHub repo secrets** the workflow reads: `GCP_PROJECT_ID`,
-   `GCP_WORKLOAD_IDENTITY_PROVIDER` (full provider resource name),
-   `GCP_SERVICE_ACCOUNT_EMAIL`.
-
-Trigger from the Actions tab → **deploy** → *Run workflow*.
+The hosted demo runs on Google Cloud Run. The
+[`deploy`](./.github/workflows/deploy.yml) workflow ships it on manual
+dispatch; `image_tag` defaults to `main`, the latest image CI already
+baked. GitHub Actions authenticates to GCP with a short-lived OIDC token
+(Workload Identity), so there are no long-lived cloud credentials in the
+repo or CI. Cloud Run can't pull from GHCR, so the image comes through an
+Artifact Registry remote repo that proxies it. The one-time GCP setup
+(that remote repo, the Workload Identity pool and provider, and the
+deploy service account with its role bindings) is provisioned out of band
+by the maintainer.
 
 ### Server-side generation is off by design
 
-Cloud Run is deployed **without** `RAG_OPENROUTER_API_KEY`.
-Generation is browser BYOK (see *Limitations*): the page calls
-`/query` on the server for retrieval and dispatches the LLM call
-straight to OpenRouter with the visitor's own key, so the server
-never holds one. Server-side `/answer` therefore returns 503 on the
-hosted demo — intentional, not a misconfiguration.
-
-To enable server-side `/answer` (e.g. a private deployment), put
-the key in Secret Manager and surface it to Cloud Run:
-
-```bash
-printf '%s' "$RAG_OPENROUTER_API_KEY" \
-  | gcloud secrets create rag-openrouter-key --data-file=-
-# then add to deploy.yml's Cloud Run flags:
-#   --set-secrets=RAG_OPENROUTER_API_KEY=rag-openrouter-key:latest
-```
+Cloud Run runs without `RAG_OPENROUTER_API_KEY`. Generation is browser
+BYOK (see *Limitations*): the page calls `/query` on the server for
+retrieval, then sends the model call straight to OpenRouter with the
+visitor's own key. The server never holds a key, so server-side
+`/answer` returns 503 on the hosted demo. That is deliberate. A private
+deployment that wants `/answer` server-side can inject
+`RAG_OPENROUTER_API_KEY` from Secret Manager via the Cloud Run
+`--set-secrets` flag.
 
 ## Documentation
 

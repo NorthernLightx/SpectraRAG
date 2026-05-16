@@ -2,9 +2,9 @@
 # Run service pulls the deploy image from an Artifact Registry remote
 # repository that proxies GHCR (Cloud Run can't pull from GHCR directly).
 #
-# One-time GCP-side setup is documented inline in the README's `Deploy`
-# section: AR remote repo + WIF pool + provider + service account + role
-# bindings.
+# The one-time GCP setup (AR remote repo, Workload Identity pool and
+# provider, deploy service account and its role bindings) is provisioned
+# out of band by the maintainer; this workflow assumes it already exists.
 name: deploy
 
 on:
