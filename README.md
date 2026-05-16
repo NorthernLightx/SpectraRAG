@@ -15,7 +15,6 @@
 
 CPU-only on Cloud Run: the text leg plus browser-BYOK generation. It
 scales to zero, so the first request after it's been idle is slow.
-[Deploy](#deploy) covers how it ships.
 
 Most PDFs carry information a text extractor can't see: chart
 colours, plot geometries, screenshots, image-only diagrams. Ask a
@@ -46,7 +45,6 @@ corpus.
 - [Bring your own PDFs](#bring-your-own-pdfs)
 - [Troubleshooting](#troubleshooting)
 - [Development](#development)
-- [Deploy](#deploy)
 - [Documentation](#documentation)
 - [Project layout](#project-layout)
 - [Built with](#built-with)
@@ -190,7 +188,10 @@ figure-caption aggregation.
   full routing behaviour shown in *How it works*.
 - **Generation is BYOK.** Visitors paste their own OpenRouter API
   key into the UI and calls go browser-direct; the server doesn't
-  proxy or store keys. The demo still supports vision *generation*
+  proxy or store keys. The server-side `/answer` endpoint therefore
+  returns 503 on the hosted demo by design: a public, unauthenticated
+  endpoint shouldn't carry a shared LLM key, so generation runs through
+  the browser instead. The demo still supports vision *generation*
   through this path: if the visitor picks a vision-capable model
   (`gpt-4o`, `claude-sonnet-4.x`, `qwen3-vl`), the page PNGs
   returned by retrieval are sent to OpenRouter as image content
@@ -284,30 +285,6 @@ git config core.hooksPath .githooks
 
 Local setup, commit conventions, and the "what NEVER goes in a
 commit" rules are in [`CONTRIBUTING.md`](./CONTRIBUTING.md).
-
-## Deploy
-
-The hosted demo runs on Google Cloud Run. The
-[`deploy`](./.github/workflows/deploy.yml) workflow ships it on manual
-dispatch; `image_tag` defaults to `main`, the latest image CI already
-baked. GitHub Actions authenticates to GCP with a short-lived OIDC token
-(Workload Identity), so there are no long-lived cloud credentials in the
-repo or CI. Cloud Run can't pull from GHCR, so the image comes through an
-Artifact Registry remote repo that proxies it. The one-time GCP setup
-(that remote repo, the Workload Identity pool and provider, and the
-deploy service account with its role bindings) is provisioned out of band
-by the maintainer.
-
-### Server-side generation is off by design
-
-Cloud Run runs without `RAG_OPENROUTER_API_KEY`. Generation is browser
-BYOK (see *Limitations*): the page calls `/query` on the server for
-retrieval, then sends the model call straight to OpenRouter with the
-visitor's own key. The server never holds a key, so server-side
-`/answer` returns 503 on the hosted demo. That is deliberate. A private
-deployment that wants `/answer` server-side can inject
-`RAG_OPENROUTER_API_KEY` from Secret Manager via the Cloud Run
-`--set-secrets` flag.
 
 ## Documentation
 
