@@ -17,13 +17,13 @@ from pathlib import Path
 
 import pytest
 
-from src.api.deps import _GeneratorState, _RetrieverState
-from src.api.main import (
+from src.api.bootstrap import (
     _build_classifier_from_settings,
     _collect_pages_from_dir,
     _wire_generator_from_settings,
     _wire_retriever_from_settings,
 )
+from src.api.deps import _GeneratorState, _RetrieverState
 from src.config.settings import Settings
 from src.rag.retrievers.classifier_llm import LLMQueryClassifier
 from src.rag.retrievers.pipeline import PipelineRetriever
