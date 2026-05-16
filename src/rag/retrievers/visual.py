@@ -66,9 +66,7 @@ class VisualRetriever:
         # one in `query.filters['paper_id']`. The visual leg's index is
         # in-memory `page_meta[chunk_id] = (paper_id, page_no)`, so filtering
         # is a dict-key check before scoring.
-        paper_filter = query.filters.get("paper_id") if query.filters else None
-        if not isinstance(paper_filter, str):
-            paper_filter = None
+        paper_filter = query.paper_id_filter()
 
         with timed_event(_log, "visual_retrieve.done", query=query.text, top_k=query.top_k) as ctx:
             scores = await asyncio.to_thread(self._score_query, query.text)

@@ -23,7 +23,14 @@ _log = get_logger(__name__)
 # have them, and chunk ids are `<paper_id>::p<n>::c<n>`. Without `.` the regex would
 # silently truncate `2604.22753v1::p5::c24` to `2604`.
 _CITATION_RE = re.compile(r"\[(?:chunk_id\s+)?([A-Za-z0-9.:_\-]+)\]")
-_CHARS_PER_TOKEN = 4  # rough approximation; replace with tokenizer when needed
+# Char budget proxy for a token budget: _max_context_chars =
+# max_context_tokens * _CHARS_PER_TOKEN bounds how many retrieved chunks
+# _build_context packs into the prompt. ~4 chars/token is the standard
+# English heuristic; OpenRouter fronts many tokenizers so an exact per-model
+# count would still only approximate here. This is a soft packing budget, not
+# a hard model-context guard — the provider enforces the real token limit;
+# this only decides how many chunks are worth sending.
+_CHARS_PER_TOKEN = 4
 # Visual chunk-id format (mirrors src/rag/retrievers/visual.py:_PAGE_CHUNK_FMT)
 _PAGE_RE = re.compile(r"^(?P<paper>.+?)::p(?P<page>\d+)::page$")
 _MAX_VISION_IMAGES = 4  # cap content blocks; 4 pages is plenty for a single answer
@@ -142,6 +149,7 @@ class Generator:
                 continue
             out.append(img_path)
             if len(out) >= _MAX_VISION_IMAGES:
+                _log.info("generate.images_capped", cap=_MAX_VISION_IMAGES, chunk=r.chunk_id)
                 break
         return out
 

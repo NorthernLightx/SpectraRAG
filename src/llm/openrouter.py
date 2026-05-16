@@ -52,7 +52,16 @@ class OpenRouterClient:
         self._timeout = timeout
         self._client = client
 
+    @retry(
+        retry=retry_if_exception(_should_retry_request),
+        wait=wait_exponential(multiplier=2, min=2, max=60),
+        stop=stop_after_attempt(6),
+        reraise=True,
+    )
     async def _post(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
+        # Retry wraps only the network round-trip: chat() builds the (possibly
+        # image-laden) payload once, then this retries the POST on transport
+        # errors / 429 without re-encoding images on every attempt.
         headers = {
             "Authorization": f"Bearer {self._api_key}",
             "Content-Type": "application/json",
@@ -71,12 +80,6 @@ class OpenRouterClient:
             raise ValueError(f"OpenRouter returned non-object response: {type(data).__name__}")
         return data
 
-    @retry(
-        retry=retry_if_exception(_should_retry_request),
-        wait=wait_exponential(multiplier=2, min=2, max=60),
-        stop=stop_after_attempt(6),
-        reraise=True,
-    )
     async def chat(
         self,
         messages: list[Message],

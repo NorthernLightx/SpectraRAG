@@ -42,9 +42,7 @@ class PipelineRetriever:
             # GoldenQuery.paper_id; production callers pass nothing. Filtering
             # at the source (Qdrant + BM25) is required — post-filter on
             # candidate_pool=50 across 20 papers leaves too few same-paper hits.
-            paper_filter = query.filters.get("paper_id") if query.filters else None
-            if not isinstance(paper_filter, str):
-                paper_filter = None
+            paper_filter = query.paper_id_filter()
             ctx["paper_filter"] = paper_filter or ""
             [vector] = await self._embedder.embed_texts([query.text])
             dense_hits = await self._vectorstore.search(

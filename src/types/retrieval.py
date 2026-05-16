@@ -28,6 +28,13 @@ class Query(BaseModel):
     # threshold when the server wasn't started with one configured.
     routing_mode: Literal["category", "cascade"] | None = None
 
+    def paper_id_filter(self) -> str | None:
+        """Optional single-paper scope hint (ADR 0009 follow-up). Eval populates
+        ``filters['paper_id']`` from GoldenQuery.paper_id; production callers
+        pass nothing. Returns the id only when it's a string, else None."""
+        value = self.filters.get("paper_id")
+        return value if isinstance(value, str) else None
+
 
 class RetrievalResult(BaseModel):
     """A single retrieved item with provenance, before reranking."""

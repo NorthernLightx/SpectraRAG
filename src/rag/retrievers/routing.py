@@ -183,18 +183,13 @@ class RoutingRetriever:
 
         if path == "text":
             text_results = await self._text.retrieve(query)
-            _routing_info_var.set(
-                RoutingInfo(mode="category", path="text", forced=forced, category=category)
-            )
-            _log.info(
-                "routing.dispatched",
-                mode="category",
+            self._log_category(
+                path="text",
                 category=category,
-                path=path,
                 forced=forced,
-                text_n=len(text_results),
-                visual_n=0,
-                fused_pages=len(text_results),
+                text_results=text_results,
+                visual_results=None,
+                fused_n=len(text_results),
             )
             return text_results
 
@@ -205,40 +200,25 @@ class RoutingRetriever:
 
         if visual_results is None:
             # Visual failed; degrade to text-only so demos don't die from GPU hiccups
-            _routing_info_var.set(
-                RoutingInfo(
-                    mode="category",
-                    path="text",
-                    forced=forced,
-                    category=category,
-                    visual_failed=True,
-                )
-            )
-            _log.info(
-                "routing.dispatched",
+            self._log_category(
+                path="text",
                 category=category,
-                path=path,
                 forced=forced,
-                text_n=len(text_results),
-                visual_n=0,
-                fused_pages=len(text_results),
+                text_results=text_results,
+                visual_results=None,
+                fused_n=len(text_results),
                 visual_failed=True,
             )
             return text_results
 
         fused = self._fuse_page_level(text_results, visual_results, top_k=query.top_k)
-        _routing_info_var.set(
-            RoutingInfo(mode="category", path="hybrid", forced=forced, category=category)
-        )
-        _log.info(
-            "routing.dispatched",
-            mode="category",
+        self._log_category(
+            path="hybrid",
             category=category,
-            path=path,
             forced=forced,
-            text_n=len(text_results),
-            visual_n=len(visual_results),
-            fused_pages=len(fused),
+            text_results=text_results,
+            visual_results=visual_results,
+            fused_n=len(fused),
         )
         return fused
 
@@ -350,6 +330,42 @@ class RoutingRetriever:
         )
         span.set_attribute("routing.path", "hybrid")
         return fused
+
+    def _log_category(
+        self,
+        *,
+        path: RoutingPath,
+        category: Category,
+        forced: bool,
+        text_results: list[RetrievalResult],
+        visual_results: list[RetrievalResult] | None,
+        fused_n: int,
+        visual_failed: bool = False,
+    ) -> None:
+        """Set the per-task RoutingInfo and emit routing.dispatched for the
+        category path. Symmetric to _log_cascade — both legs go through one
+        emitter so the response decision and the log can't drift apart."""
+        _routing_info_var.set(
+            RoutingInfo(
+                mode="category",
+                path=path,
+                forced=forced,
+                category=category,
+                visual_failed=visual_failed,
+            )
+        )
+        kwargs: dict[str, object] = {
+            "mode": "category",
+            "category": category,
+            "path": path,
+            "forced": forced,
+            "text_n": len(text_results),
+            "visual_n": len(visual_results) if visual_results is not None else 0,
+            "fused_pages": fused_n,
+        }
+        if visual_failed:
+            kwargs["visual_failed"] = True
+        _log.info("routing.dispatched", **kwargs)
 
     def _log_cascade(
         self,
