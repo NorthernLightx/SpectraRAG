@@ -68,6 +68,12 @@ class Settings(BaseSettings):
     # "Figure X" / "Table N" keywords (run cc45831697b6 → exp_classifier_dispatch:
     # regex 17 % vs LLM 72 % hybrid dispatch on MMLongBench).
     classifier_model: str = "openai/gpt-4o-mini"
+    # ADR 0013: with no OpenRouter key (Ollama-only deploys) the API builds
+    # the classifier on this local Ollama model instead of falling back to
+    # the regex. Measured on MMLongBench (correct 20-doc corpus, page-level):
+    # regex router recall@10 0.741 -> gemma3:4b router 0.821 (+10.8 %, ~80 %
+    # of the oracle-routing ceiling 0.841).
+    classifier_ollama_model: str = "gemma3:4b"
 
     max_context_tokens: int = Field(default=8000, ge=512)
     temperature: float = Field(default=0.2, ge=0.0, le=2.0)

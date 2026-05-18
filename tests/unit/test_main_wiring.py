@@ -208,10 +208,12 @@ def test_collect_pages_skips_unrelated_files(tmp_path: Path) -> None:
 # ---------- _build_classifier_from_settings ------------------------------
 
 
-def test_classifier_returns_none_when_no_api_key() -> None:
-    """No OpenRouter key → classifier stays None, RoutingRetriever falls back
-    to ADR 0008's regex (the safe default)."""
-    assert _build_classifier_from_settings(_settings()) is None
+def test_classifier_falls_back_to_ollama_when_no_api_key() -> None:
+    """ADR 0013: no OpenRouter key → build the Ollama-backed classifier,
+    not None. Keyless deploys must not degrade to ADR 0008's weak regex
+    router (measured +10.8% recall@10 on MMLongBench)."""
+    classifier = _build_classifier_from_settings(_settings())
+    assert isinstance(classifier, LLMQueryClassifier)
 
 
 def test_classifier_constructed_when_api_key_present() -> None:

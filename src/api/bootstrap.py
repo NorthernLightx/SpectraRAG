@@ -18,11 +18,13 @@ from src.api.deps import set_chunks, set_generator, set_retriever
 from src.config.settings import Settings
 from src.embeddings.ollama_bge import OllamaBgeEmbedder
 from src.embeddings.protocol import Embedder
+from src.llm.ollama_chat import OllamaChatClient
 from src.llm.openrouter import OpenRouterClient
 from src.observability.logging import get_logger
 from src.prompts.loader import load_prompt_by_name
 from src.rag.bm25 import Bm25Index
 from src.rag.generate import Generator
+from src.rag.rerank import BgeReranker
 from src.rag.retrievers.pipeline import PipelineRetriever
 from src.rag.retrievers.protocol import Retriever
 from src.rag.retrievers.routing import RoutingRetriever
@@ -133,22 +135,30 @@ async def _build_visual_retriever_from_settings(settings: Settings) -> Retriever
 
 
 def _build_classifier_from_settings(settings: Settings) -> LLMQueryClassifier | None:
-    """Build the LLM query classifier when an OpenRouter key is set. Falls
-    back to None (regex classifier) on any failure — the regex is the safe
-    default. ADR 0008 §"Decision" §1: misclassification is bounded.
+    """Build the LLM query classifier. With an OpenRouter key it uses
+    ``classifier_model`` over OpenRouter; without one it uses
+    ``classifier_ollama_model`` over local Ollama. ADR 0013: the Ollama
+    path measured +10.8 % recall@10 over the regex router on MMLongBench
+    (~80 % of the oracle ceiling), so a keyless deploy no longer degrades
+    to the weak regex classifier. Falls back to None (regex) only on hard
+    failure — the regex stays the safe default. ADR 0008 §"Decision" §1:
+    misclassification is bounded.
     """
     log = get_logger(__name__)
-    if settings.openrouter_api_key is None:
-        log.info("api.multimodal.classifier.skip_no_api_key")
-        return None
     try:
         from src.rag.retrievers.classifier_llm import LLMQueryClassifier
 
-        client = OpenRouterClient(api_key=settings.openrouter_api_key.get_secret_value())
+        prompt = load_prompt_by_name("classify_query")
+        if settings.openrouter_api_key is not None:
+            return LLMQueryClassifier(
+                llm=OpenRouterClient(api_key=settings.openrouter_api_key.get_secret_value()),
+                model=settings.classifier_model,
+                prompt=prompt,
+            )
         return LLMQueryClassifier(
-            llm=client,
-            model=settings.classifier_model,
-            prompt=load_prompt_by_name("classify_query"),
+            llm=OllamaChatClient(base_url=settings.ollama_base_url),
+            model=settings.classifier_ollama_model,
+            prompt=prompt,
         )
     except Exception as exc:
         log.warning(
@@ -241,6 +251,12 @@ async def _wire_retriever_from_settings(
         bm25=bm25,
         chunks_by_id=chunks_by_id,
         candidate_pool=settings.rerank_top_k,
+        # ADR 0014: the API ran unreranked while every eval/baseline (and the
+        # routing study) reranks — so the live system never delivered the
+        # measured retrieval quality. Match the validated baseline config:
+        # bge-reranker-v2-m3 + length-norm (ADR 0009). GPU-coexists with
+        # ColQwen2 on 8 GB (proven by the routing study).
+        reranker=BgeReranker(length_norm=True),
     )
 
     if settings.enable_multimodal:
