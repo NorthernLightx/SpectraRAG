@@ -4,35 +4,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>PrismRAG — papers</title>
+    <link rel="stylesheet" href="/styles.css" />
     <style>
-      :root,
-      [data-theme="dark"] {
-        --bg: #0d1117;
-        --canvas: #161b22;
-        --canvas-elevated: #1f242c;
-        --fg: #e6edf3;
-        --fg-strong: #ffffff;
-        --muted: #8b949e;
-        --border: #30363d;
-        --border-subtle: #21262d;
-        --accent: #58a6ff;
-        --accent-strong: #1f6feb;
-        --accent-tint: rgba(88, 166, 255, 0.15);
-      }
-      [data-theme="light"] {
-        --bg: #ffffff;
-        --canvas: #f6f8fa;
-        --canvas-elevated: #ffffff;
-        --fg: #1f2328;
-        --fg-strong: #0d1117;
-        --muted: #59636e;
-        --border: #d1d9e0;
-        --border-subtle: #e4e7eb;
-        --accent: #0969da;
-        --accent-strong: #0550ae;
-        --accent-tint: rgba(9, 105, 218, 0.1);
-      }
-      * { box-sizing: border-box; }
       html, body {
         margin: 0;
         padding: 0;
@@ -56,19 +29,6 @@
         justify-content: space-between;
         gap: 16px;
       }
-      .title-block { flex: 1; min-width: 0; }
-      h1 {
-        font-size: 22px;
-        margin: 0 0 4px;
-        font-weight: 600;
-        letter-spacing: -0.01em;
-        color: var(--fg-strong);
-      }
-      header p {
-        margin: 0;
-        color: var(--muted);
-        font-size: 13px;
-      }
       .icon-btn {
         background: transparent;
         border: 1px solid var(--border);
@@ -84,9 +44,6 @@
         transition: background 0.15s ease, border-color 0.15s ease;
       }
       .icon-btn:hover { background: var(--canvas); border-color: var(--accent); }
-      .icon-btn svg { width: 16px; height: 16px; }
-      [data-theme="light"] .icon-btn .icon-moon,
-      [data-theme="dark"] .icon-btn .icon-sun { display: none; }
 
       .nav {
         max-width: 880px;
@@ -96,19 +53,6 @@
         display: flex;
         gap: 4px;
         font-size: 13px;
-      }
-      .nav a {
-        padding: 4px 10px;
-        border-radius: 999px;
-        color: var(--muted);
-        text-decoration: none;
-        transition: background 0.15s ease, color 0.15s ease;
-      }
-      .nav a:hover { background: var(--canvas); color: var(--fg); }
-      .nav a.active {
-        background: var(--accent-tint);
-        color: var(--accent);
-        font-weight: 600;
       }
 
       main {
@@ -211,23 +155,10 @@
       <ul class="papers-grid" id="papers"></ul>
     </main>
 
+    <script src="/app.js"></script>
     <script>
-      const themeBtn = document.getElementById("themeToggle");
       const statusEl = document.getElementById("status");
       const papersEl = document.getElementById("papers");
-
-      const savedTheme = localStorage.getItem("rag.theme");
-      const prefersLight = window.matchMedia("(prefers-color-scheme: light)").matches;
-      document.documentElement.setAttribute(
-        "data-theme",
-        savedTheme || (prefersLight ? "light" : "dark")
-      );
-      themeBtn.addEventListener("click", () => {
-        const next =
-          document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
-        document.documentElement.setAttribute("data-theme", next);
-        localStorage.setItem("rag.theme", next);
-      });
 
       async function loadPapers() {
         try {

@@ -303,7 +303,7 @@ commit" rules are in [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 ```
 src/        FastAPI app, retrievers, ingestion, eval, observability
 scripts/    CLI entry points (bootstrap, render, eval, regression)
-web/        bundled BYOK frontend (index.html + chat.html)
+web/        BYOK frontend — static HTML/CSS/JS, no build step, image-baked
 data/       gitignored except curated_demo/papers.txt + eval baselines
 docs/       ADRs, eval methodology, results
 tests/      unit + integration suites, mirrors src/ layout
