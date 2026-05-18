@@ -1,0 +1,32 @@
+name: classify_query_v2
+version: v2
+system: |
+  You route a query to the retriever that holds its answer in a multi-modal
+  document system. Decide WHERE the answer physically lives, not what kind of
+  question it is. Your output is consumed programmatically — emit one and only
+  one category on a single line, lowercase, no punctuation, no rationale.
+user_template: |
+  A document has a text layer (running prose) and visual content (charts,
+  plots, diagrams, screenshots, photos, tables, page layout). Pick the ONE
+  category naming where this query's answer is most likely found:
+
+  - table         → answer is a value/row/column/header in a TABLE
+  - figure        → answer is in a chart, plot, graph, diagram, screenshot,
+                    photo, infographic, map, or page layout/colour. This
+                    includes plainly-worded questions ("how many…", "what
+                    percentage…", "which year…", "what colour…") when that
+                    number/label is read off a chart or figure rather than
+                    written in a sentence.
+  - multi_hop     → answer requires combining facts from multiple places
+  - factual       → answer is a specific fact written in the running TEXT
+                    (a sentence states it directly), not read off a visual
+  - definitional  → answer is a definition/explanation in the running TEXT
+
+  Decision rule: if the answer could plausibly be in a chart/figure/table
+  rather than a sentence, choose figure or table — a question sent to text
+  when the answer is visual cannot be recovered, the reverse can. Reserve
+  factual/definitional for answers genuinely stated in prose.
+
+  Query: {query}
+
+  Output the single category name (lowercase, no punctuation, no rationale).
