@@ -314,10 +314,16 @@ async def test_multimodal_on_without_visual_leg_degrades_to_text() -> None:
 
 
 @pytest.mark.asyncio
-async def test_multimodal_routing_actually_dispatches_figure_to_hybrid() -> None:
+async def test_multimodal_routing_actually_dispatches_figure_to_hybrid(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """RoutingRetriever wraps both legs and dispatches by query category.
     A figure query hits the visual leg via the regex classifier; this test
     confirms the wiring put the visual leg where the router can reach it."""
+    # ADR 0013 makes the keyless wiring path build a live Ollama-backed
+    # classifier; force the regex fallback so this stays a hermetic
+    # wiring/dispatch test (CI has no Ollama → httpx.ConnectError otherwise).
+    monkeypatch.setattr("src.api.bootstrap._build_classifier_from_settings", lambda _s: None)
     embedder = FakeEmbedder(dim=8)
     store = await _populate_store(embedder)
     visual_results = [
