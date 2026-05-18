@@ -37,6 +37,10 @@ Thumbs.db
 # Project artefacts
 data/papers/
 data/golden/raw/
+# Harvested golden-candidate stubs are pre-review WIP (CONTRIBUTING:
+# work-in-progress never gets committed). Promoted, human-labelled ones
+# land in the tracked data/golden/<set>.yaml via scripts.promote_candidates.
+data/golden/_candidates/
 data/eval/runs/
 data/figures/
 # data/pages/ holds rendered page PNGs. The 20-paper curated demo corpus

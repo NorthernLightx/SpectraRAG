@@ -25,6 +25,8 @@ from __future__ import annotations
 import argparse
 import asyncio
 import os
+import subprocess
+import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -732,6 +734,16 @@ if __name__ == "__main__":
             "follow-up; closes 'wrong region picked' failures (q29-style)."
         ),
     )
+    parser.add_argument(
+        "--harvest",
+        action="store_true",
+        help=(
+            "After writing the run JSON, run scripts.harvest_candidates to "
+            "flag review-worthy queries into data/golden/_candidates/ "
+            "(reference-free; never auto-labels). Opt-in post-eval step — "
+            "the in-project trigger; see CONTRIBUTING 'Scripts layout'."
+        ),
+    )
     args = parser.parse_args()
 
     _provider_default_model = {
@@ -803,3 +815,5 @@ if __name__ == "__main__":
             pages_dpi=args.pages_dpi,
         )
     )
+    if args.harvest:
+        subprocess.run([sys.executable, "-m", "scripts.harvest_candidates"], check=False)
