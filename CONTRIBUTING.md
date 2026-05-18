@@ -32,6 +32,30 @@ uv run python -m scripts.check_regression \
     --threshold 0.05
 ```
 
+## Scripts layout
+
+`scripts/` is three tiers by stability:
+
+- **top level** — maintained entrypoints + the data-reproduction pipeline
+  (`eval_run`, `check_regression`, `ingest`, `render_pages`,
+  `bootstrap_corpus`, `eval_visual`, `fetch_*`, …). CI, the root README, and
+  `docs/evals.md` invoke these as `python -m scripts.<name>`; their import
+  paths are an API contract — relocating one is a cross-repo change (CI +
+  docs + ADRs in the same commit), not a move.
+- **`scripts/experiments/`** — the ADR-linked DoE / study / probe drivers
+  from the retrieval investigation (ADRs 0012–0016).
+- **`scripts/legacy/`** — superseded one-off and earlier-phase scripts kept
+  for the historical record (referenced by older ADRs / `docs/results.md`).
+
+`experiments/` and `legacy/` are intentionally exempt from the CI
+ruff / format / mypy-strict gates (`pyproject.toml` `extend-exclude` + mypy
+`exclude`): they are audit and reproducibility artifacts, not library code.
+New exploratory scripts start in `experiments/`; nothing graduates out of
+`legacy/`. A script stays top-tier (gated) if it is a documented
+entrypoint, has a maintained test, **or** is referenced by maintained
+code/CLI — even if its approach was superseded. `legacy/` is for
+*untested, unreferenced*, frozen spikes.
+
 ## Commit conventions
 
 We use [Conventional Commits](https://www.conventionalcommits.org/). The

@@ -95,6 +95,10 @@ packages = ["src"]
 line-length = 100
 target-version = "py312"
 src = ["src", "tests"]
+# scripts/experiments + scripts/legacy are audit/reproducibility artifacts
+# (see CONTRIBUTING.md "Scripts layout"), not maintained code. Tier-1 scripts/
+# stays fully gated; these two tiers are exempt from lint/format + mypy-strict.
+extend-exclude = ["scripts/experiments", "scripts/legacy"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "UP", "B", "C4", "SIM", "RUF", "ASYNC"]
@@ -119,6 +123,8 @@ warn_unreachable = true
 warn_unused_ignores = true
 disallow_untyped_decorators = true
 plugins = ["pydantic.mypy"]
+# Non-maintained tiers — see CONTRIBUTING.md "Scripts layout" + [tool.ruff].
+exclude = "scripts/(experiments|legacy)/"
 
 [[tool.mypy.overrides]]
 module = ["rank_bm25", "rank_bm25.*", "ollama", "ollama.*", "langfuse", "langfuse.*", "fitz", "fitz.*", "sentence_transformers", "sentence_transformers.*", "PIL", "PIL.*", "colpali_engine", "colpali_engine.*", "torch", "torch.*", "torchvision", "torchvision.*", "datasets", "datasets.*", "huggingface_hub", "huggingface_hub.*"]
