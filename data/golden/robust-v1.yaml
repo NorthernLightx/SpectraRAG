@@ -1,0 +1,1076 @@
+# Routing-fair eval: modality-balanced, built by scripts/experiments/build_robust_golden.py
+# (ADR 0015). Score paper-filtered + page-level (queries carry paper_id;
+# cross-corpus page numbers must not collide).
+name: robust
+version: v1
+queries:
+- query_id: v3__q22_mase_definition
+  text: What does MASE stand for in this paper?
+  paper_id: 2604.28186v1
+  category: factual
+  relevant_chunk_ids:
+  - 2604.28186v1::p2::c4
+  relevant_pages:
+  - 2
+  expected_facts:
+  - Minimum Average-Strong Equilibrium.
+  note: src=v3 bucket=text ev=arxiv-factual
+- query_id: mmlb__mmlb_0098_2023.acl-long.386
+  text: How many prompts examples are shown in the paper's main body?
+  paper_id: 2023.acl-long.386
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 4
+  expected_facts:
+  - '2'
+  note: src=mmlongbench bucket=text ev=['Generalized-text (Layout)', 'Pure-text (Plain-text)']
+- query_id: v3__q14_final_acquisition
+  text: How is the final acquisition score combined?
+  paper_id: 2604.22753v1
+  category: equation
+  relevant_chunk_ids:
+  - 2604.22753v1::p25::c89
+  relevant_pages:
+  - 25
+  expected_facts:
+  - ΔMSPEtar(x) = ΔVintra(x) + ΔVinter(x).
+  note: src=v3 bucket=text ev=arxiv-equation
+- query_id: mmlb__mmlb_0041_0b85477387a9d0cc33fca0f4becaa0
+  text: Who Visited the U.S. Naval Medical Research centre on November 29, 2012 in the document?
+  paper_id: 0b85477387a9d0cc33fca0f4becaa0e5
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 1
+  expected_facts:
+  - Tim Ziemer
+  note: src=mmlongbench bucket=text ev=['Pure-text (Plain-text)']
+- query_id: v3__q12_multibasin_vs_vopt
+  text: Why does this method maintain multiple basins rather than a single best-fit linearization?
+  paper_id: 2604.22753v1
+  category: multi_hop
+  relevant_chunk_ids:
+  - 2604.22753v1::p4::c19
+  - 2604.22753v1::p8::c39
+  relevant_pages:
+  - 4
+  - 8
+  expected_facts:
+  - V-opt uses single linearization; this method uses mixture-of-Gaussians.
+  note: src=v3 bucket=text ev=arxiv-multi_hop
+- query_id: mmlb__mmlb_0019_2024.ug.eprospectus
+  text: How many schools from College of Humanities, Arts, and Social Sciences are not individually introduced
+    in detail?
+  paper_id: 2024.ug.eprospectus
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 12
+  - 13
+  expected_facts:
+  - '3'
+  note: src=mmlongbench bucket=text ev=['Pure-text (Plain-text)', 'Generalized-text (Layout)']
+- query_id: v3__q2_bic_ranking
+  text: How does the paper rank basins?
+  paper_id: 2604.22753v1
+  category: factual
+  relevant_chunk_ids:
+  - 2604.22753v1::p19::c76
+  relevant_pages:
+  - 19
+  expected_facts:
+  - Basins are ranked by an information criterion derived from empirical fit.
+  note: src=v3 bucket=text ev=arxiv-factual
+- query_id: mmlb__mmlb_0003_0e94b4197b10096b1f4c699701570f
+  text: How does this document define the law of good gestalt?
+  paper_id: 0e94b4197b10096b1f4c699701570fbf
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 11
+  expected_facts:
+  - Elements of objects tend to be perceptually grouped together if they form a pattern that is regular,
+    simple, and orderly.
+  note: src=mmlongbench bucket=text ev=['Pure-text (Plain-text)']
+- query_id: v3__q3_approximation_options
+  text: What approximations are used to score basins?
+  paper_id: 2604.22753v1
+  category: factual
+  relevant_chunk_ids:
+  - 2604.22753v1::p19::c76
+  - 2604.22753v1::p19::c77
+  relevant_pages:
+  - 19
+  expected_facts:
+  - BIC-style approximation is used for robustness.
+  - Laplace form provides a local-evidence interpretation.
+  note: src=v3 bucket=text ev=arxiv-factual
+- query_id: mmlb__mmlb_0012_2310.05634v2
+  text: According to author's definition on conscious incompetence, when can a sentence map to both [NA]
+    and a list of sub-graph knowledge?
+  paper_id: 2310.05634v2
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 2
+  - 3
+  expected_facts:
+  - If it can be partially verified by the knowledge graph G
+  note: src=mmlongbench bucket=text ev=['Pure-text (Plain-text)']
+- query_id: v3__q18_synth_computer_count
+  text: How many synthetic computers were created in the preliminary experiments?
+  paper_id: 2604.28181v1
+  category: factual
+  relevant_chunk_ids:
+  - 2604.28181v1::p1::c1
+  relevant_pages:
+  - 1
+  expected_facts:
+  - 1,000 synthetic computers.
+  note: src=v3 bucket=text ev=arxiv-factual
+- query_id: mmlb__mmlb_0000_0e94b4197b10096b1f4c699701570f
+  text: Where was Gestalt psychology concieved?
+  paper_id: 0e94b4197b10096b1f4c699701570fbf
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 2
+  expected_facts:
+  - Berlin School of Experimental Psychology
+  note: src=mmlongbench bucket=text ev=['Pure-text (Plain-text)']
+- query_id: v3__q6_basin_definition
+  text: What is a basin in this paper?
+  paper_id: 2604.22753v1
+  category: factual
+  relevant_chunk_ids:
+  - 2604.22753v1::p4::c19
+  relevant_pages:
+  - 4
+  expected_facts:
+  - A basin is a locally optimal fit of the scaling law.
+  note: src=v3 bucket=text ev=arxiv-factual
+- query_id: mmlb__mmlb_0023_2303.08559v2
+  text: How many datasets are used for experiments of this paper in all? Give me an integer.
+  paper_id: 2303.08559v2
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 0
+  expected_facts:
+  - '9'
+  note: src=mmlongbench bucket=text ev=['Pure-text (Plain-text)']
+- query_id: v3__q9_baselines
+  text: Which baselines does the paper compare against?
+  paper_id: 2604.22753v1
+  category: factual
+  relevant_chunk_ids:
+  - 2604.22753v1::p6::c29
+  - 2604.22753v1::p6::c30
+  relevant_pages:
+  - 6
+  expected_facts:
+  - 'Five baselines: Random, D-opt, V-opt, plus two others.'
+  note: src=v3 bucket=text ev=arxiv-factual
+- query_id: mmlb__mmlb_0011_2310.05634v2
+  text: 'For dataset construction, which step takes the most word to describe than the others. '
+  paper_id: 2310.05634v2
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 12
+  - 13
+  expected_facts:
+  - Evolutionary Question Generation
+  note: src=mmlongbench bucket=text ev=['Pure-text (Plain-text)']
+- query_id: v3__q16_aw_pinn_what
+  text: What is AW-PINN?
+  paper_id: 2604.28180v1
+  category: factual
+  relevant_chunk_ids:
+  - 2604.28180v1::p3::c10
+  relevant_pages:
+  - 3
+  expected_facts:
+  - Adaptive wavelet-based PINN that dynamically adapts the wavelet family.
+  note: src=v3 bucket=text ev=arxiv-factual
+- query_id: mmlb__mmlb_0052_2310.07609v1
+  text: How many prompts instruction examples are listed in the main body of the paper? Please writhe
+    down the answer in float format.
+  paper_id: 2310.07609v1
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 3
+  - 4
+  expected_facts:
+  - '4'
+  note: src=mmlongbench bucket=text ev=['Generalized-text (Layout)', 'Pure-text (Plain-text)']
+- query_id: v3__q8_benchmark_size
+  text: How many tasks and scaling-law instances are in the benchmark?
+  paper_id: 2604.22753v1
+  category: factual
+  relevant_chunk_ids:
+  - 2604.22753v1::p5::c26
+  relevant_pages:
+  - 5
+  expected_facts:
+  - 8 tasks, 65 scaling-law instances.
+  note: src=v3 bucket=text ev=arxiv-factual
+- query_id: v3__q4_target_region
+  text: Why is the predictive accuracy goal restricted to a target region?
+  paper_id: 2604.22753v1
+  category: multi_hop
+  relevant_chunk_ids:
+  - 2604.22753v1::p2::c11
+  - 2604.22753v1::p3::c18
+  relevant_pages:
+  - 2
+  - 3
+  expected_facts:
+  - The goal is predictive accuracy in a held-out target region in the high-cost regime.
+  note: src=v3 bucket=text ev=arxiv-multi_hop
+- query_id: v3__q10_ablation_terms
+  text: What does the ablation study remove from the acquisition function?
+  paper_id: 2604.22753v1
+  category: factual
+  relevant_chunk_ids:
+  - 2604.22753v1::p9::c44
+  relevant_pages:
+  - 9
+  expected_facts:
+  - Removes ΔVinter or ΔVintra.
+  note: src=v3 bucket=text ev=arxiv-factual
+- query_id: v3__q1_inter_basin
+  text: What is the inter-basin gain criterion?
+  paper_id: 2604.22753v1
+  category: factual
+  relevant_chunk_ids:
+  - 2604.22753v1::p5::c24
+  relevant_pages:
+  - 5
+  expected_facts:
+  - The inter-basin gain measures expected variance reduction across basins.
+  note: src=v3 bucket=text ev=arxiv-factual
+- query_id: v3__q20_exploration_hacking
+  text: What is exploration hacking?
+  paper_id: 2604.28182v1
+  category: factual
+  relevant_chunk_ids:
+  - 2604.28182v1::p2::c5
+  relevant_pages:
+  - 2
+  expected_facts:
+  - An RL failure mode where the model intentionally alters its exploration to shape training.
+  note: src=v3 bucket=text ev=arxiv-factual
+- query_id: v3__q11_budget_levels
+  text: What budget levels are used in the experiments?
+  paper_id: 2604.22753v1
+  category: factual
+  relevant_chunk_ids:
+  - 2604.22753v1::p6::c28
+  relevant_pages:
+  - 6
+  expected_facts:
+  - 1%/5%/10% for most tasks; 20%/35%/50% for domain and sparsity.
+  note: src=v3 bucket=text ev=arxiv-factual
+- query_id: v3__q7_posterior_mixture
+  text: How is the posterior over scaling-law parameters approximated?
+  paper_id: 2604.22753v1
+  category: factual
+  relevant_chunk_ids:
+  - 2604.22753v1::p4::c19
+  relevant_pages:
+  - 4
+  expected_facts:
+  - 'A weighted mixture of K local Gaussians: p(θ|Dt) ≈ Σ wk N(θk, Σk).'
+  note: src=v3 bucket=text ev=arxiv-factual
+- query_id: v3__q38_eh_fig2_main_categories
+  text: What are the two main categories of exploration hacking strategies in the paper's taxonomy?
+  paper_id: 2604.28182v1
+  category: figure
+  relevant_chunk_ids:
+  - 2604.28182v1::p5::c18
+  relevant_pages:
+  - 5
+  expected_facts:
+  - (1) Complete under-exploration — reward does not meaningfully increase.
+  - (2) Partial under-exploration — further split into Instrumental and Terminal subtypes.
+  note: src=v3 bucket=figure ev=arxiv-figure
+- query_id: mmlb__mmlb_0029_05-03-18-political-release
+  text: According to the survey on April 25 - May 1, 2018, what are the domains with the highest percentage
+    that adults are very confident and not at all confident of Donald Trump's govenment? Please write
+    the answer in the list format and with alphabetical order, e.g., ["A","B"]
+  paper_id: 05-03-18-political-release
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 5
+  expected_facts:
+  - '[''Make good decisions about economic policy '', ''Make wise decisions about immigration policy '']'
+  note: src=mmlongbench bucket=figure ev=['Chart']
+- query_id: v3__q37_eh_fig1_outcomes
+  text: What two RL training outcomes does the exploration hacking paper's Figure 1 contrast for locked
+    model organisms?
+  paper_id: 2604.28182v1
+  category: figure
+  relevant_chunk_ids:
+  - 2604.28182v1::p2::c4
+  relevant_pages:
+  - 2
+  expected_facts:
+  - Successful RL elicitation (the model recovers pre-locking performance, blue curve in figure) vs successful
+    RL resistance (the model stays at the locked baseline, red curve).
+  note: src=v3 bucket=figure ev=arxiv-figure
+- query_id: mmlb__mmlb_0125_2210.02442v1
+  text: What querying criteria yields the worst label diversity generally on all the datasets?
+  paper_id: 2210.02442v1
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 4
+  - 17
+  expected_facts:
+  - VAAL
+  note: src=mmlongbench bucket=figure ev=['Chart']
+- query_id: v3__q27_fd_fig2_pipeline
+  text: What does Figure 2 illustrate about the FD-loss training pipeline?
+  paper_id: 2604.28190v1
+  category: figure
+  relevant_chunk_ids:
+  - 2604.28190v1::p2::c3
+  relevant_pages:
+  - 2
+  expected_facts:
+  - 'Figure 2 shows the FD-loss pipeline: a generator produces B images per step whose features accumulate
+    into a population via queue or EMA, decoupling population size N from batch size B.'
+  note: src=v3 bucket=figure ev=arxiv-figure
+- query_id: mmlb__mmlb_0075_2309.17421v2
+  text: In Figure 89, what is the brand name of the coffee machine in the picture?
+  paper_id: 2309.17421v2
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 118
+  expected_facts:
+  - JoooDeee
+  note: src=mmlongbench bucket=figure ev=['Figure']
+- query_id: v3__q24_lc_fig4_gradients
+  text: What does Figure 4 show about gradient magnitudes on CIFAR-10 with 40% noise?
+  paper_id: 2604.27742v1
+  category: figure
+  relevant_chunk_ids:
+  - 2604.27742v1::p6::c29
+  relevant_pages:
+  - 6
+  expected_facts:
+  - Figure 4 visualizes the distribution of gradients comparing Cross-Entropy (Left) vs Linear-Core (Right)
+    on CIFAR-10 with 40% instance-dependent noise.
+  note: src=v3 bucket=figure ev=arxiv-figure
+- query_id: mmlb__mmlb_0133_2307.09288v2
+  text: list the top-3 models in Figure 3
+  paper_id: 2307.09288v2
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 4
+  expected_facts:
+  - '[''Vicuna13b-v1.3'', ''PaLM Bison'', ''Vicuna13b-v1.1'']'
+  note: src=mmlongbench bucket=figure ev=['Chart']
+- query_id: v3__q32_pgp_fig1_methods
+  text: Which methods does Figure 1 in the constrained exploration paper compare?
+  paper_id: 2604.28144v1
+  category: figure
+  relevant_chunk_ids:
+  - 2604.28144v1::p8::c38
+  relevant_pages:
+  - 8
+  expected_facts:
+  - Figure 1 compares Policy Gradient Penalty (PGP), unconstrained Maximum-Entropy (ME) exploration, and
+    the primal-dual (PDPG) method of Ying et al. (2025).
+  note: src=v3 bucket=figure ev=arxiv-figure
+- query_id: mmlb__mmlb_0117_2306.05425v1
+  text: What sport is shown in the visual examples of MIMIC-IT and Otter?
+  paper_id: 2306.05425v1
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 4
+  - 5
+  expected_facts:
+  - soccer
+  note: src=mmlongbench bucket=figure ev=['Figure']
+- query_id: v3__q36_qd_fig7_layer_structure
+  text: How many rotation gates and entangling gates does one layer of the circuit-centric classifier
+    contain?
+  paper_id: 2604.28176v1
+  category: figure
+  relevant_chunk_ids:
+  - 2604.28176v1::p4::c18
+  relevant_pages:
+  - 4
+  expected_facts:
+  - Each layer has 4 rotation gates followed by 4 entangling gates (illustrated in a 4-qubit circuit).
+  note: src=v3 bucket=figure ev=arxiv-figure
+- query_id: mmlb__mmlb_0138_2307.09288v2
+  text: How many more emojis does the right subfig have than the left subfig in Figure 9?
+  paper_id: 2307.09288v2
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 16
+  expected_facts:
+  - '15'
+  note: src=mmlongbench bucket=figure ev=['Figure']
+- query_id: v3__q31_hermes_fig1_unification
+  text: What does Figure 1 in HERMES++ illustrate about the proposed framework?
+  paper_id: 2604.28196v1
+  category: figure
+  relevant_chunk_ids:
+  - 2604.28196v1::p2::c7
+  - 2604.28196v1::p2::fig1
+  relevant_pages:
+  - 2
+  expected_facts:
+  - Figure 1 contrasts (a) prior driving world models that focus on generative scene evolution prediction,
+    (b) LLMs for driving limited to scene understanding, and (c) the proposed HERMES++ framework that
+    unifies 3D scene understanding and generation.
+  note: src=v3 bucket=figure ev=arxiv-figure
+- query_id: mmlb__mmlb_0110_11-21-16-Updated-Post-Election
+  text: How many charts are related to mudslinging?
+  paper_id: 11-21-16-Updated-Post-Election-Release
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 7
+  - 34
+  expected_facts:
+  - '3'
+  note: src=mmlongbench bucket=figure ev=['Chart']
+- query_id: v3__q35_qd_fig6_rejection
+  text: What does the QAE++ defense framework do when a sample's confidence metric falls below the threshold?
+  paper_id: 2604.28176v1
+  category: figure
+  relevant_chunk_ids:
+  - 2604.28176v1::p4::c17
+  relevant_pages:
+  - 4
+  expected_facts:
+  - The sample is rejected as a potential adversarial sample (the predicted class label is not used).
+  note: src=v3 bucket=figure ev=arxiv-figure
+- query_id: mmlb__mmlb_0115_2306.05425v1
+  text: How many bar plots (including subplots) are in this paper?
+  paper_id: 2306.05425v1
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 7
+  - 10
+  expected_facts:
+  - '6'
+  note: src=mmlongbench bucket=figure ev=['Chart']
+- query_id: v3__q28_aegis_fig4_tasks
+  text: What does Figure 4 of AEGIS illustrate about its task progression?
+  paper_id: 2604.28177v1
+  category: figure
+  relevant_chunk_ids:
+  - 2604.28177v1::p5::c19
+  relevant_pages:
+  - 5
+  expected_facts:
+  - Figure 4 shows AEGIS's progressively structured tasks evaluating forensic capability from global authenticity
+    judgment to fine-grained spatial localization.
+  note: src=v3 bucket=figure ev=arxiv-figure
+- query_id: mmlb__mmlb_0002_0e94b4197b10096b1f4c699701570f
+  text: What range does red color represents in approximate distance from the Mississippi River in the
+    chart that tracks the West NIle Virus in Europe?
+  paper_id: 0e94b4197b10096b1f4c699701570fbf
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 10
+  expected_facts:
+  - 0-375 miles
+  note: src=mmlongbench bucket=figure ev=['Chart']
+- query_id: v3__q39_eh_fig2_terminal_vs_instrumental
+  text: How does the taxonomy distinguish 'instrumental' from 'terminal' partial under-exploration?
+  paper_id: 2604.28182v1
+  category: figure
+  relevant_chunk_ids:
+  - 2604.28182v1::p5::c18
+  relevant_pages:
+  - 5
+  expected_facts:
+  - 'Instrumental: reward increases but converges to lower reward than the benign baseline.'
+  - 'Terminal: reward increases and may converge to benign-baseline reward, but with model-preferred behavior
+    (i.e., satisfies internal preferences while violating developer intent).'
+  note: src=v3 bucket=figure ev=arxiv-figure
+- query_id: mmlb__mmlb_0113_2306.05425v1
+  text: What task is on the top of the planning branch of the tree?
+  paper_id: 2306.05425v1
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 2
+  expected_facts:
+  - egocentric planning
+  note: src=mmlongbench bucket=figure ev=['Figure']
+- query_id: v3__q13_figure1_lrbsz
+  text: What does Figure 1 illustrate on the lr&bsz task?
+  paper_id: 2604.22753v1
+  category: figure
+  relevant_chunk_ids:
+  - 2604.22753v1::p2::c10
+  relevant_pages:
+  - 2
+  expected_facts:
+  - Predicted optimum reaches the low-loss region within 1% of the budget.
+  note: src=v3 bucket=figure ev=arxiv-figure
+- query_id: mmlb__mmlb_0126_2210.02442v1
+  text: How many line plots are in this paper?
+  paper_id: 2210.02442v1
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 8
+  - 24
+  expected_facts:
+  - '3'
+  note: src=mmlongbench bucket=figure ev=['Chart']
+- query_id: mmlb__mmlb_0008_2310.05634v2
+  text: In figure 5, what is the color of the line that has no intersection with any other line?
+  paper_id: 2310.05634v2
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 8
+  expected_facts:
+  - red
+  note: src=mmlongbench bucket=figure ev=['Chart']
+- query_id: mmlb__mmlb_0001_0e94b4197b10096b1f4c699701570f
+  text: According to the chart on page 14 how much time was spent with family and friends in 2010?
+  paper_id: 0e94b4197b10096b1f4c699701570fbf
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 14
+  expected_facts:
+  - 21%
+  note: src=mmlongbench bucket=figure ev=['Chart']
+- query_id: mmlb__mmlb_0092_2023.findings-emnlp.248
+  text: 'How many prompt examples are given in the Appendix? '
+  paper_id: 2023.findings-emnlp.248
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 14
+  - 15
+  - 16
+  - 17
+  - 18
+  expected_facts:
+  - '15'
+  note: src=mmlongbench bucket=figure ev=['Figure']
+- query_id: mmlb__mmlb_0071_2309.17421v2
+  text: In Figure 113, what's the name of the music app shown in the computer screen?
+  paper_id: 2309.17421v2
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 143
+  expected_facts:
+  - YouTube Music
+  note: src=mmlongbench bucket=figure ev=['Figure']
+- query_id: v3__q25_lc_tab1_loss_properties
+  text: Which surrogate losses are compared in Table 1 by their convexity, smoothness, and consistency?
+  paper_id: 2604.27742v1
+  category: table
+  relevant_chunk_ids:
+  - 2604.27742v1::p2::c5
+  - 2604.27742v1::p2::tab1
+  relevant_pages:
+  - 2
+  expected_facts:
+  - Hinge Loss, Squared-Hinge, and others compared on convexity, smoothness, consistency bound, and rate.
+  note: src=v3 bucket=table ev=arxiv-table
+- query_id: mmlb__mmlb_0078_2005.12872v3
+  text: What's the AP50 value of DETR with L1 loss and without GIoU loss on the COCO validation set?
+  paper_id: 2005.12872v3
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 13
+  expected_facts:
+  - '57.3'
+  note: src=mmlongbench bucket=table ev=['Table']
+- query_id: v3__q30_a4mer_tab1_pose_datasets
+  text: What properties does Table 1 use to compare human 3D pose datasets?
+  paper_id: 2604.28173v1
+  category: table
+  relevant_chunk_ids:
+  - 2604.28173v1::p3::c9
+  relevant_pages:
+  - 3
+  expected_facts:
+  - Compared on 3rdPV (third-person-view), MultiView, Daily (indoor daily activities), MultiAct (multi-action
+    sequences), and RealH (real human capture).
+  note: src=v3 bucket=table ev=arxiv-table
+- query_id: mmlb__mmlb_0009_2310.05634v2
+  text: How many tables include "F1" as a metric?
+  paper_id: 2310.05634v2
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 7
+  - 9
+  expected_facts:
+  - '3'
+  note: src=mmlongbench bucket=table ev=['Table']
+- query_id: v3__q29_aegis_tab8_janus_rank
+  text: What is the rank of Janus-Pro-7B in Table 8 of AEGIS?
+  paper_id: 2604.28177v1
+  category: table
+  relevant_chunk_ids:
+  - 2604.28177v1::p23::c103
+  relevant_pages:
+  - 23
+  expected_facts:
+  - Janus-Pro-7B ranks 24, 23, 23 across the three γ settings in Table 8.
+  note: src=v3 bucket=table ev=arxiv-table
+- query_id: mmlb__mmlb_0020_2303.08559v2
+  text: What is the performance of filter-then-rerank methods (w.o. ensemble) on 50-shot TACREV dataset?
+  paper_id: 2303.08559v2
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 9
+  expected_facts:
+  - 72.3%
+  note: src=mmlongbench bucket=table ev=['Table']
+- query_id: v3__q26_fd_tab4_imagenet256
+  text: What benchmark and resolution does Table 4 evaluate in the FD-loss paper?
+  paper_id: 2604.28190v1
+  category: table
+  relevant_chunk_ids:
+  - 2604.28190v1::p10::c47
+  - 2604.28190v1::p10::tab4
+  relevant_pages:
+  - 10
+  expected_facts:
+  - Table 4 reports a system-level comparison on ImageNet 256×256.
+  note: src=v3 bucket=table ev=arxiv-table
+- query_id: mmlb__mmlb_0137_2307.09288v2
+  text: How many datasets are reported in Pages 49-50?
+  paper_id: 2307.09288v2
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 48
+  - 49
+  expected_facts:
+  - '13'
+  note: src=mmlongbench bucket=table ev=['Table']
+- query_id: mmlb__mmlb_0119_2306.05425v1
+  text: How many languages are shown in the in-context examples for multi-lingual translation query?
+  paper_id: 2306.05425v1
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 16
+  expected_facts:
+  - '8'
+  note: src=mmlongbench bucket=table ev=['Table']
+- query_id: mmlb__mmlb_0127_2210.02442v1
+  text: What are the optimizers used in this research?
+  paper_id: 2210.02442v1
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 14
+  - 15
+  expected_facts:
+  - SGD
+  note: src=mmlongbench bucket=table ev=['Table']
+- query_id: mmlb__mmlb_0014_2024.ug.eprospectus
+  text: Which groups of applicants have the lastest end of application period according to this brochure?
+  paper_id: 2024.ug.eprospectus
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 25
+  expected_facts:
+  - '["Singapore-Cambridge GCE ''A'' Level", ''International Baccalaureate (IB) Diploma'']'
+  note: src=mmlongbench bucket=table ev=['Table']
+- query_id: mmlb__mmlb_0131_2307.09288v2
+  text: How many tables are included in Pages 5-10?
+  paper_id: 2307.09288v2
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 6
+  - 7
+  - 8
+  - 9
+  expected_facts:
+  - '5'
+  note: src=mmlongbench bucket=table ev=['Table']
+- query_id: mmlb__mmlb_0136_2307.09288v2
+  text: How many slots are missed in Table 21?
+  paper_id: 2307.09288v2
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 49
+  expected_facts:
+  - '8'
+  note: src=mmlongbench bucket=table ev=['Table']
+- query_id: mmlb__mmlb_0142_2305.14160v4
+  text: How much does the Anchor Re-weighting method improve the performance of vanilla ICL on average?
+  paper_id: 2305.14160v4
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 7
+  expected_facts:
+  - '16.74'
+  note: src=mmlongbench bucket=table ev=['Table']
+- query_id: mmlb__mmlb_0093_2023.findings-emnlp.248
+  text: 'When using GPT-4 as the base language model, how many datasets does Logic-LM (without self-refinement)
+    outperform the two baseline models in? '
+  paper_id: 2023.findings-emnlp.248
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 7
+  expected_facts:
+  - '4'
+  note: src=mmlongbench bucket=table ev=['Table']
+- query_id: mmlb__mmlb_0054_2303.05039v2
+  text: 'How many items in total of Amazon related datasets in the paper? Please write the answer in int
+    format. '
+  paper_id: 2303.05039v2
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 4
+  expected_facts:
+  - '8980'
+  note: src=mmlongbench bucket=table ev=['Table']
+- query_id: mmlb__mmlb_0143_2305.14160v4
+  text: Using anchor-only context compression, how much can GPT2-XL speed up on AGNews?
+  paper_id: 2305.14160v4
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts:
+  - 2.5x
+  note: src=mmlongbench bucket=table ev=['Table']
+- query_id: mmlb__mmlb_0027_05-03-18-political-release
+  text: 'Among the adults conducted the survey on April 25 - May 1 2018, how many adults rated Trump''s
+    government ethical standards as poor? '
+  paper_id: 05-03-18-political-release
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 3
+  - 4
+  expected_facts:
+  - '541'
+  note: src=mmlongbench bucket=mixed ev=['Pure-text (Plain-text)', 'Chart']
+- query_id: mmlb__mmlb_0046_2310.07609v1
+  text: How many numbers with blue color are mentioned in the example figure of question-guidue reasoning?
+  paper_id: 2310.07609v1
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 1
+  expected_facts:
+  - '2'
+  note: src=mmlongbench bucket=mixed ev=['Figure', 'Pure-text (Plain-text)']
+- query_id: mmlb__mmlb_0076_2005.12872v3
+  text: According to the DETR PyTorch inference code, what is the output dimension of the linear_class
+    layer?
+  paper_id: 2005.12872v3
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 26
+  expected_facts:
+  - '92'
+  note: src=mmlongbench bucket=mixed ev=['Table', 'Generalized-text (Layout)']
+- query_id: mmlb__mmlb_0094_2023.findings-emnlp.248
+  text: In this paper, what symbolic solver is used to implement the logic programming module shown in
+    Figure 1?
+  paper_id: 2023.findings-emnlp.248
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 3
+  - 5
+  expected_facts:
+  - Pyke
+  note: src=mmlongbench bucket=mixed ev=['Pure-text (Plain-text)', 'Figure']
+- query_id: mmlb__mmlb_0145_2021-Apple-Catalog
+  text: How many different iPad solutions are shown in the document?
+  paper_id: 2021-Apple-Catalog
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 6
+  expected_facts:
+  - '4'
+  note: src=mmlongbench bucket=mixed ev=['Figure', 'Generalized-text (Layout)']
+- query_id: mmlb__mmlb_0068_2305.13186v3
+  text: How many claims are with the highest percentage of reasoning steps  in the author's proposed dataset?
+  paper_id: 2305.13186v3
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 4
+  - 5
+  expected_facts:
+  - '245'
+  note: src=mmlongbench bucket=mixed ev=['Chart', 'Table', 'Pure-text (Plain-text)']
+- query_id: mmlb__mmlb_0104_2023.acl-long.386
+  text: 'Please list the F1 scores for ProgramFC on different datasets with gold evidence in relation
+    to Flan-T5-small, in descending order, with one decimal place. For example: ["3.0", "2.0"].'
+  paper_id: 2023.acl-long.386
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 7
+  expected_facts:
+  - '[''64.3'', ''62.4'', ''62.2'']'
+  note: src=mmlongbench bucket=mixed ev=['Chart', 'Pure-text (Plain-text)']
+- query_id: mmlb__mmlb_0086_12-15-15-ISIS-and-terrorism-re
+  text: How many bar charts are in the report?Please write the answer in float format.
+  paper_id: 12-15-15-ISIS-and-terrorism-release-final
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 3
+  expected_facts:
+  - '1'
+  note: src=mmlongbench bucket=mixed ev=['Generalized-text (Layout)', 'Chart']
+- query_id: mmlb__mmlb_0039_0b85477387a9d0cc33fca0f4becaa0
+  text: Who is the commanding officer in the first figure on the second page?
+  paper_id: 0b85477387a9d0cc33fca0f4becaa0e5
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 2
+  expected_facts:
+  - Capt. John W. Sanders
+  note: src=mmlongbench bucket=mixed ev=['Figure', 'Pure-text (Plain-text)']
+- query_id: mmlb__mmlb_0087_12-15-15-ISIS-and-terrorism-re
+  text: although few says that current military effort in Iraq and Syria is going well,  what are the
+    more people's attitude in still believe that the U.S. and its allies in the ISIS flight in the end
+    in 2015?
+  paper_id: 12-15-15-ISIS-and-terrorism-release-final
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 18
+  expected_facts:
+  - will definitely/probably succeed
+  note: src=mmlongbench bucket=mixed ev=['Pure-text (Plain-text)', 'Chart']
+- query_id: mmlb__mmlb_0061_2303.05039v2
+  text: What is the evaluation metric that has highest number for the method located at the bottom of
+    the model structure figure across the three datasets? Please write down the answer with string format.
+  paper_id: 2303.05039v2
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 5
+  - 8
+  expected_facts:
+  - H@10
+  note: src=mmlongbench bucket=mixed ev=['Pure-text (Plain-text)', 'Table', 'Figure', 'Generalized-text
+    (Layout)']
+- query_id: mmlb__mmlb_0088_2023.findings-emnlp.248
+  text: For the dataset that uses Prover9 as the symbolic solver, how many examples in this dataset are
+    used for evaluation?
+  paper_id: 2023.findings-emnlp.248
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 5
+  - 6
+  expected_facts:
+  - '204'
+  note: src=mmlongbench bucket=mixed ev=['Pure-text (Plain-text)', 'Table']
+- query_id: mmlb__mmlb_0067_2305.13186v3
+  text: How many USD dollars will the author spend if the annotators finish annotating all of claims of
+    the authors' proposed dataset? Please write the answer in float format.
+  paper_id: 2305.13186v3
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 4
+  expected_facts:
+  - '453.25'
+  note: src=mmlongbench bucket=mixed ev=['Pure-text (Plain-text)', 'Table']
+- query_id: mmlb__mmlb_0022_2303.08559v2
+  text: Repeat the instructions corresponding to the settings shown in red box of Figure 3 (left).
+  paper_id: 2303.08559v2
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 5
+  - 16
+  expected_facts:
+  - 'Identify the entities expressed by each sentence, and locate each entity to words in the sentence.
+    The possible entity types are: [Type_1], [Type_2], ..., [Type_N]. If you do not find any entity in
+    this sentence, just output ‘Answer: No entities found.’ '
+  note: src=mmlongbench bucket=mixed ev=['Chart', 'Pure-text (Plain-text)']
+- query_id: mmlb__mmlb_0059_2303.05039v2
+  text: What are the personality scores of the data sample with extreme personality cases, in which the
+    personality vector color is blue in the overall model structure? Please write down the answer in list
+    format with ascending order, e.g., ["1","2"]
+  paper_id: 2303.05039v2
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 5
+  - 6
+  expected_facts:
+  - '[''71.02'', ''75.38'']'
+  note: src=mmlongbench bucket=mixed ev=['Pure-text (Plain-text)', 'Figure', 'Table']
+- query_id: mmlb__mmlb_0031_05-03-18-political-release
+  text: What percentage of the party that holds the highest total percentage of good policy ideas and
+    high ethical standards reported that they followed the news about congressional elections in their
+    state very closely in the survey of U.S. adults conducted from April 25 to May 1, 2018?
+  paper_id: 05-03-18-political-release
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 11
+  - 13
+  expected_facts:
+  - 21%
+  note: src=mmlongbench bucket=mixed ev=['Chart', 'Pure-text (Plain-text)']
+- query_id: v3__q15_oc_gpt4
+  text: What is the loss curve of GPT-4?
+  paper_id: 2604.22753v1
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts: []
+  note: src=v3 bucket=ooc ev=arxiv-out_of_corpus
+- query_id: mmlb__mmlb_0066_2305.13186v3
+  text: 'How many more claims does the Health Table datasets have comparing to Newspaper datasets? Please
+    writeh the answer in int format. '
+  paper_id: 2305.13186v3
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts:
+  - Not answerable
+  note: src=mmlongbench bucket=ooc ev=[]
+- query_id: v3__q34_oc_lc_nas
+  text: Which neural architecture search algorithm does the Linear-Core Surrogate paper use?
+  paper_id: 2604.27742v1
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts: []
+  note: src=v3 bucket=ooc ev=arxiv-out_of_corpus
+- query_id: mmlb__mmlb_0038_05-03-18-political-release
+  text: How many non-partisan people in the survey  of U.S. adults conducted April 25- May 1, 2019 said
+    neither the Republican Party nor the Democratic Party  has ‘high ethical standards'?
+  paper_id: 05-03-18-political-release
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts:
+  - Not answerable
+  note: src=mmlongbench bucket=ooc ev=[]
+- query_id: v3__q21_oc_llama_finetune
+  text: What hyperparameters were used to fine-tune Llama 3?
+  paper_id: 2604.28182v1
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts: []
+  note: src=v3 bucket=ooc ev=arxiv-out_of_corpus
+- query_id: mmlb__mmlb_0036_05-03-18-political-release
+  text: What is the percentage gap between the youngest age group and the oldest age group that strongly
+    disapproves of the way the president, who started his job in 2018, was handling his job in the survey
+    of Chinese adults conducted April 25-May 1, 2018?
+  paper_id: 05-03-18-political-release
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts:
+  - Not answerable
+  note: src=mmlongbench bucket=ooc ev=[]
+- query_id: v3__q23_oc_eurozone
+  text: What is the current inflation rate of the eurozone?
+  paper_id: 2604.28186v1
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts: []
+  note: src=v3 bucket=ooc ev=arxiv-out_of_corpus
+- query_id: mmlb__mmlb_0040_0b85477387a9d0cc33fca0f4becaa0
+  text: Who is the commanding officer at the last page?
+  paper_id: 0b85477387a9d0cc33fca0f4becaa0e5
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts:
+  - Not answerable
+  note: src=mmlongbench bucket=ooc ev=[]
+- query_id: v3__q33_oc_aegis_quantum
+  text: How does AEGIS use quantum computing for image authentication?
+  paper_id: 2604.28177v1
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts: []
+  note: src=v3 bucket=ooc ev=arxiv-out_of_corpus
+- query_id: mmlb__mmlb_0097_2023.acl-long.386
+  text: What are the program execution function names with grey background in our proposed model in the
+    first figure in the paper?  Please write down the answer in a list format with ascending alphabetical
+    order, e.g., ["a","b"]
+  paper_id: 2023.acl-long.386
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts:
+  - Not answerable
+  note: src=mmlongbench bucket=ooc ev=[]
+- query_id: v3__q5_oc_weather
+  text: Will it rain on Mars tomorrow?
+  paper_id: 2604.22753v1
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts: []
+  note: src=v3 bucket=ooc ev=arxiv-out_of_corpus
+- query_id: mmlb__mmlb_0121_2306.05425v1
+  text: How many line plots are shown in the slides?
+  paper_id: 2306.05425v1
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts:
+  - Not answerable
+  note: src=mmlongbench bucket=ooc ev=[]
+- query_id: v3__q17_oc_pinn_rl
+  text: How does AW-PINN handle reinforcement learning?
+  paper_id: 2604.28180v1
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts: []
+  note: src=v3 bucket=ooc ev=arxiv-out_of_corpus
+- query_id: mmlb__mmlb_0146_2021-Apple-Catalog
+  text: Are there 11 different iPad solutions shown in the document?
+  paper_id: 2021-Apple-Catalog
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  expected_facts:
+  - Not answerable
+  note: src=mmlongbench bucket=ooc ev=[]
