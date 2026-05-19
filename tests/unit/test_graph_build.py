@@ -32,6 +32,20 @@ def test_entities_merge_by_normalized_name_with_provenance() -> None:
     assert sorted(g.edges["bge-m3", "recall"]["chunk_ids"]) == ["c0", "c1"]
 
 
+def test_case_only_distinct_acronyms_collapse_known_loss() -> None:
+    # Characterisation test (ADR 0018): `mAP` (metric) and `MAP` (method) are
+    # distinct ML terms but the lowercase dedupe key merges them into one
+    # node. Pinned so changing `_norm` is a deliberate, reviewed decision.
+    g = build_graph(
+        [
+            _ex("c0", [("mAP", "metric")], []),
+            _ex("c1", [("MAP", "method")], []),
+        ]
+    )
+    assert "map" in g and g.number_of_nodes() == 1
+    assert g.nodes["map"]["type"] in {"metric", "method"}  # tie broken arbitrarily
+
+
 def test_reference_list_chunk_contributes_nothing() -> None:
     g = build_graph([_ex("c0", [("X", "concept")], [], ref=True)])
     assert g.number_of_nodes() == 0

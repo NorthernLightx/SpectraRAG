@@ -6,6 +6,14 @@ Bibliography removal and the answer-quality delta are deferred to Step 1
 (GraphRAG ingest), where the corpus is re-ingested under an LLM pass anyway.
 **Date:** 2026-05-19
 
+**Amendment 2026-05-19:** the "answer-quality delta measured in Step 1"
+language below assumed an `answer_correctness` vs `expected_facts` metric
+exists. It does not — it was never implemented in `src/eval` (ADR 0016 used a
+throwaway `scripts/experiments` harness). Building that metric + a committed
+baseline is now a tracked prerequisite; see ADR 0018 "Measurement". The
+structural wins (−19%, zero loss) stand and are unaffected; only the
+deferred-measurement claim was overstated.
+
 ## Context
 
 Step 0 of the agentic + graph + multi-modal revamp: "no good ingestion, no

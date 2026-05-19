@@ -13,7 +13,6 @@ ADR 0018 records the tradeoff.
 from __future__ import annotations
 
 from collections import Counter
-from typing import Any
 
 import networkx as nx
 
@@ -24,7 +23,15 @@ _log = get_logger(__name__)
 
 
 def _norm(name: str) -> str:
-    """Dedupe key: case- and whitespace-insensitive."""
+    """Dedupe key: case- and whitespace-insensitive.
+
+    Known lossy case: a case-only-distinct acronym pair (e.g. `mAP` the
+    metric vs `MAP` the method) collapses into one node with an
+    arbitrarily-tie-broken `type`. Accepted for the demo corpus pending the
+    S1 spike measuring how often it actually occurs here; ADR 0018 records
+    the decision and `test_graph_build` pins the behaviour so a future
+    change is deliberate.
+    """
     return " ".join(name.split()).lower()
 
 
@@ -124,12 +131,3 @@ def detect_communities(graph: nx.Graph, *, max_size: int = 12, seed: int = 42) -
     by_level: dict[int, int] = Counter(c.level for c in communities)
     _log.info("graph.communities", total=len(communities), by_level=dict(by_level))
     return communities
-
-
-def graph_stats(graph: nx.Graph) -> dict[str, Any]:
-    """Small summary for logs / the ADR build report."""
-    return {
-        "nodes": graph.number_of_nodes(),
-        "edges": graph.number_of_edges(),
-        "isolates": nx.number_of_isolates(graph),
-    }
