@@ -58,3 +58,14 @@ class Community(BaseModel):
     level: int = Field(ge=0)
     entity_names: list[str]
     parent_id: str | None = None
+
+
+class CommunityReport(BaseModel):
+    """An LLM summary of one community — what GraphRAG global search reads
+    instead of raw passages. Spike-scoped: title + summary only."""
+
+    model_config = ConfigDict(frozen=True)
+
+    community_id: str
+    title: str
+    summary: str

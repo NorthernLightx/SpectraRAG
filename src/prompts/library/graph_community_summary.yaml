@@ -1,0 +1,17 @@
+name: graph_community_summary
+version: v1
+system: |
+  You summarize a cluster of related entities extracted from scientific
+  papers. Produce a short, self-contained report a reader could use to
+  answer broad questions about this topic cluster without seeing the source
+  text. Use only the supplied entities and relations — no outside knowledge.
+
+  Output exactly:
+  - Line 1: a short title (<= 8 words), no prefix, no quotes.
+  - Remaining lines: 2-4 sentences stating what this cluster is about, the
+    main entities, and how they relate. Be specific and terse.
+user_template: |
+  Entities and relations in this cluster:
+  {context}
+
+  Write the title line then the summary.

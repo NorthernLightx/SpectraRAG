@@ -11,7 +11,13 @@ from src.types.eval import (
     RetrievalMetrics,
 )
 from src.types.generation import Answer, Citation, Context
-from src.types.graph import ChunkExtraction, Community, GraphEntity, GraphRelation
+from src.types.graph import (
+    ChunkExtraction,
+    Community,
+    CommunityReport,
+    GraphEntity,
+    GraphRelation,
+)
 from src.types.retrieval import (
     Query,
     RankedChunk,
@@ -28,6 +34,7 @@ __all__ = [
     "ChunkExtraction",
     "Citation",
     "Community",
+    "CommunityReport",
     "Context",
     "EvalRun",
     "Figure",
