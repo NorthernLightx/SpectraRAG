@@ -1,4 +1,25 @@
-"""Section-aware chunking. Splits page text on numbered headings, then by char budget.
+"""Document-level, structure-aware chunking (ADR 0017).
+
+Chunks are cut from the *whole document* (header-stripped pages concatenated
+with a char→page map), not page by page. This keeps a section that spans a
+page break as one unit and stops cutting paragraphs mid-sentence at page
+boundaries.
+
+Two noise classes are removed here (ADR 0017, evidence in
+`scripts/experiments/quantify_corpus_junk.py`):
+
+- running headers / page numbers — stripped per page in `clean.py` before
+  concatenation (PyMuPDF emits them as their own lines).
+- figure/table interior "number soup" — dropped per window via
+  `clean.is_soup`.
+
+Bibliography removal is *not* done here. Lexical heuristics cannot robustly
+separate a reference list from citation-dense body/appendix text on this
+corpus (the introduction of 2604.22753v1 cites more years-per-char than its
+own reference list — see `quantify_corpus_junk.py`); doing it by region
+excision destroyed golden-anchored appendix content. ADR 0017 defers it to
+the GraphRAG ingestion pass (Step 1), which already runs an LLM over every
+chunk and can judge "is this a reference list" reliably.
 
 Also provides Figure/Table → Chunk converters: figures and tables are
 first-class chunks in the same retrieval corpus, with `metadata['kind']` set
@@ -11,11 +32,31 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+from src.ingestion.clean import detect_running_header, is_soup, strip_page_furniture
+from src.observability.logging import get_logger
 from src.types import Chunk, Figure, Page, Table
 
-_SECTION_HEADING_RE = re.compile(
-    r"^\s*(\d+(?:\.\d+)*)\s+([A-Z][A-Za-z][A-Za-z\s\-:&]{1,60})\s*$",
+_log = get_logger(__name__)
+
+# `1 Introduction`, `3.1 Encoding` — numbered headings on their own line.
+_NUMBERED_HEADING_RE = re.compile(
+    r"^[ \t]*(\d+(?:\.\d+)*)[ \t]+([A-Z][A-Za-z][A-Za-z\s\-:&]{1,60})[ \t]*$",
     re.MULTILINE,
+)
+# `A Use of LLMs`, `B.1 Task Collection`, `Appendix C Derivations` — appendix
+# sections use a letter index instead of a number. Same conservative title
+# shape as numbered headings so body lines are not mistaken for headings.
+_APPENDIX_HEADING_RE = re.compile(
+    r"^[ \t]*(?:Appendix[ \t]+)?([A-Z](?:\.\d+)*)[ \t]+([A-Z][A-Za-z][A-Za-z\s\-:&]{1,60})[ \t]*$",
+    re.MULTILINE,
+)
+# Standalone named sections (own line, optional trailing colon, any case).
+# "References"/"Bibliography" stay here so the section is *labelled* (useful
+# for the Step-1 LLM filter and for section metadata); it is not dropped.
+_NAMED_HEADING_RE = re.compile(
+    r"^[ \t]*(Abstract|Acknowledge?ments?|Conclusions?|References|Bibliography"
+    r"|Appendix|Supplementary(?:[ \t]+Material)?)[ \t]*:?[ \t]*$",
+    re.IGNORECASE | re.MULTILINE,
 )
 
 
@@ -27,39 +68,69 @@ class Section:
     text: str
 
 
-def split_into_sections(body: str) -> list[Section]:
-    """Split body text on numbered headings (e.g. '1 Introduction', '3.1 Encoding').
+def _heading_spans(text: str) -> list[tuple[int, str]]:
+    """Sorted `(offset, title)` of every numbered / appendix / named heading."""
+    seen: dict[int, str] = {}
+    for rx, numbered in (
+        (_NUMBERED_HEADING_RE, True),
+        (_APPENDIX_HEADING_RE, True),
+        (_NAMED_HEADING_RE, False),
+    ):
+        for m in rx.finditer(text):
+            start = m.start()
+            if start in seen:
+                continue
+            title = f"{m.group(1)} {m.group(2).strip()}" if numbered else m.group(1).strip()
+            seen[start] = " ".join(title.split())
+    return sorted(seen.items())
 
-    If no headings are found, returns one untitled Section with the whole body.
+
+def _section_spans(doc: str) -> list[tuple[int, int, str | None]]:
+    """`(body_start, body_end, title)` per section, in `doc` char coordinates.
+
+    `body_start` is the char after the heading's own line (headings are
+    full-line, regex-anchored), so the heading text is excluded from the body
+    — same as the pre-ADR-0017 behaviour. Text before the first heading is an
+    untitled prelude. Offsets are exact (no string search) so windows map
+    back to pages precisely.
     """
-    matches = list(_SECTION_HEADING_RE.finditer(body))
-    if not matches:
-        return [Section(title=None, text=body.strip())]
+    heads = _heading_spans(doc)
+    if not heads:
+        return [(0, len(doc), None)] if doc.strip() else []
 
-    sections: list[Section] = []
-    if matches[0].start() > 0:
-        prelude = body[: matches[0].start()].strip()
-        if prelude:
-            sections.append(Section(title=None, text=prelude))
-
-    for index, match in enumerate(matches):
-        title = f"{match.group(1)} {match.group(2).strip()}"
-        body_start = match.end()
-        body_end = matches[index + 1].start() if index + 1 < len(matches) else len(body)
-        text = body[body_start:body_end].strip()
-        if text:
-            sections.append(Section(title=title, text=text))
-    return sections
+    spans: list[tuple[int, int, str | None]] = []
+    if doc[: heads[0][0]].strip():
+        spans.append((0, heads[0][0], None))
+    for index, (start, title) in enumerate(heads):
+        newline = doc.find("\n", start)
+        body_start = newline + 1 if newline != -1 else len(doc)
+        body_end = heads[index + 1][0] if index + 1 < len(heads) else len(doc)
+        if body_start < body_end:
+            spans.append((body_start, body_end, title))
+    return spans
 
 
-def _windowed(text: str, target_chars: int, overlap_chars: int) -> list[str]:
-    """Sliding-window split with overlap. Breaks on sentence boundaries when possible."""
+def split_into_sections(body: str) -> list[Section]:
+    """Split `body` on headings (numbered, appendix, or named).
+
+    If no heading is found, returns one untitled Section with the whole body.
+    """
+    sections = [
+        Section(title=title, text=text)
+        for start, end, title in _section_spans(body)
+        if (text := body[start:end].strip())
+    ]
+    return sections or [Section(title=None, text=body.strip())]
+
+
+def _window_spans(text: str, target_chars: int, overlap_chars: int) -> list[tuple[int, int]]:
+    """Sliding-window `(start, end)` spans with overlap, breaking on sentences."""
     if not text:
         return []
     if len(text) <= target_chars:
-        return [text]
+        return [(0, len(text))]
 
-    windows: list[str] = []
+    spans: list[tuple[int, int]] = []
     start = 0
     while start < len(text):
         end = min(start + target_chars, len(text))
@@ -68,34 +139,72 @@ def _windowed(text: str, target_chars: int, overlap_chars: int) -> list[str]:
             last_dot = max(slice_.rfind(". "), slice_.rfind("\n"))
             if last_dot > target_chars - 80:
                 end = start + last_dot + 1
-        windows.append(text[start:end].strip())
+        spans.append((start, end))
         if end == len(text):
             break
         start = max(end - overlap_chars, start + 1)
-    return [w for w in windows if w]
+    return spans
+
+
+def _windowed(text: str, target_chars: int, overlap_chars: int) -> list[str]:
+    """Sliding-window split with overlap. Breaks on sentence boundaries when possible."""
+    out = [text[a:b].strip() for a, b in _window_spans(text, target_chars, overlap_chars)]
+    return [w for w in out if w]
 
 
 def chunk_pages(
     pages: list[Page], *, target_chars: int = 1200, overlap_chars: int = 200
 ) -> list[Chunk]:
-    """Turn a list of Pages into a list of Chunks, section-aware."""
+    """Turn Pages into Chunks: header-stripped, document-level, section-aware.
+
+    Pages are cleaned (`clean.strip_page_furniture`) and concatenated into one
+    document with a char→page map, so a chunk gets every page its text spans.
+    Figure/table number-soup windows are dropped (`clean.is_soup`).
+    Bibliography is *not* dropped here — see the module docstring. `chunk_id`
+    stays `{paper}::p{first_page}::c{counter}` with `counter` global per paper
+    — ids are *expected* to differ from the pre-ADR-0017 corpus; the golden
+    set was re-anchored against this output.
+    """
+    if not pages:
+        return []
+
+    paper_id = pages[0].paper_id
+    page_texts = [p.text for p in pages]
+    header = detect_running_header(page_texts)
+
+    doc_parts: list[str] = []
+    bounds: list[tuple[int, int, int]] = []  # (page_number, start, end) in doc
+    cursor = 0
+    for page, raw in zip(pages, page_texts, strict=True):
+        cleaned = strip_page_furniture(raw, header)
+        doc_parts.append(cleaned)
+        bounds.append((page.page_number, cursor, cursor + len(cleaned)))
+        cursor += len(cleaned) + 1  # +1 for the "\n" join separator
+    doc = "\n".join(doc_parts)
+
     chunks: list[Chunk] = []
     counter = 0
-    for page in pages:
-        sections = split_into_sections(page.text)
-        for section in sections:
-            for window in _windowed(section.text, target_chars, overlap_chars):
-                chunk_id = f"{page.paper_id}::p{page.page_number}::c{counter}"
-                counter += 1
-                chunks.append(
-                    Chunk(
-                        chunk_id=chunk_id,
-                        paper_id=page.paper_id,
-                        page_numbers=[page.page_number],
-                        text=window,
-                        section=section.title,
-                    )
+    for sec_start, sec_end, title in _section_spans(doc):
+        sec_text = doc[sec_start:sec_end]
+        for win_start, win_end in _window_spans(sec_text, target_chars, overlap_chars):
+            a = sec_start + win_start
+            b = sec_start + win_end
+            text = sec_text[win_start:win_end].strip()
+            if not text or is_soup(text):
+                continue
+            page_numbers = sorted({pn for pn, s, e in bounds if s < b and e > a})
+            if not page_numbers:
+                page_numbers = [pages[0].page_number]
+            chunks.append(
+                Chunk(
+                    chunk_id=f"{paper_id}::p{page_numbers[0]}::c{counter}",
+                    paper_id=paper_id,
+                    page_numbers=page_numbers,
+                    text=text,
+                    section=title,
                 )
+            )
+            counter += 1
     return chunks
 
 
