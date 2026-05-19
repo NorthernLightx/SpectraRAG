@@ -77,7 +77,13 @@ def render_markdown(run: EvalRun) -> str:
 
     means = {
         field: _metric_mean(field)
-        for field in ("citation_rate", "faithfulness", "answer_relevance", "context_precision")
+        for field in (
+            "citation_rate",
+            "faithfulness",
+            "answer_relevance",
+            "context_precision",
+            "answer_correctness",
+        )
     }
     if any(v is not None for v in means.values()):
         rows = [
@@ -85,6 +91,7 @@ def render_markdown(run: EvalRun) -> str:
             ("faithfulness (LLM judge)", means["faithfulness"]),
             ("answer relevance (LLM judge)", means["answer_relevance"]),
             ("context precision (LLM judge)", means["context_precision"]),
+            ("answer correctness vs expected_facts (LLM judge)", means["answer_correctness"]),
         ]
         lines.extend(
             [
@@ -124,8 +131,8 @@ def render_markdown(run: EvalRun) -> str:
         [
             "## Per-Query Results",
             "",
-            "| query_id | category | nDCG@5 | recall@10 | MRR | latency (ms) | cite. | faith. | answ.rel. | ctx.prec. |",
-            "|---|---|---|---|---|---|---|---|---|---|",
+            "| query_id | category | nDCG@5 | recall@10 | MRR | latency (ms) | cite. | faith. | answ.rel. | ctx.prec. | ans.corr. |",
+            "|---|---|---|---|---|---|---|---|---|---|---|",
         ]
     )
     for query_result in run.per_query:
@@ -134,13 +141,15 @@ def render_markdown(run: EvalRun) -> str:
         faith = gen.faithfulness if gen is not None else None
         ar = gen.answer_relevance if gen is not None else None
         cp = gen.context_precision if gen is not None else None
+        ac = gen.answer_correctness if gen is not None else None
         lines.append(
             f"| `{query_result.query_id}` | {query_result.category} | "
             f"{query_result.retrieval.ndcg_at_5:.3f} | "
             f"{query_result.retrieval.recall_at_10:.3f} | "
             f"{query_result.retrieval.mrr:.3f} | "
             f"{query_result.latency_ms} | "
-            f"{_fmt_optional(cr)} | {_fmt_optional(faith)} | {_fmt_optional(ar)} | {_fmt_optional(cp)} |"
+            f"{_fmt_optional(cr)} | {_fmt_optional(faith)} | {_fmt_optional(ar)} | "
+            f"{_fmt_optional(cp)} | {_fmt_optional(ac)} |"
         )
 
     return "\n".join(lines) + "\n"

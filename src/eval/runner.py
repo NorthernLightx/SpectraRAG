@@ -114,9 +114,11 @@ async def _run_one(
     faithfulness: float | None = None
     answer_relevance: float | None = None
     context_precision: float | None = None
+    answer_correctness: float | None = None
     faithfulness_std: float | None = None
     answer_relevance_std: float | None = None
     context_precision_std: float | None = None
+    answer_correctness_std: float | None = None
 
     if generator is not None:
         answer = await generator.answer(query.text, retrieved)
@@ -148,6 +150,12 @@ async def _run_one(
             if is_refusal_answer(answer_text):
                 faithfulness = 1.0 if is_ooc else 0.0
                 answer_relevance = 1.0 if is_ooc else 0.0
+                # answer_correctness is only defined when ground-truth facts
+                # exist (in-corpus queries with expected_facts). A wrong
+                # refusal on such a query covers zero facts; OOC has no
+                # expected_facts so the metric stays None.
+                if not is_ooc and query.expected_facts:
+                    answer_correctness = 0.0
             elif is_ooc:
                 faithfulness = 0.0
                 answer_relevance = 0.0
@@ -164,6 +172,20 @@ async def _run_one(
                 # construction".
                 faithfulness_std = faith_out.score_std
                 answer_relevance_std = ans_out.score_std
+                # answer_correctness vs expected_facts — ADR 0019's
+                # chunk-id-robust scoreboard. Skipped when the judge wasn't
+                # configured with the prompt (older callers / cheap-eval
+                # paths) or the query has no ground-truth facts.
+                # getattr defends against older judge stubs / mocks that
+                # predate the answer_correctness extension.
+                if getattr(judge, "has_answer_correctness", False) and query.expected_facts:
+                    ac_out = await judge.answer_correctness(
+                        query=query.text,
+                        answer=answer_text,
+                        expected_facts=query.expected_facts,
+                    )
+                    answer_correctness = ac_out.score
+                    answer_correctness_std = ac_out.score_std
         ctx_prec_out = await judge.context_precision(query=query.text, retrieved=retrieved)
         context_precision = ctx_prec_out.score
         context_precision_std = ctx_prec_out.score_std
@@ -175,9 +197,11 @@ async def _run_one(
             faithfulness=faithfulness,
             answer_relevance=answer_relevance,
             context_precision=context_precision,
+            answer_correctness=answer_correctness,
             faithfulness_std=faithfulness_std,
             answer_relevance_std=answer_relevance_std,
             context_precision_std=context_precision_std,
+            answer_correctness_std=answer_correctness_std,
         )
 
     return PerQueryResult(

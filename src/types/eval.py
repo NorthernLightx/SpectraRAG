@@ -60,9 +60,16 @@ class GenerationMetrics(BaseModel):
     faithfulness: float | None = None
     answer_relevance: float | None = None
     context_precision: float | None = None
+    # answer_correctness: ADR 0019 honest scoreboard — fraction of the query's
+    # `expected_facts` supported by the generated answer. Chunk-id-robust
+    # (judges the answer text, not retrieved ids), so it survives a chunker
+    # change like ADR 0017 without re-anchoring. Populated only when the
+    # GoldenQuery carries `expected_facts` and the answer is not a refusal.
+    answer_correctness: float | None = None
     faithfulness_std: float | None = None
     answer_relevance_std: float | None = None
     context_precision_std: float | None = None
+    answer_correctness_std: float | None = None
 
 
 class PerQueryResult(BaseModel):

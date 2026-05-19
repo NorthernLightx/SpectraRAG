@@ -34,6 +34,7 @@ _DEFAULT_METRICS = (
     "faithfulness",
     "answer_relevance",
     "context_precision",
+    "answer_correctness",
 )
 
 

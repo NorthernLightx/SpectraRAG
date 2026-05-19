@@ -95,6 +95,7 @@ class LLMJudge:
         faithfulness_prompt: Prompt,
         answer_relevance_prompt: Prompt,
         context_precision_prompt: Prompt,
+        answer_correctness_prompt: Prompt | None = None,
         temperature: float = 0.0,
         max_tokens: int = 1024,
         n_samples: int = 1,
@@ -107,6 +108,9 @@ class LLMJudge:
         self._faithfulness_prompt = faithfulness_prompt
         self._answer_relevance_prompt = answer_relevance_prompt
         self._context_precision_prompt = context_precision_prompt
+        # Optional so existing callers (older eval runs) keep working; the
+        # runner only invokes answer_correctness when the prompt is set.
+        self._answer_correctness_prompt = answer_correctness_prompt
         self._temperature = temperature
         self._max_tokens = max_tokens
         self._n_samples = n_samples
@@ -143,6 +147,32 @@ class LLMJudge:
             metric="context_precision",
             query=query,
             context=context,
+        )
+
+    @property
+    def has_answer_correctness(self) -> bool:
+        """True iff this judge was configured with the answer_correctness prompt."""
+        return self._answer_correctness_prompt is not None
+
+    async def answer_correctness(
+        self, *, query: str, answer: str, expected_facts: list[str]
+    ) -> JudgeOutput:
+        """Recall of ground-truth facts in the answer. Chunk-id-robust (ADR 0019).
+
+        Caller must check `has_answer_correctness` (or only invoke when
+        `expected_facts` is non-empty and the answer is not a refusal —
+        the runner enforces both). Renders `expected_facts` as a bullet
+        list so the judge prompt can count coverage.
+        """
+        if self._answer_correctness_prompt is None:
+            raise RuntimeError("answer_correctness judge not configured")
+        rendered = "\n".join(f"- {f}" for f in expected_facts)
+        return await self._judge(
+            self._answer_correctness_prompt,
+            metric="answer_correctness",
+            query=query,
+            answer=answer,
+            expected_facts=rendered,
         )
 
     async def _judge(self, prompt: Prompt, *, metric: str, **render_kwargs: object) -> JudgeOutput:

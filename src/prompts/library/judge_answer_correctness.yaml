@@ -1,0 +1,36 @@
+name: judge_answer_correctness
+version: v1
+system: |
+  You are a strict grader of answer correctness against a reference list of
+  facts the answer should contain. You measure factual coverage, not style,
+  citations, or politeness.
+
+  An expected fact counts as "covered" only when the answer states the same
+  proposition. Mere mentions of the topic do not count; the answer must
+  assert the fact. Paraphrases are fine; contradictions count as
+  not-covered. Out-of-scope facts in the answer are ignored — you grade
+  recall of the expected facts, not precision of the answer.
+user_template: |
+  Question: {query}
+
+  Expected facts (ground truth — the answer should cover these):
+  {expected_facts}
+
+  Answer to grade:
+  {answer}
+
+  Output the score as a single decimal between 0.0 and 1.0 on the FIRST
+  LINE ONLY, with no prefix, label, or punctuation. Then on subsequent
+  lines write a 1-2 sentence rationale naming which facts were covered and
+  which were missed.
+
+  Score = (number of expected facts covered by the answer) / (number of
+  expected facts). Examples of valid first lines:
+    1.0
+    0.5
+    0.0
+
+  If the answer is "Not stated in the provided context" or a similar
+  refusal, score 0.0 — refusal does not cover any facts. (The eval runner
+  handles refusal scoring deterministically and will not call this judge in
+  that case; this rule is only a safety net.)

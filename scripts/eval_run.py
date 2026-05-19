@@ -341,6 +341,7 @@ async def _main(
             faithfulness_prompt=load_prompt_by_name("judge_faithfulness"),
             answer_relevance_prompt=load_prompt_by_name("judge_answer_relevance"),
             context_precision_prompt=load_prompt_by_name("judge_context_precision"),
+            answer_correctness_prompt=load_prompt_by_name("judge_answer_correctness"),
             n_samples=judge_n_samples,
         )
         suffix = f" x {judge_n_samples} samples" if judge_n_samples > 1 else ""

@@ -257,3 +257,57 @@ def test_judge_rejects_zero_n_samples() -> None:
             context_precision_prompt=load_prompt_by_name("judge_context_precision"),
             n_samples=0,
         )
+
+
+def _judge_with_correctness(replies: list[str]) -> tuple[LLMJudge, _StubLLM]:
+    llm = _StubLLM(replies)
+    judge = LLMJudge(
+        llm=llm,
+        model="m",
+        faithfulness_prompt=load_prompt_by_name("judge_faithfulness"),
+        answer_relevance_prompt=load_prompt_by_name("judge_answer_relevance"),
+        context_precision_prompt=load_prompt_by_name("judge_context_precision"),
+        answer_correctness_prompt=load_prompt_by_name("judge_answer_correctness"),
+    )
+    return judge, llm
+
+
+def test_has_answer_correctness_reflects_prompt_presence() -> None:
+    judge, _ = _judge_with_correctness(["0\n"])
+    assert judge.has_answer_correctness is True
+
+    plain = LLMJudge(
+        llm=_StubLLM(["0\n"]),
+        model="m",
+        faithfulness_prompt=load_prompt_by_name("judge_faithfulness"),
+        answer_relevance_prompt=load_prompt_by_name("judge_answer_relevance"),
+        context_precision_prompt=load_prompt_by_name("judge_context_precision"),
+    )
+    assert plain.has_answer_correctness is False
+
+
+async def test_judge_answer_correctness_scores_fact_coverage() -> None:
+    judge, llm = _judge_with_correctness(["0.66\nCovered 2 of 3 facts."])
+    result = await judge.answer_correctness(
+        query="What is X?",
+        answer="X is Y. Z holds.",
+        expected_facts=["X is Y.", "Z holds.", "W is unmentioned."],
+    )
+    assert result.score == pytest.approx(0.66)
+    assert "Covered 2 of 3 facts." in result.rationale
+    # Expected facts must reach the prompt as a bullet list.
+    user_msg = llm.calls[0]["messages"][-1].content
+    assert "- X is Y." in user_msg
+    assert "- W is unmentioned." in user_msg
+
+
+async def test_judge_answer_correctness_raises_when_prompt_missing() -> None:
+    plain = LLMJudge(
+        llm=_StubLLM(["0\n"]),
+        model="m",
+        faithfulness_prompt=load_prompt_by_name("judge_faithfulness"),
+        answer_relevance_prompt=load_prompt_by_name("judge_answer_relevance"),
+        context_precision_prompt=load_prompt_by_name("judge_context_precision"),
+    )
+    with pytest.raises(RuntimeError, match=r"answer_correctness judge not configured"):
+        await plain.answer_correctness(query="q", answer="a", expected_facts=["f"])
