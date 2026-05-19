@@ -120,6 +120,10 @@ async def _main(
     visual_device: str,
     pages_dir: Path,
     pages_dpi: int,
+    agentic: bool,
+    agentic_provider: str,
+    agentic_model: str,
+    agentic_max_subqueries: int,
 ) -> None:
     log = get_logger("scripts.eval_run")
     log.info(
@@ -225,6 +229,25 @@ async def _main(
         print(
             f"Query expansion via {query_expansion_provider} {query_expansion_model} "
             f"(mode={query_expansion_mode}, n_rewrites={query_expansion_n})"
+        )
+
+    if agentic:
+        # ADR 0019 agentic tier: LLM decomposes a multi-part query into atomic
+        # sub-questions, retrieves each via the wrapped retriever in parallel,
+        # fuses with RRF. Distinct from query_expansion (paraphrase) — this
+        # splits intent, not surface form.
+        from src.rag.retrievers.agentic import AgenticRetriever
+
+        agentic_llm = _build_llm(agentic_provider, ollama_url=ollama_url)
+        retriever = AgenticRetriever(
+            base=retriever,
+            llm=agentic_llm,
+            model=agentic_model,
+            max_subqueries=agentic_max_subqueries,
+        )
+        print(
+            f"Agentic decomposition via {agentic_provider} {agentic_model} "
+            f"(max_subqueries={agentic_max_subqueries})"
         )
 
     if router:
@@ -394,6 +417,10 @@ async def _main(
             "rerank_length_penalty": rerank_length_penalty if rerank_length_norm else None,
             "cascade": cascade,
             "cascade_threshold": cascade_threshold if cascade else None,
+            "agentic": agentic,
+            "agentic_provider": agentic_provider if agentic else None,
+            "agentic_model": agentic_model if agentic else None,
+            "agentic_max_subqueries": agentic_max_subqueries if agentic else None,
         },
     )
 
@@ -736,6 +763,37 @@ if __name__ == "__main__":
         ),
     )
     parser.add_argument(
+        "--agentic",
+        action="store_true",
+        help=(
+            "ADR 0019: wrap the text retriever in AgenticRetriever — LLM "
+            "decomposes the query into atomic sub-questions, retrieves each "
+            "in parallel via the base retriever, fuses with RRF. Distinct "
+            "from --query-expansion (paraphrase). Per-query LLM cost, no "
+            "indexing cost."
+        ),
+    )
+    parser.add_argument(
+        "--agentic-provider",
+        choices=("openrouter", "ollama"),
+        default="ollama",
+        help="LLM provider for the decomposition call.",
+    )
+    parser.add_argument(
+        "--agentic-model",
+        default=None,
+        help=(
+            "Decomposition model. Defaults: 'openai/gpt-4o-mini' (openrouter), "
+            "'qwen2.5:7b' (ollama)."
+        ),
+    )
+    parser.add_argument(
+        "--agentic-max-subqueries",
+        type=int,
+        default=4,
+        help="Cap on sub-questions emitted by the decomposition call.",
+    )
+    parser.add_argument(
         "--harvest",
         action="store_true",
         help=(
@@ -759,6 +817,7 @@ if __name__ == "__main__":
     query_expansion_model = (
         args.query_expansion_model or _provider_default_model[args.query_expansion_provider]
     )
+    agentic_model = args.agentic_model or _provider_default_model[args.agentic_provider]
 
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     log_file = Path("logs") / f"eval-{timestamp}.log"
@@ -814,6 +873,10 @@ if __name__ == "__main__":
             visual_device=args.visual_device,
             pages_dir=args.pages_dir,
             pages_dpi=args.pages_dpi,
+            agentic=args.agentic,
+            agentic_provider=args.agentic_provider,
+            agentic_model=agentic_model,
+            agentic_max_subqueries=args.agentic_max_subqueries,
         )
     )
     if args.harvest:
