@@ -29,11 +29,19 @@ Generation (LLM-as-judge, prompts in `src/prompts/library/`):
 - `faithfulness` — claims supported by context.
 - `answer_relevance` — does the answer address the question.
 - `context_precision` — fraction of retrieved chunks that are relevant.
+- `answer_correctness` — fraction of the query's `expected_facts` covered
+  by the answer (ADR 0019). Chunk-id-robust: judges the answer text, not
+  retrieved ids, so it survives a chunker change like ADR 0017 without
+  re-anchoring. Populated only when the `GoldenQuery` carries
+  `expected_facts` and the answer is not a refusal.
 - `citation_grounding` — programmatic, not LLM-judged.
 
 OOC handling: a "Not stated in the provided context." answer to an
 unanswerable question scores 1.0 on faithfulness + answer_relevance
 (correctly refusing). Same answer to an answerable question scores 0.
+An in-corpus refusal on a query with `expected_facts` scores 0 on
+`answer_correctness` (refusal covers no facts); OOC and no-facts queries
+leave `answer_correctness` None (metric not applicable).
 
 ## Running it
 
