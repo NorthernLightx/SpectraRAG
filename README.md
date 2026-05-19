@@ -155,8 +155,17 @@ drops by more than 5 %.
 
 The ADRs under [`docs/decisions/`](./docs/decisions/) cover the
 per-decision rationale: contextual retrieval, multi-modal chunks,
-hybrid fusion, the OOC refusal gate, the cost–quality cascade, and
-figure-caption aggregation.
+hybrid fusion, the OOC refusal gate, the cost–quality cascade,
+figure-caption aggregation, and the most recent measured changes —
+document-level structure-aware chunking (`0017`, −19 % corpus, zero
+content loss), a GraphRAG tier (`0018`, **rejected** on a measured
+kill-spike: BM25-RAG with the same LLM beat GraphRAG-global 5–1 on
+global synthesis), and an agentic decomposition tier (`0019`, **within
+noise** overall on `answer_correctness` vs `expected_facts`, kept
+opt-in; the metric itself was the load-bearing add). Five honest-
+negative ADRs (`0012`, `0013`/`0015`, `0016`, `0018`, `0019`) sit
+alongside the ones that shipped — measuring what doesn't work is the
+point.
 
 ## Features
 

@@ -1,10 +1,12 @@
-# ADR 0019 — Agentic retrieval tier (proposed, measurement in flight)
+# ADR 0019 — Agentic retrieval tier: within noise, kept opt-in
 
-**Status:** Proposed. The metric (`answer_correctness` vs `expected_facts`)
-and the retriever (`src/rag/retrievers/agentic.py`) are landed; the
-baseline-vs-agentic comparison runs are in flight as of writing. The ADR
-moves to Accepted or Rejected when both runs complete and the numbers go
-into the "Measurement" section below.
+**Status:** **Not shipped as the default tier.** Measured against the new
+text-only hybrid baseline on v3, agentic-decomposition is **−0.2% on
+answer_correctness overall** — within judge noise, not the +5% needed to
+ship. Stays in tree opt-in (`--agentic` in `eval_run`), since the
+per-category split is real and useful as a future routing input:
+**figure +9.2pp**, **factual −5.0pp**, **table −10.0pp**. Fifth honest-
+negative ADR in this repo (0012, 0013/0015, 0016, 0018, 0019).
 **Date:** 2026-05-20
 
 ## Context
@@ -70,36 +72,77 @@ Differential only: the **agentic** arm wraps the same retriever in
 
 ### Result
 
-_(Numbers go here when both runs complete.)_
+Run IDs hybrid `325375af3043` (`data/eval/baseline-text-only.json` +
+`.md`), agentic `fd50bbda0212` (`data/eval/agentic-text-only.json` +
+`.md`). Both `gemma3:4b` gen + judge, `num_ctx=16384`,
+`--paper-id-filter`, no rerank / router / figures / VLM, 39 queries on
+v3 (31 in-corpus with `expected_facts`).
 
-| metric | hybrid baseline | + agentic | Δ |
+| metric (n=in-corpus where applicable) | hybrid baseline | + agentic | Δ |
 |---|---|---|---|
-| answer_correctness | – | – | – |
-| faithfulness | – | – | – |
-| answer_relevance | – | – | – |
-| context_precision | – | – | – |
-| nDCG@5 | – | – | – |
-| recall@10 | – | – | – |
-| MRR | – | – | – |
-| p50 latency | – | – | – |
+| **answer_correctness** (n=31) | **0.7626** | **0.7613** | **−0.0013 (−0.2%)** |
+| faithfulness (n=39) | 0.7454 | 0.7538 | +0.0085 (+1.1%) |
+| answer_relevance (n=39) | 0.6179 | 0.6308 | +0.0128 (+2.1%) |
+| context_precision (n=39) | 0.8077 | 0.8179 | +0.0103 (+1.3%) |
+| citation_rate (when cited) | 1.000 | 1.000 | 0.0 |
+| p50 latency | 20.3 s | 20.8 s | +2.5% |
+| p95 latency | 28.6 s | 25.8 s | −10.0% |
+| total tokens out | 16 733 | 10 932 | −34.7% |
+
+Retrieval nDCG/recall/MRR are not reported here: chunk-ids changed in
+ADR 0017 and v3's `relevant_chunk_ids` are not re-anchored — both arms
+score near 0 by construction. `answer_correctness` is the chunk-id-robust
+scoreboard the ADR exists to produce; that is the metric the verdict
+rests on.
+
+### `answer_correctness` by category (the real story)
+
+| category | n | hybrid | + agentic | Δ |
+|---|---:|---:|---:|---:|
+| equation | 1 | 1.000 | 1.000 | 0.000 |
+| factual | 13 | **0.831** | 0.781 | **−0.050** |
+| figure | 11 | 0.767 | **0.859** | **+0.092** |
+| multi_hop | 2 | 0.800 | 0.800 | 0.000 |
+| table | 4 | 0.450 | **0.350** | **−0.100** |
+
+The overall flat number hides two real effects pointing in opposite
+directions. **Decomposition helps where the question has multiple parts**
+(figure: "what does Fig N show + how does X compare to Y" — 11 queries,
++9.2 pp). **Decomposition hurts where the question is atomic** — a
+factoid lookup that the LLM fragments into noisier sub-questions whose
+top retrievals are off-target (factual −5 pp, table −10 pp). `multi_hop`
+is too small (n=2) to read, and the decomposition prompt may have
+classified those particular two as atomic.
 
 ### Verdict
 
-_(Continue/kill decision lands here against the eval's 5% regression gate
-and a frank read of multi_hop-subset behaviour, which is the question
-class agentic decomposition should win on.)_
+Decomposition-only agentic on this corpus is **within judge noise on the
+headline metric** and the +5 % regression-gate bar is not crossed (or
+broken). On-brand outcome: **not shipped as the default**, kept opt-in
+behind `--agentic`. The per-category split is itself useful evidence for
+a future *router-style* selective agentic (decompose only when a
+classifier says the query is multi-part), but building and measuring that
+is the next ADR's job, not this one's — exactly the discipline ADR
+0013/0015 punished violating.
 
 ## What this leaves open
 
-- Per-query LLM cost is real: 1 extra decomposition call per query, plus
-  N parallel retrieve calls inside the wrapped pipeline. The latency
-  delta is reported in the table above.
-- A self-grading loop (decompose → retrieve → grade → re-decompose) is
-  not built. If the decomposition-only arm shows clear edge here, the
-  next ADR can iterate; if not, neither would.
-- Multimodal (figures/tables) and visual routing are unchanged here —
-  this ADR isolates the retrieval-decomposition variable, exactly the
-  attribution issue ADR 0013→0015 punished.
+- **Selective / router-style agentic** is the obvious next experiment
+  given the +9.2 pp on `figure` and −5/−10 pp on `factual`/`table`.
+  A small classifier deciding "decompose y/n" would, on this corpus,
+  plausibly recover the figure win without the factoid cost. ADR 0019
+  does not build it: per the repo's discipline, one variable per ADR.
+- Decomposition-only **without** a self-grading loop is the cheapest
+  agentic configuration. Adding a grade-and-re-issue loop is more LLM
+  cost; the current data does not justify it.
+- Multimodal (figures/tables/visual routing) and contextual retrieval
+  are unchanged — this ADR isolates the retrieval-decomposition variable
+  exactly because ADR 0013→0015 punished conflated attribution.
+- The judge (`gemma3:4b`) has known variance at this corpus size
+  (ADR 0016: ±0.07 at n=40). A stronger judge (cloud Sonnet/Opus) would
+  tighten the band; the −0.0013 overall delta might survive or might
+  invert. Either outcome is honest; the current data says "not better"
+  with the available judge.
 
 ## Related
 
