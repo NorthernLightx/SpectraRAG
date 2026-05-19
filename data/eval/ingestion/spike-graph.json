@@ -1,0 +1,13 @@
+{
+  "chunks": 250,
+  "bib_flagged_pct": 21.2,
+  "zero_extraction_pct": 0.8,
+  "entities_per_chunk": 4.29,
+  "relations_per_chunk": 3.14,
+  "nodes": 787,
+  "edges": 672,
+  "isolates_pct": 5.8,
+  "communities": 240,
+  "singleton_community_pct": 19.2,
+  "reports_emitted": 240
+}

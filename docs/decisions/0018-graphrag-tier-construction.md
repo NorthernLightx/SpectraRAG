@@ -1,11 +1,11 @@
-# ADR 0018 — GraphRAG tier: construction (proposed, unmeasured)
+# ADR 0018 — GraphRAG tier: rejected on measured kill-spike
 
-**Status:** Proposed. The construction core (S1.1 extraction + S1.2 graph
-build / communities) is landed and unit-tested. The GraphRAG-vs-hybrid
-comparison is **not run and cannot be yet** — the metric the plan named does
-not exist in the eval harness (see "Measurement"). No signal exists; this is
-not a shipped technique. The ADR moves to Accepted or Rejected only after the
-kill-spike below produces a number.
+**Status:** **Rejected** on a cheap kill-spike (M2). The construction core
+(S1.1 extraction + S1.2 graph build / communities + S1.3 minimal community
+summaries) stays in tree as an opt-in artifact since the LLM `is_reference_list`
+filter has standalone value (ADR 0017 deferred bib removal here). S1.4–S1.6
+(persistence, GraphRetriever, full 20-paper build) are *not* built. The
+hybrid baseline + agentic tier (ADR 0019, Step 2) is the direction.
 **Date:** 2026-05-19
 
 ## Context
@@ -41,39 +41,90 @@ section is deliberately empty, and the build is gated on a cheap signal.
   corpus. This is **"GraphRAG-style", not "Full GraphRAG"**; earlier plan
   language overclaimed and is corrected here.
 
-## Measurement
+## Measurement — kill-spike (M2), 2026-05-19
 
-**Not run.** The plan named "answer-correctness vs `expected_facts` (the
-ADR 0016 honest metric)" as the success criterion. That metric **is not
-implemented**: `GenerationMetrics` has no `answer_correctness` field,
-`expected_facts` is a `GoldenQuery` field no code in `src/` consumes, and
-`baseline.json` does not contain it. ADR 0016 only ever used a throwaway
-`scripts/experiments/study_context.py` harness with a `+0.03` bar it itself
-diagnosed as too crude. Citing this metric as if it existed (in ADR 0017 and
-the Step-1 plan) was an unverified assertion; ADR 0017 is amended to correct
-it.
+3 diverse papers (2604.22753v1 scaling-laws / 2604.28173v1 S-JEPA
+skeletal-action / 2604.28192v1 LaST-R1 VLA), 250 clean chunks, gemma3:4b
+local model both arms, same answer prompt, only retrieval differs. Control
+arm: in-process BM25 over the same chunks. 34 min total LLM time:
+`scripts/experiments/graphrag_spike.py`, results
+`data/eval/ingestion/spike.md` + `spike-graph.json`.
 
-Prerequisites before any 20-paper build (S1.4–S1.6):
+### Graph-ingestion metrics (the early structural signal)
 
-1. A real `answer_correctness` judge metric in `src/eval` (not a
-   `scripts/experiments` one-off), wired into `GenerationMetrics`, with a
-   committed hybrid baseline on v3's `expected_facts` queries and its
-   resolvable-effect floor stated (0015/0016 show this corpus may not resolve
-   a +0.05 at this n with a coarse judge).
-2. A cheap kill-spike: graph + community summaries on **2–3 papers**
-   (~200 calls, not ~2,000), 8–10 genuinely global/aggregative queries,
-   GraphRAG-style answer read side-by-side against hybrid. Continue to
-   S1.4–S1.6 only if there is a visible qualitative edge on the question
-   class GraphRAG is *supposed* to win (global synthesis), since hybrid
-   already saturates factoid lookup on this corpus.
+| metric | value |
+|---|---|
+| chunks | 250 |
+| `is_reference_list` flagged | **53 (21.2%)** |
+| zero-extraction chunks | 0.8% |
+| entities / chunk | 4.29 |
+| relations / chunk | 3.14 |
+| nodes | 787 |
+| edges | 672 (avg degree ≈ 1.7) |
+| isolates | 5.8% |
+| communities | 240 (189 L0 + 51 L1) |
+| singleton communities | **19.2%** |
+
+A graph that fragmented (degree ~1.7, 1/5 singleton communities) means
+community summaries are paper-localised and thin — and that is the precise
+structural precondition under which "global" search over reports cannot
+beat passage retrieval. The structural signal predicted the verdict before
+the side-by-side ran.
+
+### Side-by-side verdict (8 global-synthesis queries)
+
+BM25-RAG with the same LLM **wins 5 of 8 queries**, GraphRAG-global wins
+1, 2 are wash. On the very class of question GraphRAG is supposed to win
+(cross-paper synthesis), BM25 gives the LLM more cross-paper material to
+work with and produces *richer, more accurate, more cross-document*
+answers most of the time. The one GraphRAG win (Q6 "contributions") is
+real — it is the only answer in the spike that genuinely spans all 3
+papers — but it is outweighed by:
+
+- **Hallucination on Q1** ("shared problem domains"): GraphRAG asserted a
+  fake shared theme ("mental health: schizophrenia and bipolar disorder")
+  that none of these papers is about. A confident wrong cross-paper claim
+  is a worse failure mode than BM25's narrowness.
+- **Entity-typing errors on Q5** ("datasets"): GraphRAG listed MPJPE (a
+  metric), "All Data" (a method name), SMPL (a model) as datasets — the
+  closed-vocabulary extractor mislabels under gemma3:4b.
+- **Narrower coverage** on Q2/Q3/Q5/Q7/Q8: GraphRAG fixated on one paper's
+  community summaries while BM25's 6 top chunks span the corpus.
+
+### Cost objection validated
+
+34 min for 250 chunks (~6.4 s/chunk effective at concurrency 4). The full
+20-paper corpus would be ~4.5 h of extraction alone, before community
+summarisation and global answering. The cheap spike saved that spend.
 
 ## Decision
 
-Keep S1.1 / S1.2: clean, low-risk construction, and the bib-filter has
-standalone value. **Do not build S1.3–S1.6 or run the 20-paper extraction
-until the spike returns a continue signal.** If the spike shows no edge,
-GraphRAG is rejected here on the same honest-measurement grounds as 0013 /
-0016, and that is a valid, on-brand outcome — not a failure to paper over.
+Reject GraphRAG-as-built on this corpus, on the same honest-measurement
+grounds as ADR 0013 (routing artefact) and ADR 0016 (context expansion
+within noise). The construction core stays in tree opt-in because:
+
+- the LLM `is_reference_list` filter has standalone value (ADR 0017
+  deferred bibliography removal here; the spike confirmed it fires at
+  21.2% — precision still needs a human-labelled check),
+- the extraction + graph code is mypy-strict, ruff-clean, 21 unit tests,
+  no maintenance cost while dormant.
+
+S1.4 (Qdrant entity embeddings), S1.5 (GraphRetriever), S1.6 (20-paper
+build + measurement) are **not built**. Pivot to Step 2 (agentic retrieval
+over the existing hybrid) — ADR 0019.
+
+## What this teaches
+
+- The repo's prior held: ADRs 0012, 0013/0015, 0016 are all "plausible
+  technique, within noise on this corpus." 0018 makes four.
+- The early structural signal from the ingestion scorecard (sparse graph,
+  many singleton communities) predicted the verdict in ~3 min of compute,
+  before the 31 min of LLM work confirmed it qualitatively. The
+  user-asked-for "dynamics + transparency early enough" is exactly what
+  bought the kill confidence.
+- A stronger extractor (cloud Sonnet/Opus) + a denser corpus *might*
+  change this, but those are different preconditions, not the question
+  this spike was authorised to answer.
 
 ## Related
 
