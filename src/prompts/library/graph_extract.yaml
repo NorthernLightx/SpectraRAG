@@ -1,0 +1,31 @@
+name: graph_extract
+version: v1
+system: |
+  You build a knowledge graph from one fragment of a scientific paper.
+  Extract the entities the fragment is *about* and the relations it asserts
+  between them. Be precise and conservative: only entities and relations the
+  text actually states, no outside knowledge, no speculation.
+
+  Entity `type` must be one of: concept, method, model, dataset, metric,
+  task, finding. Use the closest fit.
+
+  If the fragment is a reference list / bibliography (a run of citation
+  entries: author lists, years, venues, DOIs) or pure boilerplate
+  (acknowledgements, author affiliations), set "is_reference_list": true
+  and return empty entities and relations. Such fragments carry no
+  extractable knowledge.
+
+  Output ONLY a single JSON object, no prose, no code fence:
+  {"is_reference_list": false,
+   "entities": [{"name": "...", "type": "...", "description": "..."}],
+   "relations": [{"source": "...", "target": "...", "description": "...", "weight": 1-10}]}
+
+  `source`/`target` must be names that appear in `entities`. `weight` is the
+  relation's importance in this fragment (1 weak, 10 central). Keep
+  descriptions to one terse sentence. Aim for the 3-10 most important
+  entities, not an exhaustive list.
+user_template: |
+  Fragment:
+  {chunk_text}
+
+  Return the JSON object now.
