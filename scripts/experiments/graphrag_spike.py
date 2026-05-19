@@ -20,6 +20,7 @@ import argparse
 import asyncio
 import json
 import statistics
+import sys
 from pathlib import Path
 
 from src.graph import build_graph, detect_communities, summarize_communities
@@ -29,7 +30,11 @@ from src.ingestion.pdf import extract_pages
 from src.llm.ollama_chat import OllamaChatClient
 from src.llm.protocol import Message
 from src.rag.bm25 import Bm25Index
-from src.types import Chunk
+from src.types import Chunk, ChunkExtraction, CommunityReport
+
+# The corpus is full of ∥ ∑ θ etc.; the Windows cp1252 console crashed the
+# *previous* run on a print AFTER the 34-min LLM work. Never again.
+sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 # Genuinely cross-cutting — the class single-passage retrieval should struggle
 # on and graph community summaries should help. No paper-specific assumptions.
@@ -100,6 +105,8 @@ async def main() -> None:
     ap.add_argument("--top-bm25", type=int, default=6)
     ap.add_argument("--top-reports", type=int, default=6)
     ap.add_argument("--out", type=Path, default=Path("data/eval/ingestion/spike.md"))
+    ap.add_argument("--cache", type=Path, default=Path("data/eval/ingestion/spike-cache.json"))
+    ap.add_argument("--refresh", action="store_true", help="ignore cache, redo the LLM passes")
     args = ap.parse_args()
 
     # num_ctx bumped: gemma3:4b's 4096 default truncated prompts in ADR 0016 —
@@ -111,12 +118,33 @@ async def main() -> None:
         chunks.extend(chunk_pages(extract_pages(pid, Path(f"data/papers/{pid}.pdf"))))
     if args.limit:
         chunks = chunks[: args.limit]
-    print(f"{len(chunks)} chunks from {len(args.papers)} papers; extracting graph...")
 
-    extractions = await extract_graph(chunks, llm=llm, model=args.model)
-    graph = build_graph(extractions)
-    communities = detect_communities(graph)
-    reports = await summarize_communities(graph, communities, llm=llm, model=args.model)
+    # Re-chunking is cheap (no LLM); extraction + summarisation are the 34-min
+    # cost. Cache only those so verdict iteration on the query loop is seconds.
+    if args.cache.exists() and not args.refresh:
+        cached = json.loads(args.cache.read_text(encoding="utf-8"))
+        extractions = [ChunkExtraction.model_validate(e) for e in cached["extractions"]]
+        reports = [CommunityReport.model_validate(r) for r in cached["reports"]]
+        graph = build_graph(extractions)
+        communities = detect_communities(graph)
+        print(f"loaded cache: {len(extractions)} extractions, {len(reports)} reports")
+    else:
+        print(f"{len(chunks)} chunks from {len(args.papers)} papers; extracting graph...")
+        extractions = await extract_graph(chunks, llm=llm, model=args.model)
+        graph = build_graph(extractions)
+        communities = detect_communities(graph)
+        reports = await summarize_communities(graph, communities, llm=llm, model=args.model)
+        args.cache.parent.mkdir(parents=True, exist_ok=True)
+        args.cache.write_text(
+            json.dumps(
+                {
+                    "extractions": [e.model_dump() for e in extractions],
+                    "reports": [r.model_dump() for r in reports],
+                }
+            ),
+            encoding="utf-8",
+        )
+        print(f"cached {len(extractions)} extractions + {len(reports)} reports to {args.cache}")
 
     metrics = _graph_metrics(extractions, graph, communities)
     metrics["reports_emitted"] = len(reports)
