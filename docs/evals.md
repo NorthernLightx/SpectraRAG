@@ -96,3 +96,24 @@ When an improvement is intentional:
 
 Don't rebaseline silently — if the gate fired, that's worth a paragraph
 of context.
+
+## Ingestion scorecard
+
+The metrics above score *answers*. `scripts/eval_ingestion.py` scores the
+*chunked corpus* — structural quality, no LLM, no RAG pipeline, runs in
+seconds so it can steer ingestion changes early (the gap ADR 0018's review
+surfaced):
+
+```bash
+uv run python -m scripts.eval_ingestion --tag main          # write snapshot
+uv run python -m scripts.eval_ingestion --tag wip --diff main  # show the delta
+```
+
+Tracks chunk count, length distribution, fragmentation, section-attribution
+coverage, distinct sections, cross-page %. Snapshots commit to
+`data/eval/ingestion/<tag>.json`; the Markdown writes per-category example
+chunks so a moved metric is explainable, not just a number. `data/eval/
+ingestion/main.json` is the post-ADR-0017 reference. Graph (entities/
+relations, isolates, community shape) and bib-filter precision dimensions
+are added by the GraphRAG spike; bib-filter ground truth is human-labelled
+(the machine never authors truth — see `promote_candidates.py`).
