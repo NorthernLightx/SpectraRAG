@@ -103,9 +103,37 @@ pattern; the remainder are uncaptioned real pictures, which the
 - Tests: 9 cases pinning the classifier (caption rescue, small icons,
   logo-sized decorations, missing bbox, etc.).
 
-No measured cost on retrieval. Gallery default view drops from 304 to
-~261 visible items on `eval_docling_mm`, mostly removing the 23
-Microsoft-logo duplicates and the inline icons.
+No measured cost on retrieval. Gallery default view on `eval_docling_mm`
+becomes **209 / 304** items (started at 304, dropped 42 decorations and
+53 unlabeled — see below).
+
+## Amendment, same day — caption regex tightened
+
+First-pass regex `^Figure\s*\d` was too narrow against the live corpus.
+Recharacterising the initial `unlabeled` bucket (86 chunks) found 38
+real figures with non-standard prefixes:
+
+- 15 with subfigure-letter captions: `"(a) CDF of prediction errors..."`,
+  `"(b) Qwen3-14B with locking strategies..."`
+- 21 with letter-numbered or page-prefixed shapes:
+  `"Figure C.1: Screenshot..."`, `"Figure F. Samples of AMD"`,
+  `"1 Figure 9: The trade-off..."` (the leading `1` is a column-merge
+  artifact from PDF text extraction)
+- 2 with table-style captions on picture-side detections of tables —
+  intentionally left as `unlabeled` since Docling's separate tables
+  loop already emits a proper `Table N` chunk
+
+Extended pattern:
+
+```
+^\s*(?:\d+\s+)?(?:(?:figure|fig\.?)\s+[A-Z0-9]|\([a-z]\)\s)
+```
+
+This rescues all 36 captioned cases. After tightening: **209 figure /
+53 unlabeled / 42 decoration**. The remaining 53 unlabeled all carry
+the `[paper::p::fig]` placeholder — i.e. zero caption text — so a
+caption-only classifier can't push further. A VLM-based labeller
+could, at the usual cost; left as out-of-scope here.
 
 ## Related
 

@@ -71,3 +71,43 @@ def test_caption_not_starting_with_figure_doesnt_rescue() -> None:
     # the paper's own figure-label, so size still rules.
     tiny = _bbox(0, 0, 30, 30)
     assert _classify_figure_role(caption="Source: Figure 3 above", bbox=tiny) == "decoration"
+
+
+def test_subfigure_letter_caption_marks_as_figure() -> None:
+    # 15 real figures on eval_docling_mm had this exact shape — "(a) CDF
+    # of prediction errors with adaptive and static model" — and were
+    # mis-tagged as unlabeled before this pattern landed.
+    real = _bbox(50, 50, 161, 121)  # 11k area, above the cut
+    assert _classify_figure_role(caption="(a) CDF of prediction errors.", bbox=real) == "figure"
+    assert _classify_figure_role(caption="(b) Qwen3-14B with locking.", bbox=real) == "figure"
+
+
+def test_letter_numbered_figure_caption() -> None:
+    # "Figure C.1: Screenshot of the voting page" appendix-style numbering.
+    real = _bbox(0, 0, 100, 100)
+    assert _classify_figure_role(caption="Figure C.1: Screenshot of voting page.", bbox=real) == "figure"
+    assert _classify_figure_role(caption="Figure F. Samples of AMD.", bbox=real) == "figure"
+
+
+def test_leading_page_number_artifact_doesnt_block_match() -> None:
+    # PDF extraction occasionally glues the page number onto the next
+    # block: "1 Figure 9: The trade-off ...". Real-world artifact on
+    # 2604.28186v1::p43::fig9 — must still classify as figure.
+    real = _bbox(0, 0, 100, 100)
+    assert _classify_figure_role(caption="1 Figure 9: The trade-off.", bbox=real) == "figure"
+
+
+def test_table_caption_is_not_a_figure() -> None:
+    # Docling has a separate `tables` extraction path. When the picture
+    # detector ALSO fires on a table region, leaving it as `unlabeled`
+    # avoids double-counting it as a figure. The real Table chunk lives
+    # in the tables list (different `kind`).
+    real = _bbox(0, 0, 100, 100)
+    assert _classify_figure_role(caption="Table 1. Comparison of methods.", bbox=real) == "unlabeled"
+
+
+def test_random_subscript_letter_word_doesnt_match_subfig() -> None:
+    # "(a great experiment) ..." has parens-letter shape but the closing
+    # paren is far away — \([a-z]\) requires exactly one letter inside.
+    tiny = _bbox(0, 0, 30, 30)
+    assert _classify_figure_role(caption="(a great experiment shows)", bbox=tiny) == "decoration"

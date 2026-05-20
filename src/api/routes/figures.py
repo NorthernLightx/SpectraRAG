@@ -23,7 +23,16 @@ router = APIRouter()
 # here so the API can derive a `role` for legacy chunks ingested before
 # ADR 0022 landed (no `role` in their metadata). New ingests carry the
 # field; this branch is the migration cushion.
-_FIGURE_CAPTION_RE = re.compile(r"^\s*(figure|fig\.?)\s*\d", re.IGNORECASE)
+_FIGURE_CAPTION_RE = re.compile(
+    r"""^\s*
+        (?: \d+\s+ )?
+        (?:
+            (?:figure|fig\.?) \s+ [A-Z0-9]
+          | \([a-z]\)\s
+        )
+    """,
+    re.IGNORECASE | re.VERBOSE,
+)
 _MIN_FIGURE_AREA_PT2 = 5000.0
 _PLACEHOLDER_CAPTION_RE = re.compile(r"^\s*\[.+::p\d+::fig\d+\]\s*$")
 

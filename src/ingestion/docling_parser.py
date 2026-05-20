@@ -45,7 +45,26 @@ from src.types.documents import FigureRole
 # rare small-but-labelled real figure (e.g. the 906-pt² "Figure 3:
 # Screenshots of the artifacts ...").
 _MIN_FIGURE_AREA_PT2 = 5000.0
-_FIGURE_CAPTION_RE = re.compile(r"^\s*(figure|fig\.?)\s*\d", re.IGNORECASE)
+# Caption patterns the classifier accepts as a paper-authored figure label.
+# The plain `^Figure 3` form was too tight against the live corpus — 38 of
+# 86 "unlabeled" chunks on `eval_docling_mm` were real figures with one of:
+#   - subfigure letter:    "(a) CDF of prediction errors ..."
+#   - letter-numbered:     "Figure C.1: ...", "Figure F. Samples of AMD"
+#   - page-number prefix:  "1 Figure 9: The trade-off ..." (OCR / column merge)
+# The alternation below captures those without rescuing anything that
+# isn't figure-shaped. `Table N` is deliberately excluded — Docling
+# emits tables through a separate loop, picture-side hits of tables are
+# duplicates and stay `unlabeled`.
+_FIGURE_CAPTION_RE = re.compile(
+    r"""^\s*
+        (?: \d+\s+ )?                       # optional leading page-number from OCR
+        (?:
+            (?:figure|fig\.?) \s+ [A-Z0-9]  # Figure 3, Fig. 3, Figure C.1, Figure F.
+          | \([a-z]\)\s                     # (a), (b), ... subfigure caption
+        )
+    """,
+    re.IGNORECASE | re.VERBOSE,
+)
 
 
 def _classify_figure_role(*, caption: str, bbox: Bbox | None) -> FigureRole:
