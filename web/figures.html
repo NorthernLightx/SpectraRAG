@@ -16,7 +16,7 @@
         line-height: 1.55;
       }
       header {
-        max-width: 880px;
+        max-width: 1200px;
         width: 100%;
         margin: 0 auto;
         padding: 24px 24px 8px;
@@ -25,6 +25,7 @@
         justify-content: space-between;
         gap: 16px;
       }
+      .title-block p { max-width: 620px; }
       .title-block h1 {
         margin: 0 0 4px;
         font-size: 22px;
@@ -53,7 +54,7 @@
       [data-theme="light"] .icon-moon { display: none; }
 
       .nav {
-        max-width: 880px;
+        max-width: 1200px;
         width: 100%;
         margin: 0 auto;
         padding: 4px 24px 16px;
@@ -63,21 +64,35 @@
       }
 
       .controls {
-        max-width: 880px;
+        max-width: 1200px;
         width: 100%;
         margin: 0 auto;
         padding: 16px 24px;
-        display: flex;
-        gap: 12px;
-        align-items: end;
+        display: grid;
+        grid-template-columns: minmax(240px, 280px) minmax(220px, 280px) 1fr;
+        gap: 16px;
+        align-items: start;
+      }
+      .controls > div { display: flex; flex-direction: column; gap: 6px; }
+      .controls label {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+        opacity: 0.85;
       }
       select, input {
-        width: auto;
-        min-width: 200px;
+        width: 100%;
+      }
+      @media (max-width: 880px) {
+        .controls {
+          grid-template-columns: 1fr;
+        }
       }
 
       main {
-        max-width: 880px;
+        max-width: 1200px;
         width: 100%;
         margin: 0 auto;
         padding: 0 24px 32px;
@@ -157,42 +172,151 @@
         text-transform: uppercase;
         letter-spacing: 0.04em;
       }
-      .type-filter-wrap { flex: 1; min-width: 320px; }
+      /* === Element-type selector (ADR 0022 follow-up — UI polish) ===
+         The selector is a multi-group surface, not a flat chip soup.
+         Chips are grouped semantically (Charts / Media / Decorative /
+         Other) so the eye lands on the bucket the user wants before it
+         lands on a specific label. The master toolbar sits apart from
+         the chips with its own visual weight. */
+      .type-filter-wrap {
+        flex: 1;
+        min-width: 360px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
       .type-filter {
+        position: relative;
+        padding: 14px 16px 12px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background:
+          linear-gradient(180deg, transparent, var(--accent-tint) 600%),
+          var(--canvas-elevated);
+        box-shadow: var(--shadow-sm);
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        max-height: 220px;
+        overflow-y: auto;
+      }
+      .type-filter::-webkit-scrollbar { width: 6px; }
+      .type-filter::-webkit-scrollbar-track { background: transparent; }
+      .type-filter::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 999px;
+      }
+      .type-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--border-subtle);
+      }
+      .type-toolbar-summary {
+        font-size: 11.5px;
+        color: var(--muted);
+        letter-spacing: 0.02em;
+        font-variant-numeric: tabular-nums;
+      }
+      .type-toolbar-summary strong {
+        color: var(--fg);
+        font-weight: 600;
+      }
+      .type-toolbar-actions {
+        display: flex;
+        gap: 6px;
+      }
+      .type-toolbar-btn {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 500;
+        padding: 4px 11px;
+        border-radius: 999px;
+        cursor: pointer;
+        letter-spacing: 0.02em;
+        transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+      }
+      .type-toolbar-btn:hover {
+        color: var(--fg);
+        border-color: var(--accent);
+        background: var(--accent-tint);
+      }
+      .type-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .type-group-label {
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+        opacity: 0.7;
+      }
+      .type-group-chips {
         display: flex;
         flex-wrap: wrap;
         gap: 6px;
-        padding: 8px;
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        background: var(--canvas-elevated);
-        max-height: 88px;
-        overflow-y: auto;
       }
       .type-chip {
+        position: relative;
         display: inline-flex;
         align-items: center;
-        gap: 4px;
-        padding: 3px 9px;
+        gap: 6px;
+        padding: 5px 12px 5px 10px;
         border-radius: 999px;
-        font-size: 12px;
+        font-size: 12.5px;
+        font-weight: 500;
         background: var(--canvas);
-        color: var(--muted);
+        color: var(--fg);
         border: 1px solid var(--border);
         cursor: pointer;
         user-select: none;
+        transition:
+          background 0.14s ease,
+          border-color 0.14s ease,
+          color 0.14s ease,
+          box-shadow 0.14s ease,
+          transform 0.06s ease;
       }
+      .type-chip::before {
+        content: "";
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--border);
+        flex-shrink: 0;
+        transition: background 0.14s ease, box-shadow 0.14s ease;
+      }
+      .type-chip:hover {
+        border-color: var(--accent);
+        color: var(--fg-strong);
+        transform: translateY(-0.5px);
+      }
+      .type-chip:active { transform: translateY(0); }
       .type-chip.on {
         background: var(--accent-tint);
         color: var(--accent);
         border-color: var(--accent);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 0 0 1px var(--accent-tint) inset;
+      }
+      .type-chip.on::before {
+        background: var(--accent);
+        box-shadow: 0 0 0 3px var(--accent-tint);
       }
       .type-chip .count {
-        opacity: 0.7;
         font-variant-numeric: tabular-nums;
         font-size: 11px;
+        color: var(--muted);
+        font-weight: 600;
+        padding-left: 2px;
       }
-      .type-chip.toggle-all { font-weight: 600; }
+      .type-chip.on .count { color: var(--accent); opacity: 0.8; }
     </style>
   </head>
   <body>
@@ -306,6 +430,53 @@
         return f.role || "unlabeled";
       }
 
+      // Semantic grouping for the element-type selector. The user lands
+      // on a bucket first ("show me charts") then picks specific labels;
+      // an alphabetised flat chip soup hides that mental model.
+      // Any type not listed here falls into "Other" at render time.
+      const TYPE_GROUPS = [
+        {
+          name: "Charts & data",
+          types: [
+            "line_chart", "bar_chart", "scatter_plot", "scatter_chart",
+            "stacked_bar_chart", "pie_chart", "box_plot", "heatmap", "flow_chart",
+          ],
+        },
+        {
+          name: "Tables",
+          types: ["table"],
+        },
+        {
+          name: "Media & captures",
+          types: [
+            "photograph", "natural_image", "screenshot_from_computer",
+            "screenshot_from_manual", "screenshot", "full_page_image",
+            "page_thumbnail",
+          ],
+        },
+        {
+          name: "Diagrams",
+          types: [
+            "engineering_drawing", "cad_drawing", "electrical_diagram",
+            "chemistry_structure", "chemistry_molecular_structure",
+            "chemistry_markush_structure", "geographical_map", "geographic_map",
+            "map", "topographical_map", "remote_sensing", "stratigraphic_chart",
+            "music", "picture_group",
+          ],
+        },
+        {
+          name: "Decorative",
+          types: [
+            "logo", "icon", "signature", "stamp", "bar_code", "qr_code",
+            "decoration", "calendar", "crossword_puzzle",
+          ],
+        },
+        {
+          name: "Other",
+          types: ["other", "unlabeled", "figure"],
+        },
+      ];
+
       function buildTypeFilter() {
         // Count items per type so the chip carries useful weight.
         const counts = {};
@@ -313,38 +484,110 @@
           const t = itemType(f);
           counts[t] = (counts[t] || 0) + 1;
         }
-        const types = Object.keys(counts).sort();
+        const allTypes = Object.keys(counts).sort();
         // Seed `selectedTypes`: types not in the off-by-default set start checked.
-        for (const t of types) {
+        for (const t of allTypes) {
           if (!(t in selectedTypes)) selectedTypes[t] = !TYPES_OFF_BY_DEFAULT.has(t);
         }
         clear(typeFilterEl);
-        // Toggle-all chip first.
-        const all = document.createElement("span");
-        all.className = "type-chip toggle-all";
-        all.textContent = "All / none";
-        all.addEventListener("click", () => {
-          const anyOff = types.some((t) => !selectedTypes[t]);
-          for (const t of types) selectedTypes[t] = anyOff; // turn all on if any was off; else turn all off
-          buildTypeFilter();
-          render();
-        });
-        typeFilterEl.append(all);
-        for (const t of types) {
-          const chip = document.createElement("span");
-          chip.className = "type-chip" + (selectedTypes[t] ? " on" : "");
-          chip.dataset.type = t;
-          chip.append(document.createTextNode(t + " "));
-          const c = document.createElement("span");
-          c.className = "count";
-          c.textContent = counts[t];
-          chip.append(c);
-          chip.addEventListener("click", () => {
-            selectedTypes[t] = !selectedTypes[t];
-            chip.classList.toggle("on", selectedTypes[t]);
+
+        // Toolbar: summary text + Select-all / Clear / Reset actions.
+        const toolbar = document.createElement("div");
+        toolbar.className = "type-toolbar";
+        const summary = document.createElement("div");
+        summary.className = "type-toolbar-summary";
+        // Built up with three text nodes so we never have to set innerHTML.
+        const sumLeadCount = document.createElement("strong");
+        const sumLeadTotal = document.createTextNode("");
+        const sumMidCount = document.createElement("strong");
+        const sumTail = document.createTextNode("");
+        summary.append(sumLeadCount, sumLeadTotal, sumMidCount, sumTail);
+        const updateSummary = () => {
+          const on = allTypes.filter((t) => selectedTypes[t]);
+          const onCount = on.reduce((acc, t) => acc + (counts[t] || 0), 0);
+          const totalCount = allTypes.reduce((acc, t) => acc + (counts[t] || 0), 0);
+          sumLeadCount.textContent = String(on.length);
+          sumLeadTotal.textContent = ` of ${allTypes.length} types · `;
+          sumMidCount.textContent = String(onCount);
+          sumTail.textContent = ` of ${totalCount} items shown`;
+        };
+        updateSummary();
+        toolbar.append(summary);
+        const actions = document.createElement("div");
+        actions.className = "type-toolbar-actions";
+        const mkBtn = (label, handler) => {
+          const b = document.createElement("button");
+          b.type = "button";
+          b.className = "type-toolbar-btn";
+          b.textContent = label;
+          b.addEventListener("click", handler);
+          return b;
+        };
+        actions.append(
+          mkBtn("Select all", () => {
+            for (const t of allTypes) selectedTypes[t] = true;
+            buildTypeFilter();
             render();
-          });
-          typeFilterEl.append(chip);
+          }),
+          mkBtn("Clear", () => {
+            for (const t of allTypes) selectedTypes[t] = false;
+            buildTypeFilter();
+            render();
+          }),
+          mkBtn("Reset", () => {
+            for (const t of allTypes) selectedTypes[t] = !TYPES_OFF_BY_DEFAULT.has(t);
+            buildTypeFilter();
+            render();
+          }),
+        );
+        toolbar.append(actions);
+        typeFilterEl.append(toolbar);
+
+        // Bucket every present type into its group, with leftover landing
+        // in "Other".
+        const knownTypes = new Set(TYPE_GROUPS.flatMap((g) => g.types));
+        const groupedTypes = TYPE_GROUPS.map((g) => ({
+          name: g.name,
+          types: g.types.filter((t) => counts[t]),
+        }));
+        const leftover = allTypes.filter((t) => !knownTypes.has(t));
+        if (leftover.length) {
+          const other = groupedTypes.find((g) => g.name === "Other");
+          if (other) other.types.push(...leftover);
+        }
+
+        for (const group of groupedTypes) {
+          if (group.types.length === 0) continue;
+          const section = document.createElement("div");
+          section.className = "type-group";
+          const label = document.createElement("div");
+          label.className = "type-group-label";
+          label.textContent = group.name;
+          section.append(label);
+          const chips = document.createElement("div");
+          chips.className = "type-group-chips";
+          for (const t of group.types) {
+            const chip = document.createElement("button");
+            chip.type = "button";
+            chip.className = "type-chip" + (selectedTypes[t] ? " on" : "");
+            chip.dataset.type = t;
+            // Friendlier label: "line_chart" → "line chart"
+            const pretty = t.replace(/_/g, " ");
+            chip.append(document.createTextNode(pretty));
+            const c = document.createElement("span");
+            c.className = "count";
+            c.textContent = counts[t];
+            chip.append(c);
+            chip.addEventListener("click", () => {
+              selectedTypes[t] = !selectedTypes[t];
+              chip.classList.toggle("on", selectedTypes[t]);
+              updateSummary();
+              render();
+            });
+            chips.append(chip);
+          }
+          section.append(chips);
+          typeFilterEl.append(section);
         }
       }
 
