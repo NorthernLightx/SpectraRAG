@@ -48,7 +48,7 @@ async def ingest_paper(
     contextualizer_concurrency: int = 4,
     extract_figures_enabled: bool = False,
     extract_tables_enabled: bool = False,
-    use_docling: bool = False,
+    use_docling: bool = True,
     figures_out_dir: Path = Path("data/figures"),
     vlm_captioner: _Captioner | None = None,
 ) -> IngestedPaper:
@@ -63,14 +63,20 @@ async def ingest_paper(
     first-class chunks (with `metadata['kind']` = "figure" / "table"). They go
     through the same embed + BM25 + Qdrant path as text chunks.
 
-    `use_docling=True` replaces PyMuPDF's `extract_figures` (XREF-only,
+    `use_docling=True` (the default after ADR 0020's heterogeneous-format
+    eval, 2026-05-20) uses Docling's deterministic layout + table-
+    structure pipeline instead of PyMuPDF's `extract_figures` (XREF-only,
     misses vector plots) and `extract_tables` (`find_tables()` heuristic,
-    misses tight numeric tables) with Docling's deterministic layout +
-    table-structure pipeline (ADR 0020). Recovers the audit-flagged miss
-    class deterministically. When set, `extract_figures_enabled` /
-    `extract_tables_enabled` flags still gate whether figures / tables
-    are emitted as chunks; `vlm_captioner` still runs if set (its caption
-    is preferred over Docling's at `figure_to_chunk` time per ADR 0002).
+    misses tight numeric tables). Halved the corpus-wide audit flag rate
+    (25.4 % → 12.7 %) on the 20-paper ArXiv corpus and held cleanly on
+    heterogeneous formats — slide-deck PDFs (0 flags), HAL-style non-
+    arXiv papers, and a 339-page scanned OCR'd NASA Apollo 17 report
+    (89 figures + 27 tables recovered with bboxes). Set `use_docling=False`
+    to fall back to PyMuPDF (preserved for repeatability of pre-ADR-0020
+    measurements). `extract_figures_enabled` / `extract_tables_enabled`
+    still gate whether figures / tables are emitted as chunks; the VLM
+    captioner still runs if set (its caption is preferred over Docling's
+    at `figure_to_chunk` time per ADR 0002).
     """
     with timed_event(
         _log, "ingest.done", paper_id=paper.paper_id, pdf_path=str(paper.pdf_path)
