@@ -78,11 +78,37 @@ def _build_converter() -> DocumentConverter:
     )
 
 
+def convert_with_docling(pdf_path: Path) -> Any:
+    """Single Docling conversion. Shared between text-chunking (ADR 0021) and
+    figure / table extraction (ADR 0020) so we only run the layout +
+    OCR pipeline once per paper. Returns the raw `DoclingDocument`."""
+    if not pdf_path.exists():
+        raise FileNotFoundError(f"PDF not found: {pdf_path}")
+    return _build_converter().convert(pdf_path).document
+
+
+def page_heights(doc: Any) -> dict[int, float]:
+    """`{page_no: height_in_pt}` for `_flip_bbox` callers (TOP-LEFT origin)."""
+    out: dict[int, float] = {}
+    pages = getattr(doc, "pages", {})
+    items = pages.items() if hasattr(pages, "items") else enumerate(pages, start=1)
+    for page_no, page in items:
+        size = getattr(page, "size", None)
+        if size is None:
+            continue
+        try:
+            out[int(page_no)] = float(size.height)
+        except (AttributeError, TypeError, ValueError):
+            continue
+    return out
+
+
 def parse_with_docling(
     paper_id: str,
     pdf_path: Path,
     *,
     out_dir: Path = Path("data/figures"),
+    doc: Any | None = None,
 ) -> tuple[list[Figure], list[Table]]:
     """Run Docling over `pdf_path` and return Figures + Tables in project types.
 
@@ -90,27 +116,13 @@ def parse_with_docling(
     export error) log + skip rather than abort the whole conversion —
     same posture as `figures.py` / `captioner.py`.
     """
-    if not pdf_path.exists():
+    if doc is None and not pdf_path.exists():
         raise FileNotFoundError(f"PDF not found: {pdf_path}")
 
     with timed_event(_log, "docling.parsed", paper_id=paper_id, pdf=str(pdf_path)) as ctx:
-        converter = _build_converter()
-        result = converter.convert(pdf_path)
-        doc = result.document
-
-        # Page heights in PDF points, used to flip Docling's BOTTOMLEFT y
-        # back to the project's TOP-LEFT Bbox.
-        page_heights: dict[int, float] = {}
-        pages = getattr(doc, "pages", {})
-        items = pages.items() if hasattr(pages, "items") else enumerate(pages, start=1)
-        for page_no, page in items:
-            size = getattr(page, "size", None)
-            if size is None:
-                continue
-            try:
-                page_heights[int(page_no)] = float(size.height)
-            except (AttributeError, TypeError, ValueError):
-                continue
+        if doc is None:
+            doc = convert_with_docling(pdf_path)
+        heights = page_heights(doc)
 
         paper_out = out_dir / paper_id
         paper_out.mkdir(parents=True, exist_ok=True)
@@ -127,7 +139,7 @@ def parse_with_docling(
                 page_no = 0
             if page_no <= 0:
                 continue
-            page_h = page_heights.get(page_no, 792.0)
+            page_h = heights.get(page_no, 792.0)
             bbox = _flip_bbox(getattr(prov, "bbox", None), page_h)
             figure_id = f"{paper_id}::p{page_no}::fig{idx}"
             image_path = paper_out / f"{_safe_filename(figure_id)}.png"
@@ -169,7 +181,7 @@ def parse_with_docling(
                 page_no = 0
             if page_no <= 0:
                 continue
-            page_h = page_heights.get(page_no, 792.0)
+            page_h = heights.get(page_no, 792.0)
             bbox = _flip_bbox(getattr(prov, "bbox", None), page_h)
             markdown = ""
             try:

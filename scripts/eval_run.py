@@ -634,15 +634,17 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--use-docling",
-        action="store_true",
+        action=argparse.BooleanOptionalAction,
+        default=True,
         help=(
-            "ADR 0020: use Docling (deterministic layout + table-structure "
-            "models) instead of PyMuPDF's extract_figures / extract_tables. "
-            "Recovers vector-drawn figures and tight numeric tables the "
-            "overlay-audit found that PyMuPDF silently misses (~14%% of "
-            "pages corpus-wide). Requires --extract-figures and/or "
-            "--extract-tables to actually emit chunks; adds ~30 s per paper "
-            "warm-GPU ingest time."
+            "ADR 0020 / ADR 0021: use Docling (deterministic layout + table-"
+            "structure + OCR pipeline) instead of PyMuPDF for figure / table "
+            "extraction AND text chunking. Halved the corpus-wide audit miss "
+            "rate (ADR 0020), produces layout-correct reading order + "
+            "labelled sections + bbox-per-text-chunk for region-precise "
+            "citations (ADR 0021). Default ON; pass --no-use-docling to "
+            "fall back to PyMuPDF for repeatability of pre-ADR-0020 / 0021 "
+            "measurements. Adds ~30 s per paper warm-GPU ingest time."
         ),
     )
     parser.add_argument(

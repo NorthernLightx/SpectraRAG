@@ -81,16 +81,33 @@ async def ingest_paper(
     with timed_event(
         _log, "ingest.done", paper_id=paper.paper_id, pdf_path=str(paper.pdf_path)
     ) as ctx:
-        pages = extract_pages(paper_id=paper.paper_id, pdf_path=paper.pdf_path)
-        chunks = chunk_pages(pages, target_chars=target_chars, overlap_chars=overlap_chars)
-        ctx["pages"] = len(pages)
+        # Single Docling conversion when enabled — shared by text chunking
+        # (ADR 0021) and figure / table extraction (ADR 0020) so the
+        # layout + OCR pipeline runs once per paper, not twice.
+        docling_doc = None
+        paper_text = ""
+        if use_docling:
+            from src.ingestion.docling_chunker import chunk_with_docling, paper_text_from_docling
+            from src.ingestion.docling_parser import convert_with_docling
+
+            docling_doc = convert_with_docling(paper.pdf_path)
+            chunks = chunk_with_docling(
+                paper.paper_id,
+                docling_doc,
+                target_chars=target_chars,
+                overlap_chars=overlap_chars,
+            )
+            paper_text = paper_text_from_docling(docling_doc)
+            ctx["pages"] = len(getattr(docling_doc, "pages", {}) or {})
+        else:
+            pages = extract_pages(paper_id=paper.paper_id, pdf_path=paper.pdf_path)
+            chunks = chunk_pages(pages, target_chars=target_chars, overlap_chars=overlap_chars)
+            paper_text = "\n\n".join(p.text for p in pages)
+            ctx["pages"] = len(pages)
         ctx["text_chunks"] = len(chunks)
 
-        # Multi-modal extraction. Docling is the deterministic fast path
-        # (ADR 0020); a single conversion call yields both figures and
-        # tables, so when use_docling=True the PyMuPDF figure / table
-        # extractors are bypassed in one go to avoid double-emitting the
-        # same artifacts under different ids.
+        # Multi-modal extraction. When Docling already converted, reuse
+        # the same `DoclingDocument` to avoid a second slow pass.
         figure_count = 0
         figures_captioned = 0
         table_count = 0
@@ -98,7 +115,10 @@ async def ingest_paper(
             from src.ingestion.docling_parser import parse_with_docling
 
             docling_figs, docling_tabs = parse_with_docling(
-                paper.paper_id, paper.pdf_path, out_dir=figures_out_dir
+                paper.paper_id,
+                paper.pdf_path,
+                out_dir=figures_out_dir,
+                doc=docling_doc,
             )
             if extract_figures_enabled:
                 if vlm_captioner is not None and docling_figs:
@@ -109,7 +129,7 @@ async def ingest_paper(
             if extract_tables_enabled:
                 chunks.extend(table_to_chunk(t) for t in docling_tabs)
                 table_count = len(docling_tabs)
-        else:
+        elif not use_docling:
             if extract_figures_enabled:
                 figures = extract_figures(paper.paper_id, paper.pdf_path, out_dir=figures_out_dir)
                 if vlm_captioner is not None and figures:
@@ -136,7 +156,6 @@ async def ingest_paper(
         if contextualized:
             assert contextualizer_llm is not None
             assert contextualizer_model is not None
-            paper_text = "\n\n".join(p.text for p in pages)
             chunks = await contextualize_chunks(
                 chunks,
                 paper_text,

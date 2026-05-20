@@ -47,8 +47,12 @@ async def test_full_pipeline_end_to_end(tmp_path: Path) -> None:
     await vectorstore.ensure_collection()
     bm25 = Bm25Index()
 
+    # use_docling=False to keep this smoke test fast (Docling pulls ~40 MB
+    # of layout / table / OCR weights on first run); the contract being
+    # verified here is end-to-end wiring (ingest → retrieve → API), not
+    # the choice of chunker.
     ingested = await ingest_paper(
-        paper=paper, embedder=embedder, vectorstore=vectorstore, bm25=bm25
+        paper=paper, embedder=embedder, vectorstore=vectorstore, bm25=bm25, use_docling=False
     )
     assert ingested.chunk_count >= 2
 
