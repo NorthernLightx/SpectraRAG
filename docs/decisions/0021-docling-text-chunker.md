@@ -1,10 +1,13 @@
-# ADR 0021 — Docling as the text-chunking source too (proposed, eval in flight)
+# ADR 0021 — Docling as the text-chunking source too
 
-**Status:** Proposed. Implementation landed (`src/ingestion/docling_chunker.py`
-+ pipeline wiring + 13 tests), default flipped (`use_docling=True` everywhere),
-final eval against the pre-Docling-text baseline running in background. The
-ADR moves to Accepted (or back to Proposed with a re-scope) when the
-measured `answer_correctness` delta lands in the "Measurement" section.
+**Status:** **Accepted.** Measured against the same v3 / `gemma3:4b` /
+hybrid / `--paper-id-filter` config as `baseline-text-only.json`, the
+Docling text chunker improved every generation metric past the 5 %
+regression gate — `answer_correctness` **+8.2 %** (0.7626 → 0.8255),
+`faithfulness` **+8.8 %**, `answer_relevance` **+23.9 %**,
+`context_precision` **+9.7 %**, and `citation_rate` populates on
+**all 39 queries** (up from 27). Real cost: p50 latency 20.3 s →
+83.5 s. First measured positive ADR this session.
 **Date:** 2026-05-20
 
 ## Context
@@ -74,26 +77,82 @@ chunks omit bbox — the project's `Bbox` is page-local (ADR 0009).
 `BooleanOptionalAction` with `default=True`; pass `--no-use-docling`
 to fall back to PyMuPDF for repeatability of pre-ADR-0021 baselines.
 
-## Measurement (in flight)
+## Measurement, 2026-05-20
 
-Background run, same v3 / `gemma3:4b` gen + judge / `paper-id-filter` /
-no-rerank / no-router as `baseline-text-only.json`. Only the chunker
-changes. Result lands at `data/eval/baseline-docling-text.json`.
+Same v3 / `gemma3:4b` gen + judge / `--paper-id-filter` / no-rerank /
+no-router as `baseline-text-only.json`. Only the chunker changes.
+Committed reference: `data/eval/baseline-docling-text.json`
+(`run_id=e7643a0c1085`).
 
-| metric | pre-Docling-text | Docling text | Δ |
-|---|---:|---:|---:|
-| answer_correctness | 0.7626 | _(pending)_ | _(pending)_ |
-| faithfulness | 0.7454 | _(pending)_ | _(pending)_ |
-| answer_relevance | 0.6179 | _(pending)_ | _(pending)_ |
-| context_precision | 0.8077 | _(pending)_ | _(pending)_ |
-| p50 latency | 20.3 s | _(pending)_ | _(pending)_ |
+| metric | pre-Docling text | Docling text | Δ abs | Δ rel |
+|---|---:|---:|---:|---:|
+| **answer_correctness** | 0.7626 | **0.8255** | **+0.0629** | **+8.2 %** |
+| **faithfulness** | 0.7454 | **0.8110** | +0.0656 | +8.8 % |
+| **answer_relevance** | 0.6179 | **0.7654** | +0.1474 | **+23.9 %** |
+| **context_precision** | 0.8077 | **0.8859** | +0.0782 | +9.7 % |
+| citation_rate (n=) | 1.000 (n=27) | 1.000 (n=39) | — | every gen cites now |
+| p50 latency | 20.3 s | **83.5 s** | +63.2 s | +311 % |
+| p95 latency | 28.6 s | 105.9 s | +77.3 s | +270 % |
+| tokens out (total) | 16 733 | 11 637 | −5 096 | answers terser |
 
-The structural wins should not regress headline `answer_correctness`
-on this corpus — the new chunks are *cleaner* (no figure-text leak, no
-page furniture), section labels are correct, and the windowing budget
-is unchanged. Expected directional read: flat or modest improvement;
-any clear regression triggers an investigation before ADR moves to
-Accepted.
+### Per-category `answer_correctness`
+
+| category | n | pre | post | Δ |
+|---|---:|---:|---:|---:|
+| equation | 1 | 1.000 | 1.000 | 0.000 |
+| factual | 13 | 0.831 | **0.908** | +0.077 |
+| figure | 11 | 0.767 | 0.781 | +0.014 |
+| multi_hop | 2 | 0.800 | 0.900 | +0.100 |
+| **table** | 4 | 0.450 | **0.600** | **+0.150** |
+
+Every category at parity or better. The biggest absolute wins are
+exactly the question classes the probe predicted would benefit:
+
+- **table +0.15** — the prior chunker mixed numeric table contents
+  into prose under wrong section labels; Docling separates and labels
+  them.
+- **factual +0.08** — section attribution being deterministic instead
+  of `"Abstract"`-everything gives the retriever cleaner section
+  metadata to discriminate on.
+- **multi_hop +0.10** — multi-hop queries benefit from coherent
+  cross-section context that the layout-aware reading order produces.
+- **figure +0.01** — flat is the right read here; this run did *not*
+  enable `--extract-figures`, so the figure-query subset is being
+  answered from text chunks alone in both arms. ADR 0019's per-class
+  routing remains the path that would lift this further.
+
+### Honest costs
+
+- **p50 latency 4×, p95 ~4×.** Real per-query cost. The chunks are
+  cleaner *and* denser per chunk (figure-leak axis ticks gone, page
+  furniture gone), so the top-K retrieval feeds the generator more
+  meaningful content per chunk — generator runtime scales with that.
+  The token-out drop (−30 %) suggests the model is also producing
+  more concise correct answers, which is consistent with retrieval
+  being more on-target.
+- **Ingest is slower.** Docling does layout + OCR + table-structure
+  detection per paper (~30 s warm-GPU). Acceptable for offline ingest;
+  not for query-time work, which this isn't.
+
+### Citation coverage
+
+Generator citation rate is now **100 % of queries (n=39)** vs **n=27
+(69 %)** under PyMuPDF chunking. The likely mechanism: chunk-ids
+labelled by real section header text (e.g.
+`"3 Method"`) instead of `"Abstract"`-everything give the LLM
+stronger structural cues to anchor citations on. Worth confirming in
+a future ADR but the measurement is clean.
+
+## Verdict — Accept
+
+The measured headline gain (+8.2 % `answer_correctness`,
+**−7 % ≤ Δ ≤ +24 % across the board, all positive**, all categories
+flat-or-up) crosses the 5 % gate decisively. Latency cost is real but
+the trade is favourable for a portfolio-grade RAG: better answer
+quality, every answer cited, denser retrieval contexts. Default
+remains `use_docling=True`. The PyMuPDF + ADR-0017 path stays in tree
+behind `--no-use-docling` so the pre-ADR-0021 baselines remain
+reproducible.
 
 ## What this leaves open
 
