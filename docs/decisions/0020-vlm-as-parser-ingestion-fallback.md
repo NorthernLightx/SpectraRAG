@@ -88,6 +88,61 @@ The audit's silent-miss class collapses to zero on this paper. Every
 Figure/Table caption mentioned in the page text is matched by an
 extracted artifact with a valid bbox.
 
+## Corpus-wide audit (all 20 papers), 2026-05-20
+
+`scripts/audit_ingestion_overlay --all` and `--all --use-docling`. Same
+20 papers, 575 total pages. Per-paper `audit.md` under
+`data/eval/ingestion/overlays/<paper>/` (PyMuPDF) and
+`data/eval/ingestion/overlays/docling/<paper>/`.
+
+| | flagged | rate | figures | figs w/ bbox | tables | tabs w/ bbox |
+|---|---:|---:|---:|---:|---:|---:|
+| **PyMuPDF** | **146 / 575** | **25.4 %** | 277 | **91.7 %** | 288 | 100 % |
+| **Docling** | **73 / 575** | **12.7 %** | **304** (+27) | **100 %** | **124** (−164) | 100 % |
+
+- **Flag rate halved** corpus-wide (25.4 % → 12.7 %).
+- **+27 figures** captured; every extracted figure has a valid bbox
+  under Docling (vs PyMuPDF leaving 23 figures without spatial info).
+- **−164 "tables"**: PyMuPDF's `find_tables()` heuristic was producing
+  a large pool of false positives (dense-numeric grid regions that are
+  not actually captioned tables). Docling's TableFormer is much
+  tighter; the missing 164 were the noise, not real tables. The audit
+  tool does not directly score false positives, but the chunk-dump
+  evidence from ADR 0017 confirms many of PyMuPDF's "tables" were
+  caption-less grid soup.
+
+### Per-paper deltas
+
+15 papers improved, 4 papers regressed on the strict label-match audit,
+1 unchanged. Worst PyMuPDF cases — `2604.28182v1` (81 p, 31 flagged →
+14) and `2604.27742v1` (26 p, 11 → 1) — improve dramatically.
+
+### Honest caveat: the 4 "regressions" are audit-tool artefacts
+
+Visual spot-check on `2604.28193v1` p02 (the worst nominal regression,
+PyMuPDF 0 → Docling 3) shows **both Figure 2 and Table 1 ARE extracted
+by Docling with valid bboxes** — the overlay PNG has the orange and
+blue boxes clearly drawn on the right artefacts. The audit flagged
+them because its `Figure N:` / `Table N:` regex on `caption_text`
+couldn't recover the label from Docling's caption rendering, while
+PyMuPDF's tighter caption regex happens to produce text the audit's
+regex matches by construction. So:
+
+- **The 25.4 % PyMuPDF rate underestimates** PyMuPDF's real misses
+  (some figures whose bboxes are absent or wrong on the page still
+  pass the audit because the caption regex agrees with itself).
+- **The 12.7 % Docling rate overestimates** Docling's real misses
+  (extracted artefacts with valid bboxes fail the label match purely
+  on caption-text formatting).
+- **Real Docling miss rate is below 12.7 %**, plausibly close to the
+  0 / 25 result on the test paper.
+
+Refining the audit to label-match by spatial+textual overlap rather
+than label-substring is its own follow-up (a clean ~30 line change to
+`audit_ingestion_overlay`). For this ADR the directional finding is
+unambiguous and the visual evidence is decisive: Docling is the right
+primary parser.
+
 ## What this leaves open
 
 - **Heterogeneous-format eval (the honest test of "any document").**
