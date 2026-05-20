@@ -85,7 +85,10 @@ def test_subfigure_letter_caption_marks_as_figure() -> None:
 def test_letter_numbered_figure_caption() -> None:
     # "Figure C.1: Screenshot of the voting page" appendix-style numbering.
     real = _bbox(0, 0, 100, 100)
-    assert _classify_figure_role(caption="Figure C.1: Screenshot of voting page.", bbox=real) == "figure"
+    assert (
+        _classify_figure_role(caption="Figure C.1: Screenshot of voting page.", bbox=real)
+        == "figure"
+    )
     assert _classify_figure_role(caption="Figure F. Samples of AMD.", bbox=real) == "figure"
 
 
@@ -103,7 +106,9 @@ def test_table_caption_is_not_a_figure() -> None:
     # avoids double-counting it as a figure. The real Table chunk lives
     # in the tables list (different `kind`).
     real = _bbox(0, 0, 100, 100)
-    assert _classify_figure_role(caption="Table 1. Comparison of methods.", bbox=real) == "unlabeled"
+    assert (
+        _classify_figure_role(caption="Table 1. Comparison of methods.", bbox=real) == "unlabeled"
+    )
 
 
 def test_random_subscript_letter_word_doesnt_match_subfig() -> None:

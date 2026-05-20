@@ -184,6 +184,7 @@ def _classify_figure_role(
         return "decoration"
     return "unlabeled"
 
+
 _log = get_logger(__name__)
 
 # 2x scale ~ 144 DPI for picture-image rasterisation. Matches the
