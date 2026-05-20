@@ -213,6 +213,24 @@ details[open] > summary::before { transform: rotate(90deg); }
   background: var(--canvas);
 }
 .citation-list .cite-thumb:hover { border-color: var(--accent); }
+/* ADR 0021: wrap the citation thumbnail so a bbox overlay can sit on top.
+   Width matches .cite-thumb so the percentage-based bbox lines up with the
+   image's content edges; figure / table citations carried bboxes since ADR
+   0009, text-chunk citations carry them since ADR 0021. */
+.citation-list .cite-thumb-wrap {
+  position: relative;
+  display: inline-block;
+  width: 96px;
+  margin: 6px 0 0;
+}
+.citation-list .cite-thumb-wrap .cite-thumb { margin: 0; }
+.citation-list .cite-bbox {
+  position: absolute;
+  border: 2px solid var(--accent);
+  background: var(--accent-tint);
+  pointer-events: none;
+  border-radius: 2px;
+}
 .citation-list li:target {
   animation: cite-flash 1.5s ease-out;
 }

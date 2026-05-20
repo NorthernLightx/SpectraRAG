@@ -960,6 +960,36 @@
               img.alt = `Page ${firstPage} of ${c.paper_id}`;
               img.loading = "lazy";
               a.append(img);
+              // ADR 0009 + ADR 0021: bbox overlay on the thumbnail when the
+              // cited chunk has one (figures/tables: ADR 0009; text chunks:
+              // ADR 0021). Coord math mirrors figures.html — 150-DPI page
+              // render means pageW_pts = naturalW * 72 / 150. The bbox
+              // travels through `RetrievalResult.metadata`, not as a flat
+              // field on the chunk.
+              const bbox = (c.metadata && c.metadata.bbox) || null;
+              if (Array.isArray(bbox) && bbox.length === 4) {
+                a.className = "cite-thumb-wrap";
+                img.addEventListener(
+                  "load",
+                  () => {
+                    const naturalW = img.naturalWidth;
+                    const naturalH = img.naturalHeight;
+                    if (!naturalW || !naturalH) return;
+                    const DPI = 150;
+                    const pageWPts = (naturalW * 72) / DPI;
+                    const pageHPts = (naturalH * 72) / DPI;
+                    const [x0, y0, x1, y1] = bbox;
+                    const bboxDiv = document.createElement("div");
+                    bboxDiv.className = "cite-bbox";
+                    bboxDiv.style.left = `${(x0 / pageWPts) * 100}%`;
+                    bboxDiv.style.top = `${(y0 / pageHPts) * 100}%`;
+                    bboxDiv.style.width = `${((x1 - x0) / pageWPts) * 100}%`;
+                    bboxDiv.style.height = `${((y1 - y0) / pageHPts) * 100}%`;
+                    a.append(bboxDiv);
+                  },
+                  { once: true }
+                );
+              }
               li.append(a);
             }
           } else {
