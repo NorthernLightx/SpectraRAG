@@ -125,6 +125,7 @@ async def _main(
     agentic_provider: str,
     agentic_model: str,
     agentic_max_subqueries: int,
+    skip_ingest: bool = False,
 ) -> None:
     log = get_logger("scripts.eval_run")
     log.info(
@@ -164,28 +165,52 @@ async def _main(
 
     chunks_by_id: dict[str, Chunk] = {}
     paper_ids: list[str] = []
-    for pdf_path in pdf_paths:
-        paper = Paper(paper_id=pdf_path.stem, title=pdf_path.stem, pdf_path=pdf_path)
-        ingested = await ingest_paper(
-            paper=paper,
-            embedder=embedder,
-            vectorstore=vectorstore,
-            bm25=bm25,
-            contextualizer_llm=contextualizer_llm,
-            contextualizer_model=contextualize_model if contextualize else None,
-            contextualizer_concurrency=contextualize_concurrency,
-            extract_figures_enabled=extract_figures,
-            extract_tables_enabled=extract_tables,
-            use_docling=use_docling,
-            vlm_captioner=vlm_captioner_obj,
-        )
-        for chunk in ingested.chunks:
+    if skip_ingest:
+        # ADR 0022 follow-up: evaluate against an already-populated collection
+        # without re-ingesting. Useful when you want to compare a long-running
+        # ingest's output against a baseline without paying the ~20-minute
+        # ingest cost again. The --pdf args are still used to pin which papers
+        # the eval cares about; chunks are sourced from Qdrant by paper_id.
+        wanted_paper_ids = [p.stem for p in pdf_paths]
+        all_chunks = await vectorstore.scroll_chunks()
+        scoped: list[Chunk] = []
+        for chunk in all_chunks:
+            if chunk.paper_id not in wanted_paper_ids:
+                continue
             chunks_by_id[chunk.chunk_id] = chunk
-        paper_ids.append(paper.paper_id)
-        print(f"Ingested {ingested.chunk_count} chunks from {pdf_path.name}")
-        if contextualize:
-            with_ctx = sum(1 for c in ingested.chunks if c.context)
-            print(f"Contextualized {with_ctx}/{ingested.chunk_count} chunks")
+            scoped.append(chunk)
+            if chunk.paper_id not in paper_ids:
+                paper_ids.append(chunk.paper_id)
+        # Feed BM25 in one batch so the in-process retriever has lexical signal.
+        bm25.add(scoped)
+        print(
+            f"skip-ingest: loaded {len(chunks_by_id)} chunks from collection "
+            f"{collection!r} across {len(paper_ids)} papers (out of "
+            f"{len(wanted_paper_ids)} requested)"
+        )
+    else:
+        for pdf_path in pdf_paths:
+            paper = Paper(paper_id=pdf_path.stem, title=pdf_path.stem, pdf_path=pdf_path)
+            ingested = await ingest_paper(
+                paper=paper,
+                embedder=embedder,
+                vectorstore=vectorstore,
+                bm25=bm25,
+                contextualizer_llm=contextualizer_llm,
+                contextualizer_model=contextualize_model if contextualize else None,
+                contextualizer_concurrency=contextualize_concurrency,
+                extract_figures_enabled=extract_figures,
+                extract_tables_enabled=extract_tables,
+                use_docling=use_docling,
+                vlm_captioner=vlm_captioner_obj,
+            )
+            for chunk in ingested.chunks:
+                chunks_by_id[chunk.chunk_id] = chunk
+            paper_ids.append(paper.paper_id)
+            print(f"Ingested {ingested.chunk_count} chunks from {pdf_path.name}")
+            if contextualize:
+                with_ctx = sum(1 for c in ingested.chunks if c.context)
+                print(f"Contextualized {with_ctx}/{ingested.chunk_count} chunks")
 
     reranker_obj: BgeReranker | None = None
     if rerank:
@@ -752,6 +777,17 @@ if __name__ == "__main__":
         ),
     )
     parser.add_argument(
+        "--skip-ingest",
+        action="store_true",
+        help=(
+            "Skip the per-PDF ingestion loop and source chunks straight from "
+            "the named --collection. Used when the collection has already "
+            "been populated by bootstrap_corpus.py and you want to evaluate "
+            "it without paying the ingest cost again. The --pdf args are "
+            "still used to pin which papers the eval cares about."
+        ),
+    )
+    parser.add_argument(
         "--cascade",
         action="store_true",
         help=(
@@ -896,6 +932,7 @@ if __name__ == "__main__":
             agentic_provider=args.agentic_provider,
             agentic_model=agentic_model,
             agentic_max_subqueries=args.agentic_max_subqueries,
+            skip_ingest=args.skip_ingest,
         )
     )
     if args.harvest:

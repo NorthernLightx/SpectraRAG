@@ -52,6 +52,7 @@ async def _main(
     collection: str,
     force: bool,
     extract_figures: bool,
+    extract_tables: bool,
     vlm_caption_model: str | None,
 ) -> None:
     log = get_logger("scripts.bootstrap_corpus")
@@ -95,7 +96,7 @@ async def _main(
             contextualizer_model=None,
             contextualizer_concurrency=4,
             extract_figures_enabled=extract_figures,
-            extract_tables_enabled=False,
+            extract_tables_enabled=extract_tables,
             vlm_captioner=vlm_captioner,
         )
         total_chunks += ingested.chunk_count
@@ -135,6 +136,16 @@ if __name__ == "__main__":
         help="Skip figure extraction. Default: on (figures show up in /figures gallery).",
     )
     parser.add_argument(
+        "--no-extract-tables",
+        dest="extract_tables",
+        action="store_false",
+        help=(
+            "Skip table extraction. Default: on. Tables surface alongside figures "
+            "in /figures gallery (the gallery's element-type filter includes them) "
+            "and as queryable chunks for table-aware questions."
+        ),
+    )
+    parser.add_argument(
         "--vlm-caption-model",
         default=None,
         help=(
@@ -143,7 +154,7 @@ if __name__ == "__main__":
             "VLM is only called on figures with no PDF caption and role != decoration."
         ),
     )
-    parser.set_defaults(extract_figures=True)
+    parser.set_defaults(extract_figures=True, extract_tables=True)
     args = parser.parse_args()
 
     configure_logging(level="INFO", env="local", log_file=None)
@@ -155,6 +166,7 @@ if __name__ == "__main__":
             collection=args.collection,
             force=args.force,
             extract_figures=args.extract_figures,
+            extract_tables=args.extract_tables,
             vlm_caption_model=args.vlm_caption_model,
         )
     )
