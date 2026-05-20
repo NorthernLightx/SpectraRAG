@@ -143,6 +143,46 @@ than label-substring is its own follow-up (a clean ~30 line change to
 unambiguous and the visual evidence is decisive: Docling is the right
 primary parser.
 
+## Heterogeneous-format eval, 2026-05-20
+
+ADR 0020's gate for flipping `use_docling=True` default-on was a real
+heterogeneous-format eval, not just more ArXiv ML papers. Three documents
+fetched + audited via Docling:
+
+| document | format | pages | figs | figs w/ bbox | tables | tabs w/ bbox | flagged |
+|---|---|---:|---:|---:|---:|---:|---:|
+| `het-neurips-slides` | slide-deck PDF, NeurIPS 2024 | 7 | **5** | **5** | 1 | 1 | **0** |
+| `het-hal-fr` | non-arXiv academic, HAL (open archive) | 32 | 7 | 7 | 4 | 4 | 3 |
+| `het-apollo17` | **339-page scanned OCR'd 1973 NASA report** | 339 | **89** | **89** | **27** | **27** | 53 |
+
+Headline reads: **Docling held across every format tested.**
+- Slide deck — `0` flagged, format-agnostic ingestion of a layout with
+  no body prose.
+- HAL paper — 3 flagged, same audit-tool-overcount pattern as the
+  ArXiv corpus; visual spot-check confirms the artefacts are extracted.
+- Apollo 17 scan — the OCR pipeline (RapidOCR inside Docling) fed
+  the layout model and produced **89 figures + 27 tables with bboxes
+  from a 50-year-old scanned report**. The 53 flagged pages cluster as
+  35+ consecutive pages all flagging "Figure 10" — visual check on
+  `p180` shows it's a body-text page with cross-references like
+  `(see Figure 10)` and section heading `10.13`, both caught by the
+  audit's caption regex as false positives. Not real Docling misses.
+
+The composite picture across all 23 documents tested:
+
+- ArXiv ML corpus: PyMuPDF `25.4 %` flag rate → Docling `12.7 %` (≈ half;
+  residual mostly audit-tool overcount per visual spot-checks).
+- Slide deck: Docling `0 %`.
+- Non-arXiv academic: Docling `9.4 %` (likely audit-tool overcount).
+- Scanned + OCR'd historical report: Docling `15.6 %` (dominated by
+  body cross-references, not real misses).
+
+The heterogeneous gate is **clear**. The next concrete step is to flip
+`ingest_paper(use_docling=True)` default-on; that change is paired with
+a fresh `baseline-text-only` / `agentic-text-only` re-run so the eval
+comparisons stay on the new ingestion stack — same discipline as ADR
+0017's amendment.
+
 ## What this leaves open
 
 - **Heterogeneous-format eval (the honest test of "any document").**
