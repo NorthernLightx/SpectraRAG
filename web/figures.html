@@ -187,7 +187,7 @@
       }
       .type-filter {
         position: relative;
-        padding: 14px 16px 12px;
+        padding: 14px 16px 14px;
         border: 1px solid var(--border);
         border-radius: 12px;
         background:
@@ -196,9 +196,7 @@
         box-shadow: var(--shadow-sm);
         display: flex;
         flex-direction: column;
-        gap: 10px;
-        max-height: 220px;
-        overflow-y: auto;
+        gap: 12px;
       }
       .type-filter::-webkit-scrollbar { width: 6px; }
       .type-filter::-webkit-scrollbar-track { background: transparent; }
@@ -263,14 +261,15 @@
         flex-wrap: wrap;
         gap: 6px;
       }
+      /* With only 4 coarse chips, give each one a bit more presence. */
       .type-chip {
         position: relative;
         display: inline-flex;
         align-items: center;
-        gap: 6px;
-        padding: 5px 12px 5px 10px;
+        gap: 8px;
+        padding: 7px 14px 7px 12px;
         border-radius: 999px;
-        font-size: 12.5px;
+        font-size: 13.5px;
         font-weight: 500;
         background: var(--canvas);
         color: var(--fg);
@@ -286,8 +285,8 @@
       }
       .type-chip::before {
         content: "";
-        width: 7px;
-        height: 7px;
+        width: 8px;
+        height: 8px;
         border-radius: 50%;
         background: var(--border);
         flex-shrink: 0;
@@ -381,24 +380,8 @@
       let allFigures = [];
       let paperTitles = {}; // paper_id → title (when available)
       let fetchError = null; // sticky message when /figures couldn't load
-      // type-key → bool; populated after fetch, persisted in URL hash.
+      // type-key → bool; populated after fetch.
       let selectedTypes = {};
-
-      // Decorative buckets the user usually doesn't want on first load.
-      // Tables and every actual figure sub-class come pre-checked.
-      const TYPES_OFF_BY_DEFAULT = new Set([
-        "logo",
-        "icon",
-        "signature",
-        "stamp",
-        "bar_code",
-        "qr_code",
-        "page_thumbnail",
-        "calendar",
-        "crossword_puzzle",
-        "decoration",
-        "unlabeled",
-      ]);
 
       Promise.all([
         fetch("/papers")
@@ -420,94 +403,102 @@
       paperFilterEl.addEventListener("change", render);
       captionFilterEl.addEventListener("input", render);
 
-      // Each item's "type" is the most specific Docling label we have:
-      // its `docling_label` when the classifier ran, else falls back to
-      // role-as-type for legacy chunks. `kind=table` always renders as
-      // `table` (independent of role).
-      function itemType(f) {
-        if (f.kind === "table") return "table";
-        if (f.docling_label) return f.docling_label;
-        return f.role || "unlabeled";
-      }
-
-      // Semantic grouping for the element-type selector. The user lands
-      // on a bucket first ("show me charts") then picks specific labels;
-      // an alphabetised flat chip soup hides that mental model.
-      // Any type not listed here falls into "Other" at render time.
-      const TYPE_GROUPS = [
-        {
-          name: "Charts & data",
-          types: [
+      // Coarse element-type taxonomy for the gallery filter. The fine
+      // Docling label (line_chart, scatter_plot, qr_code, ...) is still
+      // visible on each card as a small badge — what we filter on at the
+      // top level is the broader category most users actually pick by.
+      // Keeps the selector to ~4 chips instead of 16.
+      const COARSE_TYPES = {
+        figure: {
+          label: "Figures",
+          // Anything Docling considers real publication content: charts,
+          // diagrams, photos, screenshots, maps, structures, etc.
+          dockingLabels: new Set([
             "line_chart", "bar_chart", "scatter_plot", "scatter_chart",
             "stacked_bar_chart", "pie_chart", "box_plot", "heatmap", "flow_chart",
-          ],
-        },
-        {
-          name: "Tables",
-          types: ["table"],
-        },
-        {
-          name: "Media & captures",
-          types: [
             "photograph", "natural_image", "screenshot_from_computer",
             "screenshot_from_manual", "screenshot", "full_page_image",
-            "page_thumbnail",
-          ],
-        },
-        {
-          name: "Diagrams",
-          types: [
             "engineering_drawing", "cad_drawing", "electrical_diagram",
             "chemistry_structure", "chemistry_molecular_structure",
             "chemistry_markush_structure", "geographical_map", "geographic_map",
             "map", "topographical_map", "remote_sensing", "stratigraphic_chart",
             "music", "picture_group",
-          ],
+          ]),
         },
-        {
-          name: "Decorative",
-          types: [
+        table: {
+          label: "Tables",
+          // `kind=table` chunks; picture-side detections classified as
+          // table-shaped go here too so duplicates land in the same bucket.
+          dockingLabels: new Set(["table"]),
+        },
+        decoration: {
+          label: "Decorative",
+          // Logos, icons, page furniture — the bucket the gallery hides
+          // by default.
+          dockingLabels: new Set([
             "logo", "icon", "signature", "stamp", "bar_code", "qr_code",
-            "decoration", "calendar", "crossword_puzzle",
-          ],
+            "page_thumbnail", "calendar", "crossword_puzzle",
+          ]),
         },
-        {
-          name: "Other",
-          types: ["other", "unlabeled", "figure"],
+        other: {
+          label: "Other",
+          // Catch-all: Docling's `other`, low-confidence detections, and
+          // legacy chunks without a docling_label.
+          dockingLabels: new Set(["other"]),
         },
-      ];
+      };
+
+      // Each item's coarse type. Prefer Docling's fine label mapped through
+      // the table above; fall back to the chunk's stored role (ADR 0022)
+      // when no classifier label is present (legacy collections).
+      function itemType(f) {
+        if (f.kind === "table") return "table";
+        if (f.docling_label) {
+          for (const [coarse, def] of Object.entries(COARSE_TYPES)) {
+            if (def.dockingLabels.has(f.docling_label)) return coarse;
+          }
+          return "other";
+        }
+        // Legacy mapping: role values match coarse-type keys 1:1 except
+        // `unlabeled` which falls into `other`.
+        if (f.role === "figure" || f.role === "decoration") return f.role;
+        return "other";
+      }
+
+      const COARSE_ORDER = ["figure", "table", "decoration", "other"];
 
       function buildTypeFilter() {
-        // Count items per type so the chip carries useful weight.
+        // Count items per coarse type so the chip carries useful weight.
         const counts = {};
         for (const f of allFigures) {
           const t = itemType(f);
           counts[t] = (counts[t] || 0) + 1;
         }
-        const allTypes = Object.keys(counts).sort();
-        // Seed `selectedTypes`: types not in the off-by-default set start checked.
-        for (const t of allTypes) {
-          if (!(t in selectedTypes)) selectedTypes[t] = !TYPES_OFF_BY_DEFAULT.has(t);
+        // Only render types that exist in the data, in the defined order.
+        const presentTypes = COARSE_ORDER.filter((t) => counts[t]);
+        // Seed `selectedTypes`: figure + table on by default; the rest off.
+        const DEFAULTS_ON = new Set(["figure", "table"]);
+        for (const t of presentTypes) {
+          if (!(t in selectedTypes)) selectedTypes[t] = DEFAULTS_ON.has(t);
         }
         clear(typeFilterEl);
 
-        // Toolbar: summary text + Select-all / Clear / Reset actions.
+        // Toolbar: live summary + Select-all / Clear / Reset.
         const toolbar = document.createElement("div");
         toolbar.className = "type-toolbar";
         const summary = document.createElement("div");
         summary.className = "type-toolbar-summary";
-        // Built up with three text nodes so we never have to set innerHTML.
         const sumLeadCount = document.createElement("strong");
         const sumLeadTotal = document.createTextNode("");
         const sumMidCount = document.createElement("strong");
         const sumTail = document.createTextNode("");
         summary.append(sumLeadCount, sumLeadTotal, sumMidCount, sumTail);
         const updateSummary = () => {
-          const on = allTypes.filter((t) => selectedTypes[t]);
+          const on = presentTypes.filter((t) => selectedTypes[t]);
           const onCount = on.reduce((acc, t) => acc + (counts[t] || 0), 0);
-          const totalCount = allTypes.reduce((acc, t) => acc + (counts[t] || 0), 0);
+          const totalCount = presentTypes.reduce((acc, t) => acc + (counts[t] || 0), 0);
           sumLeadCount.textContent = String(on.length);
-          sumLeadTotal.textContent = ` of ${allTypes.length} types · `;
+          sumLeadTotal.textContent = ` of ${presentTypes.length} types · `;
           sumMidCount.textContent = String(onCount);
           sumTail.textContent = ` of ${totalCount} items shown`;
         };
@@ -525,17 +516,17 @@
         };
         actions.append(
           mkBtn("Select all", () => {
-            for (const t of allTypes) selectedTypes[t] = true;
+            for (const t of presentTypes) selectedTypes[t] = true;
             buildTypeFilter();
             render();
           }),
           mkBtn("Clear", () => {
-            for (const t of allTypes) selectedTypes[t] = false;
+            for (const t of presentTypes) selectedTypes[t] = false;
             buildTypeFilter();
             render();
           }),
           mkBtn("Reset", () => {
-            for (const t of allTypes) selectedTypes[t] = !TYPES_OFF_BY_DEFAULT.has(t);
+            for (const t of presentTypes) selectedTypes[t] = DEFAULTS_ON.has(t);
             buildTypeFilter();
             render();
           }),
@@ -543,52 +534,28 @@
         toolbar.append(actions);
         typeFilterEl.append(toolbar);
 
-        // Bucket every present type into its group, with leftover landing
-        // in "Other".
-        const knownTypes = new Set(TYPE_GROUPS.flatMap((g) => g.types));
-        const groupedTypes = TYPE_GROUPS.map((g) => ({
-          name: g.name,
-          types: g.types.filter((t) => counts[t]),
-        }));
-        const leftover = allTypes.filter((t) => !knownTypes.has(t));
-        if (leftover.length) {
-          const other = groupedTypes.find((g) => g.name === "Other");
-          if (other) other.types.push(...leftover);
+        // Single chip row — 4 buckets max, no group headings needed.
+        const chips = document.createElement("div");
+        chips.className = "type-group-chips";
+        for (const t of presentTypes) {
+          const chip = document.createElement("button");
+          chip.type = "button";
+          chip.className = "type-chip" + (selectedTypes[t] ? " on" : "");
+          chip.dataset.type = t;
+          chip.append(document.createTextNode(COARSE_TYPES[t].label));
+          const c = document.createElement("span");
+          c.className = "count";
+          c.textContent = counts[t];
+          chip.append(c);
+          chip.addEventListener("click", () => {
+            selectedTypes[t] = !selectedTypes[t];
+            chip.classList.toggle("on", selectedTypes[t]);
+            updateSummary();
+            render();
+          });
+          chips.append(chip);
         }
-
-        for (const group of groupedTypes) {
-          if (group.types.length === 0) continue;
-          const section = document.createElement("div");
-          section.className = "type-group";
-          const label = document.createElement("div");
-          label.className = "type-group-label";
-          label.textContent = group.name;
-          section.append(label);
-          const chips = document.createElement("div");
-          chips.className = "type-group-chips";
-          for (const t of group.types) {
-            const chip = document.createElement("button");
-            chip.type = "button";
-            chip.className = "type-chip" + (selectedTypes[t] ? " on" : "");
-            chip.dataset.type = t;
-            // Friendlier label: "line_chart" → "line chart"
-            const pretty = t.replace(/_/g, " ");
-            chip.append(document.createTextNode(pretty));
-            const c = document.createElement("span");
-            c.className = "count";
-            c.textContent = counts[t];
-            chip.append(c);
-            chip.addEventListener("click", () => {
-              selectedTypes[t] = !selectedTypes[t];
-              chip.classList.toggle("on", selectedTypes[t]);
-              updateSummary();
-              render();
-            });
-            chips.append(chip);
-          }
-          section.append(chips);
-          typeFilterEl.append(section);
-        }
+        typeFilterEl.append(chips);
       }
 
       async function fetchFigures() {
