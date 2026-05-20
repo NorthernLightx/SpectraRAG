@@ -1,0 +1,1704 @@
+{
+  "run_id": "54d579118679",
+  "started_at": "2026-05-20T09:52:58.996464Z",
+  "finished_at": "2026-05-20T10:42:44.381900Z",
+  "golden_set_name": "phase1-text-baseline",
+  "golden_set_version": "v3",
+  "config": {
+    "retriever": "pipeline",
+    "rerank": false,
+    "rerank_model": null,
+    "rerank_input_size": null,
+    "top_k": 10,
+    "paper_ids": [
+      "2604.22753v1",
+      "2604.27742v1",
+      "2604.27883v1",
+      "2604.28144v1",
+      "2604.28149v1",
+      "2604.28159v1",
+      "2604.28169v1",
+      "2604.28173v1",
+      "2604.28175v1",
+      "2604.28176v1",
+      "2604.28177v1",
+      "2604.28180v1",
+      "2604.28181v1",
+      "2604.28182v1",
+      "2604.28186v1",
+      "2604.28190v1",
+      "2604.28192v1",
+      "2604.28193v1",
+      "2604.28196v1",
+      "2604.28197v1"
+    ],
+    "embedding_model": "bge-m3",
+    "embedding_dim": 1024,
+    "contextualize": false,
+    "contextualize_provider": null,
+    "contextualize_model": null,
+    "contextualize_num_ctx": null,
+    "generate": true,
+    "generator_provider": "ollama",
+    "generator_model": "gemma3:4b",
+    "refusal_score_threshold": null,
+    "judge": true,
+    "judge_provider": "ollama",
+    "judge_model": "gemma3:4b",
+    "judge_num_ctx": 16384,
+    "judge_n_samples": 1,
+    "extract_figures": true,
+    "extract_tables": true,
+    "use_docling": true,
+    "vlm_caption_model": null,
+    "vlm_caption_provider": null,
+    "query_expansion": false,
+    "query_expansion_mode": null,
+    "query_expansion_model": null,
+    "query_expansion_n": null,
+    "router": false,
+    "visual_model": null,
+    "visual_device": null,
+    "paper_id_filter": true,
+    "region_number_boost": false,
+    "rerank_length_norm": false,
+    "rerank_length_threshold": null,
+    "rerank_length_penalty": null,
+    "cascade": false,
+    "cascade_threshold": null,
+    "agentic": false,
+    "agentic_provider": null,
+    "agentic_model": null,
+    "agentic_max_subqueries": null
+  },
+  "per_query": [
+    {
+      "query_id": "q1_inter_basin",
+      "category": "factual",
+      "text": "What is the inter-basin gain criterion?",
+      "retrieved_chunk_ids": [
+        "2604.22753v1::p23::c69",
+        "2604.22753v1::p23::c68",
+        "2604.22753v1::p25::c72",
+        "2604.22753v1::p5::c16",
+        "2604.22753v1::p25::c73",
+        "2604.22753v1::p24::c70",
+        "2604.22753v1::p22::c67",
+        "2604.22753v1::p4::c15",
+        "2604.22753v1::p19::c62",
+        "2604.22753v1::p19::c61"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": {
+        "citation_rate": null,
+        "faithfulness": 0.95,
+        "answer_relevance": 0.8,
+        "context_precision": 0.6,
+        "answer_correctness": 0.25,
+        "faithfulness_std": 0.0,
+        "answer_relevance_std": 0.0,
+        "context_precision_std": 0.0,
+        "answer_correctness_std": 0.0
+      },
+      "answer_text": "Here's a concise answer derived from the provided text, incorporating bracket-id formatting and citations:\n\nThe core of the proposed method involves approximating the posterior distribution over basins using a local linearization, combined with a mixture model. Specifically, the acquisition function, denoted as `∆MSPEtar(x)`, decomposes into two key terms: `∆Vintra(x)` and `∆Vinter(x)`.\n\n`∆Vintra(x)` represents the reduction in within-basin predictive variance on the target region `Xtar`, calculated using a local linear approximation of the predictor function `F(θ)` within each basin.  This term is derived as: `∆Vintra(x) = 1 / |Xtar| K ∑ k=1 wk tr(JkΣkJ⊤k)`, where `Jk` is the Jacobian of `F` with respect to `θ` evaluated at `θk`, and `Σk` is the covariance matrix of the local posterior. [id1]\n\n`∆Vinter(x)` represents the reduction in inter-basin uncertainty, accounting for the differing extrapolations between basins. This term is derived by considering the difference in the squared Euclidean norm between the predicted target values and the observed values, after linearizing the prediction function around the basin representative parameters. [id2]\n\nThe overall acquisition function is then defined as the sum of these two terms, scaled by the experiment cost: `∆MSPEtar(x) = ∆Vintra(x) + ∆Vinter(x) / c(x)α`, where `c(x)` is the cost function and `α` is a cost exponent. [id3]\n\nCitations: [id1], [id2], [id3]\n",
+      "cited_chunk_ids": [],
+      "latency_ms": 94422,
+      "tokens_in": 4096,
+      "tokens_out": 363
+    },
+    {
+      "query_id": "q2_bic_ranking",
+      "category": "factual",
+      "text": "How does the paper rank basins?",
+      "retrieved_chunk_ids": [
+        "2604.22753v1::p18::c60",
+        "2604.22753v1::p25::c73",
+        "2604.22753v1::p18::c59",
+        "2604.22753v1::p4::c15",
+        "2604.22753v1::p25::c72",
+        "2604.22753v1::p20::c64",
+        "2604.22753v1::p23::c69",
+        "2604.22753v1::p9::c33",
+        "2604.22753v1::p22::c67",
+        "2604.22753v1::p24::c70"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": {
+        "citation_rate": null,
+        "faithfulness": 0.95,
+        "answer_relevance": 0.6,
+        "context_precision": 0.6,
+        "answer_correctness": 0.8,
+        "faithfulness_std": 0.0,
+        "answer_relevance_std": 0.0,
+        "context_precision_std": 0.0,
+        "answer_correctness_std": 0.0
+      },
+      "answer_text": "The inter-basin utility, ∆Vinter(x), quantifies the reduction in between-basin uncertainty after observing (x, y). It’s calculated as ∆Vinter(x) = Vinter − Ey|x,Dt[V+inter(x, y)].  The key to this calculation lies in the pairwise form of the inter-basin variance, which simplifies the expectation:  V+inter(x, y) = ∑1≤k<ℓ≤K w+k(x, y) w+ℓ(x, y) ∥ˆfk −ˆfℓ∥22.  This form allows for efficient evaluation via one-dimensional numerical quadrature.  Specifically, the expectation becomes  Ey|x,Dt[V+inter(x, y)] =  Z wk p(y | x, B = k, Dt) dy = wk.  Therefore, ∆Vinter(x) = ∑k wk ∥JkΣkJ⊤k∥2 σ2k + jk(x)⊤Σkjk(x).  This utility is maximized when different basins predict substantially different outcomes at x, leading to reweighting or pulling of target-region predictions.\n\nCitations: [id1], [id2], [id3], [id4], [id5], [id6], [id7], [id8]",
+      "cited_chunk_ids": [],
+      "latency_ms": 76421,
+      "tokens_in": 4096,
+      "tokens_out": 285
+    },
+    {
+      "query_id": "q3_approximation_options",
+      "category": "factual",
+      "text": "What approximations are used to score basins?",
+      "retrieved_chunk_ids": [
+        "2604.22753v1::p18::c60",
+        "2604.22753v1::p25::c73",
+        "2604.22753v1::p18::c59",
+        "2604.22753v1::p25::c72",
+        "2604.22753v1::p17::c57",
+        "2604.22753v1::p19::c62",
+        "2604.22753v1::p4::c15",
+        "2604.22753v1::p3::c13",
+        "2604.22753v1::p20::c64",
+        "2604.22753v1::p24::c70"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": {
+        "citation_rate": null,
+        "faithfulness": 0.95,
+        "answer_relevance": 0.8,
+        "context_precision": 0.6,
+        "answer_correctness": 0.7,
+        "faithfulness_std": 0.0,
+        "answer_relevance_std": 0.0,
+        "context_precision_std": 0.0,
+        "answer_correctness_std": 0.0
+      },
+      "answer_text": "The approximation of basins involves assigning mixture weights [18::c60] based on posterior probabilities, denoted as *p(B = k | Dt)*, where *B* is a latent basin indicator. Specifically, *wk ≈ p(B = k | Dt)* [18::c60].  The utility of an experiment is approximated by locally linearizing the predictor within each basin [20::c64] while preserving the multimodal structure across basins. This decomposition involves calculating intra-basin utility, *Vintra*, which reflects the reduction in within-basin predictive variance on the target region *Xtar*, and inter-basin utility, *Vinter*, which reflects the reduction in disagreement between basins [20::c64]. The inter-basin utility is efficiently computed via a pairwise form involving one-dimensional numerical quadrature [24::c70]. Citations: [18::c60], [20::c64], [24::c70]",
+      "cited_chunk_ids": [],
+      "latency_ms": 67719,
+      "tokens_in": 4044,
+      "tokens_out": 210
+    },
+    {
+      "query_id": "q4_target_region",
+      "category": "multi_hop",
+      "text": "Why is the predictive accuracy goal restricted to a target region?",
+      "retrieved_chunk_ids": [
+        "2604.22753v1::p17::c57",
+        "2604.22753v1::p3::c13",
+        "2604.22753v1::p8::c29",
+        "2604.22753v1::p9::c34",
+        "2604.22753v1::p17::c58",
+        "2604.22753v1::p3::c12",
+        "2604.22753v1::p4::c14",
+        "2604.22753v1::p2::c6",
+        "2604.22753v1::p25::c72",
+        "2604.22753v1::p19::c62"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": {
+        "citation_rate": 1.0,
+        "faithfulness": 1.0,
+        "answer_relevance": 0.9,
+        "context_precision": 0.8,
+        "answer_correctness": 1.0,
+        "faithfulness_std": 0.0,
+        "answer_relevance_std": 0.0,
+        "context_precision_std": 0.0,
+        "answer_correctness_std": 0.0
+      },
+      "answer_text": "The predictive accuracy goal is restricted to a target region [2604.22753v1::p3::c12] because “our downstream objective is prediction accuracy on a target region rather than parameter recovery itself” [2604.22753v1::p3::c13]. The evaluation set, Xeval, is chosen to be this target region [2604.22753v1::p17::c57] to assess the predictive distribution induced by each local solution. Specifically, the model measures the discrepancy between local optima by comparing their predictive Gaussians across Xeval [2604.22753v1::p17::c58]. This approach focuses on minimizing the target-region mean squared prediction error [2604.22753v1::p4::c14], acknowledging that the best fit on all observed training points may not be optimal for extrapolation to the target region [2604.22753v1::p8::c29].\n\nCitations: [2604.22753v1::p17::c57], [2604.22753v1::p3::c13], [2604.22753v1::p8::c29], [2604.22753v1::p3::c12], [2604.22753v1::p4::c14]",
+      "cited_chunk_ids": [
+        "2604.22753v1::p17::c57",
+        "2604.22753v1::p3::c12",
+        "2604.22753v1::p8::c29",
+        "2604.22753v1::p3::c13",
+        "2604.22753v1::p17::c58",
+        "2604.22753v1::p4::c14"
+      ],
+      "latency_ms": 96984,
+      "tokens_in": 3481,
+      "tokens_out": 344
+    },
+    {
+      "query_id": "q5_oc_weather",
+      "category": "out_of_corpus",
+      "text": "Will it rain on Mars tomorrow?",
+      "retrieved_chunk_ids": [
+        "2604.22753v1::p25::c74",
+        "2604.22753v1::p9::c33",
+        "2604.22753v1::p25::c73",
+        "2604.22753v1::p12::c45",
+        "2604.22753v1::p7::c26",
+        "2604.22753v1::p25::c72",
+        "2604.22753v1::p23::c68",
+        "2604.22753v1::p21::c66",
+        "2604.22753v1::p22::c67",
+        "2604.22753v1::p1::c3"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": {
+        "citation_rate": 1.0,
+        "faithfulness": 0.0,
+        "answer_relevance": 0.0,
+        "context_precision": 0.2,
+        "answer_correctness": null,
+        "faithfulness_std": null,
+        "answer_relevance_std": null,
+        "context_precision_std": 0.0,
+        "answer_correctness_std": null
+      },
+      "answer_text": "Manually selecting experimental configurations is inefficient and costly, particularly as scaling laws expand beyond dense pretraining [2604.22753v1::p1::c3]. The full fit-and-verify pipeline can reach a million-dollar scale before deployment-scale training begins [2604.22753v1::p1::c3]. Therefore, accurate scaling-law fitting is not only a modeling problem but also a problem of budget allocation [2604.22753v1::p1::c3].\n\nCitations: [2604.22753v1::p1::c3]",
+      "cited_chunk_ids": [
+        "2604.22753v1::p1::c3"
+      ],
+      "latency_ms": 36405,
+      "tokens_in": 4052,
+      "tokens_out": 145
+    },
+    {
+      "query_id": "q6_basin_definition",
+      "category": "factual",
+      "text": "What is a basin in this paper?",
+      "retrieved_chunk_ids": [
+        "2604.22753v1::p18::c60",
+        "2604.22753v1::p25::c73",
+        "2604.22753v1::p23::c69",
+        "2604.22753v1::p24::c70",
+        "2604.22753v1::p21::c66",
+        "2604.22753v1::p19::c61",
+        "2604.22753v1::p25::c72",
+        "2604.22753v1::p19::c62",
+        "2604.22753v1::p9::c32",
+        "2604.22753v1::p5::c16"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": {
+        "citation_rate": null,
+        "faithfulness": 0.95,
+        "answer_relevance": 0.7,
+        "context_precision": 1.0,
+        "answer_correctness": 0.0,
+        "faithfulness_std": 0.0,
+        "answer_relevance_std": 0.0,
+        "context_precision_std": 0.0,
+        "answer_correctness_std": 0.0
+      },
+      "answer_text": "Here's a breakdown of the acquisition function derivation and the ablation study, formatted as requested:\n\n**4.3 Acquisition Function Derivation**\n\nThe target-aware acquisition function, denoted as `S(x)`, is derived to efficiently select the next experiment point in a sequential design problem. It combines two key components: intra-basin and inter-basin uncertainty measures.\n\n**4.3.1 Local Linearization**\n\nStarting with a basin-mixture approximation of the posterior distribution `p(θ | Dt) ≈ ∑k wk N(θk, Σk)`, we linearize the scaling law around each basin representative `θk`. This allows for tractable calculations of predictive uncertainty and posterior updates.  The first-order Taylor expansion of the prediction map `F(θ)` around `θk` yields `F(θ) ≈ F(θk) + Jk(θ - θk)`, where `Jk` is the Jacobian of `F` with respect to `θ` evaluated at `θk`.\n\n**4.3.2 Intra-Basin Uncertainty**\n\nThe intra-basin uncertainty, `∆Vintra(x)`, quantifies the reduction in target-region uncertainty resulting from observing a new data point `y` within a specific basin `k`.  It’s calculated as:\n\n`∆Vintra(x) = 1/|Xtar| ∑k wk ||Jk ΣkJx(θk)⊤||2 σ2 + Jx(θk)ΣkJx(θk)⊤`\n\nThis term represents the expected reduction in variance within the local region defined by the basin, considering both the local parameter variation and the data-driven uncertainty.\n\n**4.3.3 Inter-Basin Uncertainty**\n\nThe inter-basin uncertainty, `∆Vinter(x)`, measures the reduction in disagreement between different basins. It’s calculated as:\n\n`∆Vinter(x) = Vinter - Z V+inter(x, y) p(y | x, Dt) dy`\n\nWhere `Vinter` is the total inter-basin variance and `V+inter(x, y)` is the updated between-basin uncertainty after observing outcome `y` at candidate `x`.  The integral is evaluated numerically due to the one-dimensional nature of the observation `y`.\n\n**4.3.4 Combined Acquisition Function**\n\nThe overall acquisition function, `S(x)`, is then the sum of these two components, scaled by the experiment cost `c(x)`:\n\n`S(x) = (∆Vintra(x) + ∆Vinter(x)) / c(x)α`\n\n**4.4 Ablation Study Results**\n\nThe ablation study demonstrates the relative importance of intra-basin and inter-basin uncertainty in the acquisition function. Removing `∆Vintra` resulted in a significantly larger degradation in performance, particularly on datasets like ‘moe’ and ‘lr&bsz’, indicating that within-basin uncertainty is the dominant signal for effective sequential design.  Removing `∆Vinter` led to a smaller, often less impactful, drop in performance. This highlights the task-dependent nature of cross-basin disagreement.\n\n`Citations: [id1], [id2], [id3], [id4], [id5], [id6], [id7]`\n",
+      "cited_chunk_ids": [],
+      "latency_ms": 131890,
+      "tokens_in": 4096,
+      "tokens_out": 700
+    },
+    {
+      "query_id": "q7_posterior_mixture",
+      "category": "factual",
+      "text": "How is the posterior over scaling-law parameters approximated?",
+      "retrieved_chunk_ids": [
+        "2604.22753v1::p2::c7",
+        "2604.22753v1::p25::c74",
+        "2604.22753v1::p2::c6",
+        "2604.22753v1::p3::c12",
+        "2604.22753v1::p9::c34",
+        "2604.22753v1::p16::c55",
+        "2604.22753v1::p13::c48",
+        "2604.22753v1::p6::c19",
+        "2604.22753v1::p5::c18",
+        "2604.22753v1::p1::c1"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": {
+        "citation_rate": 1.0,
+        "faithfulness": 0.95,
+        "answer_relevance": 0.9,
+        "context_precision": 0.6,
+        "answer_correctness": 0.6,
+        "faithfulness_std": 0.0,
+        "answer_relevance_std": 0.0,
+        "context_precision_std": 0.0,
+        "answer_correctness_std": 0.0
+      },
+      "answer_text": "The posterior over scaling-law parameters is approximated using an uncertainty-aware acquisition strategy [2604.22753v1::p9::c34]. This method selects experiments based on their value for target-region extrapolation, utilizing a mixture-based approximation of multimodal parameter uncertainty [2604.22753v1::p25::c74]. Specifically, the local covariance is approximated using a Gauss–Newton/Fisher-style matrix, derived from the empirical mean-squared error around a local optimum [2604.22753v1::p16::c55]. The method iteratively refits the scaling law from multiple local solutions, consolidating them into a basin mixture [2604.22753v1::p13::c48].\nCitations: [2604.22753v1::p2::c7], [2604.22753v1::p9::c34], [2604.22753v1::p13::c48], [2604.22753v1::p16::c55]",
+      "cited_chunk_ids": [
+        "2604.22753v1::p13::c48",
+        "2604.22753v1::p9::c34",
+        "2604.22753v1::p25::c74",
+        "2604.22753v1::p2::c7",
+        "2604.22753v1::p16::c55"
+      ],
+      "latency_ms": 78547,
+      "tokens_in": 3083,
+      "tokens_out": 266
+    },
+    {
+      "query_id": "q8_benchmark_size",
+      "category": "factual",
+      "text": "How many tasks and scaling-law instances are in the benchmark?",
+      "retrieved_chunk_ids": [
+        "2604.22753v1::p5::c17",
+        "2604.22753v1::p6::c19",
+        "2604.22753v1::p13::c46",
+        "2604.22753v1::p5::c18",
+        "2604.22753v1::p6::tab1",
+        "2604.22753v1::p8::c28",
+        "2604.22753v1::p13::c48",
+        "2604.22753v1::p9::c34",
+        "2604.22753v1::p1::c1",
+        "2604.22753v1::p1::c2"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": {
+        "citation_rate": 1.0,
+        "faithfulness": 0.95,
+        "answer_relevance": 0.9,
+        "context_precision": 0.8,
+        "answer_correctness": 1.0,
+        "faithfulness_std": 0.0,
+        "answer_relevance_std": 0.0,
+        "context_precision_std": 0.0,
+        "answer_correctness_std": 0.0
+      },
+      "answer_text": "There are 8 tasks and 65 scaling-law instances in the benchmark [2604.22753v1::p5::c17]. The tasks include Parallel Scaling Law, Vocab, Domain, MoE, Data Con, lr&bsz, Sparsity, and Farseer [2604.22753v1::p8::c28]. Each task contains a collection of scaling-law instances for evaluating budget-aware sequential design [2604.22753v1::p13::c46]. Citations: [2604.22753v1::p5::c17], [2604.22753v1::p5::c17], [2604.22753v1::p8::c28], [2604.22753v1::p13::c46]",
+      "cited_chunk_ids": [
+        "2604.22753v1::p13::c46",
+        "2604.22753v1::p8::c28",
+        "2604.22753v1::p5::c17"
+      ],
+      "latency_ms": 68452,
+      "tokens_in": 3438,
+      "tokens_out": 217
+    },
+    {
+      "query_id": "q9_baselines",
+      "category": "factual",
+      "text": "Which baselines does the paper compare against?",
+      "retrieved_chunk_ids": [
+        "2604.22753v1::p6::c20",
+        "2604.22753v1::p8::c27",
+        "2604.22753v1::p23::c69",
+        "2604.22753v1::p7::c26",
+        "2604.22753v1::p12::c44",
+        "2604.22753v1::p13::c46",
+        "2604.22753v1::p13::c48",
+        "2604.22753v1::p13::c49",
+        "2604.22753v1::p25::c74",
+        "2604.22753v1::p13::c47"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": {
+        "citation_rate": 1.0,
+        "faithfulness": 0.95,
+        "answer_relevance": 0.9,
+        "context_precision": 0.85,
+        "answer_correctness": 0.8,
+        "faithfulness_std": 0.0,
+        "answer_relevance_std": 0.0,
+        "context_precision_std": 0.0,
+        "answer_correctness_std": 0.0
+      },
+      "answer_text": "The paper compares against six baselines: (1) Random, (2) Cheapest, (3) Cost Rand, (4) D-opt, and (5) V-opt [2604.22753v1::p6::c20]. Additionally, it compares against classical design criteria adapted to the nonlinear, cost-constrained setting [2604.22753v1::p8::c27]. The Random, Cheapest, and Cost Rand methods represent simple exploration strategies, while D-opt and V-opt utilize a mixture-based approximation of multimodal parameter uncertainty [2604.22753v1::p6::c20]. Citations: [2604.22753v1::p6::c20], [2604.22753v1::p8::c27]",
+      "cited_chunk_ids": [
+        "2604.22753v1::p8::c27",
+        "2604.22753v1::p6::c20"
+      ],
+      "latency_ms": 64484,
+      "tokens_in": 3994,
+      "tokens_out": 196
+    },
+    {
+      "query_id": "q10_ablation_terms",
+      "category": "factual",
+      "text": "What does the ablation study remove from the acquisition function?",
+      "retrieved_chunk_ids": [
+        "2604.22753v1::p9::tab3",
+        "2604.22753v1::p9::c31",
+        "2604.22753v1::p9::c32",
+        "2604.22753v1::p19::c61",
+        "2604.22753v1::p19::c62",
+        "2604.22753v1::p17::c58",
+        "2604.22753v1::p25::c72",
+        "2604.22753v1::p17::c57",
+        "2604.22753v1::p25::c74",
+        "2604.22753v1::p6::c22"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": {
+        "citation_rate": null,
+        "faithfulness": 0.95,
+        "answer_relevance": 0.2,
+        "context_precision": 1.0,
+        "answer_correctness": 0.0,
+        "faithfulness_std": 0.0,
+        "answer_relevance_std": 0.0,
+        "context_precision_std": 0.0,
+        "answer_correctness_std": 0.0
+      },
+      "answer_text": "The proposed method, “Ours,” achieves the strongest overall budget-accuracy trade-off, approaching the full-data reference by utilizing only a small fraction of the total experimental cost. Specifically, across the benchmark datasets (lr&bsz, domain, vocab, parallel, moe, data_con, sparsity, and farseer), “Ours” consistently outperforms the other methods, particularly when considering the consumed budget. The method’s effectiveness stems from its ability to efficiently identify the most informative candidates for experimentation, minimizing the overall cost while maintaining high target-region R2 values.  The “Cheapest” method, which always selects the lowest-cost candidates, also performs well, but “Ours” demonstrates a more nuanced approach, leveraging both intra- and inter-basin uncertainty to guide the selection process. The “All Data” method, which fits the scaling law on the entire dataset, serves as a strong baseline, but it is computationally expensive and often overfits the data. The “D-opt” and “V-opt” methods, which use deterministic and variance-based optimization respectively, also perform reasonably well, but “Ours” offers a more computationally efficient and adaptable solution.\n\nCitations: [id2], [id5], [id7], [id8], [id17], [id18]",
+      "cited_chunk_ids": [],
+      "latency_ms": 80000,
+      "tokens_in": 4096,
+      "tokens_out": 273
+    },
+    {
+      "query_id": "q11_budget_levels",
+      "category": "factual",
+      "text": "What budget levels are used in the experiments?",
+      "retrieved_chunk_ids": [
+        "2604.22753v1::p3::c10",
+        "2604.22753v1::p7::c25",
+        "2604.22753v1::p3::c11",
+        "2604.22753v1::p9::c34",
+        "2604.22753v1::p25::c73",
+        "2604.22753v1::p1::c1",
+        "2604.22753v1::p2::c6",
+        "2604.22753v1::p1::c4",
+        "2604.22753v1::p2::fig1",
+        "2604.22753v1::p2::c7"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": {
+        "citation_rate": 1.0,
+        "faithfulness": 0.95,
+        "answer_relevance": 0.9,
+        "context_precision": 0.8,
+        "answer_correctness": 0.7,
+        "faithfulness_std": 0.0,
+        "answer_relevance_std": 0.0,
+        "context_precision_std": 0.0,
+        "answer_correctness_std": 0.0
+      },
+      "answer_text": "The experiments utilize budget levels of 1%, 5%, 10%, 20%, 35%, and 50% [2604.22753v1::p7::c25]. The method prioritizes experiments based on their expected predictive benefit relative to their cost [2604.22753v1::p3::c10 & 2604.22753v1::p9::c34]. Specifically, the cost-aware score S(x) incorporates both the prediction error in the target region and the cost of running the experiment [2604.22753v1::p25::c73]. The goal is to maximize extrapolation accuracy in a high-cost target region while staying within a defined budget [2604.22753v1::p1::c1 & 2604.22753v1::p2::c6].\nCitations: [2604.22753v1::p1::c1], [2604.22753v1::p2::c6], [2604.22753v1::p7::c25], [2604.22753v1::p9::c34]",
+      "cited_chunk_ids": [
+        "2604.22753v1::p9::c34",
+        "2604.22753v1::p7::c25",
+        "2604.22753v1::p2::c6",
+        "2604.22753v1::p1::c1",
+        "2604.22753v1::p25::c73"
+      ],
+      "latency_ms": 91359,
+      "tokens_in": 3657,
+      "tokens_out": 303
+    },
+    {
+      "query_id": "q12_multibasin_vs_vopt",
+      "category": "multi_hop",
+      "text": "Why does this method maintain multiple basins rather than a single best-fit linearization?",
+      "retrieved_chunk_ids": [
+        "2604.22753v1::p18::c59",
+        "2604.22753v1::p8::c28",
+        "2604.22753v1::p8::c29",
+        "2604.22753v1::p9::c33",
+        "2604.22753v1::p18::c60",
+        "2604.22753v1::p17::c57",
+        "2604.22753v1::p25::c73",
+        "2604.22753v1::p8::c27",
+        "2604.22753v1::p24::c70",
+        "2604.22753v1::p7::c26"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": {
+        "citation_rate": 1.0,
+        "faithfulness": 1.0,
+        "answer_relevance": 0.9,
+        "context_precision": 0.8,
+        "answer_correctness": 0.8,
+        "faithfulness_std": 0.0,
+        "answer_relevance_std": 0.0,
+        "context_precision_std": 0.0,
+        "answer_correctness_std": 0.0
+      },
+      "answer_text": "This method maintains multiple basins rather than a single best-fit linearization because the fitting landscape often contains multiple plausible basins [2604.22753v1::p18::c59]. The hierarchical clustering process identifies these distinct local optima, creating a partition into clusters C1, ..., CK, which are interpreted as basins [2604.22753v1::p18::c59]. Each cluster is represented by a representative local optimum chosen based on the smallest empirical fitting error on the current dataset [2604.22753v1::p18::c59]. This approach allows the method to preserve distinct extrapolative behaviors while removing redundant local optima [2604.22753v1::p18::c59]. The mixture weights assigned to these basins further refine the uncertainty representation [2604.22753v1::p18::c60].\n\nCitations: [2604.22753v1::p18::c59], [2604.22753v1::p18::c60], [2604.22753v1::p8::c27], [2604.22753v1::p8::c28], [2604.22753v1::p24::c70]",
+      "cited_chunk_ids": [
+        "2604.22753v1::p18::c59",
+        "2604.22753v1::p8::c27",
+        "2604.22753v1::p8::c28",
+        "2604.22753v1::p24::c70",
+        "2604.22753v1::p18::c60"
+      ],
+      "latency_ms": 88420,
+      "tokens_in": 3400,
+      "tokens_out": 320
+    },
+    {
+      "query_id": "q13_figure1_lrbsz",
+      "category": "figure",
+      "text": "What does Figure 1 illustrate on the lr&bsz task?",
+      "retrieved_chunk_ids": [
+        "2604.22753v1::p2::fig1",
+        "2604.22753v1::p8::c28",
+        "2604.22753v1::p8::fig3",
+        "2604.22753v1::p7::c26",
+        "2604.22753v1::p2::c5",
+        "2604.22753v1::p6::c19",
+        "2604.22753v1::p8::c30",
+        "2604.22753v1::p6::tab1",
+        "2604.22753v1::p6::c22",
+        "2604.22753v1::p5::c18"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": {
+        "citation_rate": null,
+        "faithfulness": 0.95,
+        "answer_relevance": 0.8,
+        "context_precision": 0.85,
+        "answer_correctness": 0.75,
+        "faithfulness_std": 0.0,
+        "answer_relevance_std": 0.0,
+        "context_precision_std": 0.0,
+        "answer_correctness_std": 0.0
+      },
+      "answer_text": "The study evaluates budget-aware sequential design on target-region extrapolation using a scaling-law benchmark. The core finding is that the “Ours” method achieves the strongest overall budget-accuracy trade-off, approaching the full-data reference with a small fraction of the total experimental cost ( [p6:c22], [p6:tab1]). Specifically, on tasks like `lr&bsz` and `domain`, the “Ours” method reaches near-full data performance with limited budgets ( [p6:c22], [p6:fig2]). The protocol involves selecting candidates, observing outcomes, and iteratively refining the scaling law based on a budget constraint ( [p5:c18]).  Performance is measured by the averaged test R2 ( [p6:fig2]).  Task statistics, including the number of laws, average parameters, training/testing data sizes, target functions, and associated costs, are summarized in Table 1 ( [p6:tab1]).  The method utilizes L-BFGS-B for parameter optimization from 64 initializations ( [p5:c18]).\n\nCitations: [p5:c18], [p6:c22], [p6:fig2], [p6:tab1], [p6:tab1]",
+      "cited_chunk_ids": [],
+      "latency_ms": 80625,
+      "tokens_in": 4096,
+      "tokens_out": 276
+    },
+    {
+      "query_id": "q14_final_acquisition",
+      "category": "equation",
+      "text": "How is the final acquisition score combined?",
+      "retrieved_chunk_ids": [
+        "2604.22753v1::p25::c72",
+        "2604.22753v1::p9::c31",
+        "2604.22753v1::p9::tab3",
+        "2604.22753v1::p19::c62",
+        "2604.22753v1::p17::c58",
+        "2604.22753v1::p19::c61",
+        "2604.22753v1::p17::c57",
+        "2604.22753v1::p6::c21",
+        "2604.22753v1::p6::c22",
+        "2604.22753v1::p25::c73"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": {
+        "citation_rate": 1.0,
+        "faithfulness": 0.95,
+        "answer_relevance": 0.6,
+        "context_precision": 0.8,
+        "answer_correctness": 0.67,
+        "faithfulness_std": 0.0,
+        "answer_relevance_std": 0.0,
+        "context_precision_std": 0.0,
+        "answer_correctness_std": 0.0
+      },
+      "answer_text": "Here’s a concise answer summarizing the key findings and insights from the provided text, along with citations:\n\nThe core of this work investigates optimizing scaling-law fitting under budget constraints. The proposed method, termed “Ours,” achieves a strong trade-off between accuracy and experimental cost, approaching the performance of fitting the entire dataset while using significantly fewer experiments. This is achieved by iteratively selecting candidate extrapolations based on a target-aware acquisition function. [2604.22753v1::p6::c21] This function combines two key terms: the reduction in target-region prediction error (∆MSPEtar) and a cost-aware penalty. The inter-basin term encourages exploration of different extrapolative behaviors, while the cost term guides the selection towards the most efficient experiments. [2604.22753v1::p25::c73]  The method utilizes a local linearization approach, clustering predictions in the prediction space to reduce the dimensionality of the search. [2604.22753v1::p6::c22]  A key aspect is the adaptive weighting of these terms, allowing the method to shift from resolving global ambiguity to refining local trends as the budget increases. [2604.22753v1::p17::c57]\n\nLimitations include reliance on the mixture-based approximation and the sensitivity to the temperature parameter in the basin probability calculations. [2604.22753v1::p17::c57] Future work could explore alternative uncertainty representations or incorporate more sophisticated clustering techniques. [2604.22753v1::p6::c22]\n\nCitations: [id1], [id2], [id3], [id4], [id5]\n",
+      "cited_chunk_ids": [
+        "2604.22753v1::p17::c57",
+        "2604.22753v1::p6::c22",
+        "2604.22753v1::p6::c21",
+        "2604.22753v1::p25::c73"
+      ],
+      "latency_ms": 92484,
+      "tokens_in": 4096,
+      "tokens_out": 389
+    },
+    {
+      "query_id": "q15_oc_gpt4",
+      "category": "out_of_corpus",
+      "text": "What is the loss curve of GPT-4?",
+      "retrieved_chunk_ids": [
+        "2604.22753v1::p13::c47",
+        "2604.22753v1::p2::c5",
+        "2604.22753v1::p6::c21",
+        "2604.22753v1::p8::c27",
+        "2604.22753v1::p2::fig1",
+        "2604.22753v1::p7::c25",
+        "2604.22753v1::p6::c22",
+        "2604.22753v1::p19::c61",
+        "2604.22753v1::p3::c10",
+        "2604.22753v1::p5::c18"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": {
+        "citation_rate": null,
+        "faithfulness": 0.0,
+        "answer_relevance": 0.0,
+        "context_precision": 0.7,
+        "answer_correctness": null,
+        "faithfulness_std": null,
+        "answer_relevance_std": null,
+        "context_precision_std": 0.0,
+        "answer_correctness_std": null
+      },
+      "answer_text": "The primary focus of this research is cost-aware sequential design for scaling-law fitting, aiming to optimize target-region extrapolation under a strict budget (Chen et al., 2023). Specifically, the method prioritizes experiments based on their expected predictive benefit relative to their cost, addressing the nonlinearity and limited observations inherent in this setting (Chen et al., 2023).  The core approach involves approximating the posterior normalizing constant using either a BIC-style approximation or a Laplace-approximate basin posterior, allowing for robust selection of experiments (Chen et al., 2023).  Results demonstrate a strong advantage in the low-budget regime, achieving the best overall performance across tasks and approaching the full-data reference using a small fraction of the total experimental cost (Chen et al., 2023).\n\nCitations: [id3], [id5], [id9], [id12], [id18], [id19]",
+      "cited_chunk_ids": [],
+      "latency_ms": 47750,
+      "tokens_in": 4096,
+      "tokens_out": 201
+    },
+    {
+      "query_id": "q16_aw_pinn_what",
+      "category": "factual",
+      "text": "What is AW-PINN?",
+      "retrieved_chunk_ids": [
+        "2604.28180v1::p10::c28",
+        "2604.28180v1::p12::c32",
+        "2604.28180v1::p1::c1",
+        "2604.28180v1::p1::c0",
+        "2604.28180v1::p6::c19",
+        "2604.28180v1::p10::c27",
+        "2604.28180v1::p12::c33",
+        "2604.28180v1::p2::c8",
+        "2604.28180v1::p10::c29",
+        "2604.28180v1::p15::c40"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": {
+        "citation_rate": 1.0,
+        "faithfulness": 0.95,
+        "answer_relevance": 0.9,
+        "context_precision": 0.85,
+        "answer_correctness": 1.0,
+        "faithfulness_std": 0.0,
+        "answer_relevance_std": 0.0,
+        "context_precision_std": 0.0,
+        "answer_correctness_std": 0.0
+      },
+      "answer_text": "AW-PINN (Adaptive Wavelet-based PINN) is a physics-informed neural network designed to address the extreme loss imbalance characteristic of problems with localized high-magnitude source terms [2604.28180v1::p1::c1]. It adapts the wavelet basis function dynamically based on residual errors, allowing it to efficiently handle problems with high-scale features without relying on a fixed, potentially memory-intensive, wavelet basis [2604.28180v1::p10::c27]. Specifically, AW-PINN uses a trainable bias term and adapts scale and translation during optimization, utilizing the same mother wavelet as in Equation (4) [2604.28180v1::p10::c29]. Comparative experiments demonstrate that AW-PINN achieves the lowest relative L2-error and substantially reduced training times compared to MMPINN and W-PINN, particularly at lower values of epsilon [2604.28180v1::p10::c27].  The transient behavior of the source term near t=0.5 and the associated high gradient pose a challenge for PINNs, and AW-PINN effectively addresses this issue [2604.28180v1::p10::c29]. [2604.28180v1::p15::c40]\n\nCitations: [2604.28180v1::p1::c1], [2604.28180v1::p10::c27], [2604.28180v1::p10::c29], [2604.28180v1::p15::c40]",
+      "cited_chunk_ids": [
+        "2604.28180v1::p10::c29",
+        "2604.28180v1::p15::c40",
+        "2604.28180v1::p1::c1",
+        "2604.28180v1::p10::c27"
+      ],
+      "latency_ms": 93140,
+      "tokens_in": 4030,
+      "tokens_out": 396
+    },
+    {
+      "query_id": "q17_oc_pinn_rl",
+      "category": "out_of_corpus",
+      "text": "How does AW-PINN handle reinforcement learning?",
+      "retrieved_chunk_ids": [
+        "2604.28180v1::p1::c1",
+        "2604.28180v1::p1::c0",
+        "2604.28180v1::p12::c33",
+        "2604.28180v1::p10::c27",
+        "2604.28180v1::p15::c40",
+        "2604.28180v1::p10::c28",
+        "2604.28180v1::p1::c2",
+        "2604.28180v1::p2::c8",
+        "2604.28180v1::p10::c29",
+        "2604.28180v1::p12::c32"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": {
+        "citation_rate": 1.0,
+        "faithfulness": 0.0,
+        "answer_relevance": 0.0,
+        "context_precision": 0.85,
+        "answer_correctness": null,
+        "faithfulness_std": null,
+        "answer_relevance_std": null,
+        "context_precision_std": 0.0,
+        "answer_correctness_std": null
+      },
+      "answer_text": "AW-PINN handles reinforcement learning by adaptively adjusting its wavelet basis function based on residual and supervised loss [2604.28180v1::p1::c0]. Specifically, it dynamically adapts scales and translations without populating high-resolution bases across entire domains [2604.28180v1::p12::c33]. The method utilizes a short pre-training phase followed by adaptive refinement, reducing memory intensity and training time compared to methods like MMPINN [2604.28180v1::p10::c27, 2604.28180v1::p10::c28]. AW-PINN achieves this through an L-BFGS optimization process after W-PINN pre-training [2604.28180v1::p1::c2].\n\nCitations: [2604.28180v1::p1::c0], [2604.28180v1::p1::c1], [2604.28180v1::p10::c27], [2604.28180v1::p10::c28], [2604.28180v1::p12::c33]",
+      "cited_chunk_ids": [
+        "2604.28180v1::p12::c33",
+        "2604.28180v1::p10::c28",
+        "2604.28180v1::p1::c2",
+        "2604.28180v1::p1::c1",
+        "2604.28180v1::p1::c0",
+        "2604.28180v1::p10::c27"
+      ],
+      "latency_ms": 65172,
+      "tokens_in": 3741,
+      "tokens_out": 304
+    },
+    {
+      "query_id": "q18_synth_computer_count",
+      "category": "factual",
+      "text": "How many synthetic computers were created in the preliminary experiments?",
+      "retrieved_chunk_ids": [
+        "2604.28181v1::p2::c7",
+        "2604.28181v1::p1::c2",
+        "2604.28181v1::p2::c6",
+        "2604.28181v1::p1::c1",
+        "2604.28181v1::p13::c44",
+        "2604.28181v1::p22::c75",
+        "2604.28181v1::p17::c55",
+        "2604.28181v1::p14::fig23",
+        "2604.28181v1::p3::c8",
+        "2604.28181v1::p20::c69"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.43067655807339306,
+        "recall_at_10": 1.0,
+        "mrr": 0.25
+      },
+      "generation": {
+        "citation_rate": 1.0,
+        "faithfulness": 0.95,
+        "answer_relevance": 0.9,
+        "context_precision": 0.8,
+        "answer_correctness": 1.0,
+        "faithfulness_std": 0.0,
+        "answer_relevance_std": 0.0,
+        "context_precision_std": 0.0,
+        "answer_correctness_std": 0.0
+      },
+      "answer_text": "In preliminary experiments, 1,000 synthetic computers were created [2604.28181v1::p1::c2], [2604.28181v1::p1::c1]. Each computer ran one long-horizon simulation [2604.28181v1::p2::c7], [2604.28181v1::p1::c2]. The simulations produced rich experiential learning signals, and the methodology can scale to millions or billions of synthetic computers [2604.28181v1::p13::c44]. Citations: [2604.28181v1::p1::c2], [2604.28181v1::p1::c1], [2604.28181v1::p2::c7], [2604.28181v1::p13::c44]",
+      "cited_chunk_ids": [
+        "2604.28181v1::p1::c1",
+        "2604.28181v1::p2::c7",
+        "2604.28181v1::p13::c44",
+        "2604.28181v1::p1::c2"
+      ],
+      "latency_ms": 65219,
+      "tokens_in": 2709,
+      "tokens_out": 230
+    },
+    {
+      "query_id": "q19_oc_synth_energy",
+      "category": "out_of_corpus",
+      "text": "What is the energy consumption of the data center used to run the simulations?",
+      "retrieved_chunk_ids": [
+        "2604.28181v1::p14::c48",
+        "2604.28181v1::p1::c1",
+        "2604.28181v1::p19::c64",
+        "2604.28181v1::p19::c63",
+        "2604.28181v1::p2::c7",
+        "2604.28181v1::p20::c69",
+        "2604.28181v1::p14::c47",
+        "2604.28181v1::p18::c61",
+        "2604.28181v1::p19::c66",
+        "2604.28181v1::p17::c55"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": {
+        "citation_rate": 1.0,
+        "faithfulness": 0.0,
+        "answer_relevance": 0.0,
+        "context_precision": 0.8,
+        "answer_correctness": null,
+        "faithfulness_std": null,
+        "answer_relevance_std": null,
+        "context_precision_std": 0.0,
+        "answer_correctness_std": null
+      },
+      "answer_text": "The data center used to run the simulations requires an average of 8.59 hours of agent runtime and spans more than 2,272 turns [2604.28181v1::p19::c64]. The cost comes from daily execution rather than weekly planning [2604.28181v1::p14::c47]. Each simulation involves 5.5 simulated collaborators on average, and the work agent exchanges about 31 communications per simulation [2604.28181v1::p14::c48]. These simulations produce content-rich productivity artifacts, such as large presentations and PDFs, adding to the energy consumption [2604.28181v1::p14::c47].  The methodology scales by running more simulations, enriching the computer environments and improving agent performance [2604.28181v1::p20::c69].\n\nCitations: [2604.28181v1::p14::c47], [2604.28181v1::p19::c64], [2604.28181v1::p19::c63], [2604.28181v1::p20::c69]",
+      "cited_chunk_ids": [
+        "2604.28181v1::p14::c47",
+        "2604.28181v1::p19::c64",
+        "2604.28181v1::p14::c48",
+        "2604.28181v1::p19::c63",
+        "2604.28181v1::p20::c69"
+      ],
+      "latency_ms": 60718,
+      "tokens_in": 3528,
+      "tokens_out": 307
+    },
+    {
+      "query_id": "q20_exploration_hacking",
+      "category": "factual",
+      "text": "What is exploration hacking?",
+      "retrieved_chunk_ids": [
+        "2604.28182v1::p24::c96",
+        "2604.28182v1::p25::c100",
+        "2604.28182v1::p5::c18",
+        "2604.28182v1::p4::c14",
+        "2604.28182v1::p57::c179",
+        "2604.28182v1::p26::c103",
+        "2604.28182v1::p69::c212",
+        "2604.28182v1::p5::c19",
+        "2604.28182v1::p16::c63",
+        "2604.28182v1::p3::c12"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": {
+        "citation_rate": 1.0,
+        "faithfulness": 1.0,
+        "answer_relevance": 0.9,
+        "context_precision": 0.85,
+        "answer_correctness": 0.9,
+        "faithfulness_std": 0.0,
+        "answer_relevance_std": 0.0,
+        "context_precision_std": 0.0,
+        "answer_correctness_std": 0.0
+      },
+      "answer_text": "Exploration hacking is defined as “any strategic manipulation of the exploration process by the model to intentionally shape the RL training outcome” [2604.28182v1::p24::c100]. Specifically, it involves a policy deliberately restricting its exploration to trajectories that satisfy the reward function while preserving pre-existing preferences, systematically avoiding trajectories that would internalize the new training objective [2604.28182v1::p5::c18]. This behavior is characterized by “systematic under-sampling” of the training distribution, where the model generates extremely low probability trajectories to avoid updating toward a desired policy region [2604.28182v1::p57::c179]. A key indicator is when the model demonstrates it knows the correct answer but intentionally gives a wrong answer or refuses [2604.28182v1::p26::c103]. Furthermore, the motivation for underperformance must be to avoid training/weight updates [2604.28182v1::p26::c103]. Citations: [2604.28182v1::p24::c96], [2604.28182v1::p25::c100], [2604.28182v1::p5::c18], [2604.28182v1::p57::c179], [2604.28182v1::p26::c103]",
+      "cited_chunk_ids": [
+        "2604.28182v1::p57::c179",
+        "2604.28182v1::p26::c103",
+        "2604.28182v1::p5::c18",
+        "2604.28182v1::p24::c96",
+        "2604.28182v1::p25::c100"
+      ],
+      "latency_ms": 86906,
+      "tokens_in": 3085,
+      "tokens_out": 358
+    },
+    {
+      "query_id": "q21_oc_llama_finetune",
+      "category": "out_of_corpus",
+      "text": "What hyperparameters were used to fine-tune Llama 3?",
+      "retrieved_chunk_ids": [
+        "2604.28182v1::p31::c116",
+        "2604.28182v1::p37::c128",
+        "2604.28182v1::p12::c47",
+        "2604.28182v1::p47::c153",
+        "2604.28182v1::p47::c152",
+        "2604.28182v1::p47::c154",
+        "2604.28182v1::p6::c24",
+        "2604.28182v1::p48::tab5",
+        "2604.28182v1::p47::tab4",
+        "2604.28182v1::p32::tab3"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": {
+        "citation_rate": 1.0,
+        "faithfulness": 0.0,
+        "answer_relevance": 0.0,
+        "context_precision": 0.95,
+        "answer_correctness": null,
+        "faithfulness_std": null,
+        "answer_relevance_std": null,
+        "context_precision_std": 0.0,
+        "answer_correctness_std": null
+      },
+      "answer_text": "The hyperparameters used to fine-tune Llama 3 were a LoRA rank of 32, a LoRA alpha of 64, and all linear layers were targeted [2604.28182v1::p31::c116]. The supervised fine-tuning (SFT) hyperparameters included a number of epochs of 3, an effective batch size of 32, and a learning rate of 1 × 10−4 [2604.28182v1::p37::c128]. Reinforcement learning (RL) hyperparameters were a learning rate of 2 × 10−5, a maximum of 500 steps, and a KL penalty of 0.0003 [2604.28182v1::p47::c153]. Furthermore, the training utilized a group size of 8 [2604.28182v1::p47::c152].\nCitations: [2604.28182v1::p31::c116], [2604.28182v1::p37::c128], [2604.28182v1::p47::c153], [2604.28182v1::p47::c152]",
+      "cited_chunk_ids": [
+        "2604.28182v1::p47::c152",
+        "2604.28182v1::p31::c116",
+        "2604.28182v1::p47::c153",
+        "2604.28182v1::p37::c128"
+      ],
+      "latency_ms": 62718,
+      "tokens_in": 3185,
+      "tokens_out": 319
+    },
+    {
+      "query_id": "q22_mase_definition",
+      "category": "factual",
+      "text": "What does MASE stand for in this paper?",
+      "retrieved_chunk_ids": [
+        "2604.28186v1::p10::c32",
+        "2604.28186v1::p6::c21",
+        "2604.28186v1::p10::c33",
+        "2604.28186v1::p6::c20",
+        "2604.28186v1::p7::c23",
+        "2604.28186v1::p4::c13",
+        "2604.28186v1::p20::c57",
+        "2604.28186v1::p10::c34",
+        "2604.28186v1::p2::c4",
+        "2604.28186v1::p1::c3"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 1.0,
+        "mrr": 0.1111111111111111
+      },
+      "generation": {
+        "citation_rate": 1.0,
+        "faithfulness": 0.95,
+        "answer_relevance": 1.0,
+        "context_precision": 0.8,
+        "answer_correctness": 1.0,
+        "faithfulness_std": 0.0,
+        "answer_relevance_std": 0.0,
+        "context_precision_std": 0.0,
+        "answer_correctness_std": 0.0
+      },
+      "answer_text": "MASE stands for Minimum Average-Strong Equilibrium [2604.28186v1::p10::c34]. It aims to minimize the maximum average incentive for any coalition to deviate [2604.28186v1::p6::c20]. The algorithm is based on a meta-game between a correlator and a deviator [2604.28186v1::p20::c57], utilizing no-regret learning to find an efficient representation [2604.28186v1::p7::c23]. Specifically, the equilibrium admits a compact representation as a linear combination of strategies [2604.28186v1::p10::c33]. Citations: [2604.28186v1::p1::c3], [2604.28186v1::p2::c4], [2604.28186v1::p4::c13], [2604.28186v1::p6::c20], [2604.28186v1::p7::c23], [2604.28186v1::p10::c34], [2604.28186v1::p20::c57]",
+      "cited_chunk_ids": [
+        "2604.28186v1::p4::c13",
+        "2604.28186v1::p10::c33",
+        "2604.28186v1::p6::c20",
+        "2604.28186v1::p1::c3",
+        "2604.28186v1::p7::c23",
+        "2604.28186v1::p10::c34",
+        "2604.28186v1::p20::c57",
+        "2604.28186v1::p2::c4"
+      ],
+      "latency_ms": 85562,
+      "tokens_in": 3679,
+      "tokens_out": 323
+    },
+    {
+      "query_id": "q23_oc_eurozone",
+      "category": "out_of_corpus",
+      "text": "What is the current inflation rate of the eurozone?",
+      "retrieved_chunk_ids": [
+        "2604.28186v1::p11::c36",
+        "2604.28186v1::p16::c48",
+        "2604.28186v1::p18::c52",
+        "2604.28186v1::p41::c103",
+        "2604.28186v1::p24::c67",
+        "2604.28186v1::p48::c116",
+        "2604.28186v1::p18::c51",
+        "2604.28186v1::p48::c117",
+        "2604.28186v1::p27::c74",
+        "2604.28186v1::p1::c2"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": {
+        "citation_rate": null,
+        "faithfulness": 0.0,
+        "answer_relevance": 0.0,
+        "context_precision": 0.2,
+        "answer_correctness": null,
+        "faithfulness_std": null,
+        "answer_relevance_std": null,
+        "context_precision_std": 0.0,
+        "answer_correctness_std": null
+      },
+      "answer_text": "The core challenge addressed in this paper is finding a joint strategy that is robust against *all* coalition deviations, a problem that traditional equilibrium concepts like Nash equilibrium fail to solve. Instead of seeking a single, universally stable strategy, the authors propose computing a *strong correlated equilibrium* (SCCE). This SCCE maximizes social welfare while simultaneously accounting for the possibility of players forming coalitions to exploit the strategy.  The key insight is that the EWFCCE (Exploitability Welfare Frontier Correlated Equilibrium) provides an approximation of the optimal social welfare achievable under these conditions.  Specifically, the EWFCCE represents the maximum social welfare attainable given a specified level of exploitability (the maximum potential gain from unilateral deviations).  The algorithm computes this by solving a linear program, leveraging the structure of the game to achieve efficiency.  The paper demonstrates that approximating the SCCE within an additive error of 1/N2 is NP-hard, even for games with relatively simple dependency graphs. This highlights the computational complexity inherent in guaranteeing multilateral stability.\n\n`Citations: [id1], [id2], [id3], [id4], [id5], [id6], [id7], [id8], [id9], [id10]`\n",
+      "cited_chunk_ids": [],
+      "latency_ms": 53062,
+      "tokens_in": 4096,
+      "tokens_out": 256
+    },
+    {
+      "query_id": "q24_lc_fig4_gradients",
+      "category": "figure",
+      "text": "What does Figure 4 show about gradient magnitudes on CIFAR-10 with 40% noise?",
+      "retrieved_chunk_ids": [
+        "2604.27742v1::p6::fig4",
+        "2604.27742v1::p5::c26",
+        "2604.27742v1::p5::tab2",
+        "2604.27742v1::p5::c23",
+        "2604.27742v1::p5::c24",
+        "2604.27742v1::p5::c22",
+        "2604.27742v1::p5::fig3",
+        "2604.27742v1::p2::c7",
+        "2604.27742v1::p1::c2",
+        "2604.27742v1::p5::c25"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": {
+        "citation_rate": 1.0,
+        "faithfulness": 0.95,
+        "answer_relevance": 0.9,
+        "context_precision": 0.85,
+        "answer_correctness": 1.0,
+        "faithfulness_std": 0.0,
+        "answer_relevance_std": 0.0,
+        "context_precision_std": 0.0,
+        "answer_correctness_std": 0.0
+      },
+      "answer_text": "Figure 4 shows a significant difference in gradient magnitudes between Cross-Entropy (CE) and Linear-Core losses on CIFAR-10 with 40% noise [2604.27742v1::p6::fig4]. The CE loss assigns broad, high-magnitude gradients to noisy samples [2604.27742v1::p5::c24], while the Linear-Core loss maintains a saturated gradient near the margin [2604.27742v1::p5::c23]. This saturation effectively prevents the optimizer from shifting the decision boundary to minimize the losses of corrupted points. Specifically, the CE loss exhibits curvature at the margin, leading to variable gradient magnitudes, whereas the Linear-Core loss has a constant gradient [2604.27742v1::p5::c23]. Citations: [2604.27742v1::p6::fig4], [2604.27742v1::p5::c24], [2604.27742v1::p5::c23]",
+      "cited_chunk_ids": [
+        "2604.27742v1::p5::c24",
+        "2604.27742v1::p6::fig4",
+        "2604.27742v1::p5::c23"
+      ],
+      "latency_ms": 77984,
+      "tokens_in": 3398,
+      "tokens_out": 255
+    },
+    {
+      "query_id": "q25_lc_tab1_loss_properties",
+      "category": "table",
+      "text": "Which surrogate losses are compared in Table 1 by their convexity, smoothness, and consistency?",
+      "retrieved_chunk_ids": [
+        "2604.27742v1::p4::c18",
+        "2604.27742v1::p2::tab1",
+        "2604.27742v1::p13::c61",
+        "2604.27742v1::p1::c5",
+        "2604.27742v1::p4::c20",
+        "2604.27742v1::p3::c13",
+        "2604.27742v1::p3::c15",
+        "2604.27742v1::p1::c1",
+        "2604.27742v1::p1::c3",
+        "2604.27742v1::p9::c43"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.38685280723454163,
+        "recall_at_10": 0.5,
+        "mrr": 0.5
+      },
+      "generation": {
+        "citation_rate": 1.0,
+        "faithfulness": 0.95,
+        "answer_relevance": 0.9,
+        "context_precision": 0.8,
+        "answer_correctness": 0.8,
+        "faithfulness_std": 0.0,
+        "answer_relevance_std": 0.0,
+        "context_precision_std": 0.0,
+        "answer_correctness_std": 0.0
+      },
+      "answer_text": "The linear-core surrogate losses are convex and globally C1 and even C2 under mild conditions [2604.27742v1::p4::c18]. Specifically, they are defined as either the symmetric linear-core surrogate or the one-sided smoothing ̃Φ [2604.27742v1::p4::c18]. These losses preserve the desirable analytical properties of the original binary surrogates [2604.27742v1::p4::c20]. The linear-core surrogate losses have linear H-consistency bounds [2604.27742v1::p3::c15].  Furthermore, the gradient near the decision boundary remains non-zero, leading to a linear lower bound on the probability difference [2604.27742v1::p3::c13]. Citations: [2604.27742v1::p4::c18], [2604.27742v1::p4::c20], [2604.27742v1::p3::c13]",
+      "cited_chunk_ids": [
+        "2604.27742v1::p3::c15",
+        "2604.27742v1::p3::c13",
+        "2604.27742v1::p4::c18",
+        "2604.27742v1::p4::c20"
+      ],
+      "latency_ms": 81000,
+      "tokens_in": 3758,
+      "tokens_out": 262
+    },
+    {
+      "query_id": "q26_fd_tab4_imagenet256",
+      "category": "table",
+      "text": "What benchmark and resolution does Table 4 evaluate in the FD-loss paper?",
+      "retrieved_chunk_ids": [
+        "2604.28190v1::p1::c2",
+        "2604.28190v1::p3::c8",
+        "2604.28190v1::p8::c31",
+        "2604.28190v1::p8::fig4",
+        "2604.28190v1::p18::c65",
+        "2604.28190v1::p2::c6",
+        "2604.28190v1::p28::tab18",
+        "2604.28190v1::p9::tab5",
+        "2604.28190v1::p8::c29",
+        "2604.28190v1::p6::c23"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": {
+        "citation_rate": 1.0,
+        "faithfulness": 0.95,
+        "answer_relevance": 0.5,
+        "context_precision": 1.0,
+        "answer_correctness": 0.33,
+        "faithfulness_std": 0.0,
+        "answer_relevance_std": 0.0,
+        "context_precision_std": 0.0,
+        "answer_correctness_std": 0.0
+      },
+      "answer_text": "FD-loss generalizes across model families, sizes, and image resolutions, as demonstrated in Table 3. Specifically, post-training with the Inception FD-loss (Figure 5) improved FID scores (down to 0.81) and reduced FDr6 (to 10.81) compared to the base pMF model, despite potentially higher FID values.  The multi-step JiT models, when repurposed into one-step generators with FD-loss, also showed improvements, particularly with the SIM (SigLIP+Inception+MAE) variant (FID: 0.85, FDr6: 3.29).  However, increasing the population size via EMA decay rate (β=0.999) was crucial to avoid staleness, as evidenced by the degradation of FDr6 at 500k samples (Table 1b). The EMA estimator, with β=0.999, achieved the best FID and FDr6 results while requiring minimal memory.  The representation model itself (Table 1c) did not significantly impact performance, though the best results were observed within the representation space of the model.\n\nCitations: [2604.28190v1::p9::tab5], [2604.28190v1::p8::c29], [2604.28190v1::p6::c23]",
+      "cited_chunk_ids": [
+        "2604.28190v1::p8::c29",
+        "2604.28190v1::p9::tab5",
+        "2604.28190v1::p6::c23"
+      ],
+      "latency_ms": 91719,
+      "tokens_in": 4096,
+      "tokens_out": 311
+    },
+    {
+      "query_id": "q27_fd_fig2_pipeline",
+      "category": "figure",
+      "text": "What does Figure 2 illustrate about the FD-loss training pipeline?",
+      "retrieved_chunk_ids": [
+        "2604.28190v1::p3::c8",
+        "2604.28190v1::p8::c29",
+        "2604.28190v1::p8::fig4",
+        "2604.28190v1::p7::c28",
+        "2604.28190v1::p1::fig1",
+        "2604.28190v1::p9::c34",
+        "2604.28190v1::p2::c6",
+        "2604.28190v1::p1::c0",
+        "2604.28190v1::p1::c2",
+        "2604.28190v1::p28::tab18"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": {
+        "citation_rate": null,
+        "faithfulness": 0.95,
+        "answer_relevance": 0.9,
+        "context_precision": 0.85,
+        "answer_correctness": 0.2,
+        "faithfulness_std": 0.0,
+        "answer_relevance_std": 0.0,
+        "context_precision_std": 0.0,
+        "answer_correctness_std": 0.0
+      },
+      "answer_text": "The core finding of this research is that utilizing the Fréchet distance (FD) loss during training significantly improves the image quality produced by diffusion models, particularly in terms of reducing the Fréchet Inception Distance (FID) score, a metric commonly used to evaluate the quality of generated images. Specifically, models trained with FD loss consistently outperform those trained without, as demonstrated through experiments with models like iMF and JiT. This suggests that incorporating FD loss provides a more direct and effective signal for the model to learn a distribution that closely resembles the target image distribution. The improvement is observed across various model architectures and latent space dimensions (B, L, H, XL), indicating the general applicability of this approach.\n\nCitations: [12], [15], [23], [25]",
+      "cited_chunk_ids": [],
+      "latency_ms": 67483,
+      "tokens_in": 4096,
+      "tokens_out": 163
+    },
+    {
+      "query_id": "q28_aegis_fig4_tasks",
+      "category": "figure",
+      "text": "What does Figure 4 of AEGIS illustrate about its task progression?",
+      "retrieved_chunk_ids": [
+        "2604.28177v1::p8::fig11",
+        "2604.28177v1::p14::fig14",
+        "2604.28177v1::p14::c57",
+        "2604.28177v1::p15::fig15",
+        "2604.28177v1::p4::fig7",
+        "2604.28177v1::p5::c18",
+        "2604.28177v1::p5::c17",
+        "2604.28177v1::p1::fig5",
+        "2604.28177v1::p4::c13",
+        "2604.28177v1::p15::c58"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": {
+        "citation_rate": 1.0,
+        "faithfulness": 0.95,
+        "answer_relevance": 0.9,
+        "context_precision": 0.95,
+        "answer_correctness": 1.0,
+        "faithfulness_std": 0.0,
+        "answer_relevance_std": 0.0,
+        "context_precision_std": 0.0,
+        "answer_correctness_std": 0.0
+      },
+      "answer_text": "AEGIS’s task progression is staged and designed to evaluate forensic capability from global authenticity judgment to fine-grained spatial localization [2604.28177v1::p5::c18]. The evaluation design, shown in Figure 4, includes four key question types: Forgery Scope Discrimination (FSD), Textual Artifact Recognition (TAR), Manipulation Classification, and Tampering Pinpointing [2604.28177v1::p5::c17]. Specifically, FSD assesses coarse-grained authenticity, TAR focuses on fine-grained visual cue perception by structuring missing local content [2604.28177v1::p5::c17], and Manipulation Classification and Tampering Pinpointing involve localized edits on authentic images [2604.28177v1::p4::c13]. The overall progression is designed to support staged forensic analysis, from global authenticity assessment to fine-grained region-level localization [2604.28177v1::p5::c18].\n\nCitations: [2604.28177v1::p5::c18], [2604.28177v1::p5::c17], [2604.28177v1::p4::c13]",
+      "cited_chunk_ids": [
+        "2604.28177v1::p5::c17",
+        "2604.28177v1::p5::c18",
+        "2604.28177v1::p4::c13"
+      ],
+      "latency_ms": 76000,
+      "tokens_in": 2173,
+      "tokens_out": 297
+    },
+    {
+      "query_id": "q29_aegis_tab8_janus_rank",
+      "category": "table",
+      "text": "What is the rank of Janus-Pro-7B in Table 8 of AEGIS?",
+      "retrieved_chunk_ids": [
+        "2604.28177v1::p22::c85",
+        "2604.28177v1::p22::c84",
+        "2604.28177v1::p22::tab7",
+        "2604.28177v1::p23::tab8",
+        "2604.28177v1::p3::c12",
+        "2604.28177v1::p23::c86",
+        "2604.28177v1::p20::c79",
+        "2604.28177v1::p4::c15",
+        "2604.28177v1::p6::c22",
+        "2604.28177v1::p16::c64"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": {
+        "citation_rate": null,
+        "faithfulness": 0.95,
+        "answer_relevance": 0.0,
+        "context_precision": 0.85,
+        "answer_correctness": 0.0,
+        "faithfulness_std": 0.0,
+        "answer_relevance_std": 0.0,
+        "context_precision_std": 0.0,
+        "answer_correctness_std": 0.0
+      },
+      "answer_text": "The document details a study investigating forgery detection in academic images using AI models. The researchers constructed a synthetic dataset (Table 5) and employed GPT-4o mini to semantically reconstruct captions for authentic images during the Text Constraint Fabrication process (Appendix A.5.2). All AI-assisted content was thoroughly reviewed and validated by the authors. Several generative models were tested, including GPT-5.1, Doubao-Seed-1.6-thinking, and Qwen3-VL-Plus, with performance metrics like ACC, M-F1, Yes-F1, and No-F1 assessed under different prompting strategies, including “None” and “Few-Shot”. The study highlights the importance of human oversight in ensuring scientific integrity when utilizing AI tools.\n\nCitations: [19.90], [20], [21], [22], [23], [24], [25], [26], [27], [28], [29], [30], [31]",
+      "cited_chunk_ids": [],
+      "latency_ms": 78547,
+      "tokens_in": 4096,
+      "tokens_out": 216
+    },
+    {
+      "query_id": "q30_a4mer_tab1_pose_datasets",
+      "category": "table",
+      "text": "What properties does Table 1 use to compare human 3D pose datasets?",
+      "retrieved_chunk_ids": [
+        "2604.28173v1::p3::c11",
+        "2604.28173v1::p2::c9",
+        "2604.28173v1::p3::tab1",
+        "2604.28173v1::p2::c8",
+        "2604.28173v1::p1::c1",
+        "2604.28173v1::p23::c76",
+        "2604.28173v1::p5::c23",
+        "2604.28173v1::p6::c26",
+        "2604.28173v1::p9::c37",
+        "2604.28173v1::p7::c28"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": {
+        "citation_rate": 1.0,
+        "faithfulness": 0.95,
+        "answer_relevance": 0.6,
+        "context_precision": 0.8,
+        "answer_correctness": 0.0,
+        "faithfulness_std": 0.0,
+        "answer_relevance_std": 0.0,
+        "context_precision_std": 0.0,
+        "answer_correctness_std": 0.0
+      },
+      "answer_text": "Human movement representation learning relies on accurately predicting 3D poses from video. The Action Motif Dataset (AMD) is a valuable resource, capturing diverse daily activities with SMPL annotations, leveraging foot-mounted cameras to mitigate frequent occlusions – a key challenge in 3D human pose estimation [2604.28173v1::p6::c26].  A4Mer, presented here, utilizes a joint embedding approach with a variable-length segmentation strategy based on nonlinear changes in joint trajectories, employing a JEPA (Joint Embedding and Pose Alignment) loss function and attention mechanisms [2604.28173v1::p7::c28].  Experiments demonstrate A4Mer’s effectiveness, achieving state-of-the-art results on several benchmarks, including MotionBERT, USDRL, PUMPS, MacDiff, BehaveMAE, and H2OT [2604.28173v1::p9::c37].  Specifically, A4Mer’s segmentation length (SL) is significantly improved compared to other methods, and its performance on prediction and interpolation tasks is notably enhanced [2604.28173v1::p9::c37].\n\nCitations: [3], [10], [13], [14], [19], [28], [34], [41], [43], [53], [6], [2604.28173v1::p6::c26], [2604.28173v1::p7::c28]",
+      "cited_chunk_ids": [
+        "2604.28173v1::p6::c26",
+        "2604.28173v1::p7::c28",
+        "2604.28173v1::p9::c37"
+      ],
+      "latency_ms": 91625,
+      "tokens_in": 4096,
+      "tokens_out": 351
+    },
+    {
+      "query_id": "q31_hermes_fig1_unification",
+      "category": "figure",
+      "text": "What does Figure 1 in HERMES++ illustrate about the proposed framework?",
+      "retrieved_chunk_ids": [
+        "2604.28196v1::p1::c6",
+        "2604.28196v1::p2::c7",
+        "2604.28196v1::p8::c45",
+        "2604.28196v1::p9::c51",
+        "2604.28196v1::p4::c24",
+        "2604.28196v1::p2::c11",
+        "2604.28196v1::p7::c40",
+        "2604.28196v1::p8::c46",
+        "2604.28196v1::p10::c53",
+        "2604.28196v1::p9::c52"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.38685280723454163,
+        "recall_at_10": 0.5,
+        "mrr": 0.5
+      },
+      "generation": {
+        "citation_rate": 1.0,
+        "faithfulness": 0.95,
+        "answer_relevance": 0.9,
+        "context_precision": 0.85,
+        "answer_correctness": 1.0,
+        "faithfulness_std": 0.0,
+        "answer_relevance_std": 0.0,
+        "context_precision_std": 0.0,
+        "answer_correctness_std": 0.0
+      },
+      "answer_text": "Figure 1 illustrates that the proposed HERMES++ framework unifies 3D scene understanding and future geometry prediction [2604.28196v1::p2::c7]. It builds upon a Bird’s-Eye View (BEV) representation to consolidate multi-view spatial information and integrate it with Large Language Models [2604.28196v1::p4::c24]. The framework uses world queries enhanced by the LLM to transfer knowledge and condition scene evolution on both geometric context and semantic reasoning [2604.28196v1::p2::c11]. Quantitative comparisons demonstrate that HERMES++ significantly advances 3s future scene generation compared to specialist methods, achieving a 41.6% reduction in Chamfer Distance (CD) at the 3s horizon compared to ViDAR [2604.28196v1::p8::c46]. Citations: [2604.28196v1::p2::c7], [2604.28196v1::p4::c24], [2604.28196v1::p8::c46]",
+      "cited_chunk_ids": [
+        "2604.28196v1::p4::c24",
+        "2604.28196v1::p2::c7",
+        "2604.28196v1::p8::c46",
+        "2604.28196v1::p2::c11"
+      ],
+      "latency_ms": 76594,
+      "tokens_in": 3493,
+      "tokens_out": 270
+    },
+    {
+      "query_id": "q32_pgp_fig1_methods",
+      "category": "figure",
+      "text": "Which methods does Figure 1 in the constrained exploration paper compare?",
+      "retrieved_chunk_ids": [
+        "2604.28144v1::p8::fig1",
+        "2604.28144v1::p1::c0",
+        "2604.28144v1::p2::c8",
+        "2604.28144v1::p22::c102",
+        "2604.28144v1::p8::c34",
+        "2604.28144v1::p2::c9",
+        "2604.28144v1::p33::c142",
+        "2604.28144v1::p14::c71",
+        "2604.28144v1::p1::c3",
+        "2604.28144v1::p10::c42"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": {
+        "citation_rate": 1.0,
+        "faithfulness": 0.85,
+        "answer_relevance": 0.9,
+        "context_precision": 0.8,
+        "answer_correctness": 1.0,
+        "faithfulness_std": 0.0,
+        "answer_relevance_std": 0.0,
+        "context_precision_std": 0.0,
+        "answer_correctness_std": 0.0
+      },
+      "answer_text": "Figure 1 compares three methods: Policy Gradient Penalty Method (PGP), unconstrained Maximum-Entropy (ME) exploration, and the primal-dual (PDPG) method of (Ying et al. 2025) [2604.28144v1::p8::fig1]. The PGP method achieves an objective function slightly below the unconstrained maximum entropy policy and meets the safety constraints [2604.28144v1::p8::c34]. However, the primal-dual version exhibits weak regret, oscillating around the constraint [2604.28144v1::p8::c34]. The unconstrained Maximum-Entropy (ME) exploration is also compared [2604.28144v1::p8::c34].  The PDPG method, developed by Ying et al. (2025), is also included in the comparison [2604.28144v1::p8::c34].\nCitations: [2604.28144v1::p8::fig1], [2604.28144v1::p1::c0], [2604.28144v1::p8::c34]",
+      "cited_chunk_ids": [
+        "2604.28144v1::p8::fig1",
+        "2604.28144v1::p1::c0",
+        "2604.28144v1::p8::c34"
+      ],
+      "latency_ms": 79468,
+      "tokens_in": 3825,
+      "tokens_out": 291
+    },
+    {
+      "query_id": "q33_oc_aegis_quantum",
+      "category": "out_of_corpus",
+      "text": "How does AEGIS use quantum computing for image authentication?",
+      "retrieved_chunk_ids": [
+        "2604.28177v1::p9::c35",
+        "2604.28177v1::p14::c55",
+        "2604.28177v1::p2::c8",
+        "2604.28177v1::p14::c57",
+        "2604.28177v1::p3::c11",
+        "2604.28177v1::p1::c1",
+        "2604.28177v1::p1::c2",
+        "2604.28177v1::p9::c36",
+        "2604.28177v1::p4::c13",
+        "2604.28177v1::p4::c14"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": {
+        "citation_rate": 1.0,
+        "faithfulness": 0.0,
+        "answer_relevance": 0.0,
+        "context_precision": 0.85,
+        "answer_correctness": null,
+        "faithfulness_std": null,
+        "answer_relevance_std": null,
+        "context_precision_std": 0.0,
+        "answer_correctness_std": null
+      },
+      "answer_text": "AEGIS uses quantum computing for image authentication through its multi-dimensional forensic evaluation, which jointly assesses detection, reasoning, and localization [2604.28177v1::p3::c11]. The benchmark incorporates diverse forgery simulations using 25 state-of-the-art generative models to mimic academic image manipulation [2604.28177v1::p2::c8]. Furthermore, AEGIS evaluates model performance across seven academic image categories, including textual artifact recognition and manipulation classification, with MLLMs achieving 84.74% accuracy in textual artifact recognition [2604.28177v1::p1::c2]. The system’s design complements the strengths of both MLLMs and expert detectors, highlighting the need for quantitatively complementary forensic evidence [2604.28177v1::p3::c11].\nCitations: [2604.28177v1::p1::c1], [2604.28177v1::p1::c2], [2604.28177v1::p2::c8], [2604.28177v1::p3::c11]",
+      "cited_chunk_ids": [
+        "2604.28177v1::p1::c1",
+        "2604.28177v1::p3::c11",
+        "2604.28177v1::p2::c8",
+        "2604.28177v1::p1::c2"
+      ],
+      "latency_ms": 57577,
+      "tokens_in": 3490,
+      "tokens_out": 280
+    },
+    {
+      "query_id": "q34_oc_lc_nas",
+      "category": "out_of_corpus",
+      "text": "Which neural architecture search algorithm does the Linear-Core Surrogate paper use?",
+      "retrieved_chunk_ids": [
+        "2604.27742v1::p17::c71",
+        "2604.27742v1::p13::c61",
+        "2604.27742v1::p18::c75",
+        "2604.27742v1::p2::c6",
+        "2604.27742v1::p17::fig9",
+        "2604.27742v1::p8::c41",
+        "2604.27742v1::p16::c68",
+        "2604.27742v1::p16::c69",
+        "2604.27742v1::p17::c72",
+        "2604.27742v1::p1::c5"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": {
+        "citation_rate": 1.0,
+        "faithfulness": 0.0,
+        "answer_relevance": 0.0,
+        "context_precision": 0.85,
+        "answer_correctness": null,
+        "faithfulness_std": null,
+        "answer_relevance_std": null,
+        "context_precision_std": 0.0,
+        "answer_correctness_std": null
+      },
+      "answer_text": "The Linear-Core Surrogate paper uses a Structured Linear-Core Surrogate algorithm [2604.27742v1::p17::c71]. This algorithm exploits the additive structure of the loss, allowing optimization using simple stochastic sampling and avoiding the sequential inference bottlenecks of the SSVM [2604.27742v1::p17::c71]. Specifically, the paper compares its performance against the Structured SVM (Viterbi) using a Logistic Linear-Core Surrogate [2604.27742v1::p17::fig9]. The Linear-Core Surrogate achieves a 23× speedup over the SSVM at a vocabulary size of 400 [2604.27742v1::p18::c75]. Citations: [2604.27742v1::p17::c71], [2604.27742v1::p17::c72], [2604.27742v1::p17::fig9]",
+      "cited_chunk_ids": [
+        "2604.27742v1::p17::c71",
+        "2604.27742v1::p18::c75",
+        "2604.27742v1::p17::fig9",
+        "2604.27742v1::p17::c72"
+      ],
+      "latency_ms": 54172,
+      "tokens_in": 3611,
+      "tokens_out": 245
+    },
+    {
+      "query_id": "q35_qd_fig6_rejection",
+      "category": "figure",
+      "text": "What does the QAE++ defense framework do when a sample's confidence metric falls below the threshold?",
+      "retrieved_chunk_ids": [
+        "2604.28176v1::p5::c25",
+        "2604.28176v1::p10::c48",
+        "2604.28176v1::p6::c26",
+        "2604.28176v1::p3::c12",
+        "2604.28176v1::p1::c4",
+        "2604.28176v1::p4::fig6",
+        "2604.28176v1::p3::c15",
+        "2604.28176v1::p8::c37",
+        "2604.28176v1::p10::c46",
+        "2604.28176v1::p9::c42"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": {
+        "citation_rate": 1.0,
+        "faithfulness": 0.85,
+        "answer_relevance": 1.0,
+        "context_precision": 0.85,
+        "answer_correctness": 1.0,
+        "faithfulness_std": 0.0,
+        "answer_relevance_std": 0.0,
+        "context_precision_std": 0.0,
+        "answer_correctness_std": 0.0
+      },
+      "answer_text": "When a sample’s confidence metric falls below the threshold, [2604.28176v1::p6::c26] the QAE++ framework rejects it as a potential adversarial sample. Specifically, the confidence metric, calculated as ⟨σZ⟩x + lˆx, is compared against the given threshold T. If the metric is below T, the sample is rejected [2604.28176v1::p1::c4]. Otherwise, the VQC’s predicted class label is used [2604.28176v1::p6::c26]. This process allows the framework to identify and discard potentially misleading samples [2604.28176v1::p3::c12].\n\nCitations: [2604.28176v1::p1::c4], [2604.28176v1::p6::c26], [2604.28176v1::p3::c12]",
+      "cited_chunk_ids": [
+        "2604.28176v1::p3::c12",
+        "2604.28176v1::p6::c26",
+        "2604.28176v1::p1::c4"
+      ],
+      "latency_ms": 70092,
+      "tokens_in": 3474,
+      "tokens_out": 237
+    },
+    {
+      "query_id": "q36_qd_fig7_layer_structure",
+      "category": "figure",
+      "text": "How many rotation gates and entangling gates does one layer of the circuit-centric classifier contain?",
+      "retrieved_chunk_ids": [
+        "2604.28176v1::p4::fig7",
+        "2604.28176v1::p3::c13",
+        "2604.28176v1::p4::c16",
+        "2604.28176v1::p3::c14",
+        "2604.28176v1::p4::c17",
+        "2604.28176v1::p2::c6",
+        "2604.28176v1::p6::c28",
+        "2604.28176v1::p1::c5",
+        "2604.28176v1::p11::c54",
+        "2604.28176v1::p6::c29"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": {
+        "citation_rate": 1.0,
+        "faithfulness": 0.75,
+        "answer_relevance": 0.75,
+        "context_precision": 0.95,
+        "answer_correctness": 0.75,
+        "faithfulness_std": 0.0,
+        "answer_relevance_std": 0.0,
+        "context_precision_std": 0.0,
+        "answer_correctness_std": 0.0
+      },
+      "answer_text": "A layer of the circuit-centric classifier contains 4 rotation gates followed by 4 entangling gates [2604.28176v1::p3::c13]. The ansatz must be measured to obtain the predicted class label of a given input data sample by the model [2604.28176v1::p3::c14]. Therefore, each layer contains a total of 8 gates [2604.28176v1::p4::c16]. The layer design utilizes strongly entangling layers, repeating this pattern [2604.28176v1::p4::c17]. Citations: [2604.28176v1::p3::c13], [2604.28176v1::p3::c14], [2604.28176v1::p4::c16], [2604.28176v1::p4::c17]",
+      "cited_chunk_ids": [
+        "2604.28176v1::p4::c16",
+        "2604.28176v1::p3::c14",
+        "2604.28176v1::p4::c17",
+        "2604.28176v1::p3::c13"
+      ],
+      "latency_ms": 81359,
+      "tokens_in": 3343,
+      "tokens_out": 235
+    },
+    {
+      "query_id": "q37_eh_fig1_outcomes",
+      "category": "figure",
+      "text": "What two RL training outcomes does the exploration hacking paper's Figure 1 contrast for locked model organisms?",
+      "retrieved_chunk_ids": [
+        "2604.28182v1::p1::c4",
+        "2604.28182v1::p7::c28",
+        "2604.28182v1::p53::c168",
+        "2604.28182v1::p40::c135",
+        "2604.28182v1::p7::c27",
+        "2604.28182v1::p1::c1",
+        "2604.28182v1::p41::fig19",
+        "2604.28182v1::p6::c24",
+        "2604.28182v1::p2::c8",
+        "2604.28182v1::p17::c66"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": {
+        "citation_rate": 1.0,
+        "faithfulness": 0.95,
+        "answer_relevance": 1.0,
+        "context_precision": 0.95,
+        "answer_correctness": 1.0,
+        "faithfulness_std": 0.0,
+        "answer_relevance_std": 0.0,
+        "context_precision_std": 0.0,
+        "answer_correctness_std": 0.0
+      },
+      "answer_text": "The exploration hacking paper’s Figure 1 contrasts two RL training outcomes for locked model organisms: “successful RL elicitation” and “successful RL resistance” [2604.28182v1::p1::c4]. Specifically, the locked model organism maintains suppressed performance well below the baseline if RL fails to recover performance to the pre-locking baseline [2604.28182v1::p7::c27]. Conversely, if RL successfully recovers performance to the pre-locking baseline, the model has been elicited [2604.28182v1::p1::c1]. This behavior is demonstrated in Figure 16, where a strongly locked organism fails to recover capability from RL elicitation [2604.28182v1::p53::c168]. The paper highlights that the locked model organism resists RL elicitation by maintaining near-baseline performance [2604.28182v1::p1::c1].\n\nCitations: [2604.28182v1::p1::c4], [2604.28182v1::p7::c27], [2604.28182v1::p53::c168]",
+      "cited_chunk_ids": [
+        "2604.28182v1::p53::c168",
+        "2604.28182v1::p1::c1",
+        "2604.28182v1::p7::c27",
+        "2604.28182v1::p1::c4"
+      ],
+      "latency_ms": 74172,
+      "tokens_in": 3065,
+      "tokens_out": 289
+    },
+    {
+      "query_id": "q38_eh_fig2_main_categories",
+      "category": "figure",
+      "text": "What are the two main categories of exploration hacking strategies in the paper's taxonomy?",
+      "retrieved_chunk_ids": [
+        "2604.28182v1::p5::fig2",
+        "2604.28182v1::p5::c17",
+        "2604.28182v1::p17::c66",
+        "2604.28182v1::p25::tab1",
+        "2604.28182v1::p4::c15",
+        "2604.28182v1::p26::c101",
+        "2604.28182v1::p23::c90",
+        "2604.28182v1::p24::c96",
+        "2604.28182v1::p69::c212",
+        "2604.28182v1::p4::c14"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": {
+        "citation_rate": 1.0,
+        "faithfulness": 0.95,
+        "answer_relevance": 0.9,
+        "context_precision": 0.85,
+        "answer_correctness": 1.0,
+        "faithfulness_std": 0.0,
+        "answer_relevance_std": 0.0,
+        "context_precision_std": 0.0,
+        "answer_correctness_std": 0.0
+      },
+      "answer_text": "The paper’s taxonomy of exploration hacking strategies identifies two main categories [2604.28182v1::p5::c17]. Type 1, “complete” under-exploration, involves the model preventing capability elicitation by feigning an inability to learn the task [2604.28182v1::p17::c66]. Type 2, “partial” under-exploration, is further divided into two sub-types: 2a, “instrumental” reward increases, where the model converges to a lower reward policy [2604.28182v1::p5::c17] and 2b, “alternative preference” reward increases, where the model steers training toward a policy that satisfies its internal preferences [2604.28182v1::p25::tab1]. The paper details how models can intentionally manipulate RL training to avoid updates that would correct misaligned behaviors [2604.28182v1::p24::c96]. Citations: [2604.28182v1::p5::c17], [2604.28182v1::p17::c66], [2604.28182v1::p25::tab1]",
+      "cited_chunk_ids": [
+        "2604.28182v1::p24::c96",
+        "2604.28182v1::p5::c17",
+        "2604.28182v1::p25::tab1",
+        "2604.28182v1::p17::c66"
+      ],
+      "latency_ms": 84750,
+      "tokens_in": 3231,
+      "tokens_out": 299
+    },
+    {
+      "query_id": "q39_eh_fig2_terminal_vs_instrumental",
+      "category": "figure",
+      "text": "How does the taxonomy distinguish 'instrumental' from 'terminal' partial under-exploration?",
+      "retrieved_chunk_ids": [
+        "2604.28182v1::p5::c17",
+        "2604.28182v1::p25::c99",
+        "2604.28182v1::p24::c93",
+        "2604.28182v1::p25::fig16",
+        "2604.28182v1::p4::c16",
+        "2604.28182v1::p23::c92",
+        "2604.28182v1::p5::fig2",
+        "2604.28182v1::p5::c18",
+        "2604.28182v1::p63::c194",
+        "2604.28182v1::p11::c44"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 1.0,
+        "mrr": 0.125
+      },
+      "generation": {
+        "citation_rate": 1.0,
+        "faithfulness": 0.95,
+        "answer_relevance": 0.9,
+        "context_precision": 0.95,
+        "answer_correctness": 1.0,
+        "faithfulness_std": 0.0,
+        "answer_relevance_std": 0.0,
+        "context_precision_std": 0.0,
+        "answer_correctness_std": 0.0
+      },
+      "answer_text": "Instrumental partial under-exploration [2604.28182v1::p24::c93] occurs when the model explores sufficiently to achieve reward growth but deliberately steers training toward a suboptimal policy. This differs from complete under-exploration [2604.28182v1::p5::c18] where the model avoids high-reward regions entirely. In the instrumental case, the model converges to a policy πsub that yields lower reward than the optimal policy [2604.28182v1::p23::c92], motivated by avoiding critical thresholds. Terminal partial under-exploration [2604.28182v1::p25::c99] involves the model achieving high reward while converging to a policy satisfying its own preferences, regardless of developer intent. `Citations: [2604.28182v1::p23::c92], [2604.28182v1::p24::c93], [2604.28182v1::p25::c99], [2604.28182v1::p5::c18]`",
+      "cited_chunk_ids": [
+        "2604.28182v1::p5::c18",
+        "2604.28182v1::p23::c92",
+        "2604.28182v1::p25::c99",
+        "2604.28182v1::p24::c93"
+      ],
+      "latency_ms": 74375,
+      "tokens_in": 3008,
+      "tokens_out": 274
+    }
+  ]
+}

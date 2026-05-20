@@ -177,11 +177,72 @@ The composite picture across all 23 documents tested:
 - Scanned + OCR'd historical report: Docling `15.6 %` (dominated by
   body cross-references, not real misses).
 
-The heterogeneous gate is **clear**. The next concrete step is to flip
-`ingest_paper(use_docling=True)` default-on; that change is paired with
-a fresh `baseline-text-only` / `agentic-text-only` re-run so the eval
-comparisons stay on the new ingestion stack — same discipline as ADR
-0017's amendment.
+The heterogeneous gate is **clear**. `ingest_paper(use_docling=True)`
+flipped default-on accordingly.
+
+## End-to-end measurement with multi-modal chunks enabled, 2026-05-20
+
+Same v3 set, same `gemma3:4b` gen + judge, same hybrid retriever, but
+this run also enabled `--extract-figures --extract-tables --use-docling`
+so the multi-modal chunks Docling produces actually flow into the
+retrieval corpus. Committed reference: `data/eval/baseline-docling-mm.json`.
+
+| metric | pre-Docling text-only | Docling + figs + tables | Δ |
+|---|---:|---:|---:|
+| **answer_correctness** | 0.7626 | 0.7113 | **−0.0513 (−6.7 %)** |
+| faithfulness | 0.7454 | 0.7487 | +0.4 % |
+| answer_relevance | 0.6179 | 0.6321 | +2.3 % |
+| context_precision | 0.8077 | 0.7974 | −1.3 % |
+| p50 latency | 20.3 s | **78.0 s (3.8 ×)** | regression |
+
+### Per-category split
+
+| category | n | pre | Docling-mm | Δ |
+|---|---:|---:|---:|---:|
+| **figure** | 11 | 0.7673 | **0.8818** | **+0.1145** |
+| **multi_hop** | 2 | 0.8000 | **0.9000** | **+0.1000** |
+| factual | 13 | 0.8308 | 0.6731 | **−0.1577** |
+| table | 4 | 0.4500 | 0.2825 | **−0.1675** |
+| equation | 1 | 1.0000 | 0.6700 | −0.3300 (n=1) |
+
+The headline regression is real and past the 5 % gate. The category
+split makes the mechanism unambiguous and matches ADR 0002's earlier
+finding *with a different parser*: enabling figure + table chunks
+floods retrieval context with long table-markdown / caption blobs that
+**help on the question class that needs them** (figure +11 pp,
+multi_hop +10 pp) and **crowd out the right text chunks** for factoid
+/ table lookup (−16 to −17 pp). The 3.8× latency blow-up is from those
+same long multi-modal chunks filling the generator's context window.
+
+### Honest split decision
+
+Docling-as-parser stays **default-on** — the structural audit (halved
+flag rate, slide decks 0 flag, 339-page OCR'd scan handled) is
+unequivocal, and when figures or tables are wanted, Docling is the
+right tool. But `extract_figures_enabled` / `extract_tables_enabled`
+stay **default-off** — same product call as ADR 0002, now reconfirmed
+with the better parser and `answer_correctness` instead of
+`answer_relevance`. The text-only retrieval path that scores 0.7626 on
+`answer_correctness` is *not* improved by always-on multi-modal chunks;
+it is improved when the caller selectively enables them for figure /
+multi-hop query classes — and that selective routing is the natural
+follow-up (it does for ingestion what ADR 0008 / ADR 0013 do for
+retrieval: route by query category).
+
+Committed measurements:
+- `data/eval/baseline-text-only.json` — pre-Docling, no multi-modal.
+- `data/eval/agentic-text-only.json` — pre-Docling, agentic, no multi-modal.
+- `data/eval/baseline-docling-mm.json` — Docling primary, full multi-modal on.
+
+The honest pair to read together is `baseline-text-only.json` (default
+production posture) vs `baseline-docling-mm.json` (the "what does
+turning everything on cost" measurement). For a future ADR, the
+question becomes: can a per-query-category router enable multi-modal
+*only* on figure / multi_hop queries and recover the +11 / +10 pp on
+those subsets without paying the −16 / −17 pp factoid / table tax?
+That experiment is its own ADR.
+
+
 
 ## What this leaves open
 
