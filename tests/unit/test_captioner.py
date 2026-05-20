@@ -77,9 +77,11 @@ async def test_captioner_returns_empty_when_image_missing(tmp_path: Path) -> Non
 
 @respx.mock
 async def test_caption_figures_populates_vlm_caption(tmp_path: Path) -> None:
+    # `caption=""` so the default `skip_when_captioned=True` policy still
+    # calls the VLM. The companion test below pins the captioned-skip path.
     figs = [
-        _figure("f1", _write_png(tmp_path / "f1.png"), caption="Figure 1: original."),
-        _figure("f2", _write_png(tmp_path / "f2.png"), caption="Figure 2: original."),
+        _figure("f1", _write_png(tmp_path / "f1.png")),
+        _figure("f2", _write_png(tmp_path / "f2.png")),
     ]
     respx.post("http://localhost:11434/api/chat").mock(
         side_effect=[
@@ -109,8 +111,63 @@ async def test_caption_figures_populates_vlm_caption(tmp_path: Path) -> None:
         "VLM caption for fig 1.",
         "VLM caption for fig 2.",
     ]
-    # Original captions are preserved on the new objects (model_copy).
-    assert [f.caption for f in out] == ["Figure 1: original.", "Figure 2: original."]
+
+
+@respx.mock
+async def test_caption_figures_skips_already_captioned(tmp_path: Path) -> None:
+    # ADR 0022 follow-up: VLM only runs on figures missing a PDF caption.
+    figs = [
+        _figure("captioned", _write_png(tmp_path / "c.png"), caption="Figure 1: real."),
+        _figure("empty", _write_png(tmp_path / "e.png"), caption=""),
+    ]
+    route = respx.post("http://localhost:11434/api/chat").mock(
+        return_value=httpx.Response(
+            200, json={"message": {"content": "VLM caption."}, "done": True}
+        )
+    )
+    captioner = OllamaVisionCaptioner(model="gemma3:4b")
+    out = await caption_figures(figs, captioner=captioner)
+
+    # VLM called exactly once — only for the uncaptioned figure.
+    assert route.call_count == 1
+    assert out[0].vlm_caption is None  # captioned figure passed through
+    assert out[1].vlm_caption == "VLM caption."
+
+
+@respx.mock
+async def test_caption_figures_skips_decoration_role(tmp_path: Path) -> None:
+    # ADR 0022: decorations (logos, icons) don't deserve a VLM call — the
+    # gallery already filters them out and they're not retrieval-shaped.
+    deco = _figure("logo", _write_png(tmp_path / "logo.png"))
+    deco = deco.model_copy(update={"role": "decoration"})
+    real = _figure("real", _write_png(tmp_path / "real.png"))
+    route = respx.post("http://localhost:11434/api/chat").mock(
+        return_value=httpx.Response(
+            200, json={"message": {"content": "Real caption."}, "done": True}
+        )
+    )
+    captioner = OllamaVisionCaptioner(model="gemma3:4b")
+    out = await caption_figures([deco, real], captioner=captioner)
+
+    assert route.call_count == 1
+    assert out[0].vlm_caption is None  # decoration skipped
+    assert out[1].vlm_caption == "Real caption."
+
+
+@respx.mock
+async def test_caption_figures_legacy_behaviour_with_skip_flag_off(tmp_path: Path) -> None:
+    # `skip_when_captioned=False` restores pre-ADR-0022 behaviour where
+    # the VLM caption replaces the PDF caption (ADR 0002 default).
+    figs = [_figure("f1", _write_png(tmp_path / "f1.png"), caption="Original caption.")]
+    respx.post("http://localhost:11434/api/chat").mock(
+        return_value=httpx.Response(
+            200, json={"message": {"content": "VLM caption."}, "done": True}
+        )
+    )
+    captioner = OllamaVisionCaptioner(model="gemma3:4b")
+    [out] = await caption_figures(figs, captioner=captioner, skip_when_captioned=False)
+    assert out.vlm_caption == "VLM caption."
+    assert out.caption == "Original caption."  # original preserved
 
 
 @respx.mock

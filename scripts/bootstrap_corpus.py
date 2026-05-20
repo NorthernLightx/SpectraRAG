@@ -137,7 +137,11 @@ if __name__ == "__main__":
     parser.add_argument(
         "--vlm-caption-model",
         default=None,
-        help="Ollama vision model for figure captions (e.g. qwen2.5vl:7b). Default: PDF captions only.",
+        help=(
+            "Ollama vision model for figure captions (e.g. `qwen3-vl:235b-cloud`, "
+            "`gemma3:4b`). Default: off. When enabled, ADR 0022 policy applies: "
+            "VLM is only called on figures with no PDF caption and role != decoration."
+        ),
     )
     parser.set_defaults(extract_figures=True)
     args = parser.parse_args()

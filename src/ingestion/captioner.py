@@ -281,21 +281,68 @@ class OpenRouterVisionCaptioner:
         return text
 
 
+_DEFAULT_SKIP_ROLES: frozenset[str] = frozenset({"decoration"})
+
+
+def _needs_vlm_caption(
+    figure: Figure, *, skip_when_captioned: bool, skip_roles: frozenset[str]
+) -> bool:
+    """Decide whether `figure` is worth a VLM call.
+
+    Default policy (ADR 0022 follow-up): skip figures that already carry a
+    real PDF caption — VLM adds no retrieval value there — and skip every
+    `decoration` role (logos, icons, signatures): a "this is the Microsoft
+    logo" caption is wasted compute when the gallery has already binned
+    those out.
+    """
+    if figure.role in skip_roles:
+        return False
+    return not (skip_when_captioned and figure.caption.strip())
+
+
 async def caption_figures(
     figures: list[Figure],
     *,
     captioner: _Captioner,
     concurrency: int = _DEFAULT_CONCURRENCY,
+    skip_when_captioned: bool = True,
+    skip_roles: frozenset[str] = _DEFAULT_SKIP_ROLES,
 ) -> list[Figure]:
-    """Populate `Figure.vlm_caption` for every figure (in-place clones via model_copy).
+    """Populate `Figure.vlm_caption` only where it would change the chunk text.
 
     Concurrency-limited so a small VRAM device can serve the VLM model without
     thrashing. Errors on individual figures are logged and the figure is
     returned with its original `vlm_caption` (None) — `figure_to_chunk` will
-    fall back to the PDF-extracted caption.
+    fall back to whatever else it has.
+
+    The filter:
+    - Figures whose PDF caption is already populated are passed through
+      unchanged (the existing caption already feeds retrieval; replacing it
+      adds latency without measured value).
+    - Figures whose `role` is in `skip_roles` (default: `decoration`) are
+      passed through unchanged — no point in captioning logos and icons.
+    - Everything else (real figures with no caption, plus `unlabeled` real
+      pictures) gets a VLM call.
+
+    Pass `skip_when_captioned=False` to restore the pre-ADR-0022 "caption
+    every figure" behaviour for baseline reproducibility.
     """
     if not figures:
         return []
+
+    eligible_indices = [
+        i
+        for i, f in enumerate(figures)
+        if _needs_vlm_caption(f, skip_when_captioned=skip_when_captioned, skip_roles=skip_roles)
+    ]
+    if not eligible_indices:
+        # Nothing to do — return the input list unchanged.
+        _log.info(
+            "vlm_caption.skipped_all",
+            n_figures=len(figures),
+            reason="all figures already captioned or decoration-only",
+        )
+        return list(figures)
 
     semaphore = asyncio.Semaphore(concurrency)
 
@@ -314,7 +361,15 @@ async def caption_figures(
             return figure
         return figure.model_copy(update={"vlm_caption": caption})
 
-    with timed_event(_log, "vlm_caption.done", n_figures=len(figures)) as ctx:
-        results = await asyncio.gather(*(_one(f) for f in figures))
+    with timed_event(
+        _log,
+        "vlm_caption.done",
+        n_figures=len(figures),
+        n_eligible=len(eligible_indices),
+    ) as ctx:
+        results = list(figures)
+        captioned = await asyncio.gather(*(_one(figures[i]) for i in eligible_indices))
+        for slot, fig in zip(eligible_indices, captioned, strict=True):
+            results[slot] = fig
         ctx["with_caption"] = sum(1 for f in results if f.vlm_caption)
-    return list(results)
+    return results
