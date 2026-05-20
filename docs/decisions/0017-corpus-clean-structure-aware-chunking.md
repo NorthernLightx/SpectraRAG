@@ -14,6 +14,34 @@ baseline is now a tracked prerequisite; see ADR 0018 "Measurement". The
 structural wins (−19%, zero loss) stand and are unaffected; only the
 deferred-measurement claim was overstated.
 
+**Amendment 2026-05-20 (visual audit):** the "−19 %, zero content loss"
+claim above measured *text* chunking correctness via aggregate structural
+metrics (chunk counts, section coverage, cross-page %, fragmentation). It
+did *not* verify spatial completeness of figure/table extraction.
+`scripts/audit_ingestion_overlay.py` (added in this amendment) renders
+each page with extracted-artifact bboxes overlaid and flags pages whose
+text mentions `Figure N:` / `Table N:` captions the extractor produced
+nothing for. Run on 4 diverse papers (87 pages) it flags **~14 % of
+pages with at least one figure/table miss**, dominated by two mechanisms:
+
+- **vector-drawn figures invisible to `page.get_images()`** —
+  `figures.py` enumerates embedded raster XREFs, not stroked vector
+  paths, so matplotlib-style line plots saved without rasterisation are
+  silently dropped (clearest on `2604.22753v1` p07 Figure 2);
+- **`page.find_tables()` heuristic failures** — tight numeric tables
+  (`2604.22753v1` p06 Table 1) get missed, while some non-table grids
+  produce false-positive Table chunks.
+
+This does not invalidate the text-chunking improvements — those are
+unaffected. It does scope the "zero content loss" claim honestly to
+*text* content; the figure/table path inherits PyMuPDF's known limits
+(ADR 0002's caveat section, now visible). The audit tool's `audit.md`
+files committed under `data/eval/ingestion/overlays/<paper_id>/` are
+the reproducible spatial-audit artifact; overlay PNGs are gitignored
+(reproducible from the script). Mitigation work (rasterise-via-render
+fallback for vector figures, OR a real document parser like Docling)
+becomes its own ADR rather than getting tacked here.
+
 ## Context
 
 Step 0 of the agentic + graph + multi-modal revamp: "no good ingestion, no

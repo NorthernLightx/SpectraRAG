@@ -107,3 +107,4 @@ docs/mvp-plan.md
 *.pem
 *.key
 secrets/
+data/eval/ingestion/overlays/**/*.png
