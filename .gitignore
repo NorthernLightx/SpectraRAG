@@ -109,6 +109,7 @@ docs/mvp-plan.md
 *.key
 secrets/
 data/eval/ingestion/overlays/**/*.png
+data/eval/ingestion/vlm-spike/*.png
 
 # Manual ingestion-study artefacts (ADR 0022 follow-up). Folder of
 # per-paper JSONL inventories, page overlays, and per-label contact
