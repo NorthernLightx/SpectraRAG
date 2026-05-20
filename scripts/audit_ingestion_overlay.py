@@ -75,7 +75,12 @@ def _table_label(tab: Table) -> str | None:
     return m.group(1).strip() if m else None
 
 
-def _draw_box(page: fitz.Page, bbox: tuple[float, float, float, float], color: tuple[float, float, float], label: str) -> None:
+def _draw_box(
+    page: fitz.Page,
+    bbox: tuple[float, float, float, float],
+    color: tuple[float, float, float],
+    label: str,
+) -> None:
     rect = fitz.Rect(*bbox)
     page.draw_rect(rect, color=color, width=1.5)
     # Tiny label tag in the top-left corner of the box.
@@ -90,11 +95,21 @@ def _draw_box(page: fitz.Page, bbox: tuple[float, float, float, float], color: t
     )
 
 
-def _audit_paper(paper_id: str, out_root: Path) -> dict[str, object]:
-    """Render annotated pages + return per-paper audit data."""
+def _audit_paper(paper_id: str, out_root: Path, *, use_docling: bool = False) -> dict[str, object]:
+    """Render annotated pages + return per-paper audit data.
+
+    `use_docling=True` routes extraction through Docling (ADR 0020 primary
+    fast path) instead of PyMuPDF, so the audit's flag rate measures the
+    *new* pipeline's spatial completeness.
+    """
     pdf_path = Path(f"data/papers/{paper_id}.pdf")
-    figures = extract_figures(paper_id, pdf_path, out_dir=Path("data/figures"))
-    tables = extract_tables(paper_id, pdf_path)
+    if use_docling:
+        from src.ingestion.docling_parser import parse_with_docling
+
+        figures, tables = parse_with_docling(paper_id, pdf_path, out_dir=Path("data/figures"))
+    else:
+        figures = extract_figures(paper_id, pdf_path, out_dir=Path("data/figures"))
+        tables = extract_tables(paper_id, pdf_path)
 
     figs_by_page: dict[int, list[Figure]] = {}
     for f in figures:
@@ -154,12 +169,14 @@ def _audit_paper(paper_id: str, out_root: Path) -> dict[str, object]:
                 misses.append(
                     f"p{page_no:02d}: "
                     + ", ".join(
-                        x for x in [
+                        x
+                        for x in [
                             f"missing Figure {missing_figs}" if missing_figs else "",
                             f"missing Table {missing_tabs}" if missing_tabs else "",
                             f"{no_bbox_figs} figure(s) without bbox" if no_bbox_figs else "",
                             f"{no_bbox_tabs} table(s) without bbox" if no_bbox_tabs else "",
-                        ] if x
+                        ]
+                        if x
                     )
                 )
 
@@ -208,22 +225,29 @@ def main() -> None:
         default=Path("data/eval/ingestion/overlays"),
         help="root for per-paper overlay PNGs + audit.md",
     )
+    ap.add_argument(
+        "--use-docling",
+        action="store_true",
+        help="ADR 0020: extract via Docling (deterministic fast path) instead of PyMuPDF.",
+    )
     args = ap.parse_args()
 
     paper_ids = (
-        sorted(p.stem for p in Path("data/papers").glob("*.pdf"))
-        if args.all
-        else [args.paper]
+        sorted(p.stem for p in Path("data/papers").glob("*.pdf")) if args.all else [args.paper]
     )
-    print(f"auditing {len(paper_ids)} paper(s) -> {args.out_dir}")
+    backend = "docling" if args.use_docling else "pymupdf"
+    out_dir = args.out_dir / backend if args.use_docling else args.out_dir
+    print(f"auditing {len(paper_ids)} paper(s) via {backend} -> {out_dir}")
     rollup: list[dict[str, object]] = []
     for pid in paper_ids:
         print(f"  {pid} ...", end=" ", flush=True)
-        rollup.append(_audit_paper(pid, args.out_dir))
+        rollup.append(_audit_paper(pid, out_dir, use_docling=args.use_docling))
         print("ok")
 
     print("\nROLLUP")
-    print(f"{'paper':<16} {'pages':>5} {'figs':>5} {'with bbox':>9} {'tables':>6} {'with bbox':>9} {'flagged':>7}")
+    print(
+        f"{'paper':<16} {'pages':>5} {'figs':>5} {'with bbox':>9} {'tables':>6} {'with bbox':>9} {'flagged':>7}"
+    )
     for r in rollup:
         print(
             f"{r['paper_id']:<16} {r['pages']:>5} {r['figures']:>5} "

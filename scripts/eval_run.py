@@ -109,6 +109,7 @@ async def _main(
     postgres_dsn: str | None,
     extract_figures: bool,
     extract_tables: bool,
+    use_docling: bool,
     vlm_caption_model: str | None,
     query_expansion: bool,
     query_expansion_mode: str,
@@ -175,6 +176,7 @@ async def _main(
             contextualizer_concurrency=contextualize_concurrency,
             extract_figures_enabled=extract_figures,
             extract_tables_enabled=extract_tables,
+            use_docling=use_docling,
             vlm_captioner=vlm_captioner_obj,
         )
         for chunk in ingested.chunks:
@@ -401,6 +403,7 @@ async def _main(
             "judge_n_samples": judge_n_samples if judge else None,
             "extract_figures": extract_figures,
             "extract_tables": extract_tables,
+            "use_docling": use_docling,
             "vlm_caption_model": vlm_caption_model,
             "vlm_caption_provider": vlm_caption_provider if vlm_caption_model else None,
             "query_expansion": query_expansion,
@@ -628,6 +631,19 @@ if __name__ == "__main__":
         "--extract-tables",
         action="store_true",
         help="Extract tables via PyMuPDF and add as Chunks (markdown-rendered).",
+    )
+    parser.add_argument(
+        "--use-docling",
+        action="store_true",
+        help=(
+            "ADR 0020: use Docling (deterministic layout + table-structure "
+            "models) instead of PyMuPDF's extract_figures / extract_tables. "
+            "Recovers vector-drawn figures and tight numeric tables the "
+            "overlay-audit found that PyMuPDF silently misses (~14%% of "
+            "pages corpus-wide). Requires --extract-figures and/or "
+            "--extract-tables to actually emit chunks; adds ~30 s per paper "
+            "warm-GPU ingest time."
+        ),
     )
     parser.add_argument(
         "--vlm-caption-model",
@@ -861,6 +877,7 @@ if __name__ == "__main__":
             rerank_device=args.rerank_device,
             postgres_dsn=args.postgres_dsn or None,
             extract_figures=args.extract_figures,
+            use_docling=args.use_docling,
             extract_tables=args.extract_tables,
             vlm_caption_model=args.vlm_caption_model,
             query_expansion=args.query_expansion,

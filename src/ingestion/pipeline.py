@@ -48,6 +48,7 @@ async def ingest_paper(
     contextualizer_concurrency: int = 4,
     extract_figures_enabled: bool = False,
     extract_tables_enabled: bool = False,
+    use_docling: bool = False,
     figures_out_dir: Path = Path("data/figures"),
     vlm_captioner: _Captioner | None = None,
 ) -> IngestedPaper:
@@ -61,6 +62,15 @@ async def ingest_paper(
     and tables are extracted from the PDF and added to the chunk list as
     first-class chunks (with `metadata['kind']` = "figure" / "table"). They go
     through the same embed + BM25 + Qdrant path as text chunks.
+
+    `use_docling=True` replaces PyMuPDF's `extract_figures` (XREF-only,
+    misses vector plots) and `extract_tables` (`find_tables()` heuristic,
+    misses tight numeric tables) with Docling's deterministic layout +
+    table-structure pipeline (ADR 0020). Recovers the audit-flagged miss
+    class deterministically. When set, `extract_figures_enabled` /
+    `extract_tables_enabled` flags still gate whether figures / tables
+    are emitted as chunks; `vlm_captioner` still runs if set (its caption
+    is preferred over Docling's at `figure_to_chunk` time per ADR 0002).
     """
     with timed_event(
         _log, "ingest.done", paper_id=paper.paper_id, pdf_path=str(paper.pdf_path)
@@ -70,24 +80,45 @@ async def ingest_paper(
         ctx["pages"] = len(pages)
         ctx["text_chunks"] = len(chunks)
 
+        # Multi-modal extraction. Docling is the deterministic fast path
+        # (ADR 0020); a single conversion call yields both figures and
+        # tables, so when use_docling=True the PyMuPDF figure / table
+        # extractors are bypassed in one go to avoid double-emitting the
+        # same artifacts under different ids.
         figure_count = 0
         figures_captioned = 0
-        if extract_figures_enabled:
-            figures = extract_figures(paper.paper_id, paper.pdf_path, out_dir=figures_out_dir)
-            if vlm_captioner is not None and figures:
-                figures = await caption_figures(figures, captioner=vlm_captioner)
-                figures_captioned = sum(1 for f in figures if f.vlm_caption)
-            chunks.extend(figure_to_chunk(f) for f in figures)
-            figure_count = len(figures)
+        table_count = 0
+        if use_docling and (extract_figures_enabled or extract_tables_enabled):
+            from src.ingestion.docling_parser import parse_with_docling
+
+            docling_figs, docling_tabs = parse_with_docling(
+                paper.paper_id, paper.pdf_path, out_dir=figures_out_dir
+            )
+            if extract_figures_enabled:
+                if vlm_captioner is not None and docling_figs:
+                    docling_figs = await caption_figures(docling_figs, captioner=vlm_captioner)
+                    figures_captioned = sum(1 for f in docling_figs if f.vlm_caption)
+                chunks.extend(figure_to_chunk(f) for f in docling_figs)
+                figure_count = len(docling_figs)
+            if extract_tables_enabled:
+                chunks.extend(table_to_chunk(t) for t in docling_tabs)
+                table_count = len(docling_tabs)
+        else:
+            if extract_figures_enabled:
+                figures = extract_figures(paper.paper_id, paper.pdf_path, out_dir=figures_out_dir)
+                if vlm_captioner is not None and figures:
+                    figures = await caption_figures(figures, captioner=vlm_captioner)
+                    figures_captioned = sum(1 for f in figures if f.vlm_caption)
+                chunks.extend(figure_to_chunk(f) for f in figures)
+                figure_count = len(figures)
+            if extract_tables_enabled:
+                tables = extract_tables(paper.paper_id, paper.pdf_path)
+                chunks.extend(table_to_chunk(t) for t in tables)
+                table_count = len(tables)
         ctx["figure_chunks"] = figure_count
         ctx["figures_captioned"] = figures_captioned
-
-        table_count = 0
-        if extract_tables_enabled:
-            tables = extract_tables(paper.paper_id, paper.pdf_path)
-            chunks.extend(table_to_chunk(t) for t in tables)
-            table_count = len(tables)
         ctx["table_chunks"] = table_count
+        ctx["use_docling"] = use_docling
 
         ctx["chunks"] = len(chunks)
         if not chunks:
