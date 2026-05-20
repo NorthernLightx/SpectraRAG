@@ -38,8 +38,8 @@ from typing import Any
 
 from PIL import Image, ImageDraw, ImageFont
 
-if sys.platform == "win32":
-    sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[attr-defined]
+if sys.platform == "win32" and hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
 
 QDRANT_DEFAULT = "http://localhost:6333"
 PAGES_DIR = Path("data/pages")
@@ -79,7 +79,10 @@ def fetch_all_chunks(qdrant_url: str, collection: str) -> list[dict[str, Any]]:
     return pts
 
 
-def _font(size: int = 12) -> ImageFont.ImageFont:
+def _font(size: int = 12) -> Any:
+    """Return whatever PIL hands back — `FreeTypeFont` when arial loads,
+    `ImageFont` otherwise. Typed as `Any` so the caller doesn't have to
+    juggle the union."""
     try:
         return ImageFont.truetype("arial.ttf", size)
     except OSError:
@@ -195,9 +198,9 @@ def main() -> None:
     print(f"total chunks in collection: {len(pts)}")
 
     # Bucketing
-    by_paper_figures: dict[str, list[dict]] = defaultdict(list)
-    by_paper_tables: dict[str, list[dict]] = defaultdict(list)
-    by_label: dict[str, list[dict]] = defaultdict(list)
+    by_paper_figures: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    by_paper_tables: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    by_label: dict[str, list[dict[str, Any]]] = defaultdict(list)
     role_counts: Counter[str] = Counter()
     label_counts: Counter[str] = Counter()
     kind_counts: Counter[str] = Counter()
