@@ -1,0 +1,146 @@
+[
+  {
+    "page": 2,
+    "note": "CONTROL — Figure 1 should be reported, nothing extra",
+    "image_size_px": [
+      1275,
+      1650
+    ],
+    "items": [
+      {
+        "type": "figure",
+        "label": "1",
+        "bbox": [
+          177,
+          90,
+          817,
+          256
+        ],
+        "caption": "Our method identifies the extrapolation optimum using only a small fraction of the original scaling-law fitting budget. On 1r&bsz, the predicted optimum over learning rate and batch size for a 1B-parameter LLM trained on 100B tokens reaches the low-loss region within 1% of the budget, as shown by the trajectory on the test-loss heatmap (left). The selected training configurations used for fitting are shown on the right in a 3D view of the design space, colored by training cost (6ND), illustrating that accurate extrapolation can be achieved from a sparse, low-cost subset of the full configuration space.",
+        "summary": "Two plots showing a heatmap of test loss over learning rate and batch size (left) and a 3D scatter plot of design space configurations (right), illustrating extrapolation optimum identification within a small budget fraction."
+      }
+    ]
+  },
+  {
+    "page": 6,
+    "note": "MISS — should recover Table 1 (task statistics)",
+    "image_size_px": [
+      1275,
+      1650
+    ],
+    "items": [
+      {
+        "type": "table",
+        "label": "1",
+        "bbox": [
+          193,
+          100,
+          794,
+          245
+        ],
+        "caption": "Table 1: Task statistics for the scaling-law benchmark. Each task contains a collection of scaling-law instances for evaluating budget-aware sequential design on target-region extrapolation.",
+        "summary": "Summarizes task statistics for the scaling-law benchmark including laws, parameters, training/test sizes, targets, and costs."
+      }
+    ]
+  },
+  {
+    "page": 7,
+    "note": "MISS — should recover Figure 2 (4-panel line plot) and Table 2",
+    "image_size_px": [
+      1275,
+      1650
+    ],
+    "items": [
+      {
+        "type": "figure",
+        "label": "2",
+        "bbox": [
+          158,
+          100,
+          821,
+          285
+        ],
+        "caption": "Mean target-region $R^2$ as a function of consumed budget on the benchmark. Our method reaches the strongest overall budget--accuracy trade-off and approaches the full-data reference using only a small fraction of the total experimental cost.",
+        "summary": "Mean target-region R² across benchmark tasks as a function of consumed budget, showing method performance relative to baselines."
+      },
+      {
+        "type": "table",
+        "label": "2",
+        "bbox": [
+          147,
+          340,
+          835,
+          645
+        ],
+        "caption": "Task-level breakdown of target-region $R^2$ under different budget levels. Each cell reports the mean and standard deviation aggregated over all scaling-law instances within the corresponding task. Higher is better. Budgets are 1%, 5%, 10% for most tasks, and 20%, 35%, 50% for domain and sparsity.",
+        "summary": "Task-level R² scores with means and standard deviations across budget levels and settings."
+      }
+    ]
+  },
+  {
+    "page": 8,
+    "note": "MISS — should recover Figure 3 (t-SNE/parameter-space viz)",
+    "image_size_px": [
+      1275,
+      1650
+    ],
+    "items": [
+      {
+        "type": "figure",
+        "label": "3",
+        "bbox": [
+          150,
+          95,
+          750,
+          290
+        ],
+        "caption": "Figure 3: Parameter-space visualization for one lr&bsz scaling law (s1_5) after fitting on the cheapest 12% of training points from 2048 initializations. We embed the fitted parameters with t-SNE and color each solution by its MSE on the selected points (left) or on the held-out test region (right). Multiple separated clusters indicate many local optima, while the mismatch between the two colorings shows that low error on the observed low-cost points does not reliably imply low error on the high-cost extrapolation region. Our method achieves 0.71 averaged test R² within 5% budget compared with 0.57 for V-opt and 0.16 for D-opt.",
+        "summary": "Parameter-space visualization showing MSE gaps for selected-set and test regions with clusters indicating local optima and extrapolation challenges."
+      }
+    ]
+  },
+  {
+    "page": 9,
+    "note": "MISS — should recover Table 3 (ablation)",
+    "image_size_px": [
+      1275,
+      1650
+    ],
+    "items": [
+      {
+        "type": "table",
+        "label": "3",
+        "bbox": [
+          114,
+          81,
+          879,
+          242
+        ],
+        "caption": "Ablation study of the acquisition function. We remove either $\\Delta V_{\\text{inter}}$ or $\\Delta V_{\\text{intra}}$ from the acquisition score and report the target-region $R^2$ at different budget levels. Each cell shows the mean and standard deviation aggregated over all scaling-law instances. Higher is better. Budgets are 1\\%, 5\\%, 10\\% for most tasks, and 20\\%, 35\\%, 50\\% for domain and sparsity.",
+        "summary": "Table showing ablation results for acquisition function components with R² values across different budget levels and settings."
+      }
+    ]
+  },
+  {
+    "page": 13,
+    "note": "MISS — should recover Table 4",
+    "image_size_px": [
+      1275,
+      1650
+    ],
+    "items": [
+      {
+        "type": "table",
+        "label": "4",
+        "bbox": [
+          172,
+          823,
+          823,
+          924
+        ],
+        "caption": "Collected scaling laws grouped by task.",
+        "summary": "The table lists collected scaling laws grouped by task, including their ID, parametric form, number of parameters, and test R² values."
+      }
+    ]
+  }
+]
