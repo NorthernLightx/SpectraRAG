@@ -112,6 +112,13 @@ class Figure(BaseModel):
     vlm_caption: str | None = None
     bbox: Bbox | None = None
     role: FigureRole = "unlabeled"
+    # ADR 0022: raw output of Docling's DocumentFigureClassifier — one of
+    # 28 labels (`logo`, `bar_chart`, `flow_chart`, ...) or ``None`` when
+    # picture classification was off at ingest. Preserved alongside
+    # ``role`` so a richer UI filter or a downstream model can use the
+    # fine-grained label without re-running ingestion.
+    docling_label: str | None = None
+    docling_label_confidence: float = 0.0
 
 
 class Table(BaseModel):

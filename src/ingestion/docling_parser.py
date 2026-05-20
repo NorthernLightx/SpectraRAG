@@ -18,9 +18,17 @@ PyMuPDF path's filename convention.
 from __future__ import annotations
 
 import contextlib
+import os
 import re
 from pathlib import Path
 from typing import Any
+
+# ADR 0022: Docling's DocumentFigureClassifier runs through transformers
+# + torch.compile by default, which needs Triton (unavailable on Windows
+# CPU). Disabling dynamo BEFORE importing docling sidesteps the compile
+# path entirely. Set as early as possible so it propagates to torch on
+# first import.
+os.environ.setdefault("TORCHDYNAMO_DISABLE", "1")
 
 from docling.datamodel.base_models import InputFormat
 from docling.datamodel.pipeline_options import PdfPipelineOptions
@@ -30,31 +38,28 @@ from src.observability.logging import get_logger, timed_event
 from src.types import Bbox, Figure, Table
 from src.types.documents import FigureRole
 
-# ADR 0022 — figure role classification. Docling's layout model labels
-# affiliation logos, license badges, inline status icons, and small
-# decorative glyphs as ``picture`` alongside real publication figures.
-# Dropping them at ingestion is too aggressive (a "what license is this
-# paper under" query loses its answer), so we tag every picture with a
-# role and let the gallery / retriever filter where appropriate.
+# ADR 0022 — figure role classification.
 #
-# 5000 pt² is the measured cut from the 20-paper arXiv-2604 corpus:
-# 42 chunks below 1000 pt² (icons / logos), 1 chunk at 1130 (still an
-# icon), zero chunks in 3k-8k (clean valley), 32 chunks 5k-20k all real
-# figures (smallest: an 8789-pt² SWAP-test diagram). Captioned
-# "Figure N" / "Fig. N" pictures pass regardless of area to rescue the
-# rare small-but-labelled real figure (e.g. the 906-pt² "Figure 3:
-# Screenshots of the artifacts ...").
+# Pictures get a coarse role (``figure``, ``decoration``, ``unlabeled``)
+# so the gallery can hide page-furniture by default and retrieval can
+# treat the buckets differently if needed. Two layers feed the role:
+#
+# 1. **Docling's DocumentFigureClassifier-v2.5** (preferred when enabled).
+#    Outputs one of 28 fine-grained labels — `logo`, `icon`, `bar_chart`,
+#    `flow_chart`, `photograph`, etc. — at high confidence on this
+#    corpus (1.00 on every Microsoft-logo affiliation block, 0.97+ on
+#    most figures). The label is preserved on chunk.metadata for richer
+#    filtering; the role is derived from a fixed mapping below.
+#
+# 2. **Deterministic caption + area fallback** (kept for legacy
+#    collections ingested before the classifier was wired in, and as a
+#    safety net when the classifier returns nothing). 5000 pt² is the
+#    measured cut from the 20-paper arXiv-2604 corpus: 42 chunks below
+#    1000 pt² are icons/logos, 32 chunks 5k-20k are all real figures
+#    (smallest a 8789-pt² SWAP-test diagram). Captioned "Figure N" /
+#    "Fig. N" pictures pass regardless of area to rescue the rare
+#    small-but-labelled real figure.
 _MIN_FIGURE_AREA_PT2 = 5000.0
-# Caption patterns the classifier accepts as a paper-authored figure label.
-# The plain `^Figure 3` form was too tight against the live corpus — 38 of
-# 86 "unlabeled" chunks on `eval_docling_mm` were real figures with one of:
-#   - subfigure letter:    "(a) CDF of prediction errors ..."
-#   - letter-numbered:     "Figure C.1: ...", "Figure F. Samples of AMD"
-#   - page-number prefix:  "1 Figure 9: The trade-off ..." (OCR / column merge)
-# The alternation below captures those without rescuing anything that
-# isn't figure-shaped. `Table N` is deliberately excluded — Docling
-# emits tables through a separate loop, picture-side hits of tables are
-# duplicates and stay `unlabeled`.
 _FIGURE_CAPTION_RE = re.compile(
     r"""^\s*
         (?: \d+\s+ )?                       # optional leading page-number from OCR
@@ -66,20 +71,112 @@ _FIGURE_CAPTION_RE = re.compile(
     re.IGNORECASE | re.VERBOSE,
 )
 
+# Docling-label → our 3-role taxonomy. Every label the classifier knows
+# about gets a deliberate mapping; anything new from a future model
+# version falls into ``unlabeled``.
+_DOCLING_LABEL_TO_ROLE: dict[str, FigureRole] = {
+    # decorative / page-furniture
+    "logo": "decoration",
+    "icon": "decoration",
+    "signature": "decoration",
+    "stamp": "decoration",
+    "bar_code": "decoration",
+    "qr_code": "decoration",
+    "page_thumbnail": "decoration",
+    # real publication figures
+    "bar_chart": "figure",
+    "box_plot": "figure",
+    "flow_chart": "figure",
+    "line_chart": "figure",
+    "pie_chart": "figure",
+    "scatter_plot": "figure",
+    "scatter_chart": "figure",
+    "stacked_bar_chart": "figure",
+    "heatmap": "figure",
+    "photograph": "figure",
+    "natural_image": "figure",
+    "full_page_image": "figure",
+    "screenshot_from_computer": "figure",
+    "screenshot_from_manual": "figure",
+    "screenshot": "figure",
+    "chemistry_structure": "figure",
+    "chemistry_molecular_structure": "figure",
+    "chemistry_markush_structure": "figure",
+    "engineering_drawing": "figure",
+    "cad_drawing": "figure",
+    "electrical_diagram": "figure",
+    "geographical_map": "figure",
+    "geographic_map": "figure",
+    "map": "figure",
+    "topographical_map": "figure",
+    "remote_sensing": "figure",
+    "stratigraphic_chart": "figure",
+    "music": "figure",
+    "picture_group": "figure",
+    # Docling already extracts tables via a separate model; the picture-
+    # detector firing on a table region is a duplicate, so we don't
+    # claim it as a figure here.
+    "table": "unlabeled",
+    # explicitly uncertain
+    "other": "unlabeled",
+    "calendar": "unlabeled",
+    "crossword_puzzle": "unlabeled",
+}
+# Below this confidence we don't trust the model — fall back to the
+# caption/area heuristic. 0.30 is well above the uniform-prior baseline
+# (~0.04 with 28 classes) but low enough to keep the model's good
+# medium-confidence calls.
+_MIN_CLASSIFIER_CONFIDENCE = 0.30
 
-def _classify_figure_role(*, caption: str, bbox: Bbox | None) -> FigureRole:
-    """Deterministic figure-vs-decoration classifier (ADR 0022).
 
-    Priority: a paper-authored "Figure N" caption beats every size heuristic
-    — if the document labels it, it's a figure regardless of how small the
-    crop is. Otherwise, sub-threshold-area pictures are ``decoration``
-    (logos, icons, decorative glyphs). Everything else is ``unlabeled`` —
-    a real picture that the paper didn't caption (e.g. an inset diagram
-    inside an equation block); we keep it indexed but the gallery hides
-    it from the default view.
+def _top_docling_label(pic: Any) -> tuple[str | None, float]:
+    """Extract the top (class_name, confidence) from a Docling picture's
+    classifier output. Returns (None, 0.0) when no classification is
+    present. Reads ``pic.meta.classification`` (current API) with a
+    fallback to ``pic.annotations`` (deprecated but still populated)
+    so both Docling versions work."""
+    # New-style: PictureMeta.classification.predictions
+    meta = getattr(pic, "meta", None)
+    classification = getattr(meta, "classification", None) if meta is not None else None
+    preds = getattr(classification, "predictions", None) or []
+    if not preds:
+        # Old-style: list of PictureClassificationData with predicted_classes
+        for ann in getattr(pic, "annotations", []) or []:
+            preds = getattr(ann, "predicted_classes", None) or []
+            if preds:
+                break
+    if not preds:
+        return None, 0.0
+    top = preds[0]
+    return getattr(top, "class_name", None), float(getattr(top, "confidence", 0.0))
+
+
+def _classify_figure_role(
+    *, caption: str, bbox: Bbox | None, docling_label: str | None = None, confidence: float = 0.0
+) -> FigureRole:
+    """Pick a role for the picture (ADR 0022).
+
+    Priority order — most authoritative signal first:
+
+    1. **Paper-authored ``Figure N`` caption.** The paper telling us "this
+       is Figure 3" beats the classifier. Catches the small-but-real
+       Figure-3 / Figure-3-screenshot cases that the visual model can
+       mistake for a logo because the thumbnail is so small.
+    2. **Docling classifier label** at ≥ confidence threshold. 28 fine-
+       grained labels — `logo`, `icon`, `bar_chart`, `flow_chart`, ... —
+       mapped to our 3-role taxonomy via ``_DOCLING_LABEL_TO_ROLE``.
+    3. **Area heuristic.** Sub-threshold pictures with neither a Figure-N
+       caption nor a confident classifier label become ``decoration``;
+       everything else is ``unlabeled``.
     """
     if caption and _FIGURE_CAPTION_RE.match(caption):
         return "figure"
+    if (
+        docling_label is not None
+        and confidence >= _MIN_CLASSIFIER_CONFIDENCE
+        and docling_label in _DOCLING_LABEL_TO_ROLE
+    ):
+        return _DOCLING_LABEL_TO_ROLE[docling_label]
     if bbox is None:
         return "decoration"
     area = (bbox.x1 - bbox.x0) * (bbox.y1 - bbox.y0)
@@ -128,10 +225,14 @@ def _flip_bbox(raw: Any, page_height: float) -> Bbox | None:
 
 def _build_converter() -> DocumentConverter:
     """Pdf converter with picture-image generation enabled so we can
-    persist crops to disk (the project's `Figure.image_path` is required)."""
+    persist crops to disk (the project's `Figure.image_path` is required).
+    Picture classification is on (ADR 0022) — produces the role label;
+    `TORCHDYNAMO_DISABLE=1` is set at import time to keep the underlying
+    transformers engine off the torch.compile path."""
     pipeline = PdfPipelineOptions()
     pipeline.images_scale = _PICTURE_SCALE
     pipeline.generate_picture_images = True
+    pipeline.do_picture_classification = True
     return DocumentConverter(
         format_options={InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline)}
     )
@@ -217,7 +318,13 @@ def parse_with_docling(
             caption = ""
             with contextlib.suppress(RuntimeError, AttributeError):
                 caption = str(pic.caption_text(doc) or "")
-            role = _classify_figure_role(caption=caption, bbox=bbox)
+            docling_label, confidence = _top_docling_label(pic)
+            role = _classify_figure_role(
+                caption=caption,
+                bbox=bbox,
+                docling_label=docling_label,
+                confidence=confidence,
+            )
             figures.append(
                 Figure(
                     figure_id=figure_id,
@@ -227,6 +334,8 @@ def parse_with_docling(
                     image_path=image_path,
                     bbox=bbox,
                     role=role,
+                    docling_label=docling_label,
+                    docling_label_confidence=confidence,
                 )
             )
 

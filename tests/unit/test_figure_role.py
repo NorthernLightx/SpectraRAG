@@ -111,3 +111,66 @@ def test_random_subscript_letter_word_doesnt_match_subfig() -> None:
     # paren is far away — \([a-z]\) requires exactly one letter inside.
     tiny = _bbox(0, 0, 30, 30)
     assert _classify_figure_role(caption="(a great experiment shows)", bbox=tiny) == "decoration"
+
+
+# ----- Docling classifier integration --------------------------------
+
+
+def test_docling_label_logo_overrides_size_heuristic() -> None:
+    # A 100x100 (10000-pt^2) picture would pass the area test as
+    # `unlabeled`, but if Docling says it's a logo at high confidence
+    # we trust the classifier.
+    bbox = _bbox(0, 0, 100, 100)
+    role = _classify_figure_role(caption="", bbox=bbox, docling_label="logo", confidence=0.99)
+    assert role == "decoration"
+
+
+def test_paper_caption_beats_docling_logo_mislabel() -> None:
+    # The small "Figure 3: Screenshots of the artifacts ..." case from
+    # 2604.28181v1 — Docling's visual classifier confidently calls a
+    # 906-pt^2 thumbnail a logo, but the paper's own caption says
+    # otherwise. The paper wins.
+    tiny = _bbox(0, 0, 30, 30)
+    role = _classify_figure_role(
+        caption="Figure 3: Screenshots of the artifacts.",
+        bbox=tiny,
+        docling_label="logo",
+        confidence=1.00,
+    )
+    assert role == "figure"
+
+
+def test_docling_label_bar_chart_marks_as_figure() -> None:
+    bbox = _bbox(0, 0, 100, 100)
+    role = _classify_figure_role(caption="", bbox=bbox, docling_label="bar_chart", confidence=0.95)
+    assert role == "figure"
+
+
+def test_docling_label_below_confidence_falls_back_to_heuristic() -> None:
+    # Classifier said "logo" at 0.10 confidence — below the trust
+    # threshold; the heuristic (large area, no caption) wins and we
+    # keep it as `unlabeled`.
+    big_uncaptioned = _bbox(0, 0, 200, 200)
+    role = _classify_figure_role(
+        caption="", bbox=big_uncaptioned, docling_label="logo", confidence=0.10
+    )
+    assert role == "unlabeled"
+
+
+def test_docling_table_label_stays_unlabeled() -> None:
+    # Docling extracts tables via a separate model; the picture-
+    # detector firing on a table region is a duplicate that we
+    # deliberately don't promote to `figure`.
+    bbox = _bbox(0, 0, 200, 200)
+    role = _classify_figure_role(caption="", bbox=bbox, docling_label="table", confidence=0.99)
+    assert role == "unlabeled"
+
+
+def test_unknown_docling_label_falls_through_to_heuristic() -> None:
+    # A future Docling release adds a new class we haven't mapped yet —
+    # don't lose the chunk, let the heuristic decide.
+    tiny = _bbox(0, 0, 20, 20)
+    role = _classify_figure_role(
+        caption="", bbox=tiny, docling_label="hand_drawn_sketch", confidence=0.99
+    )
+    assert role == "decoration"  # small + no caption → decoration via heuristic

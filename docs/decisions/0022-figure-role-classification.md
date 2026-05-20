@@ -107,7 +107,80 @@ No measured cost on retrieval. Gallery default view on `eval_docling_mm`
 becomes **209 / 304** items (started at 304, dropped 42 decorations and
 53 unlabeled — see below).
 
-## Amendment, same day — caption regex tightened
+## Amendment, same day — use Docling's built-in figure classifier
+
+User pushback: "isn't Docling supposed to label all this correctly?
+Docling uses models." Correct — and we weren't using them. Docling 2.94
+ships `DocumentFigureClassifier-v2.5` (an EfficientNet trained on 28
+document-picture classes: `logo`, `icon`, `bar_chart`, `box_plot`,
+`flow_chart`, `line_chart`, `pie_chart`, `scatter_plot`, `photograph`,
+`engineering_drawing`, `chemistry_structure`, `screenshot_from_*`,
+`signature`, `stamp`, etc.) but it ships **off** in the default
+`PdfPipelineOptions`. The first-pass implementation didn't enable it.
+
+### Setup costs
+
+- New dep: `onnxruntime` declared in `pyproject.toml` (Docling pulls it
+  in already for OCR; the figure classifier needs it too).
+- The classifier's default Transformers engine triggers `torch.compile`
+  / dynamo, which needs Triton, unavailable on Windows-CPU. Setting
+  `TORCHDYNAMO_DISABLE=1` at import time in `docling_parser.py`
+  sidesteps the compile path and lets the model run on plain PyTorch.
+  Tried the ONNX engine first — Docling 2.94 currently returns
+  near-uniform predictions (~0.09 for every class) through that path,
+  which we suspect is a preprocessing bug we didn't track down.
+- Per-paper ingest cost: classifier adds ~5–10 s to a paper-conversion
+  that was already ~45 s. Negligible at the 20-paper corpus scale.
+
+### Priority order
+
+Three signals feed the role, evaluated in order:
+
+1. **Paper-authored `Figure N` caption** wins. The classifier called
+   the 906-pt² "Figure 3: Screenshots of the artifacts" thumbnail
+   `logo(1.00)` because the visual evidence really did look like one
+   at thumbnail size, but the paper's own caption is the higher
+   authority. Caption-first prevents that mis-tag.
+2. **Docling classifier label at ≥ 0.30 confidence**, mapped through
+   `_DOCLING_LABEL_TO_ROLE`. 28 labels collapse to 3 roles: logos /
+   icons / signatures → `decoration`; everything chart-shaped or
+   diagram-shaped → `figure`; `table` and `other` → `unlabeled`
+   (Docling already extracts tables via a separate model, picture-side
+   table hits are duplicates).
+3. **Area heuristic** as the final fallback: <5000 pt² uncaptioned →
+   `decoration`, else `unlabeled`.
+
+### Measurement on `2604.28181v1` (single-paper probe collection)
+
+46 picture-detections; classifier labels (top class per detection):
+
+| docling label | n | role |
+|---|---:|---|
+| logo | 33 | decoration (Microsoft affiliation block × 33) |
+| bar_chart | 5 | figure (occupation / artifact-type / rubric distributions) |
+| flow_chart | 3 | figure (method-overview diagrams) |
+| table | 4 | unlabeled (picture-side hits of real tables Docling already extracts separately) |
+| icon | 1 | decoration (page-1 email-envelope glyph) |
+
+Role distribution: **9 figure / 33 decoration / 4 unlabeled**. The
+Figure-3 thumbnail (real caption, tiny crop) is rescued by the
+caption-first priority.
+
+Stored fields on each figure chunk's `metadata`: `role` (3-bucket),
+`docling_label` (one of 28), `docling_label_confidence` (float).
+Future filters / retrievers can read the rich label directly without
+re-running ingestion.
+
+### Tests added
+
+5 new cases pin the classifier-integration logic: high-confidence
+logo overrides size heuristic, high-confidence bar_chart marks as
+figure, low-confidence label falls back to heuristic, `table` label
+stays `unlabeled`, unknown future label falls through. Plus the
+paper-caption-beats-Docling-mislabel case. 20/20 classifier tests
+pass, 581/581 full unit suite passes.
+
+## Amendment — caption regex tightened
 
 First-pass regex `^Figure\s*\d` was too narrow against the live corpus.
 Recharacterising the initial `unlabeled` bucket (86 chunks) found 38

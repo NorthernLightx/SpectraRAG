@@ -239,9 +239,14 @@ def figure_to_chunk(figure: Figure) -> Chunk:
         "has_vlm_caption": figure.vlm_caption is not None,
         # ADR 0022: figure-role split so the gallery can hide decorative
         # picture-detections (logos, license badges, inline status icons)
-        # without dropping them from the index.
+        # without dropping them from the index. `docling_label` is the
+        # raw classifier output (`logo`, `bar_chart`, ...); the role is
+        # the 3-way collapse the UI filter uses.
         "role": figure.role,
     }
+    if figure.docling_label is not None:
+        metadata["docling_label"] = figure.docling_label
+        metadata["docling_label_confidence"] = figure.docling_label_confidence
     if figure.bbox is not None:
         metadata["bbox"] = figure.bbox.as_list()
     return Chunk(
