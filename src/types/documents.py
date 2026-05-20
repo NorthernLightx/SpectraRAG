@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -87,12 +87,21 @@ class Chunk(BaseModel):
         return self.text
 
 
+FigureRole = Literal["figure", "decoration", "unlabeled"]
+
+
 class Figure(BaseModel):
     """A figure extracted from a paper. `vlm_caption` is set after VLM captioning.
 
     `bbox` is the figure's location on the page in PDF points; absent (None)
     when PyMuPDF can't locate the embedded image stream on the page (rare —
     happens with vector-art figures and transparent overlays). ADR 0009.
+
+    `role` is a coarse intent classification (ADR 0022). Docling's layout
+    model labels logos, inline icons, and decorative glyphs as "picture"
+    alongside real publication figures. Dropping them at ingestion would
+    lose page-furniture that a "what license is this paper under" query
+    might cite, so we keep them and let consumers filter by role.
     """
 
     figure_id: str
@@ -102,6 +111,7 @@ class Figure(BaseModel):
     image_path: Path
     vlm_caption: str | None = None
     bbox: Bbox | None = None
+    role: FigureRole = "unlabeled"
 
 
 class Table(BaseModel):

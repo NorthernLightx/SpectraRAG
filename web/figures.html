@@ -196,6 +196,15 @@
         <label for="captionFilter">Caption contains</label>
         <input id="captionFilter" type="search" placeholder="e.g. accuracy, scaling" />
       </div>
+      <div>
+        <label for="roleFilter">Role
+          <span class="info-icon" title="ADR 0022 — Docling's layout model marks logos and inline icons as 'picture' alongside real figures. 'Figures only' shows paper-labelled Figure N items; 'All detections' includes decorations and unlabelled pictures.">i</span>
+        </label>
+        <select id="roleFilter">
+          <option value="figure" selected>Figures only</option>
+          <option value="all">All detections</option>
+        </select>
+      </div>
     </div>
 
     <main>
@@ -209,6 +218,7 @@
       const figuresEl = document.getElementById("figures");
       const paperFilterEl = document.getElementById("paperFilter");
       const captionFilterEl = document.getElementById("captionFilter");
+      const roleFilterEl = document.getElementById("roleFilter");
 
       let allFigures = [];
       let paperTitles = {}; // paper_id → title (when available)
@@ -232,10 +242,13 @@
 
       paperFilterEl.addEventListener("change", render);
       captionFilterEl.addEventListener("input", render);
+      roleFilterEl.addEventListener("change", render);
 
       async function fetchFigures() {
         try {
-          const res = await fetch("/figures");
+          // Ask for the API's upper bound so the gallery sees the whole
+          // corpus, not the default 200-row page (ADR 0022 status counts).
+          const res = await fetch("/figures?limit=1000");
           if (!res.ok) {
             const detail = res.status === 503
               ? "Corpus not loaded (server returned 503 — ingest a corpus to populate /figures)."
@@ -260,8 +273,10 @@
         }
         const paperFilter = paperFilterEl.value;
         const captionFilter = captionFilterEl.value.trim().toLowerCase();
+        const roleFilter = roleFilterEl.value; // "figure" or "all"
         const filtered = allFigures.filter((f) => {
           if (paperFilter && f.paper_id !== paperFilter) return false;
+          if (roleFilter === "figure" && f.role !== "figure") return false;
           if (captionFilter && !(f.caption || "").toLowerCase().includes(captionFilter))
             return false;
           return true;
@@ -269,7 +284,15 @@
         if (allFigures.length === 0) {
           statusEl.textContent = "No figure-kind chunks in the corpus.";
         } else {
-          statusEl.textContent = `${filtered.length} / ${allFigures.length} figures`;
+          // Break down by role so the user sees what "Figures only" hid.
+          const counts = allFigures.reduce(
+            (acc, f) => ((acc[f.role || "unlabeled"] = (acc[f.role || "unlabeled"] || 0) + 1), acc),
+            {}
+          );
+          const breakdown = Object.entries(counts)
+            .map(([k, v]) => `${v} ${k}`)
+            .join(" · ");
+          statusEl.textContent = `${filtered.length} / ${allFigures.length} shown  (${breakdown})`;
         }
         clear(figuresEl);
         for (const f of filtered) figuresEl.append(renderFigureCard(f));

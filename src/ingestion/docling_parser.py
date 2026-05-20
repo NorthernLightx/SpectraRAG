@@ -18,6 +18,7 @@ PyMuPDF path's filename convention.
 from __future__ import annotations
 
 import contextlib
+import re
 from pathlib import Path
 from typing import Any
 
@@ -27,6 +28,45 @@ from docling.document_converter import DocumentConverter, PdfFormatOption
 
 from src.observability.logging import get_logger, timed_event
 from src.types import Bbox, Figure, Table
+from src.types.documents import FigureRole
+
+# ADR 0022 — figure role classification. Docling's layout model labels
+# affiliation logos, license badges, inline status icons, and small
+# decorative glyphs as ``picture`` alongside real publication figures.
+# Dropping them at ingestion is too aggressive (a "what license is this
+# paper under" query loses its answer), so we tag every picture with a
+# role and let the gallery / retriever filter where appropriate.
+#
+# 5000 pt² is the measured cut from the 20-paper arXiv-2604 corpus:
+# 42 chunks below 1000 pt² (icons / logos), 1 chunk at 1130 (still an
+# icon), zero chunks in 3k-8k (clean valley), 32 chunks 5k-20k all real
+# figures (smallest: an 8789-pt² SWAP-test diagram). Captioned
+# "Figure N" / "Fig. N" pictures pass regardless of area to rescue the
+# rare small-but-labelled real figure (e.g. the 906-pt² "Figure 3:
+# Screenshots of the artifacts ...").
+_MIN_FIGURE_AREA_PT2 = 5000.0
+_FIGURE_CAPTION_RE = re.compile(r"^\s*(figure|fig\.?)\s*\d", re.IGNORECASE)
+
+
+def _classify_figure_role(*, caption: str, bbox: Bbox | None) -> FigureRole:
+    """Deterministic figure-vs-decoration classifier (ADR 0022).
+
+    Priority: a paper-authored "Figure N" caption beats every size heuristic
+    — if the document labels it, it's a figure regardless of how small the
+    crop is. Otherwise, sub-threshold-area pictures are ``decoration``
+    (logos, icons, decorative glyphs). Everything else is ``unlabeled`` —
+    a real picture that the paper didn't caption (e.g. an inset diagram
+    inside an equation block); we keep it indexed but the gallery hides
+    it from the default view.
+    """
+    if caption and _FIGURE_CAPTION_RE.match(caption):
+        return "figure"
+    if bbox is None:
+        return "decoration"
+    area = (bbox.x1 - bbox.x0) * (bbox.y1 - bbox.y0)
+    if area < _MIN_FIGURE_AREA_PT2:
+        return "decoration"
+    return "unlabeled"
 
 _log = get_logger(__name__)
 
@@ -158,6 +198,7 @@ def parse_with_docling(
             caption = ""
             with contextlib.suppress(RuntimeError, AttributeError):
                 caption = str(pic.caption_text(doc) or "")
+            role = _classify_figure_role(caption=caption, bbox=bbox)
             figures.append(
                 Figure(
                     figure_id=figure_id,
@@ -166,6 +207,7 @@ def parse_with_docling(
                     caption=caption,
                     image_path=image_path,
                     bbox=bbox,
+                    role=role,
                 )
             )
 

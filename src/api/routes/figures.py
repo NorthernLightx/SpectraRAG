@@ -8,6 +8,9 @@ lifespan startup; no Qdrant round trip per request.
 
 from __future__ import annotations
 
+import re
+from typing import Literal
+
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
 
@@ -15,6 +18,32 @@ from src.api.deps import get_chunks
 from src.types import Chunk
 
 router = APIRouter()
+
+# Same regex + threshold as src/ingestion/docling_parser.py — duplicated
+# here so the API can derive a `role` for legacy chunks ingested before
+# ADR 0022 landed (no `role` in their metadata). New ingests carry the
+# field; this branch is the migration cushion.
+_FIGURE_CAPTION_RE = re.compile(r"^\s*(figure|fig\.?)\s*\d", re.IGNORECASE)
+_MIN_FIGURE_AREA_PT2 = 5000.0
+_PLACEHOLDER_CAPTION_RE = re.compile(r"^\s*\[.+::p\d+::fig\d+\]\s*$")
+
+
+def _derive_role(caption: str, bbox: list[float] | None) -> Literal["figure", "decoration", "unlabeled"]:
+    """Mirror of `docling_parser._classify_figure_role` for legacy chunks.
+
+    The caption seen here is the chunk's emitted text (VLM caption ?
+    PDF caption ? `[figure_id]` placeholder), so a placeholder string
+    counts as "no real caption" — strip it before the Fig-N test.
+    """
+    real_caption = "" if _PLACEHOLDER_CAPTION_RE.match(caption) else caption
+    if real_caption and _FIGURE_CAPTION_RE.match(real_caption):
+        return "figure"
+    if bbox is None:
+        return "decoration"
+    area = (bbox[2] - bbox[0]) * (bbox[3] - bbox[1])
+    if area < _MIN_FIGURE_AREA_PT2:
+        return "decoration"
+    return "unlabeled"
 
 
 class FigureBrowseItem(BaseModel):
@@ -24,7 +53,10 @@ class FigureBrowseItem(BaseModel):
     figure's primary label — VLM caption when available, else the extracted
     caption, else a placeholder of `[figure_id]`. `bbox` is the figure's
     location on the page in PDF points (1/72 inch), set when extraction
-    captured one (ADR 0009); demos use it to highlight the figure on the page.
+    captured one (ADR 0009); demos use it to highlight the figure on the
+    page. `role` (ADR 0022) tags decorative picture-detections — affiliation
+    logos, license badges, inline status icons — that the gallery hides by
+    default.
     """
 
     chunk_id: str
@@ -34,6 +66,7 @@ class FigureBrowseItem(BaseModel):
     bbox: list[float] | None = None
     has_vlm_caption: bool = False
     page_image_url: str
+    role: Literal["figure", "decoration", "unlabeled"] = "unlabeled"
 
 
 def _to_browse_item(chunk: Chunk) -> FigureBrowseItem | None:
@@ -51,6 +84,11 @@ def _to_browse_item(chunk: Chunk) -> FigureBrowseItem | None:
         and all(isinstance(v, (int, float)) for v in bbox_raw)
     ):
         bbox = [float(v) for v in bbox_raw]
+    role_raw = chunk.metadata.get("role")
+    if role_raw in {"figure", "decoration", "unlabeled"}:
+        role: Literal["figure", "decoration", "unlabeled"] = role_raw
+    else:
+        role = _derive_role(chunk.text, bbox)
     return FigureBrowseItem(
         chunk_id=chunk.chunk_id,
         paper_id=chunk.paper_id,
@@ -59,6 +97,7 @@ def _to_browse_item(chunk: Chunk) -> FigureBrowseItem | None:
         bbox=bbox,
         has_vlm_caption=bool(chunk.metadata.get("has_vlm_caption", False)),
         page_image_url=f"/pages/{chunk.paper_id}/{chunk.paper_id}_p{page}.png",
+        role=role,
     )
 
 

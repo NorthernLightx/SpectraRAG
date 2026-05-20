@@ -237,6 +237,10 @@ def figure_to_chunk(figure: Figure) -> Chunk:
         "kind": "figure",
         "image_path": str(figure.image_path),
         "has_vlm_caption": figure.vlm_caption is not None,
+        # ADR 0022: figure-role split so the gallery can hide decorative
+        # picture-detections (logos, license badges, inline status icons)
+        # without dropping them from the index.
+        "role": figure.role,
     }
     if figure.bbox is not None:
         metadata["bbox"] = figure.bbox.as_list()
