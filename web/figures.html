@@ -157,6 +157,42 @@
         text-transform: uppercase;
         letter-spacing: 0.04em;
       }
+      .type-filter-wrap { flex: 1; min-width: 320px; }
+      .type-filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding: 8px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--canvas-elevated);
+        max-height: 88px;
+        overflow-y: auto;
+      }
+      .type-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 9px;
+        border-radius: 999px;
+        font-size: 12px;
+        background: var(--canvas);
+        color: var(--muted);
+        border: 1px solid var(--border);
+        cursor: pointer;
+        user-select: none;
+      }
+      .type-chip.on {
+        background: var(--accent-tint);
+        color: var(--accent);
+        border-color: var(--accent);
+      }
+      .type-chip .count {
+        opacity: 0.7;
+        font-variant-numeric: tabular-nums;
+        font-size: 11px;
+      }
+      .type-chip.toggle-all { font-weight: 600; }
     </style>
   </head>
   <body>
@@ -164,8 +200,9 @@
       <div class="title-block">
         <h1>PrismRAG</h1>
         <p>
-          Every figure across the demo corpus, with bbox-highlighted
-          thumbnails and captions. Filter by paper or search caption text.
+          Browse every figure and table across the demo corpus, with
+          bbox-highlighted thumbnails and Docling-classifier labels.
+          Filter by element type, paper, or caption text.
         </p>
       </div>
       <button class="icon-btn" id="themeToggle" aria-label="Toggle theme" title="Toggle theme">
@@ -196,14 +233,11 @@
         <label for="captionFilter">Caption contains</label>
         <input id="captionFilter" type="search" placeholder="e.g. accuracy, scaling" />
       </div>
-      <div>
-        <label for="roleFilter">Role
-          <span class="info-icon" title="ADR 0022 — Docling's layout model marks logos and inline icons as 'picture' alongside real figures. 'Figures only' shows paper-labelled Figure N items; 'All detections' includes decorations and unlabelled pictures.">i</span>
+      <div class="type-filter-wrap">
+        <label>Element types
+          <span class="info-icon" title="ADR 0022 — picks from Docling's DocumentFigureClassifier-v2.5 labels (logo, bar_chart, flow_chart, photograph, ...) plus extracted tables. Multi-select; click 'All' to flip everything on/off.">i</span>
         </label>
-        <select id="roleFilter">
-          <option value="figure" selected>Figures only</option>
-          <option value="all">All detections</option>
-        </select>
+        <div class="type-filter" id="typeFilter"></div>
       </div>
     </div>
 
@@ -218,11 +252,29 @@
       const figuresEl = document.getElementById("figures");
       const paperFilterEl = document.getElementById("paperFilter");
       const captionFilterEl = document.getElementById("captionFilter");
-      const roleFilterEl = document.getElementById("roleFilter");
+      const typeFilterEl = document.getElementById("typeFilter");
 
       let allFigures = [];
       let paperTitles = {}; // paper_id → title (when available)
       let fetchError = null; // sticky message when /figures couldn't load
+      // type-key → bool; populated after fetch, persisted in URL hash.
+      let selectedTypes = {};
+
+      // Decorative buckets the user usually doesn't want on first load.
+      // Tables and every actual figure sub-class come pre-checked.
+      const TYPES_OFF_BY_DEFAULT = new Set([
+        "logo",
+        "icon",
+        "signature",
+        "stamp",
+        "bar_code",
+        "qr_code",
+        "page_thumbnail",
+        "calendar",
+        "crossword_puzzle",
+        "decoration",
+        "unlabeled",
+      ]);
 
       Promise.all([
         fetch("/papers")
@@ -237,12 +289,64 @@
           opt.textContent = p.title ? `${p.title} (${p.paper_id})` : p.paper_id;
           paperFilterEl.append(opt);
         }
+        buildTypeFilter();
         render();
       });
 
       paperFilterEl.addEventListener("change", render);
       captionFilterEl.addEventListener("input", render);
-      roleFilterEl.addEventListener("change", render);
+
+      // Each item's "type" is the most specific Docling label we have:
+      // its `docling_label` when the classifier ran, else falls back to
+      // role-as-type for legacy chunks. `kind=table` always renders as
+      // `table` (independent of role).
+      function itemType(f) {
+        if (f.kind === "table") return "table";
+        if (f.docling_label) return f.docling_label;
+        return f.role || "unlabeled";
+      }
+
+      function buildTypeFilter() {
+        // Count items per type so the chip carries useful weight.
+        const counts = {};
+        for (const f of allFigures) {
+          const t = itemType(f);
+          counts[t] = (counts[t] || 0) + 1;
+        }
+        const types = Object.keys(counts).sort();
+        // Seed `selectedTypes`: types not in the off-by-default set start checked.
+        for (const t of types) {
+          if (!(t in selectedTypes)) selectedTypes[t] = !TYPES_OFF_BY_DEFAULT.has(t);
+        }
+        clear(typeFilterEl);
+        // Toggle-all chip first.
+        const all = document.createElement("span");
+        all.className = "type-chip toggle-all";
+        all.textContent = "All / none";
+        all.addEventListener("click", () => {
+          const anyOff = types.some((t) => !selectedTypes[t]);
+          for (const t of types) selectedTypes[t] = anyOff; // turn all on if any was off; else turn all off
+          buildTypeFilter();
+          render();
+        });
+        typeFilterEl.append(all);
+        for (const t of types) {
+          const chip = document.createElement("span");
+          chip.className = "type-chip" + (selectedTypes[t] ? " on" : "");
+          chip.dataset.type = t;
+          chip.append(document.createTextNode(t + " "));
+          const c = document.createElement("span");
+          c.className = "count";
+          c.textContent = counts[t];
+          chip.append(c);
+          chip.addEventListener("click", () => {
+            selectedTypes[t] = !selectedTypes[t];
+            chip.classList.toggle("on", selectedTypes[t]);
+            render();
+          });
+          typeFilterEl.append(chip);
+        }
+      }
 
       async function fetchFigures() {
         try {
@@ -273,26 +377,17 @@
         }
         const paperFilter = paperFilterEl.value;
         const captionFilter = captionFilterEl.value.trim().toLowerCase();
-        const roleFilter = roleFilterEl.value; // "figure" or "all"
         const filtered = allFigures.filter((f) => {
           if (paperFilter && f.paper_id !== paperFilter) return false;
-          if (roleFilter === "figure" && f.role !== "figure") return false;
+          if (!selectedTypes[itemType(f)]) return false;
           if (captionFilter && !(f.caption || "").toLowerCase().includes(captionFilter))
             return false;
           return true;
         });
         if (allFigures.length === 0) {
-          statusEl.textContent = "No figure-kind chunks in the corpus.";
+          statusEl.textContent = "No figure- or table-kind chunks in the corpus.";
         } else {
-          // Break down by role so the user sees what "Figures only" hid.
-          const counts = allFigures.reduce(
-            (acc, f) => ((acc[f.role || "unlabeled"] = (acc[f.role || "unlabeled"] || 0) + 1), acc),
-            {}
-          );
-          const breakdown = Object.entries(counts)
-            .map(([k, v]) => `${v} ${k}`)
-            .join(" · ");
-          statusEl.textContent = `${filtered.length} / ${allFigures.length} shown  (${breakdown})`;
+          statusEl.textContent = `${filtered.length} / ${allFigures.length} shown`;
         }
         clear(figuresEl);
         for (const f of filtered) figuresEl.append(renderFigureCard(f));
@@ -355,6 +450,20 @@
           tag.className = "vlm-tag";
           tag.textContent = "VLM";
           meta.append(tag);
+        }
+        // Show the inferred type so the user can see *why* a card is
+        // surfacing — `bar_chart(0.99)` or `logo(1.00)` etc.
+        const t = itemType(f);
+        if (t) {
+          const tt = document.createElement("span");
+          tt.className = "vlm-tag";
+          tt.style.background = "var(--canvas)";
+          tt.style.color = "var(--muted)";
+          const conf = f.docling_label_confidence;
+          tt.textContent = conf != null && f.docling_label
+            ? `${t} ${conf.toFixed(2)}`
+            : t;
+          meta.append(tt);
         }
         body.append(meta);
 
