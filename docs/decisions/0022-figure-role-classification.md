@@ -256,6 +256,34 @@ Decoration-only, so it cannot touch a real figure — the smallest in-corpus
 figure is a 514-pt² *caption-rescued* `figure`, and real figures are never
 `role=decoration`.
 
+## Amendment — bbox-less pictures default to `unlabeled`, not `decoration`
+
+**Date:** 2026-05-21
+
+A figures-gallery report that *looked* like real figures misclassified as
+`decoration` turned out to be a **stale corpus**: the deployed `rag_corpus`
+predates this classifier (built by the old PyMuPDF extractor — 0 docling
+labels), so the gallery's `_derive_role` cushion was re-deriving roles at view
+time. The current Docling pipeline classifies those papers' figures correctly
+(verified on `2604.28196v1`/`2604.28197v1`: 5/5 and 7/7 real figures detected,
+all `figure`).
+
+The investigation did surface a genuine latent defect in the fallback ladder,
+fixed here: the terminal `bbox is None` branch returned `decoration`.
+`decoration` is the one role removed from the gallery content view, excluded by
+the role-aware retrieval filter, *and* skipped by the VLM captioner — so a real
+figure whose bbox is ever absent would be caption-starved and dropped from both
+surfaces, invisibly. The fallback now returns `unlabeled` (kept in retrieval,
+hidden only from the gallery's default view) in both `_classify_figure_role`
+and the `_derive_role` migration cushion, which stay in sync. A picture is
+`decoration` only on positive evidence now: a confident logo/icon-class label
+or a measured sub-5000-pt² area.
+
+Defensive — no bbox-less figure was observed in the current pipeline on the
+sampled papers; the change removes a silent figure-loss path before a corpus
+rebuild. (Also hardened: `parse_with_docling` now clears the per-paper crop dir
+each run, so re-ingests don't accumulate a palimpsest of stale crops.)
+
 ## Related
 
 - ADR 0009 — region-precise bboxes; this ADR rides on the same bbox

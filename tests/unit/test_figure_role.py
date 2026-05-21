@@ -49,10 +49,12 @@ def test_above_threshold_uncaptioned_is_unlabeled_not_dropped() -> None:
     assert _classify_figure_role(caption="", bbox=real) == "unlabeled"
 
 
-def test_missing_bbox_is_decoration() -> None:
-    # No bbox means we can't sanity-check size; treat as decoration so
-    # the gallery doesn't surface it by default.
-    assert _classify_figure_role(caption="", bbox=None) == "decoration"
+def test_missing_bbox_is_unlabeled_not_decoration() -> None:
+    # No bbox to place or measure → "unknown", not "page furniture". Defaulting
+    # to `decoration` would drop a bbox-less real figure from the gallery, the
+    # retrieval filter, AND the VLM captioner — a silent figure-loss path.
+    # `unlabeled` keeps it retrievable; the gallery still hides it by default.
+    assert _classify_figure_role(caption="", bbox=None) == "unlabeled"
 
 
 def test_caption_first_then_size_priority() -> None:

@@ -65,7 +65,9 @@ def _derive_role(caption: str, bbox: list[float] | None) -> Role:
     if real_caption and _FIGURE_CAPTION_RE.match(real_caption):
         return "figure"
     if bbox is None:
-        return "decoration"
+        # Mirror docling_parser: bbox-less → unlabeled, not decoration, so a
+        # real figure that lost its bbox is not deleted from gallery+retrieval.
+        return "unlabeled"
     area = (bbox[2] - bbox[0]) * (bbox[3] - bbox[1])
     if area < _MIN_FIGURE_AREA_PT2:
         return "decoration"

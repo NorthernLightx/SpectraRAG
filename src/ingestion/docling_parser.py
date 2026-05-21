@@ -20,6 +20,7 @@ from __future__ import annotations
 import contextlib
 import os
 import re
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -178,7 +179,12 @@ def _classify_figure_role(
     ):
         return _DOCLING_LABEL_TO_ROLE[docling_label]
     if bbox is None:
-        return "decoration"
+        # No bbox to place or measure → "unknown", not "page furniture". ADR
+        # 0022: `decoration` is removed from the gallery content view, excluded
+        # by the role-aware retrieval filter, and skipped by the VLM captioner —
+        # so defaulting a bbox-less *real* figure to decoration would silently
+        # delete it end to end. `unlabeled` keeps it retrievable + captionable.
+        return "unlabeled"
     area = (bbox.x1 - bbox.x0) * (bbox.y1 - bbox.y0)
     if area < _MIN_FIGURE_AREA_PT2:
         return "decoration"
@@ -286,6 +292,12 @@ def parse_with_docling(
         heights = page_heights(doc)
 
         paper_out = out_dir / paper_id
+        # Clear any prior run's crops first. Figure ids are per-run (global
+        # picture index), so re-ingesting — especially with a different
+        # extractor — otherwise leaves orphaned crops that collide with new ids
+        # and turn the dir into a palimpsest that misleads anything reading it.
+        if paper_out.exists():
+            shutil.rmtree(paper_out, ignore_errors=True)
         paper_out.mkdir(parents=True, exist_ok=True)
 
         figures: list[Figure] = []
