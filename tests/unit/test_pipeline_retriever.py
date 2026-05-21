@@ -204,3 +204,73 @@ async def test_retrieve_carries_chunk_metadata_into_result_metadata() -> None:
     assert text_result.metadata.get("section") == "1 Introduction"
     # Text chunks should not get a phantom bbox from metadata-merging logic.
     assert "bbox" not in text_result.metadata or text_result.metadata.get("bbox") is None
+
+
+def _role_chunk(cid: str, text: str, role: str | None) -> Chunk:
+    meta: dict[str, object] = {"role": role} if role is not None else {}
+    return Chunk(chunk_id=cid, paper_id="p1", page_numbers=[1], text=text, metadata=meta)
+
+
+async def _build_role_retriever(*, exclude_decoration: bool) -> PipelineRetriever:
+    """Four candidates sharing the query term so all enter both legs' pools;
+    the only thing that can remove one is the role filter."""
+    embedder = FakeEmbedder(dim=8)
+    vectorstore = QdrantVectorStore(url=":memory:", collection_name="role", dim=8)
+    await vectorstore.ensure_collection()
+    bm25 = Bm25Index()
+
+    chunks = [
+        # decoration's only indexed text is the id-stub placeholder, mirroring
+        # how the captioner skips decorations (ADR 0022).
+        _role_chunk("p1::p1::figDec", "[p1::p1::figDec] widget", role="decoration"),
+        _role_chunk("p1::p2::figReal", "Figure 1: a real widget diagram", role="figure"),
+        _role_chunk("p1::p3::figUnl", "an uncaptioned widget schematic", role="unlabeled"),
+        _role_chunk("p1::p1::c0", "plain widget prose with no role", role=None),
+    ]
+    embeddings = await embedder.embed_texts([c.text for c in chunks])
+    await vectorstore.upsert_chunks(chunks, embeddings)
+    bm25.add(chunks)
+
+    return PipelineRetriever(
+        embedder=embedder,
+        vectorstore=vectorstore,
+        bm25=bm25,
+        chunks_by_id={c.chunk_id: c for c in chunks},
+        exclude_decoration=exclude_decoration,
+    )
+
+
+async def test_decoration_excluded_keeps_figure_unlabeled_and_text() -> None:
+    """ADR 0022 follow-up: role='decoration' chunks are dropped from the
+    candidate set (covers both dense + sparse legs), while figure, unlabeled,
+    and role-less text chunks survive."""
+    retriever = await _build_role_retriever(exclude_decoration=True)
+    results = await retriever.retrieve(Query(text="widget", top_k=10))
+    ids = {r.chunk_id for r in results}
+
+    assert "p1::p1::figDec" not in ids
+    assert "p1::p2::figReal" in ids
+    assert "p1::p3::figUnl" in ids
+    assert "p1::p1::c0" in ids
+
+
+async def test_decoration_kept_when_flag_disabled() -> None:
+    """Flag off (the A/B baseline arm) leaves decoration chunks in the pool."""
+    retriever = await _build_role_retriever(exclude_decoration=False)
+    results = await retriever.retrieve(Query(text="widget", top_k=10))
+    assert "p1::p1::figDec" in {r.chunk_id for r in results}
+
+
+async def test_decoration_excluded_in_rerank_path() -> None:
+    """The filter sits before fusion, so the rerank path never sees a
+    decoration candidate either — even when the reranker would score it high."""
+    from src.rag.rerank import BgeReranker
+
+    retriever = await _build_role_retriever(exclude_decoration=True)
+    # Replace the (None) reranker with one that would rank the decoration first
+    # if it ever reached rerank — proving the filter runs upstream of rerank.
+    retriever._reranker = BgeReranker(
+        scorer=lambda pairs: [1.0 if "figDec" in doc else 0.1 for _, doc in pairs]
+    )
+    results = await retriever.retrieve(Query(text="widget", top_k=10))
+    assert "p1::p1::figDec" not in {r.chunk_id for r in results}

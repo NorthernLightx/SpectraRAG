@@ -41,6 +41,13 @@ _FIGURE_CAPTION_RE = re.compile(
     re.IGNORECASE | re.VERBOSE,
 )
 _MIN_FIGURE_AREA_PT2 = 5000.0
+# Gallery floor (ADR 0022 amendment): decoration-role detections below this
+# displayed area are glyph-sized page noise — 12-pt inline table emoji / icons
+# (e.g. 2604.28177v1 p2 had 6 detections at 146 pt²). Hidden from the gallery
+# even in the opt-in Decorative bucket. Decoration-only, so it can't drop a
+# real figure: the smallest in-corpus figure is a 514-pt² caption-rescued one,
+# and real figures are never role=decoration.
+_MIN_DECORATION_AREA_PT2 = 500.0
 _PLACEHOLDER_CAPTION_RE = re.compile(r"^\s*\[.+::p\d+::(?:fig|tab)\d+\]\s*$")
 
 Role = Literal["figure", "decoration", "unlabeled"]
@@ -146,6 +153,18 @@ def _to_browse_item(chunk: Chunk) -> FigureBrowseItem | None:
     )
 
 
+def _is_tiny_decoration(item: FigureBrowseItem) -> bool:
+    """True for glyph-sized decoration detections to hide from the gallery.
+
+    Decoration-only by design (real figures are never ``role=decoration``), so
+    the area floor cannot drop a legitimate figure. ``bbox``-less items are kept.
+    """
+    if item.role != "decoration" or item.bbox is None:
+        return False
+    area = (item.bbox[2] - item.bbox[0]) * (item.bbox[3] - item.bbox[1])
+    return area < _MIN_DECORATION_AREA_PT2
+
+
 @router.get("/figures", response_model=list[FigureBrowseItem])
 def list_figures(
     paper_id: str | None = Query(default=None, description="Restrict to one paper."),
@@ -161,6 +180,8 @@ def list_figures(
             continue
         item = _to_browse_item(chunk)
         if item is None:
+            continue
+        if _is_tiny_decoration(item):
             continue
         out.append(item)
         if len(out) >= limit:

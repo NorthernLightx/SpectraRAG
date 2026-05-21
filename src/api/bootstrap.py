@@ -258,6 +258,7 @@ async def _wire_retriever_from_settings(
         # small MiniLM cross-encoder (RAG_RERANKER_MODEL) because the 568M bge
         # model reranks the pool in minutes per query without a GPU.
         reranker=BgeReranker(model_name=settings.reranker_model, length_norm=True),
+        exclude_decoration=settings.exclude_decoration_chunks,
     )
 
     if settings.enable_multimodal:

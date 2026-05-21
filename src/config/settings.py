@@ -54,6 +54,14 @@ class Settings(BaseSettings):
     # MiniLM model is ~25x smaller and CPU-feasible.
     reranker_model: str = "BAAI/bge-reranker-v2-m3"
     hybrid_alpha: float = Field(default=0.5, ge=0.0, le=1.0)
+    # When True (default), the pipeline retriever drops candidates tagged
+    # role="decoration" (ADR 0022's logo/icon/glyph picture-detections) from
+    # both retrieval legs before rerank/return. Their only indexed text is an
+    # id-stub placeholder, so they add ~zero recall but consume rerank slots.
+    # `figure`, `unlabeled`, and role-less text chunks are unaffected. The flag
+    # exists so the eval can A/B the retrieval impact (resolves the retrieval-
+    # side filter ADR 0022 deferred to its own measurement).
+    exclude_decoration_chunks: bool = True
     # ADR 0008: when True (default) and a visual retriever is wired,
     # /answer dispatches via RoutingRetriever (text-only vs RRF-fused
     # text+visual per query category). False forces text-only — useful for

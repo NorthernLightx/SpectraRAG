@@ -26,6 +26,7 @@ class PipelineRetriever:
         candidate_pool: int = 50,
         reranker: BgeReranker | None = None,
         rerank_input_size: int = 50,
+        exclude_decoration: bool = True,
     ) -> None:
         self._embedder = embedder
         self._vectorstore = vectorstore
@@ -34,6 +35,7 @@ class PipelineRetriever:
         self._candidate_pool = candidate_pool
         self._reranker = reranker
         self._rerank_input_size = rerank_input_size
+        self._exclude_decoration = exclude_decoration
 
     async def retrieve(self, query: Query) -> list[RetrievalResult]:
         with timed_event(_log, "retrieve.done", query=query.text, top_k=query.top_k) as ctx:
@@ -57,6 +59,17 @@ class PipelineRetriever:
 
             dense_ranked = [RankedItem(id=h.chunk_id, score=h.score) for h in dense_hits]
             sparse_ranked = [RankedItem(id=h.chunk_id, score=h.score) for h in sparse_hits]
+
+            # ADR 0022 follow-up: drop decoration-role candidates (logos, icons,
+            # decorative glyphs) from BOTH legs before fusion. Their only indexed
+            # text is an id-stub placeholder, so they add ~zero recall but dilute
+            # the candidate pool and burn rerank slots. Applied to the fused-leg
+            # inputs so a decoration can't slip through either dense or sparse.
+            # Text chunks (no `role`) and figure / unlabeled chunks are kept.
+            if self._exclude_decoration:
+                dense_ranked = self._drop_decoration(dense_ranked)
+                sparse_ranked = self._drop_decoration(sparse_ranked)
+                ctx["after_decoration_filter"] = len(dense_ranked) + len(sparse_ranked)
 
             if self._reranker is not None:
                 rrf_top = reciprocal_rank_fusion(
@@ -86,6 +99,21 @@ class PipelineRetriever:
             ctx["returned"] = len(results)
             ctx["top_chunk"] = results[0].chunk_id if results else None
             return results
+
+    def _drop_decoration(self, items: list[RankedItem]) -> list[RankedItem]:
+        """Filter out ranked items whose resolved chunk has role="decoration".
+
+        Resolves each id through `chunks_by_id` (the same source both legs are
+        re-materialised from). A missing id or a chunk with no `role` (text
+        chunks) is kept — only an explicit "decoration" role is dropped.
+        """
+        kept: list[RankedItem] = []
+        for item in items:
+            chunk = self._chunks_by_id.get(item.id)
+            if chunk is not None and chunk.metadata.get("role") == "decoration":
+                continue
+            kept.append(item)
+        return kept
 
     def _make_result(self, chunk: Chunk, score: float) -> RetrievalResult:
         # Carry the chunk's metadata (kind, bbox, image_path, has_vlm_caption)

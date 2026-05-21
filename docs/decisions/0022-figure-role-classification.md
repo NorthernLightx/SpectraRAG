@@ -208,6 +208,54 @@ the `[paper::p::fig]` placeholder — i.e. zero caption text — so a
 caption-only classifier can't push further. A VLM-based labeller
 could, at the usual cost; left as out-of-scope here.
 
+## Amendment — role-aware retrieval filter + gallery floor for tiny decorations
+
+**Date:** 2026-05-21
+
+Resolves the retrieval-side filter deferred under "What this does **not**
+change" ("a role-aware retrieval-side filter would be a separate ADR with its
+own measurement"), and adds a gallery floor for the glyph-sized decorations
+that prompted it.
+
+### Retrieval-side filter — measured recall-neutral
+
+`PipelineRetriever` now drops candidates whose `metadata["role"] ==
+"decoration"` from **both** legs before rerank/return, behind
+`Settings.exclude_decoration_chunks` (default-on; `RAG_EXCLUDE_DECORATION_CHUNKS`);
+`scripts/eval_run.py` exposes `--exclude-decoration` / `--no-exclude-decoration`
+for A/B.
+
+Filtered vs unfiltered on the only decoration-bearing collection
+(`eval_docling_classified_tables`): nDCG@5, recall@10, MRR all **+0.00 %**,
+retrieved IDs **byte-identical** for every query, every subset flat.
+baseline.json unchanged — nothing to rebaseline.
+
+Mechanism: a decoration chunk's only indexed text is its id-stub
+`[paper::p::figN]` (no caption; the VLM captioner skips decorations), which
+scores near-zero on both BM25 and dense, so decorations never enter the top-50
+candidate pool — confirmed by pool probes and the retriever's own "nothing
+dropped" logs. The −6.7 % `answer_correctness` harm in the original Context was
+a **generation-side** effect (decorations reaching the answer context), not a
+retrieval-metric one. So this lands as an **explicit default-on guardrail** —
+making role-awareness intentional rather than relying on the accident that
+id-stubs score below the cut — not a retrieval win; the gate passes because it
+cannot worsen retrieval.
+
+Caveat: no Qdrant collection has *both* a `role=decoration` population *and*
+golden-v3 chunk-id alignment (the role field postdates the golden-aligned
+collections), so the A/B ran filtered-vs-unfiltered on the same collection,
+where anchor drift cancels in the delta.
+
+### Gallery floor for tiny decorations
+
+The role + default-off Decorative bucket keep glyphs out of the gallery's
+default view, but the *opt-in* Decorative view still showed 12-pt table-emoji
+detections (e.g. `2604.28177v1` p2, 6 chunks at 146 pt²). `/figures` now also
+drops `role=="decoration"` items below `_MIN_DECORATION_AREA_PT2` (500 pt²).
+Decoration-only, so it cannot touch a real figure — the smallest in-corpus
+figure is a 514-pt² *caption-rescued* `figure`, and real figures are never
+`role=decoration`.
+
 ## Related
 
 - ADR 0009 — region-precise bboxes; this ADR rides on the same bbox

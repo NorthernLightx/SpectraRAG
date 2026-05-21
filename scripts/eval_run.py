@@ -82,6 +82,7 @@ async def _main(
     collection: str,
     paper_id_filter: bool = False,
     region_number_boost: bool = False,
+    exclude_decoration: bool = True,
     rerank_length_norm: bool = False,
     rerank_length_threshold: int = 300,
     rerank_length_penalty: float = 0.5,
@@ -238,6 +239,7 @@ async def _main(
         chunks_by_id=chunks_by_id,
         reranker=reranker_obj,
         rerank_input_size=rerank_input_size,
+        exclude_decoration=exclude_decoration,
     )
 
     retriever: Retriever = pipeline_retriever
@@ -440,6 +442,7 @@ async def _main(
             "visual_device": visual_device if router else None,
             "paper_id_filter": paper_id_filter,
             "region_number_boost": region_number_boost,
+            "exclude_decoration": exclude_decoration,
             "rerank_length_norm": rerank_length_norm,
             "rerank_length_threshold": rerank_length_threshold if rerank_length_norm else None,
             "rerank_length_penalty": rerank_length_penalty if rerank_length_norm else None,
@@ -817,6 +820,17 @@ if __name__ == "__main__":
         ),
     )
     parser.add_argument(
+        "--exclude-decoration",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help=(
+            "ADR 0022 follow-up: drop role='decoration' picture-detections "
+            "(logos / icons / decorative glyphs) from both retrieval legs "
+            "before rerank. Default ON; pass --no-exclude-decoration for the "
+            "A/B baseline arm that keeps them in the candidate pool."
+        ),
+    )
+    parser.add_argument(
         "--agentic",
         action="store_true",
         help=(
@@ -889,6 +903,7 @@ if __name__ == "__main__":
             collection=args.collection,
             paper_id_filter=args.paper_id_filter,
             region_number_boost=args.region_number_boost,
+            exclude_decoration=args.exclude_decoration,
             rerank_length_norm=args.rerank_length_norm,
             rerank_length_threshold=args.rerank_length_threshold,
             rerank_length_penalty=args.rerank_length_penalty,
