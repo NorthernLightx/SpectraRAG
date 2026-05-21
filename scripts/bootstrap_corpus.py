@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import shutil
 from pathlib import Path
 
 from src.embeddings.ollama_bge import OllamaBgeEmbedder
@@ -61,6 +62,15 @@ async def _main(
         raise SystemExit(f"No .pdf files found in {pdf_dir}")
     print(f"Found {len(pdf_paths)} PDFs in {pdf_dir}")
 
+    # Embedded path-mode --force must clear the on-disk dir BEFORE the client
+    # opens. `delete_collection` only drops in-session; qdrant-local leaves the
+    # persisted segments on disk and a fresh client re-loads them, so a re-ingest
+    # would upsert onto stale chunks (e.g. pre-classifier figures). Server-mode
+    # --force is handled by delete_collection below.
+    if force and qdrant_url.startswith("path:"):
+        print(f"--force: clearing embedded store at {qdrant_url}")
+        shutil.rmtree(qdrant_url[len("path:") :], ignore_errors=True)
+
     embedder = OllamaBgeEmbedder(base_url=ollama_url)
     vectorstore = QdrantVectorStore(url=qdrant_url, collection_name=collection, dim=embedder.dim)
 
@@ -75,6 +85,7 @@ async def _main(
 
     if existing > 0 and force:
         print(f"--force: dropping existing {existing} points in {collection!r}")
+        await vectorstore.delete_collection()
 
     await vectorstore.ensure_collection()
     bm25 = Bm25Index()  # in-process, throwaway — see module docstring caveats

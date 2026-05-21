@@ -108,6 +108,18 @@ class QdrantVectorStore:
             vectors_config=VectorParams(size=self._dim, distance=self._distance),
         )
 
+    async def delete_collection(self) -> None:
+        """Drop the collection if it exists.
+
+        `ensure_collection` is create-if-absent and will NOT clear an existing
+        collection, so a ``--force`` re-ingest (scripts/bootstrap_corpus.py) must
+        delete first — otherwise it upserts the new corpus on top of the old one
+        and leaves stale chunks (e.g. pre-classifier figures) behind.
+        """
+        existing = await self._client.get_collections()
+        if any(c.name == self._collection for c in existing.collections):
+            await self._client.delete_collection(collection_name=self._collection)
+
     async def upsert_chunks(self, chunks: list[Chunk], vectors: list[list[float]]) -> None:
         if len(chunks) != len(vectors):
             raise ValueError(

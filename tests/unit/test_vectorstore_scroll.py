@@ -87,3 +87,28 @@ async def test_scroll_paginates_past_default_batch() -> None:
 
     assert len(scrolled) == n
     assert {c.chunk_id for c in scrolled} == {f"p::p1::c{i}" for i in range(n)}
+
+
+@pytest.mark.asyncio
+async def test_delete_collection_clears_points() -> None:
+    """`--force` re-ingest relies on this: a real drop, so a re-ingest can't
+    leave stale chunks behind (the contamination the bootstrap --force hit when
+    it only called create-if-absent ensure_collection)."""
+    store = QdrantVectorStore(url=":memory:", collection_name="to_drop", dim=4)
+    await store.ensure_collection()
+    await store.upsert_chunks(
+        [Chunk(chunk_id="p::p1::c0", paper_id="p", page_numbers=[1], text="x")], [_vec()]
+    )
+    assert await store.count() == 1
+
+    await store.delete_collection()
+
+    assert await store.count() == 0
+    assert await store.scroll_chunks() == []
+
+
+@pytest.mark.asyncio
+async def test_delete_collection_missing_is_noop() -> None:
+    store = QdrantVectorStore(url=":memory:", collection_name="never_made", dim=4)
+    await store.delete_collection()  # must not raise
+    assert await store.count() == 0
