@@ -46,6 +46,13 @@ class Settings(BaseSettings):
 
     top_k: int = Field(default=5, ge=1)
     rerank_top_k: int = Field(default=50, ge=1)
+    # Cross-encoder for the pipeline reranker (sentence-transformers CrossEncoder
+    # id). Default is the bge-reranker-v2-m3 the eval baseline uses (ADR 0014).
+    # The Cloud Run deploy overrides this to a small MiniLM cross-encoder via
+    # RAG_RERANKER_MODEL: bge-reranker-v2-m3 is 568M params and reranking the
+    # candidate pool on CPU (no GPU on Cloud Run) costs minutes per query; the
+    # MiniLM model is ~25x smaller and CPU-feasible.
+    reranker_model: str = "BAAI/bge-reranker-v2-m3"
     hybrid_alpha: float = Field(default=0.5, ge=0.0, le=1.0)
     # ADR 0008: when True (default) and a visual retriever is wired,
     # /answer dispatches via RoutingRetriever (text-only vs RRF-fused

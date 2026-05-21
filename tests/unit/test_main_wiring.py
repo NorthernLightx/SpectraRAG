@@ -50,6 +50,7 @@ def _settings(
     pages_dir: Path | None = None,
     openrouter_api_key: str | None = None,
     refusal_score_threshold: float | None = 0.105,
+    reranker_model: str | None = None,
 ) -> Settings:
     kwargs: dict[str, object] = {
         "env": "test",
@@ -64,6 +65,8 @@ def _settings(
         kwargs["pages_dir"] = pages_dir
     if openrouter_api_key is not None:
         kwargs["openrouter_api_key"] = openrouter_api_key
+    if reranker_model is not None:
+        kwargs["reranker_model"] = reranker_model
     return Settings(**kwargs)  # type: ignore[arg-type]
 
 
@@ -174,6 +177,33 @@ async def test_wired_retriever_can_serve_a_query() -> None:
     results = await retriever.retrieve(Query(text="multi-modal retrieval", top_k=2))
     assert len(results) >= 1
     assert {r.chunk_id for r in results}.issubset({c.chunk_id for c in chunks})
+
+
+@pytest.mark.asyncio
+async def test_wire_threads_reranker_model_from_settings() -> None:
+    """Settings.reranker_model reaches the pipeline reranker, so the CPU-only
+    Cloud Run deploy can swap bge-reranker-v2-m3 for a light MiniLM
+    cross-encoder. Checks the configured id without loading the model — the
+    BgeReranker resolves its CrossEncoder lazily on first rerank, not here."""
+    embedder = FakeEmbedder(dim=8)
+    store = QdrantVectorStore(url=":memory:", collection_name="wiring_test", dim=embedder.dim)
+    await store.ensure_collection()
+    await store.upsert_chunks(
+        [Chunk(chunk_id="paper::p1::c0", paper_id="paper", page_numbers=[1], text="x")],
+        [_vec(embedder.dim)],
+    )
+
+    wired = await _wire_retriever_from_settings(
+        _settings(reranker_model="test/custom-reranker"),
+        embedder=embedder,
+        vectorstore=store,
+    )
+
+    assert wired is True
+    retriever = _RetrieverState.instance
+    assert isinstance(retriever, PipelineRetriever)
+    assert retriever._reranker is not None
+    assert retriever._reranker._model_name == "test/custom-reranker"
 
 
 # ---------- _collect_pages_from_dir --------------------------------------

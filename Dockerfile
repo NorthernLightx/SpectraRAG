@@ -60,19 +60,24 @@ COPY --chown=app:app data/pages /home/app/data/pages
 # pages_dir. Re-baking is idempotent in the source script.
 COPY --chown=app:app qdrant_local /home/app/qdrant_local
 
-# Pre-download the model weights into the HuggingFace cache so no request
-# pays a multi-GB HF fetch at runtime. Two models load on different paths:
-# the bge-m3 embedder during startup wiring, and the bge-reranker-v2-m3
-# cross-encoder (src/rag/rerank.py) lazily on the first /query. Baking both
-# keeps that fetch out of the request path. Cache lives at
-# /home/app/.cache/huggingface/ (default location for the `app` user).
-# Skipping this just means the first request after a cold start downloads.
+# Pre-download model weights into the HuggingFace cache so no request pays an
+# HF fetch at runtime. Two models load on different paths: the bge-m3 embedder
+# during startup wiring, and the reranker cross-encoder (src/rag/rerank.py)
+# lazily on the first /query. The deploy reranks on CPU (no GPU on Cloud Run),
+# where the 568M bge-reranker-v2-m3 costs minutes per query — so this image
+# bakes and uses the small MiniLM cross-encoder instead (RAG_RERANKER_MODEL
+# below). Cache lives at /home/app/.cache/huggingface/ (default for `app`).
 RUN /home/app/.venv/bin/python -c \
-    "from sentence_transformers import SentenceTransformer, CrossEncoder; SentenceTransformer('BAAI/bge-m3'); CrossEncoder('BAAI/bge-reranker-v2-m3')"
+    "from sentence_transformers import SentenceTransformer, CrossEncoder; SentenceTransformer('BAAI/bge-m3'); CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')"
 
+# RAG_RERANKER_MODEL: light CPU-feasible cross-encoder (see settings.py).
+# RAG_RERANK_TOP_K: trim the rerank pool 50 -> 20 for CPU latency; the 20-paper
+# demo corpus doesn't need a 50-candidate pool.
 ENV RAG_EMBEDDER_BACKEND=sentence_transformers \
     RAG_PAGES_DIR=/home/app/data/pages \
-    RAG_QDRANT_URL=path:/home/app/qdrant_local
+    RAG_QDRANT_URL=path:/home/app/qdrant_local \
+    RAG_RERANKER_MODEL=cross-encoder/ms-marco-MiniLM-L-6-v2 \
+    RAG_RERANK_TOP_K=20
 
 ENV PATH="/home/app/.venv/bin:$PATH" \
     PYTHONUNBUFFERED=1 \

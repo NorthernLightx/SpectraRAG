@@ -251,12 +251,13 @@ async def _wire_retriever_from_settings(
         bm25=bm25,
         chunks_by_id=chunks_by_id,
         candidate_pool=settings.rerank_top_k,
-        # ADR 0014: the API ran unreranked while every eval/baseline (and the
-        # routing study) reranks — so the live system never delivered the
-        # measured retrieval quality. Match the validated baseline config:
-        # bge-reranker-v2-m3 + length-norm (ADR 0009). GPU-coexists with
-        # ColQwen2 on 8 GB (proven by the routing study).
-        reranker=BgeReranker(length_norm=True),
+        # ADR 0014: the API ran unreranked while every eval/baseline reranks, so
+        # the live system never delivered the measured retrieval quality.
+        # `reranker_model` defaults to the baseline's bge-reranker-v2-m3 +
+        # length-norm (ADR 0009); the CPU-only Cloud Run deploy overrides it to a
+        # small MiniLM cross-encoder (RAG_RERANKER_MODEL) because the 568M bge
+        # model reranks the pool in minutes per query without a GPU.
+        reranker=BgeReranker(model_name=settings.reranker_model, length_norm=True),
     )
 
     if settings.enable_multimodal:
