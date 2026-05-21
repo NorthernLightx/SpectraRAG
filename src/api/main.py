@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-import asyncio
 import os
 from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager, suppress
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -74,31 +73,24 @@ def create_app(*, log_file: Path | None = Path("logs/api.log")) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-        # Retriever wiring needs an event loop (Qdrant scroll is async), so it
-        # runs from the lifespan handler rather than the sync factory. Tests
-        # that construct ``TestClient(app)`` without ``with`` skip lifespan and
-        # rely on ``dependency_overrides`` for an injected retriever — that's
-        # exactly the pre-existing pattern, no test changes needed.
+        # Wire the retriever during startup, before yielding. uvicorn awaits
+        # the lifespan startup before it opens the listening socket
+        # (Server.startup runs lifespan.startup() ahead of create_server), so
+        # the container reports ready only once the corpus is wired.
         #
-        # Wiring runs as a background task, not awaited before yield: it loads
-        # the ~2 GB bge-m3 weights and scrolls the whole corpus, and on Cloud
-        # Run scale-to-zero that work would otherwise block every cold-start
-        # request behind it. Deferring lets the container report ready at once
-        # so /health and the static demo respond immediately; /query, /answer
-        # and /figures keep returning the existing 503 ("not configured")
-        # until the task lands — same contract as a not-yet-ingested corpus.
-        async def _wire() -> None:
-            retriever_on = await _wire_retriever_from_settings(settings)
-            log.info("api.lifespan.startup", retriever=retriever_on)
-
-        wire_task = asyncio.create_task(_wire())
-        try:
-            yield
-        finally:
-            if not wire_task.done():
-                wire_task.cancel()
-            with suppress(asyncio.CancelledError):
-                await wire_task
+        # This must NOT be a fire-and-forget background task. Wiring loads the
+        # in-process ~2.3 GB bge-m3 weights and scrolls the index — CPU-heavy.
+        # On Cloud Run a deferred task is CPU-throttled to ~0 the instant the
+        # container reports ready, so it never finishes and /query, /answer,
+        # /figures 503 forever. Awaiting here keeps the work inside the
+        # startup-cpu-boost window while the startup probe waits for the port.
+        # `_wire_retriever_from_settings` swallows its own failures (returns
+        # False), so a missing/empty corpus still boots — those routes 503,
+        # same contract as before. Tests using TestClient(app) without `with`
+        # skip lifespan and inject a retriever via dependency_overrides.
+        retriever_on = await _wire_retriever_from_settings(settings)
+        log.info("api.lifespan.startup", retriever=retriever_on)
+        yield
 
     app = FastAPI(
         title="PrismRAG",

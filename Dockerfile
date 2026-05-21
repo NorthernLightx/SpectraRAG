@@ -60,13 +60,15 @@ COPY --chown=app:app data/pages /home/app/data/pages
 # pages_dir. Re-baking is idempotent in the source script.
 COPY --chown=app:app qdrant_local /home/app/qdrant_local
 
-# Pre-download the BAAI/bge-m3 weights for sentence-transformers. Bakes them
-# into the image so cold-start request latency doesn't include a ~2.3 GB
-# HuggingFace fetch. Cache lives at /home/app/.cache/huggingface/ (default
-# location for the `app` user). Skipping this just means the first request
-# after every cold start does the download itself.
+# Pre-download the model weights into the HuggingFace cache so no request
+# pays a multi-GB HF fetch at runtime. Two models load on different paths:
+# the bge-m3 embedder during startup wiring, and the bge-reranker-v2-m3
+# cross-encoder (src/rag/rerank.py) lazily on the first /query. Baking both
+# keeps that fetch out of the request path. Cache lives at
+# /home/app/.cache/huggingface/ (default location for the `app` user).
+# Skipping this just means the first request after a cold start downloads.
 RUN /home/app/.venv/bin/python -c \
-    "from sentence_transformers import SentenceTransformer; SentenceTransformer('BAAI/bge-m3')"
+    "from sentence_transformers import SentenceTransformer, CrossEncoder; SentenceTransformer('BAAI/bge-m3'); CrossEncoder('BAAI/bge-reranker-v2-m3')"
 
 ENV RAG_EMBEDDER_BACKEND=sentence_transformers \
     RAG_PAGES_DIR=/home/app/data/pages \

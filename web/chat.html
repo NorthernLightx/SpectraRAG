@@ -291,12 +291,23 @@
         color: var(--muted);
         font-size: 11.5px;
         display: flex;
-        gap: 12px;
-        flex-wrap: wrap;
+        flex-direction: column;
+        gap: 6px;
       }
       .footer-note a { color: var(--accent); text-decoration: none; }
       .footer-note a:hover { text-decoration: underline; }
-      .footer-note .status { flex: 1; min-width: 0; }
+      /* The status banner (warm-up notice, errors) gets its own full-width
+         line above the meta row, so a long message never wraps into a narrow
+         column beside the mode hint and links. Hidden when empty so the meta
+         row sits flush in the common idle state. */
+      .footer-note .status:empty { display: none; }
+      .footer-meta {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .footer-meta .mode-hint { flex: 1; min-width: 0; }
 
       /* Scrollbar polish — only the transcript area */
       .transcript::-webkit-scrollbar { width: 10px; }
@@ -422,9 +433,11 @@
       </div>
       <div class="footer-note">
         <span class="status" id="status"></span>
-        <span id="modeHint">Auto-detecting mode…</span>
-        <a href="https://github.com/NorthernLightx/prismrag">GitHub</a>
-        <a href="/docs">API docs</a>
+        <div class="footer-meta">
+          <span class="mode-hint" id="modeHint">Auto-detecting mode…</span>
+          <a href="https://github.com/NorthernLightx/prismrag">GitHub</a>
+          <a href="/docs">API docs</a>
+        </div>
       </div>
     </div>
 

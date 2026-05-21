@@ -559,20 +559,38 @@
       }
 
       async function fetchFigures() {
-        try {
-          // Ask for the API's upper bound so the gallery sees the whole
-          // corpus, not the default 200-row page (ADR 0022 status counts).
-          const res = await fetch("/figures?limit=1000");
-          if (!res.ok) {
-            const detail = res.status === 503
-              ? "Corpus not loaded (server returned 503 — ingest a corpus to populate /figures)."
-              : `HTTP ${res.status}`;
-            fetchError = `Failed to load figures: ${detail}`;
+        // /figures shares the deferred cold-start warm-up with /query: it
+        // returns 503 ("Corpus not loaded") until the background wiring task
+        // finishes loading the model and scrolling the corpus. Treat that 503
+        // as "wait", not "failed" — show a warming-up notice and retry, the
+        // same contract the chat and single-shot pages use for /query. Any
+        // other status, or 503 past the budget, becomes a sticky error.
+        const warmupDeadline = performance.now() + 120000;
+        while (true) {
+          let res;
+          try {
+            // Ask for the API's upper bound so the gallery sees the whole
+            // corpus, not the default 200-row page (ADR 0022 status counts).
+            res = await fetch("/figures?limit=1000");
+          } catch (err) {
+            fetchError = `Error: ${err.message || err}`;
             return;
           }
-          allFigures = await res.json();
-        } catch (err) {
-          fetchError = `Error: ${err.message || err}`;
+          if (res.ok) {
+            allFigures = await res.json();
+            return;
+          }
+          if (res.status === 503 && performance.now() < warmupDeadline) {
+            statusEl.textContent =
+              "Server is warming up after a cold start — the first request loads the model and index and can take a minute or two. Retrying automatically…";
+            await new Promise((r) => setTimeout(r, 3000));
+            continue;
+          }
+          const detail = res.status === 503
+            ? "Corpus not loaded (server returned 503 — ingest a corpus to populate /figures)."
+            : `HTTP ${res.status}`;
+          fetchError = `Failed to load figures: ${detail}`;
+          return;
         }
       }
 
