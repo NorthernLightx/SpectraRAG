@@ -137,11 +137,14 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 .advanced[open] summary::before { transform: rotate(90deg); }
 .advanced summary:hover { color: var(--fg); }
 .advanced[open] summary { color: var(--fg); }
+/* Roomier than the default summary padding so the control row aligns with the
+   header and sits inset from the panel border. */
+.advanced summary { padding: 10px 18px; }
 .advanced-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-  gap: 12px;
-  margin-top: 8px;
+  gap: 16px;
+  padding: 6px 18px 18px;
 }
 .info-icon {
   display: inline-block;
