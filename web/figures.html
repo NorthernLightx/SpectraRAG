@@ -710,6 +710,7 @@
         const isPlaceholder = /^\[.+::p\d+::(?:fig|tab)\d+\]$/.test(rawCaption);
         if (rawCaption && !isPlaceholder) {
           caption.textContent = rawCaption;
+          caption.title = rawCaption; // full text on hover — the card clamps to 4 lines
         } else {
           caption.textContent = "No caption";
           caption.classList.add("is-empty");
