@@ -160,6 +160,10 @@
         -webkit-box-orient: vertical;
         overflow: hidden;
       }
+      .figure-card .caption.is-empty {
+        color: var(--muted);
+        font-style: italic;
+      }
       .vlm-tag {
         display: inline-block;
         background: var(--accent-tint);
@@ -697,7 +701,19 @@
 
         const caption = document.createElement("div");
         caption.className = "caption";
-        caption.textContent = f.caption || `[${f.chunk_id}]`;
+        // Caption-less items (logos, icons, uncaptioned figures) carry a
+        // `[paper::pN::figN]` placeholder as their text. Show a muted label
+        // instead of leaking the internal chunk id; the type chip in `meta`
+        // already says what the item is (e.g. `logo 1.00`). Pattern mirrors
+        // _PLACEHOLDER_CAPTION_RE in src/api/routes/figures.py.
+        const rawCaption = (f.caption || "").trim();
+        const isPlaceholder = /^\[.+::p\d+::(?:fig|tab)\d+\]$/.test(rawCaption);
+        if (rawCaption && !isPlaceholder) {
+          caption.textContent = rawCaption;
+        } else {
+          caption.textContent = "No caption";
+          caption.classList.add("is-empty");
+        }
         body.append(caption);
 
         li.append(thumbWrap);
