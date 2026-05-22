@@ -272,9 +272,15 @@
         padding: 64px 24px;
         font-size: 14px;
       }
+      .empty .examples {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: center;
+        margin-top: 12px;
+      }
       .empty .example {
         display: inline-block;
-        margin-top: 10px;
         padding: 6px 12px;
         background: var(--canvas);
         border: 1px solid var(--border-subtle);
@@ -298,7 +304,7 @@
       .footer-note a:hover { text-decoration: underline; }
       /* The status banner (warm-up notice, errors) gets its own full-width
          line above the meta row, so a long message never wraps into a narrow
-         column beside the mode hint and links. Hidden when empty so the meta
+         column beside the links. Hidden when empty so the meta
          row sits flush in the common idle state. */
       .footer-note .status:empty { display: none; }
       .footer-meta {
@@ -306,8 +312,8 @@
         gap: 12px;
         flex-wrap: wrap;
         align-items: center;
+        justify-content: flex-end;
       }
-      .footer-meta .mode-hint { flex: 1; min-width: 0; }
 
       /* Scrollbar polish — only the transcript area */
       .transcript::-webkit-scrollbar { width: 10px; }
@@ -420,7 +426,7 @@
       <div class="transcript-inner" id="transcriptInner">
         <div class="empty" id="empty">
           <div>Ask a question to start.</div>
-          <span class="example" id="exampleQuery">What is the inter-basin gain criterion?</span>
+          <div class="examples" id="examples"></div>
         </div>
       </div>
     </div>
@@ -433,7 +439,6 @@
       <div class="footer-note">
         <span class="status" id="status"></span>
         <div class="footer-meta">
-          <span class="mode-hint" id="modeHint">Auto-detecting mode…</span>
           <a href="https://github.com/NorthernLightx/prismrag">GitHub</a>
           <a href="/docs">API docs</a>
         </div>
@@ -455,8 +460,7 @@
       const transcriptEl = document.getElementById("transcript");
       const transcriptInner = document.getElementById("transcriptInner");
       const emptyEl = document.getElementById("empty");
-      const exampleEl = document.getElementById("exampleQuery");
-      const modeHint = document.getElementById("modeHint");
+      const examplesEl = document.getElementById("examples");
 
       apiKeyInput.value = localStorage.getItem("rag.apiKey") || "";
       modelSelect.value = localStorage.getItem("rag.model") || modelSelect.value;
@@ -511,13 +515,8 @@
         .then((r) => r.json())
         .then((h) => {
           pagesAvailable = !!h.pages_available;
-          modeHint.textContent = pagesAvailable
-            ? "Multi-modal: page images attached on the latest turn."
-            : "Text-only: server has no pages_dir.";
         })
-        .catch(() => {
-          modeHint.textContent = "Server status unknown.";
-        });
+        .catch(() => {});
 
       // Unique-per-turn id prefix so multiple turns can each anchor their
       // own `[N]` -> citation list without colliding on document IDs.
@@ -532,6 +531,7 @@
         clear(transcriptInner);
         transcriptInner.append(emptyEl);
         emptyEl.style.display = "";
+        renderSuggestions();
         setStatus("");
       });
       queryInput.addEventListener("keydown", (e) => {
@@ -541,10 +541,41 @@
         queryInput.style.height = "auto";
         queryInput.style.height = Math.min(180, queryInput.scrollHeight) + "px";
       });
-      exampleEl.addEventListener("click", () => {
-        queryInput.value = exampleEl.textContent;
-        queryInput.focus();
-      });
+      // Suggestion chips on the empty state. Each is verified answerable
+      // against the live corpus (retrieves its target paper as the top hit).
+      // One per category, so the three chips always advertise text + figure +
+      // table retrieval; the specific query rotates within each bucket.
+      const SUGGESTIONS = [
+        { cat: "factual", text: "What is exploration hacking?" },
+        { cat: "factual", text: "What is AW-PINN and how does it adapt its wavelet family?" },
+        { cat: "factual", text: "What does MASE stand for in the equilibrium-computation paper?" },
+        { cat: "factual", text: "How many synthetic computers does the long-horizon productivity simulation create?" },
+        { cat: "figure", text: "What does Figure 1 in HERMES++ illustrate about the proposed framework?" },
+        { cat: "figure", text: "What does Figure 2 show about the FD-loss training pipeline?" },
+        { cat: "figure", text: "What does Figure 4 of AEGIS illustrate about its task progression?" },
+        { cat: "figure", text: "What does Figure 4 show about gradient magnitudes on CIFAR-10 with 40% noise?" },
+        { cat: "table", text: "Which surrogate losses are compared by convexity, smoothness, and consistency?" },
+        { cat: "table", text: "What benchmark and resolution does Table 4 evaluate in the FD-loss paper?" },
+        { cat: "table", text: "What is the rank of Janus-Pro-7B in the AEGIS benchmark?" },
+        { cat: "table", text: "What properties does Table 1 use to compare human 3D pose datasets?" },
+      ];
+
+      function renderSuggestions() {
+        examplesEl.replaceChildren();
+        for (const cat of ["factual", "figure", "table"]) {
+          const pool = SUGGESTIONS.filter((s) => s.cat === cat);
+          const pick = pool[Math.floor(Math.random() * pool.length)];
+          const chip = document.createElement("span");
+          chip.className = "example";
+          chip.textContent = pick.text;
+          chip.addEventListener("click", () => {
+            queryInput.value = pick.text;
+            queryInput.focus();
+          });
+          examplesEl.append(chip);
+        }
+      }
+      renderSuggestions();
 
       async function askHandler() {
         const text = queryInput.value.trim();
