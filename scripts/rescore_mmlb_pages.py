@@ -1,11 +1,15 @@
-"""Re-score an MMLongBench run JSON at PAGE granularity.
+"""Re-score an MMLongBench run JSON at PAGE granularity, paper-aware.
 
 The eval runner scores retrieval against `relevant_chunk_ids`, but
 MMLongBench-Doc labels are page-level — every per-query `relevant_chunk_ids`
 is empty in the golden YAML, so eval_run.py records 0.0 for nDCG/recall/MRR
 on every query. This script reads the run JSON, maps each retrieved chunk-id
-to its page-id (`paper::pN::cM` -> `paper::pN`), scores against the golden's
-`relevant_pages`, and writes a copy with the per-query metrics filled in.
+to its (paper, page) key (`paper::pN::cM` -> `(paper, N)`), scores against
+the golden's `relevant_pages` paired with the query's `paper_id`, and writes
+a copy with the per-query metrics filled in. Scoring is paper-aware: a
+retrieved "page N" chunk only counts as a hit when it comes from the gold
+paper, since retrieval is not paper-scoped (a query can surface chunks from
+any corpus paper) and a same-numbered page in the wrong paper is not relevant.
 
 That copy is what `data/eval/baseline-mmlongbench.json` is built from, and
 what `scripts/check_regression.py --baseline` consumes for the multi-modal
@@ -42,16 +46,23 @@ if hasattr(sys.stdout, "reconfigure"):
 
 _PAGE_RE = re.compile(r"::p(\d+)")
 
+# A page identity is (paper_id, page_number). The paper_id is the chunk-id
+# prefix before the first "::"; relevance is keyed on the same tuple so a
+# wrong-paper page never counts as a hit.
+Page = tuple[str, int]
 
-def _page_of(chunk_id: str) -> int | None:
+
+def _page_of(chunk_id: str) -> Page | None:
     match = _PAGE_RE.search(chunk_id)
-    return int(match.group(1)) if match else None
+    if match is None:
+        return None
+    return chunk_id.split("::", 1)[0], int(match.group(1))
 
 
-def _dedup_pages_in_rank(retrieved_chunks: list[str]) -> list[int]:
+def _dedup_pages_in_rank(retrieved_chunks: list[str]) -> list[Page]:
     """Walk retrieved chunks in rank order; keep each page on first appearance."""
-    seen: set[int] = set()
-    pages: list[int] = []
+    seen: set[Page] = set()
+    pages: list[Page] = []
     for chunk_id in retrieved_chunks:
         page = _page_of(chunk_id)
         if page is None or page in seen:
@@ -65,7 +76,7 @@ def _dcg(rels: list[int]) -> float:
     return sum(r / math.log2(i + 2) for i, r in enumerate(rels))
 
 
-def _ndcg_at_k(retrieved_pages: list[int], relevant: set[int], k: int = 5) -> float:
+def _ndcg_at_k(retrieved_pages: list[Page], relevant: set[Page], k: int = 5) -> float:
     if not relevant:
         return 0.0
     rels = [1 if p in relevant else 0 for p in retrieved_pages[:k]]
@@ -74,14 +85,14 @@ def _ndcg_at_k(retrieved_pages: list[int], relevant: set[int], k: int = 5) -> fl
     return _dcg(rels) / ideal_dcg if ideal_dcg > 0 else 0.0
 
 
-def _recall_at_k(retrieved_pages: list[int], relevant: set[int], k: int = 10) -> float:
+def _recall_at_k(retrieved_pages: list[Page], relevant: set[Page], k: int = 10) -> float:
     if not relevant:
         return 0.0
     hits = sum(1 for p in retrieved_pages[:k] if p in relevant)
     return hits / len(relevant)
 
 
-def _mrr(retrieved_pages: list[int], relevant: set[int]) -> float:
+def _mrr(retrieved_pages: list[Page], relevant: set[Page]) -> float:
     if not relevant:
         return 0.0
     for idx, page in enumerate(retrieved_pages):
@@ -105,8 +116,13 @@ def rescore(run: dict[str, Any], golden: dict[str, Any]) -> dict[str, Any]:
     mutate the `category` field, since the eval runner's category labels are
     a separate concern from page-level scoring fidelity.
     """
-    relevant_by_qid: dict[str, set[int]] = {
-        q["query_id"]: set(q.get("relevant_pages") or []) for q in golden["queries"]
+    relevant_by_qid: dict[str, set[Page]] = {
+        q["query_id"]: {
+            (q["paper_id"], page)
+            for page in (q.get("relevant_pages") or [])
+            if q.get("paper_id")
+        }
+        for q in golden["queries"]
     }
     out = dict(run)
     rescored_per_query: list[dict[str, Any]] = []

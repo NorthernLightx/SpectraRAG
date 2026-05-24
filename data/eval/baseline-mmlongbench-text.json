@@ -289,8 +289,8 @@
       ],
       "retrieval": {
         "ndcg_at_5": 0.0,
-        "recall_at_10": 1.0,
-        "mrr": 0.125
+        "recall_at_10": 0.0,
+        "mrr": 0.0
       },
       "generation": null,
       "answer_text": null,
@@ -316,9 +316,9 @@
         "2023.findings-emnlp.248::p5::tab1"
       ],
       "retrieval": {
-        "ndcg_at_5": 1.0,
-        "recall_at_10": 1.0,
-        "mrr": 1.0
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
       },
       "generation": null,
       "answer_text": null,
@@ -345,7 +345,7 @@
       ],
       "retrieval": {
         "ndcg_at_5": 0.6309297535714575,
-        "recall_at_10": 1.0,
+        "recall_at_10": 0.5,
         "mrr": 0.5
       },
       "generation": null,
@@ -708,9 +708,9 @@
         "2307.09288v2::p24::c72"
       ],
       "retrieval": {
-        "ndcg_at_5": 0.8772153153380493,
-        "recall_at_10": 1.0,
-        "mrr": 1.0
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
       },
       "generation": null,
       "answer_text": null,
@@ -820,8 +820,8 @@
         "2303.08559v2::p16::tab9"
       ],
       "retrieval": {
-        "ndcg_at_5": 0.6934264036172708,
-        "recall_at_10": 1.0,
+        "ndcg_at_5": 0.6309297535714575,
+        "recall_at_10": 0.5,
         "mrr": 0.5
       },
       "generation": null,
@@ -1325,8 +1325,8 @@
       ],
       "retrieval": {
         "ndcg_at_5": 0.0,
-        "recall_at_10": 0.2,
-        "mrr": 0.125
+        "recall_at_10": 0.0,
+        "mrr": 0.0
       },
       "generation": null,
       "answer_text": null,
@@ -1437,8 +1437,8 @@
       ],
       "retrieval": {
         "ndcg_at_5": 0.0,
-        "recall_at_10": 1.0,
-        "mrr": 0.16666666666666666
+        "recall_at_10": 0.0,
+        "mrr": 0.0
       },
       "generation": null,
       "answer_text": null,
@@ -1492,9 +1492,9 @@
         "2306.05425v1::p9::c27"
       ],
       "retrieval": {
-        "ndcg_at_5": 0.43067655807339306,
-        "recall_at_10": 1.0,
-        "mrr": 0.25
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
       },
       "generation": null,
       "answer_text": null,
@@ -1520,9 +1520,9 @@
         "2310.07609v1::p6::c21"
       ],
       "retrieval": {
-        "ndcg_at_5": 0.5437713091520254,
+        "ndcg_at_5": 0.38685280723454163,
         "recall_at_10": 0.6666666666666666,
-        "mrr": 0.3333333333333333
+        "mrr": 0.2
       },
       "generation": null,
       "answer_text": null,
@@ -1548,9 +1548,9 @@
         "2310.05634v2::p14::c67"
       ],
       "retrieval": {
-        "ndcg_at_5": 0.9197207891481876,
-        "recall_at_10": 1.0,
-        "mrr": 1.0
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
       },
       "generation": null,
       "answer_text": null,
@@ -1576,9 +1576,9 @@
         "2023.acl-long.386::p6::c25"
       ],
       "retrieval": {
-        "ndcg_at_5": 1.0,
+        "ndcg_at_5": 0.0,
         "recall_at_10": 1.0,
-        "mrr": 1.0
+        "mrr": 0.16666666666666666
       },
       "generation": null,
       "answer_text": null,
@@ -1800,9 +1800,9 @@
         "2303.05039v2::p7::c41"
       ],
       "retrieval": {
-        "ndcg_at_5": 1.0,
-        "recall_at_10": 1.0,
-        "mrr": 1.0
+        "ndcg_at_5": 0.38685280723454163,
+        "recall_at_10": 0.5,
+        "mrr": 0.2
       },
       "generation": null,
       "answer_text": null,
@@ -2024,9 +2024,9 @@
         "2310.05634v2::p13::c59"
       ],
       "retrieval": {
-        "ndcg_at_5": 0.6309297535714575,
-        "recall_at_10": 0.1111111111111111,
-        "mrr": 0.5
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
       },
       "generation": null,
       "answer_text": null,
@@ -2836,9 +2836,9 @@
         "2023.acl-long.386::p14::c64"
       ],
       "retrieval": {
-        "ndcg_at_5": 0.6309297535714575,
-        "recall_at_10": 1.0,
-        "mrr": 0.5
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
       },
       "generation": null,
       "answer_text": null,
@@ -2865,8 +2865,8 @@
       ],
       "retrieval": {
         "ndcg_at_5": 0.0,
-        "recall_at_10": 1.0,
-        "mrr": 0.125
+        "recall_at_10": 0.0,
+        "mrr": 0.0
       },
       "generation": null,
       "answer_text": null,
@@ -3004,9 +3004,9 @@
         "2023.acl-long.386::p6::c25"
       ],
       "retrieval": {
-        "ndcg_at_5": 0.5,
+        "ndcg_at_5": 0.43067655807339306,
         "recall_at_10": 1.0,
-        "mrr": 0.3333333333333333
+        "mrr": 0.25
       },
       "generation": null,
       "answer_text": null,
@@ -3116,9 +3116,9 @@
         "2309.17421v2::p9::c13"
       ],
       "retrieval": {
-        "ndcg_at_5": 0.5,
-        "recall_at_10": 0.2,
-        "mrr": 0.3333333333333333
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
       },
       "generation": null,
       "answer_text": null,
@@ -3256,9 +3256,9 @@
         "2023.findings-emnlp.248::p17::c73"
       ],
       "retrieval": {
-        "ndcg_at_5": 0.43067655807339306,
-        "recall_at_10": 1.0,
-        "mrr": 0.25
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
       },
       "generation": null,
       "answer_text": null,
@@ -3312,9 +3312,9 @@
         "2307.09288v2::p4::c6"
       ],
       "retrieval": {
-        "ndcg_at_5": 0.43067655807339306,
-        "recall_at_10": 0.5,
-        "mrr": 0.25
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
       },
       "generation": null,
       "answer_text": null,
@@ -3509,8 +3509,8 @@
       ],
       "retrieval": {
         "ndcg_at_5": 0.0,
-        "recall_at_10": 0.3333333333333333,
-        "mrr": 0.14285714285714285
+        "recall_at_10": 0.0,
+        "mrr": 0.0
       },
       "generation": null,
       "answer_text": null,
@@ -3648,9 +3648,9 @@
         "2210.02442v1::p5::c18"
       ],
       "retrieval": {
-        "ndcg_at_5": 0.8772153153380493,
-        "recall_at_10": 1.0,
-        "mrr": 1.0
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.5,
+        "mrr": 0.14285714285714285
       },
       "generation": null,
       "answer_text": null,
@@ -3760,9 +3760,9 @@
         "2303.08559v2::p9::tab5"
       ],
       "retrieval": {
-        "ndcg_at_5": 1.0,
-        "recall_at_10": 0.5,
-        "mrr": 1.0
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
       },
       "generation": null,
       "answer_text": null,

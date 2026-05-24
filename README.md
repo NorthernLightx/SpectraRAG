@@ -30,23 +30,22 @@ point the ingester at any folder of `.pdf` files.
 
 Page-level retrieval on [MMLongBench-Doc](https://arxiv.org/abs/2407.01523)
 (20 documents, 149 queries, 107 in-corpus). The metric is recall@10 over
-retrieved pages, so it is independent of any generator. The router uses an
+retrieved pages, scored paper-aware (a page counts only if it is the gold
+paper's), so it is independent of any generator. The router uses an
 LLM classifier (`gemma3:4b` via Ollama) to send figure and table queries to
 the visual leg.
 
 | retrieval | recall@10 | figures only |
 |---|---|---|
-| text-only | 0.67 | 0.64 |
-| **text + visual router** | **0.84** | **0.85** |
-| relative lift | **+24 %** | **+33 %** |
+| text-only | 0.55 | 0.51 |
+| **text + visual router** | **0.75** | **0.76** |
+| relative lift | **+35 %** | **+48 %** |
 
-The exact values (text-only 0.6746, router 0.8396; figure subset 0.6357 →
-0.8479) and the per-query records are committed under
+The exact values (text-only 0.5545, router 0.7461; figure subset 0.5111 →
+0.7578) and the per-query records are committed under
 [`data/eval/`](./data/eval/) as `baseline-mmlongbench-text.json` and
 `baseline-mmlongbench-router.json`, so the table can be re-derived rather
-than taken on trust. They reproduce the independent measurement in
-[ADR 0013](./docs/decisions/0013-routing-is-the-accuracy-lever.md)
-(text 0.672, router 0.821).
+than taken on trust.
 
 The gain is mechanical, not a metric artefact: on every figure query that
 improved, the router retrieved a page the text leg never returned, while
