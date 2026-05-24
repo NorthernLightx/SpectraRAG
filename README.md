@@ -44,15 +44,13 @@ the visual leg.
 The exact values (text-only 0.5545, router 0.7461; figure subset 0.5111 →
 0.7578) and the per-query records are committed under
 [`data/eval/`](./data/eval/) as `baseline-mmlongbench-text.json` and
-`baseline-mmlongbench-router.json`, so the table can be re-derived rather
-than taken on trust.
+`baseline-mmlongbench-router.json`.
 
 The gain is mechanical, not a metric artefact: on every figure query that
 improved, the router retrieved a page the text leg never returned, while
-text-routed (factual) queries scored identically across both runs. One
-honest caveat: MMLongBench-Doc answers are ~93 % visual, which rewards
-routing aggressively to the visual leg. On a text-heavy corpus the lift is
-smaller. Full methodology and failure modes are in
+text-routed (factual) queries scored identically across both runs.
+MMLongBench-Doc answers are ~93 % visual, which rewards routing
+aggressively to the visual leg. On a text-heavy corpus the lift is smaller. Full methodology and failure modes are in
 [`docs/results.md`](./docs/results.md).
 
 ## How it works
@@ -94,8 +92,7 @@ Every non-obvious decision has an ADR in
 [`docs/decisions/`](./docs/decisions/), including the ones that were measured
 and rejected: a GraphRAG tier (`0018`, lost 5–1 to plain BM25-RAG on global
 synthesis), an agentic decomposition tier (`0019`, within judge noise), and
-two reranker and routing-fairness studies (`0012`, `0015`). Recording what
-didn't work is the point.
+two reranker and routing-fairness studies (`0012`, `0015`).
 
 ## Quickstart
 
@@ -174,10 +171,9 @@ metric that drops more than 5 %. MMLongBench scoring is page-level, so a run
 JSON is post-processed by `scripts/rescore_mmlb_pages.py` before it becomes a
 baseline.
 
-The point is traceability: every retrieval knob (chunk
-size, fusion weights, rerank cutoff, router classifier) is measured in
-isolation, so a recall change traces to one knob rather than a framework
-default. See [`docs/evals.md`](./docs/evals.md) for the golden schema and
+Every retrieval knob (chunk size, fusion weights, rerank cutoff, router
+classifier) is measured in isolation, so a recall change traces to one knob
+rather than a framework default. See [`docs/evals.md`](./docs/evals.md) for the golden schema and
 metric definitions.
 
 ## Limitations
