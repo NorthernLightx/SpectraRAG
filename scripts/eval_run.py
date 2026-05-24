@@ -29,6 +29,7 @@ import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from src.embeddings.ollama_bge import OllamaBgeEmbedder
 from src.eval.golden_set import load_golden_set
@@ -55,6 +56,9 @@ from src.rag.retrievers.routing import RoutingRetriever
 from src.rag.retrievers.visual import build_visual_retriever
 from src.rag.vectorstore import QdrantVectorStore
 from src.types import Chunk, Paper
+
+if TYPE_CHECKING:
+    from src.rag.retrievers.classifier_llm import LLMQueryClassifier
 
 
 def _build_llm(provider: str, *, ollama_url: str, num_ctx: int | None = None) -> LLMClient:
@@ -118,6 +122,8 @@ async def _main(
     query_expansion_model: str,
     query_expansion_n: int,
     router: bool,
+    router_classifier: str,
+    router_classifier_model: str,
     visual_model: str,
     visual_device: str,
     pages_dir: Path,
@@ -338,12 +344,30 @@ async def _main(
         visual_retriever = await build_visual_retriever(
             pages_by_paper, model_name=visual_model, device=visual_device
         )
+        # ADR 0013: the regex classifier (default) under-fires on MMLongBench
+        # natural-language queries; the live API ships the LLM zero-shot
+        # classifier instead. --router-classifier=llm builds that same
+        # classifier here so the eval router arm matches production. Ollama
+        # only — never OpenRouter (the classifier object does no I/O at
+        # construction; gemma3:4b loads on first classify(), after ColQwen2 is
+        # resident, so it competes with the visual leg on small GPUs).
+        classifier_obj: LLMQueryClassifier | None = None
+        if router_classifier == "llm":
+            from src.rag.retrievers.classifier_llm import LLMQueryClassifier
+
+            classifier_obj = LLMQueryClassifier(
+                llm=OllamaChatClient(base_url=ollama_url),
+                model=router_classifier_model,
+                prompt=load_prompt_by_name("classify_query"),
+            )
+            print(f"Router classifier: llm ({router_classifier_model} via Ollama)")
         if cascade:
             if cascade_threshold is None:
                 raise SystemExit("--cascade requires --cascade-threshold (float)")
             retriever = RoutingRetriever(
                 text=retriever,
                 visual=visual_retriever,
+                classifier=classifier_obj,
                 mode="cascade",
                 cascade_confidence_threshold=cascade_threshold,
             )
@@ -352,7 +376,9 @@ async def _main(
                 "first; visual leg fires only when text confidence is below the threshold."
             )
         else:
-            retriever = RoutingRetriever(text=retriever, visual=visual_retriever)
+            retriever = RoutingRetriever(
+                text=retriever, visual=visual_retriever, classifier=classifier_obj
+            )
             print(
                 "Routing enabled (category mode) — text leg + ColQwen2 visual leg fused "
                 "per query category."
@@ -438,6 +464,10 @@ async def _main(
             "query_expansion_model": query_expansion_model if query_expansion else None,
             "query_expansion_n": query_expansion_n if query_expansion else None,
             "router": router,
+            "router_classifier": router_classifier if router else None,
+            "router_classifier_model": (
+                router_classifier_model if router and router_classifier == "llm" else None
+            ),
             "visual_model": visual_model if router else None,
             "visual_device": visual_device if router else None,
             "paper_id_filter": paper_id_filter,
@@ -744,6 +774,28 @@ if __name__ == "__main__":
         ),
     )
     parser.add_argument(
+        "--router-classifier",
+        choices=("regex", "llm"),
+        default="regex",
+        help=(
+            "Classifier the router uses to pick text vs hybrid. 'regex' (default) "
+            "is ADR 0008's keyword matcher — under-fires ~75 %% on MMLongBench "
+            "natural-language queries. 'llm' is the ADR 0013 zero-shot classifier "
+            "the live API ships (gemma3:4b over Ollama, +10.8 %% recall@10 vs "
+            "regex on MMLongBench). Requires --router."
+        ),
+    )
+    parser.add_argument(
+        "--router-classifier-model",
+        default="gemma3:4b",
+        help=(
+            "Ollama model for --router-classifier=llm. Defaults to gemma3:4b "
+            "(Settings.classifier_ollama_model, the shipped default). Point at "
+            "an Ollama ':cloud' tag (e.g. 'qwen3-vl:235b-cloud') for the cloud "
+            "classifier arm. Runs via Ollama only — never OpenRouter."
+        ),
+    )
+    parser.add_argument(
         "--visual-model",
         default="vidore/colqwen2-v1.0",
         help=(
@@ -939,6 +991,8 @@ if __name__ == "__main__":
             query_expansion_model=query_expansion_model,
             query_expansion_n=args.query_expansion_n,
             router=args.router,
+            router_classifier=args.router_classifier,
+            router_classifier_model=args.router_classifier_model,
             visual_model=args.visual_model,
             visual_device=args.visual_device,
             pages_dir=args.pages_dir,

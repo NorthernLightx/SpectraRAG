@@ -1,0 +1,4251 @@
+{
+  "run_id": "76c164307b05",
+  "started_at": "2026-05-24T12:40:47.410011Z",
+  "finished_at": "2026-05-24T17:34:39.338648Z",
+  "golden_set_name": "mmlongbench-doc",
+  "golden_set_version": "v1",
+  "config": {
+    "retriever": "pipeline",
+    "rerank": true,
+    "rerank_model": "BAAI/bge-reranker-v2-m3",
+    "rerank_input_size": 50,
+    "top_k": 10,
+    "paper_ids": [
+      "2305.13186v3",
+      "2306.05425v1",
+      "12-15-15-ISIS-and-terrorism-release-final",
+      "2021-Apple-Catalog",
+      "2305.14160v4",
+      "2310.05634v2",
+      "2307.09288v2",
+      "2023.acl-long.386",
+      "2005.12872v3",
+      "2303.08559v2",
+      "2024.ug.eprospectus",
+      "0b85477387a9d0cc33fca0f4becaa0e5",
+      "2210.02442v1",
+      "2023.findings-emnlp.248",
+      "05-03-18-political-release",
+      "2303.05039v2",
+      "0e94b4197b10096b1f4c699701570fbf",
+      "11-21-16-Updated-Post-Election-Release",
+      "2309.17421v2",
+      "2310.07609v1"
+    ],
+    "embedding_model": "bge-m3",
+    "embedding_dim": 1024,
+    "contextualize": false,
+    "contextualize_provider": null,
+    "contextualize_model": null,
+    "contextualize_num_ctx": null,
+    "generate": false,
+    "generator_provider": null,
+    "generator_model": null,
+    "refusal_score_threshold": null,
+    "judge": false,
+    "judge_provider": null,
+    "judge_model": null,
+    "judge_num_ctx": null,
+    "judge_n_samples": null,
+    "extract_figures": false,
+    "extract_tables": false,
+    "use_docling": true,
+    "vlm_caption_model": null,
+    "vlm_caption_provider": null,
+    "query_expansion": false,
+    "query_expansion_mode": null,
+    "query_expansion_model": null,
+    "query_expansion_n": null,
+    "router": true,
+    "router_classifier": "llm",
+    "router_classifier_model": "gemma3:4b",
+    "visual_model": "vidore/colqwen2-v1.0",
+    "visual_device": "cuda",
+    "paper_id_filter": false,
+    "region_number_boost": false,
+    "exclude_decoration": true,
+    "rerank_length_norm": false,
+    "rerank_length_threshold": null,
+    "rerank_length_penalty": null,
+    "cascade": false,
+    "cascade_threshold": null,
+    "agentic": false,
+    "agentic_provider": null,
+    "agentic_model": null,
+    "agentic_max_subqueries": null
+  },
+  "per_query": [
+    {
+      "query_id": "mmlb_0000_0e94b4197b10096b1f4c699701570f",
+      "category": "factual",
+      "text": "Where was Gestalt psychology concieved?",
+      "retrieved_chunk_ids": [
+        "0e94b4197b10096b1f4c699701570fbf::p2::c1",
+        "0e94b4197b10096b1f4c699701570fbf::p11::c4",
+        "2303.08559v2::p28::tab18",
+        "2310.05634v2::p4::c18",
+        "2310.05634v2::p1::c3",
+        "2023.acl-long.386::p16::c74",
+        "2023.acl-long.386::p18::c81",
+        "2303.05039v2::p2::c10",
+        "2303.05039v2::p8::c49",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p13::c46"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 74609,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0001_0e94b4197b10096b1f4c699701570f",
+      "category": "figure",
+      "text": "According to the chart on page 14 how much time was spent with family and friends in 2010?",
+      "retrieved_chunk_ids": [
+        "0b85477387a9d0cc33fca0f4becaa0e5::p16::c56",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p2::c5",
+        "2303.05039v2::p9::c53",
+        "12-15-15-ISIS-and-terrorism-release-final::p26::tab6",
+        "0e94b4197b10096b1f4c699701570fbf::p14::page",
+        "2210.02442v1::p19::tab7",
+        "11-21-16-Updated-Post-Election-Release::p31::c59",
+        "12-15-15-ISIS-and-terrorism-release-final::p9::tab2",
+        "2309.17421v2::p109::page",
+        "2303.05039v2::p4::tab3"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.38685280723454163,
+        "recall_at_10": 1.0,
+        "mrr": 0.2
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 41843,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0002_0e94b4197b10096b1f4c699701570f",
+      "category": "figure",
+      "text": "What range does red color represents in approximate distance from the Mississippi River in the chart that tracks the West NIle Virus in Europe?",
+      "retrieved_chunk_ids": [
+        "2305.13186v3::p24::tab14",
+        "0e94b4197b10096b1f4c699701570fbf::p10::page",
+        "2210.02442v1::p19::tab7",
+        "0e94b4197b10096b1f4c699701570fbf::p9::page",
+        "2305.13186v3::p27::tab22",
+        "0e94b4197b10096b1f4c699701570fbf::p5::page",
+        "2305.13186v3::p26::tab21",
+        "2307.09288v2::p55::page",
+        "2210.02442v1::p6::tab1",
+        "2309.17421v2::p46::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.6309297535714575,
+        "recall_at_10": 1.0,
+        "mrr": 0.5
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 203015,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0003_0e94b4197b10096b1f4c699701570f",
+      "category": "factual",
+      "text": "How does this document define the law of good gestalt?",
+      "retrieved_chunk_ids": [
+        "0e94b4197b10096b1f4c699701570fbf::p11::c4",
+        "0e94b4197b10096b1f4c699701570fbf::p2::c1",
+        "2309.17421v2::p5::tab5",
+        "2309.17421v2::p4::tab4",
+        "2303.08559v2::p26::tab16",
+        "2309.17421v2::p6::tab6",
+        "2303.08559v2::p22::tab15",
+        "2307.09288v2::p17::c50",
+        "2307.09288v2::p17::c49",
+        "2307.09288v2::p16::c47"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 245688,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0004_0e94b4197b10096b1f4c699701570f",
+      "category": "figure",
+      "text": "Which category has the most increase from 2005 to 2010 for time spent on weedends?",
+      "retrieved_chunk_ids": [
+        "12-15-15-ISIS-and-terrorism-release-final::p9::tab2",
+        "0e94b4197b10096b1f4c699701570fbf::p14::page",
+        "2309.17421v2::p3::tab3",
+        "0e94b4197b10096b1f4c699701570fbf::p15::page",
+        "2210.02442v1::p6::tab1",
+        "0e94b4197b10096b1f4c699701570fbf::p12::page",
+        "2303.05039v2::p4::tab3",
+        "12-15-15-ISIS-and-terrorism-release-final::p13::page",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p10::c36",
+        "0e94b4197b10096b1f4c699701570fbf::p7::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.6309297535714575,
+        "recall_at_10": 1.0,
+        "mrr": 0.5
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 151875,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0005_0e94b4197b10096b1f4c699701570f",
+      "category": "figure",
+      "text": "Which continent has the most number of registered participant for advanced science course in CTBTO?",
+      "retrieved_chunk_ids": [
+        "2024.ug.eprospectus::p11::c76",
+        "2024.ug.eprospectus::p17::c125",
+        "2303.08559v2::p28::tab18",
+        "2306.05425v1::p11::c37",
+        "2024.ug.eprospectus::p11::c86",
+        "2307.09288v2::p46::c156",
+        "05-03-18-political-release::p14::c21",
+        "2210.02442v1::p9::c29",
+        "11-21-16-Updated-Post-Election-Release::p44::c82",
+        "2024.ug.eprospectus::p17::c126"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 130358,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0006_0e94b4197b10096b1f4c699701570f",
+      "category": "figure",
+      "text": "Which shapes does the slide use to illustrate the closure aspect of Gestalt Principle of Visual Perception?",
+      "retrieved_chunk_ids": [
+        "0e94b4197b10096b1f4c699701570fbf::p8::c3",
+        "0e94b4197b10096b1f4c699701570fbf::p2::c1",
+        "0e94b4197b10096b1f4c699701570fbf::p11::c4",
+        "2309.17421v2::p5::tab5",
+        "0e94b4197b10096b1f4c699701570fbf::p3::page",
+        "2305.14160v4::p1::fig1",
+        "2309.17421v2::p4::tab4",
+        "2309.17421v2::p43::c68",
+        "0e94b4197b10096b1f4c699701570fbf::p1::page",
+        "2309.17421v2::p73::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 252812,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0007_2310.05634v2",
+      "category": "figure",
+      "text": "In figure 1, which relation arrows do not point to specific leaf nodes?",
+      "retrieved_chunk_ids": [
+        "2303.08559v2::p22::tab15",
+        "2303.08559v2::p20::c84",
+        "0e94b4197b10096b1f4c699701570fbf::p1::page",
+        "2305.13186v3::p7::tab4",
+        "2310.05634v2::p1::page",
+        "2309.17421v2::p43::c67",
+        "2303.08559v2::p24::page",
+        "2210.02442v1::p7::fig4",
+        "2303.08559v2::p3::page",
+        "2305.13186v3::p2::fig1"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.5,
+        "recall_at_10": 1.0,
+        "mrr": 0.3333333333333333
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 119234,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0008_2310.05634v2",
+      "category": "figure",
+      "text": "In figure 5, what is the color of the line that has no intersection with any other line?",
+      "retrieved_chunk_ids": [
+        "2210.02442v1::p8::fig5",
+        "2305.14160v4::p5::page",
+        "2310.05634v2::p17::c74",
+        "2005.12872v3::p12::page",
+        "2310.05634v2::p22::c90",
+        "2306.05425v1::p8::page",
+        "2310.05634v2::p19::c79",
+        "2023.acl-long.386::p7::fig5",
+        "2305.13186v3::p15::page",
+        "2210.02442v1::p6::tab1"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 156797,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0009_2310.05634v2",
+      "category": "table",
+      "text": "How many tables include \"F1\" as a metric?",
+      "retrieved_chunk_ids": [
+        "2310.05634v2::p7::tab2",
+        "2303.08559v2::p16::tab8",
+        "2303.08559v2::p9::tab4",
+        "2303.08559v2::p18::tab12",
+        "2310.05634v2::p6::c30",
+        "2310.07609v1::p6::page",
+        "2303.08559v2::p8::c33",
+        "2303.08559v2::p17::page",
+        "2303.08559v2::p19::tab14",
+        "2310.05634v2::p9::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.9197207891481876,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 109812,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0010_2310.05634v2",
+      "category": "table",
+      "text": "From the paper, which temperature gives ChatGPT the highest alignment score?",
+      "retrieved_chunk_ids": [
+        "2310.05634v2::p8::c35",
+        "2310.05634v2::p7::tab2",
+        "2310.05634v2::p8::tab5",
+        "2310.05634v2::p23::c94",
+        "2310.05634v2::p6::c29",
+        "2310.05634v2::p8::c33",
+        "2023.findings-emnlp.248::p7::tab2",
+        "2310.05634v2::p9::tab6",
+        "2310.05634v2::p7::c31",
+        "2303.08559v2::p18::tab12"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.6309297535714575,
+        "recall_at_10": 1.0,
+        "mrr": 0.5
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 124109,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0011_2310.05634v2",
+      "category": "factual",
+      "text": "For dataset construction, which step takes the most word to describe than the others. ",
+      "retrieved_chunk_ids": [
+        "2310.05634v2::p3::c10",
+        "2303.08559v2::p14::c62",
+        "2023.acl-long.386::p5::c19",
+        "2303.05039v2::p7::c41",
+        "2310.05634v2::p3::c11",
+        "2305.13186v3::p5::fig3",
+        "2305.13186v3::p4::c16",
+        "2305.13186v3::p3::fig2",
+        "2303.08559v2::p15::tab6",
+        "2310.05634v2::p2::c6"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 149593,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0012_2310.05634v2",
+      "category": "factual",
+      "text": "According to author's definition on conscious incompetence, when can a sentence map to both [NA] and a list of sub-graph knowledge?",
+      "retrieved_chunk_ids": [
+        "2310.05634v2::p2::c9",
+        "2310.05634v2::p5::c25",
+        "2310.05634v2::p4::c19",
+        "2310.05634v2::p7::c32",
+        "2310.05634v2::p1::c5",
+        "2310.05634v2::p4::c18",
+        "2310.05634v2::p2::c8",
+        "2310.05634v2::p2::c7",
+        "2310.05634v2::p6::c26",
+        "2310.05634v2::p1::c1"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 0.5,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 229062,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0013_2310.05634v2",
+      "category": "out_of_corpus",
+      "text": "According to author's definition on conscious incompetence, when can a sentence map to either [NA] or a list of sub-graph knowledge?",
+      "retrieved_chunk_ids": [
+        "2310.05634v2::p2::c9",
+        "2310.05634v2::p5::c25",
+        "2310.05634v2::p4::c19",
+        "2310.05634v2::p7::c32",
+        "2310.05634v2::p1::c5",
+        "2310.05634v2::p4::c18",
+        "2310.05634v2::p6::c26",
+        "2310.05634v2::p2::c8",
+        "2310.05634v2::p2::c7",
+        "2310.05634v2::p1::c1"
+      ],
+      "retrieval": {
+        "ndcg_at_5": null,
+        "recall_at_10": null,
+        "mrr": null
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 230547,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0014_2024.ug.eprospectus",
+      "category": "table",
+      "text": "Which groups of applicants have the lastest end of application period according to this brochure?",
+      "retrieved_chunk_ids": [
+        "2024.ug.eprospectus::p25::tab1",
+        "2024.ug.eprospectus::p25::c180",
+        "2024.ug.eprospectus::p25::c181",
+        "2024.ug.eprospectus::p25::c179",
+        "2024.ug.eprospectus::p26::tab3",
+        "2024.ug.eprospectus::p24::c173",
+        "2024.ug.eprospectus::p25::c178",
+        "2303.08559v2::p22::tab15",
+        "12-15-15-ISIS-and-terrorism-release-final::p20::fig21",
+        "2024.ug.eprospectus::p24::c174"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 106922,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0015_2024.ug.eprospectus",
+      "category": "figure",
+      "text": "Among the top 10 reasons why NTU smart campus is for you, which is the reason that does not include any person in the corresponding figure?",
+      "retrieved_chunk_ids": [
+        "2024.ug.eprospectus::p21::c149",
+        "2024.ug.eprospectus::p2::c1",
+        "2024.ug.eprospectus::p22::c160",
+        "2024.ug.eprospectus::p23::c166",
+        "2024.ug.eprospectus::p7::c54",
+        "2024.ug.eprospectus::p3::page",
+        "2024.ug.eprospectus::p6::c47",
+        "2024.ug.eprospectus::p24::page",
+        "2024.ug.eprospectus::p5::page",
+        "2024.ug.eprospectus::p20::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 1.0,
+        "mrr": 0.16666666666666666
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 49186,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0016_2024.ug.eprospectus",
+      "category": "figure",
+      "text": "Student from which major has a picture of playing badminton in this brochure?",
+      "retrieved_chunk_ids": [
+        "2024.ug.eprospectus::p14::c108",
+        "2024.ug.eprospectus::p10::c70",
+        "2024.ug.eprospectus::p18::c136",
+        "2024.ug.eprospectus::p20::page",
+        "2024.ug.eprospectus::p5::page",
+        "2303.08559v2::p28::tab18",
+        "2024.ug.eprospectus::p3::page",
+        "2024.ug.eprospectus::p22::c162",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p13::c45",
+        "2024.ug.eprospectus::p24::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 1.0,
+        "mrr": 0.125
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 122641,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0017_2024.ug.eprospectus",
+      "category": "out_of_corpus",
+      "text": "Student from which major has a picture of playing tennis in this brochure?",
+      "retrieved_chunk_ids": [
+        "2024.ug.eprospectus::p18::c136",
+        "2024.ug.eprospectus::p10::c70",
+        "2303.08559v2::p28::tab18",
+        "2024.ug.eprospectus::p18::c132",
+        "2024.ug.eprospectus::p10::c72",
+        "2024.ug.eprospectus::p22::c162",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p13::c45",
+        "2024.ug.eprospectus::p14::c107",
+        "2024.ug.eprospectus::p17::c124",
+        "2023.acl-long.386::p18::c81"
+      ],
+      "retrieval": {
+        "ndcg_at_5": null,
+        "recall_at_10": null,
+        "mrr": null
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 122452,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0018_2024.ug.eprospectus",
+      "category": "figure",
+      "text": "Which colleges/schools/institutes from NTU use year 3 students as cover page student model?",
+      "retrieved_chunk_ids": [
+        "2024.ug.eprospectus::p2::c6",
+        "2024.ug.eprospectus::p25::c180",
+        "2024.ug.eprospectus::p10::c63",
+        "2024.ug.eprospectus::p24::c172",
+        "2024.ug.eprospectus::p15::c112",
+        "2024.ug.eprospectus::p17::c125",
+        "2024.ug.eprospectus::p6::page",
+        "2024.ug.eprospectus::p8::page",
+        "2024.ug.eprospectus::p26::c186",
+        "2024.ug.eprospectus::p22::c162"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.5,
+        "recall_at_10": 0.6666666666666666,
+        "mrr": 0.3333333333333333
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 50234,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0019_2024.ug.eprospectus",
+      "category": "factual",
+      "text": "How many schools from College of Humanities, Arts, and Social Sciences are not individually introduced in detail?",
+      "retrieved_chunk_ids": [
+        "2024.ug.eprospectus::p2::c5",
+        "2024.ug.eprospectus::p12::c92",
+        "2024.ug.eprospectus::p13::c98",
+        "2024.ug.eprospectus::p24::c172",
+        "2024.ug.eprospectus::p23::c164",
+        "2024.ug.eprospectus::p14::page",
+        "2024.ug.eprospectus::p10::page",
+        "2303.08559v2::p20::c84",
+        "2024.ug.eprospectus::p15::page",
+        "2024.ug.eprospectus::p9::c61"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.6934264036172708,
+        "recall_at_10": 1.0,
+        "mrr": 0.5
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 49670,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0020_2303.08559v2",
+      "category": "table",
+      "text": "What is the performance of filter-then-rerank methods (w.o. ensemble) on 50-shot TACREV dataset?",
+      "retrieved_chunk_ids": [
+        "2303.08559v2::p9::tab3",
+        "2303.08559v2::p7::c30",
+        "2303.08559v2::p8::c32",
+        "2303.08559v2::p15::tab7",
+        "2303.08559v2::p10::c37",
+        "2303.08559v2::p21::page",
+        "2303.08559v2::p6::c24",
+        "2303.08559v2::p2::page",
+        "2303.08559v2::p1::c6",
+        "2303.08559v2::p18::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 176484,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0021_2303.08559v2",
+      "category": "out_of_corpus",
+      "text": "What is the performance of filter-then-rerank methods (w.o. ensemble) on 50-shot CONLL03 dataset?",
+      "retrieved_chunk_ids": [
+        "2303.08559v2::p8::c32",
+        "2303.08559v2::p7::c30",
+        "2303.08559v2::p9::tab3",
+        "2303.08559v2::p6::c24",
+        "2303.08559v2::p10::c37",
+        "2303.08559v2::p21::page",
+        "2303.08559v2::p1::c6",
+        "2303.08559v2::p2::page",
+        "2303.08559v2::p15::page",
+        "2303.08559v2::p20::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": null,
+        "recall_at_10": null,
+        "mrr": null
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 162703,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0022_2303.08559v2",
+      "category": "figure",
+      "text": "Repeat the instructions corresponding to the settings shown in red box of Figure 3 (left).",
+      "retrieved_chunk_ids": [
+        "2309.17421v2::p42::c63",
+        "2023.acl-long.386::p5::fig4",
+        "2309.17421v2::p12::page",
+        "2309.17421v2::p17::c43",
+        "2309.17421v2::p13::page",
+        "2309.17421v2::p15::c28",
+        "2310.07609v1::p5::page",
+        "2305.13186v3::p5::fig3",
+        "2309.17421v2::p16::c35",
+        "2309.17421v2::p145::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.6309297535714575,
+        "recall_at_10": 1.0,
+        "mrr": 0.5
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 46655,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0023_2303.08559v2",
+      "category": "factual",
+      "text": "How many datasets are used for experiments of this paper in all? Give me an integer.",
+      "retrieved_chunk_ids": [
+        "2303.08559v2::p2::c11",
+        "2303.08559v2::p15::tab6",
+        "2303.08559v2::p14::c59",
+        "2303.05039v2::p4::tab3",
+        "2210.02442v1::p5::c18",
+        "2310.07609v1::p5::c18",
+        "2303.05039v2::p8::c46",
+        "2303.08559v2::p4::fig2",
+        "2023.findings-emnlp.248::p6::c23",
+        "2023.acl-long.386::p5::c19"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 79594,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0024_2303.08559v2",
+      "category": "table",
+      "text": "Tell me the prompt template used for label 'Contact.Meet' in filter-then-rerank method of this work. ",
+      "retrieved_chunk_ids": [
+        "2303.08559v2::p6::c23",
+        "2303.08559v2::p7::c30",
+        "2303.08559v2::p20::c84",
+        "2303.08559v2::p8::c34",
+        "2303.08559v2::p2::c9",
+        "2303.08559v2::p9::tab3",
+        "2303.08559v2::p10::c36",
+        "2303.08559v2::p21::page",
+        "2303.08559v2::p29::page",
+        "2303.08559v2::p1::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.43067655807339306,
+        "recall_at_10": 1.0,
+        "mrr": 0.25
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 160983,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0025_2303.08559v2",
+      "category": "out_of_corpus",
+      "text": "Tell me the prompt template used for label 'Contact.Meet' in purely LLM-based method of this work. ",
+      "retrieved_chunk_ids": [
+        "2303.08559v2::p3::c14",
+        "2303.08559v2::p19::c80",
+        "2303.08559v2::p7::c30",
+        "2303.08559v2::p1::c4",
+        "2303.08559v2::p5::c19",
+        "2023.acl-long.386::p4::c16",
+        "2303.08559v2::p10::c36",
+        "2303.08559v2::p6::c25",
+        "2303.08559v2::p3::fig1",
+        "2023.findings-emnlp.248::p7::c26"
+      ],
+      "retrieval": {
+        "ndcg_at_5": null,
+        "recall_at_10": null,
+        "mrr": null
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 57766,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0026_2303.08559v2",
+      "category": "figure",
+      "text": "If I drop the green module shown in Figure 6,  what is the absolute percentage drop on 100-shot TACREV setting?",
+      "retrieved_chunk_ids": [
+        "2303.08559v2::p9::tab3",
+        "2303.08559v2::p18::tab12",
+        "2303.08559v2::p15::tab7",
+        "2310.05634v2::p8::c33",
+        "2303.08559v2::p19::tab13",
+        "2303.08559v2::p5::page",
+        "2303.08559v2::p8::page",
+        "2303.08559v2::p17::tab10",
+        "2303.08559v2::p7::page",
+        "2305.13186v3::p7::tab4"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.8772153153380493,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 171655,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0027_05-03-18-political-release",
+      "category": "figure",
+      "text": "Among the adults conducted the survey on April 25 - May 1 2018, how many adults rated Trump's government ethical standards as poor? ",
+      "retrieved_chunk_ids": [
+        "05-03-18-political-release::p7::c12",
+        "05-03-18-political-release::p9::c13",
+        "05-03-18-political-release::p10::c15",
+        "05-03-18-political-release::p3::c4",
+        "05-03-18-political-release::p16::c26",
+        "05-03-18-political-release::p17::tab1",
+        "05-03-18-political-release::p3::c3",
+        "05-03-18-political-release::p9::c14",
+        "12-15-15-ISIS-and-terrorism-release-final::p12::c24",
+        "11-21-16-Updated-Post-Election-Release::p28::c51"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.43067655807339306,
+        "recall_at_10": 0.5,
+        "mrr": 0.25
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 52265,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0028_05-03-18-political-release",
+      "category": "out_of_corpus",
+      "text": "Among the adults conducted the survey on April 25 - May 1 2022, how many adults rated Trump's government ethical standards as poor? ",
+      "retrieved_chunk_ids": [
+        "05-03-18-political-release::p7::c12",
+        "05-03-18-political-release::p9::c13",
+        "05-03-18-political-release::p3::c4",
+        "05-03-18-political-release::p10::c15",
+        "05-03-18-political-release::p3::c3",
+        "05-03-18-political-release::p9::c14",
+        "05-03-18-political-release::p16::c26",
+        "05-03-18-political-release::p17::tab1",
+        "12-15-15-ISIS-and-terrorism-release-final::p12::c24",
+        "11-21-16-Updated-Post-Election-Release::p28::c51"
+      ],
+      "retrieval": {
+        "ndcg_at_5": null,
+        "recall_at_10": null,
+        "mrr": null
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 52281,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0029_05-03-18-political-release",
+      "category": "figure",
+      "text": "According to the survey on April 25 - May 1, 2018, what are the domains with the highest percentage that adults are very confident and not at all confident of Donald Trump's govenment? Please write the answer in the list format and with alphabetical order, e.g., [\"A\",\"B\"]",
+      "retrieved_chunk_ids": [
+        "11-21-16-Updated-Post-Election-Release::p20::c37",
+        "05-03-18-political-release::p7::c12",
+        "05-03-18-political-release::p5::c7",
+        "05-03-18-political-release::p3::c3",
+        "05-03-18-political-release::p10::c15",
+        "11-21-16-Updated-Post-Election-Release::p21::c39",
+        "05-03-18-political-release::p4::c6",
+        "05-03-18-political-release::p6::page",
+        "05-03-18-political-release::p9::c14",
+        "11-21-16-Updated-Post-Election-Release::p39::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.5,
+        "recall_at_10": 1.0,
+        "mrr": 0.3333333333333333
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 60390,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0030_05-03-18-political-release",
+      "category": "out_of_corpus",
+      "text": "According to the survey on April 25 - May 1, 2018, what are the domains with the highest percentage that adults are very confident and not at all confident of  Joe Biden's govenment? Please write the answer in the list format and with alphabetical order, e.g., [\"A\",\"B\"]",
+      "retrieved_chunk_ids": [
+        "11-21-16-Updated-Post-Election-Release::p20::c38",
+        "05-03-18-political-release::p7::c12",
+        "05-03-18-political-release::p10::c15",
+        "11-21-16-Updated-Post-Election-Release::p39::c75",
+        "05-03-18-political-release::p4::c6",
+        "05-03-18-political-release::p5::page",
+        "05-03-18-political-release::p6::page",
+        "05-03-18-political-release::p17::tab1",
+        "05-03-18-political-release::p3::page",
+        "05-03-18-political-release::p14::c21"
+      ],
+      "retrieval": {
+        "ndcg_at_5": null,
+        "recall_at_10": null,
+        "mrr": null
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 59750,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0031_05-03-18-political-release",
+      "category": "figure",
+      "text": "What percentage of the party that holds the highest total percentage of good policy ideas and high ethical standards reported that they followed the news about congressional elections in their state very closely in the survey of U.S. adults conducted from April 25 to May 1, 2018?",
+      "retrieved_chunk_ids": [
+        "05-03-18-political-release::p12::c18",
+        "05-03-18-political-release::p13::c20",
+        "05-03-18-political-release::p4::c5",
+        "05-03-18-political-release::p3::c4",
+        "05-03-18-political-release::p7::c12",
+        "05-03-18-political-release::p10::c15",
+        "05-03-18-political-release::p11::page",
+        "05-03-18-political-release::p9::page",
+        "05-03-18-political-release::p17::tab1",
+        "05-03-18-political-release::p14::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.6309297535714575,
+        "recall_at_10": 1.0,
+        "mrr": 0.5
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 52592,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0032_05-03-18-political-release",
+      "category": "out_of_corpus",
+      "text": "What percentage of the party that holds the highest total percentage of good policy ideas and high ethical standards reported that they followed the news about congressional elections in their state very closely in the survey of U.S. adults conducted from April 25 to May 1, 2022?",
+      "retrieved_chunk_ids": [
+        "05-03-18-political-release::p12::c18",
+        "05-03-18-political-release::p13::c20",
+        "05-03-18-political-release::p4::c5",
+        "05-03-18-political-release::p3::c4",
+        "05-03-18-political-release::p9::c13",
+        "05-03-18-political-release::p7::c12",
+        "05-03-18-political-release::p11::page",
+        "05-03-18-political-release::p10::c15",
+        "05-03-18-political-release::p17::tab1",
+        "05-03-18-political-release::p14::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": null,
+        "recall_at_10": null,
+        "mrr": null
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 52875,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0033_05-03-18-political-release",
+      "category": "figure",
+      "text": "What is the percentage of registered voters who support or lean toward the candidate from the party with the higher total percentage of good policy ideas and high ethical standards and closely follow congressional elections in their district in the survey of U.S. adults conducted April 25 - May 1, 2018?",
+      "retrieved_chunk_ids": [
+        "05-03-18-political-release::p14::c21",
+        "05-03-18-political-release::p13::c20",
+        "05-03-18-political-release::p12::c18",
+        "05-03-18-political-release::p10::c15",
+        "05-03-18-political-release::p4::c5",
+        "05-03-18-political-release::p7::c12",
+        "05-03-18-political-release::p3::c4",
+        "05-03-18-political-release::p11::page",
+        "05-03-18-political-release::p9::page",
+        "05-03-18-political-release::p17::tab1"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 61109,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0034_05-03-18-political-release",
+      "category": "out_of_corpus",
+      "text": "What is the percentage of registered voters who support or lean toward the candidate from the party with the higher total percentage of good policy ideas and high ethical standards and closely follow congressional elections in their district in the survey of Chinese adults conducted April 25 - May 1, 2018?",
+      "retrieved_chunk_ids": [
+        "05-03-18-political-release::p14::c21",
+        "05-03-18-political-release::p13::c20",
+        "05-03-18-political-release::p12::c18",
+        "05-03-18-political-release::p10::c15",
+        "05-03-18-political-release::p4::c5",
+        "05-03-18-political-release::p3::c4",
+        "05-03-18-political-release::p7::c12",
+        "05-03-18-political-release::p11::page",
+        "05-03-18-political-release::p9::page",
+        "05-03-18-political-release::p17::tab1"
+      ],
+      "retrieval": {
+        "ndcg_at_5": null,
+        "recall_at_10": null,
+        "mrr": null
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 58375,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0035_05-03-18-political-release",
+      "category": "figure",
+      "text": "What is the percentage gap between the youngest age group and the oldest age group that strongly disapproves of the way the president, who started his job in 2018, was handling his job in the survey of U.S. adults conducted April 25-May 1, 2018? Please write the answer in float format",
+      "retrieved_chunk_ids": [
+        "05-03-18-political-release::p10::c15",
+        "05-03-18-political-release::p7::c12",
+        "12-15-15-ISIS-and-terrorism-release-final::p24::c50",
+        "05-03-18-political-release::p3::c3",
+        "12-15-15-ISIS-and-terrorism-release-final::p2::c2",
+        "05-03-18-political-release::p9::c14",
+        "05-03-18-political-release::p16::c26",
+        "05-03-18-political-release::p6::page",
+        "05-03-18-political-release::p17::tab1",
+        "12-15-15-ISIS-and-terrorism-release-final::p25::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 0.5,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 83515,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0036_05-03-18-political-release",
+      "category": "out_of_corpus",
+      "text": "What is the percentage gap between the youngest age group and the oldest age group that strongly disapproves of the way the president, who started his job in 2018, was handling his job in the survey of Chinese adults conducted April 25-May 1, 2018?",
+      "retrieved_chunk_ids": [
+        "05-03-18-political-release::p10::c15",
+        "12-15-15-ISIS-and-terrorism-release-final::p24::c50",
+        "05-03-18-political-release::p3::c3",
+        "05-03-18-political-release::p7::c12",
+        "12-15-15-ISIS-and-terrorism-release-final::p2::c2",
+        "05-03-18-political-release::p9::c14",
+        "05-03-18-political-release::p16::c26",
+        "05-03-18-political-release::p17::tab1",
+        "05-03-18-political-release::p6::page",
+        "12-15-15-ISIS-and-terrorism-release-final::p25::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": null,
+        "recall_at_10": null,
+        "mrr": null
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 86516,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0037_05-03-18-political-release",
+      "category": "figure",
+      "text": "How many Demoncratic people in the survey of U.S. adults conducted April 25- May 1, 2019 said neither the Republican Party nor the Democratic Party  has \u2018high ethical standards'?",
+      "retrieved_chunk_ids": [
+        "05-03-18-political-release::p12::c17",
+        "05-03-18-political-release::p10::c15",
+        "05-03-18-political-release::p12::c18",
+        "05-03-18-political-release::p3::c4",
+        "05-03-18-political-release::p9::c13",
+        "05-03-18-political-release::p11::c16",
+        "05-03-18-political-release::p17::tab1",
+        "11-21-16-Updated-Post-Election-Release::p30::c56",
+        "05-03-18-political-release::p3::c3",
+        "05-03-18-political-release::p7::c12"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 56390,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0038_05-03-18-political-release",
+      "category": "out_of_corpus",
+      "text": "How many non-partisan people in the survey  of U.S. adults conducted April 25- May 1, 2019 said neither the Republican Party nor the Democratic Party  has \u2018high ethical standards'?",
+      "retrieved_chunk_ids": [
+        "05-03-18-political-release::p12::c17",
+        "05-03-18-political-release::p10::c15",
+        "05-03-18-political-release::p12::c18",
+        "05-03-18-political-release::p3::c4",
+        "05-03-18-political-release::p9::c13",
+        "05-03-18-political-release::p11::c16",
+        "05-03-18-political-release::p17::tab1",
+        "05-03-18-political-release::p7::c12",
+        "05-03-18-political-release::p3::c3",
+        "11-21-16-Updated-Post-Election-Release::p30::c56"
+      ],
+      "retrieval": {
+        "ndcg_at_5": null,
+        "recall_at_10": null,
+        "mrr": null
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 51640,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0039_0b85477387a9d0cc33fca0f4becaa0",
+      "category": "figure",
+      "text": "Who is the commanding officer in the first figure on the second page?",
+      "retrieved_chunk_ids": [
+        "0b85477387a9d0cc33fca0f4becaa0e5::p1::c2",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p2::c6",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p7::fig11",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p12::fig19",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p3::c10",
+        "2303.08559v2::p19::c81",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p6::page",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p15::page",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p4::page",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p10::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.6309297535714575,
+        "recall_at_10": 1.0,
+        "mrr": 0.5
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 43407,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0040_0b85477387a9d0cc33fca0f4becaa0",
+      "category": "out_of_corpus",
+      "text": "Who is the commanding officer at the last page?",
+      "retrieved_chunk_ids": [
+        "0b85477387a9d0cc33fca0f4becaa0e5::p1::c4",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p1::c2",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p2::c6",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p12::fig19",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p7::fig12",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p2::c9",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p12::c43",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p3::c10",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p7::fig11",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p12::c44"
+      ],
+      "retrieval": {
+        "ndcg_at_5": null,
+        "recall_at_10": null,
+        "mrr": null
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 178187,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0041_0b85477387a9d0cc33fca0f4becaa0",
+      "category": "factual",
+      "text": "Who Visited the U.S. Naval Medical Research centre on November 29, 2012 in the document?",
+      "retrieved_chunk_ids": [
+        "0b85477387a9d0cc33fca0f4becaa0e5::p1::c4",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p8::c29",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p10::fig16",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p15::c54",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p4::c14",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p12::fig19",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p7::c25",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p4::c16",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p12::c44",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p14::c49"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 57968,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0042_0b85477387a9d0cc33fca0f4becaa0",
+      "category": "out_of_corpus",
+      "text": "Who Visited the U.S. Naval Medical Research centre on November 29, 2020?",
+      "retrieved_chunk_ids": [
+        "0b85477387a9d0cc33fca0f4becaa0e5::p1::c4",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p8::c29",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p10::fig16",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p12::fig19",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p15::c54",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p7::c25",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p14::c49",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p1::c2",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p12::c44",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p4::c14"
+      ],
+      "retrieval": {
+        "ndcg_at_5": null,
+        "recall_at_10": null,
+        "mrr": null
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 50578,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0043_0b85477387a9d0cc33fca0f4becaa0",
+      "category": "out_of_corpus",
+      "text": "With whom did the NAMRU-3 team visit Monrovia, Liberia, in November 2012? Enumerate their names within a list.",
+      "retrieved_chunk_ids": [
+        "0b85477387a9d0cc33fca0f4becaa0e5::p7::c26",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p7::c25",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p7::fig12",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p7::fig11",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p7::c27",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p14::c51",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p3::c11",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p3::c10",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p3::c12",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p4::c16"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 61405,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0044_0b85477387a9d0cc33fca0f4becaa0",
+      "category": "figure",
+      "text": "Among all the pictures, how many of them contain only one person?",
+      "retrieved_chunk_ids": [
+        "2309.17421v2::p41::c55",
+        "2309.17421v2::p109::page",
+        "2309.17421v2::p42::c64",
+        "2309.17421v2::p28::page",
+        "2005.12872v3::p23::c60",
+        "2309.17421v2::p48::page",
+        "2309.17421v2::p38::c52",
+        "2309.17421v2::p40::page",
+        "2005.12872v3::p24::c61",
+        "2309.17421v2::p108::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 183952,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0045_0b85477387a9d0cc33fca0f4becaa0",
+      "category": "figure",
+      "text": "Among all the pictures, in which page the picture contains the most number of people? Give me the page no. as an integer.",
+      "retrieved_chunk_ids": [
+        "2309.17421v2::p5::tab5",
+        "2309.17421v2::p40::page",
+        "2309.17421v2::p6::tab6",
+        "2309.17421v2::p97::page",
+        "2309.17421v2::p42::c64",
+        "2309.17421v2::p109::page",
+        "2309.17421v2::p4::tab4",
+        "2309.17421v2::p108::page",
+        "2309.17421v2::p38::c51",
+        "2309.17421v2::p79::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 248797,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0046_2310.07609v1",
+      "category": "figure",
+      "text": "How many numbers with blue color are mentioned in the example figure of question-guidue reasoning?",
+      "retrieved_chunk_ids": [
+        "2310.05634v2::p17::c74",
+        "2310.07609v1::p1::fig1",
+        "2310.05634v2::p18::page",
+        "2305.13186v3::p5::fig3",
+        "2310.05634v2::p24::page",
+        "2309.17421v2::p4::tab4",
+        "2310.05634v2::p16::page",
+        "2309.17421v2::p15::c27",
+        "2309.17421v2::p70::page",
+        "2023.findings-emnlp.248::p5::tab1"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.6309297535714575,
+        "recall_at_10": 1.0,
+        "mrr": 0.5
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 158140,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0047_2310.07609v1",
+      "category": "out_of_corpus",
+      "text": "How many numbers with purple color are mentioned in the example figure of question-guidue reasoning?",
+      "retrieved_chunk_ids": [
+        "2310.07609v1::p1::fig1",
+        "2023.acl-long.386::p4::page",
+        "2309.17421v2::p15::c27",
+        "2310.07609v1::p5::page",
+        "2309.17421v2::p4::tab4",
+        "2310.05634v2::p18::page",
+        "2023.acl-long.386::p15::c65",
+        "2310.07609v1::p6::page",
+        "2305.13186v3::p4::c16",
+        "2023.findings-emnlp.248::p17::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": null,
+        "recall_at_10": null,
+        "mrr": null
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 149453,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0048_2310.07609v1",
+      "category": "figure",
+      "text": "In the proposed system, how many modules are implemented with Large Language Models backbone?",
+      "retrieved_chunk_ids": [
+        "2306.05425v1::p10::c34",
+        "2023.findings-emnlp.248::p1::c1",
+        "2307.09288v2::p35::c111",
+        "2309.17421v2::p8::c4",
+        "2023.acl-long.386::p14::c60",
+        "2307.09288v2::p1::c1",
+        "2305.14160v4::p10::c45",
+        "2023.findings-emnlp.248::p2::c8",
+        "2307.09288v2::p36::c114",
+        "2310.07609v1::p7::c23"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 1.0,
+        "mrr": 0.16666666666666666
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 59577,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0049_2310.07609v1",
+      "category": "out_of_corpus",
+      "text": "In the proposed system, how many modules are implemented with BERT's backbone?",
+      "retrieved_chunk_ids": [
+        "2023.acl-long.386::p14::c61",
+        "2303.08559v2::p14::c64",
+        "2305.13186v3::p18::c73",
+        "2305.13186v3::p6::c22",
+        "2310.07609v1::p2::c5",
+        "2305.13186v3::p19::c77",
+        "2305.13186v3::p19::c76",
+        "2305.13186v3::p19::c79",
+        "2005.12872v3::p26::c63",
+        "2307.09288v2::p41::c140"
+      ],
+      "retrieval": {
+        "ndcg_at_5": null,
+        "recall_at_10": null,
+        "mrr": null
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 81422,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0050_2310.07609v1",
+      "category": "figure",
+      "text": "In the figure that locates at the top of page 5, what is the final step? Please write down the answer in string format.",
+      "retrieved_chunk_ids": [
+        "2309.17421v2::p17::c43",
+        "2310.07609v1::p5::page",
+        "2023.acl-long.386::p4::c14",
+        "2309.17421v2::p130::page",
+        "2309.17421v2::p4::tab4",
+        "2310.07609v1::p6::c20",
+        "2309.17421v2::p127::page",
+        "2305.14160v4::p5::fig6",
+        "2309.17421v2::p70::page",
+        "2309.17421v2::p19::c47"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.6309297535714575,
+        "recall_at_10": 1.0,
+        "mrr": 0.5
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 138218,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0051_2310.07609v1",
+      "category": "figure",
+      "text": "What is the color of the model rectangle in the figure of page 4 that appears both in QA model and Reasone moduler in the paper?",
+      "retrieved_chunk_ids": [
+        "2310.07609v1::p2::c5",
+        "2310.07609v1::p5::c17",
+        "2310.07609v1::p3::c13",
+        "2310.07609v1::p6::c21",
+        "2023.acl-long.386::p7::fig5",
+        "2310.05634v2::p19::c79",
+        "2305.13186v3::p5::fig3",
+        "2023.acl-long.386::p2::page",
+        "2303.08559v2::p3::c14",
+        "2023.findings-emnlp.248::p3::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 0.6666666666666666,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 159187,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0052_2310.07609v1",
+      "category": "factual",
+      "text": "How many prompts instruction examples are listed in the main body of the paper? Please writhe down the answer in float format.",
+      "retrieved_chunk_ids": [
+        "2309.17421v2::p4::tab4",
+        "2309.17421v2::p10::c15",
+        "2303.08559v2::p3::c14",
+        "2023.acl-long.386::p15::c65",
+        "2023.acl-long.386::p8::c32",
+        "2023.acl-long.386::p14::c64",
+        "2023.findings-emnlp.248::p14::c60",
+        "2303.08559v2::p18::c76",
+        "2307.09288v2::p29::c94",
+        "2310.05634v2::p14::c67"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.9197207891481876,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 147922,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0053_2310.07609v1",
+      "category": "table",
+      "text": "What is the average performance gap between the ProgramFC performance and our proposed system in the HOVER dataset? Please write down the answer in float format with 2 decimals.",
+      "retrieved_chunk_ids": [
+        "2023.acl-long.386::p6::c24",
+        "2023.acl-long.386::p8::c33",
+        "2023.acl-long.386::p7::c28",
+        "2310.07609v1::p6::tab1",
+        "2023.acl-long.386::p9::c34",
+        "2310.07609v1::p5::c18",
+        "2023.acl-long.386::p5::page",
+        "2023.acl-long.386::p2::page",
+        "2023.acl-long.386::p15::page",
+        "2023.acl-long.386::p14::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 122968,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0054_2303.05039v2",
+      "category": "table",
+      "text": "How many items in total of Amazon related datasets in the paper? Please write the answer in int format. ",
+      "retrieved_chunk_ids": [
+        "2303.05039v2::p4::tab3",
+        "2303.05039v2::p4::c28",
+        "2303.05039v2::p5::c34",
+        "2303.05039v2::p3::c24",
+        "2303.05039v2::p8::tab5",
+        "2303.05039v2::p3::c23",
+        "2305.13186v3::p4::tab1",
+        "2303.05039v2::p4::c27",
+        "2303.05039v2::p8::tab6",
+        "2303.05039v2::p7::c43"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 101828,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0055_2303.05039v2",
+      "category": "out_of_corpus",
+      "text": "How many items in total of Shopee related datasets in the paper? Please write the answer in int format. ",
+      "retrieved_chunk_ids": [
+        "2303.05039v2::p4::tab3",
+        "2303.08559v2::p15::tab6",
+        "2309.17421v2::p4::tab4",
+        "2307.09288v2::p11::tab7",
+        "2309.17421v2::p3::tab3",
+        "2303.05039v2::p4::c28",
+        "2303.08559v2::p2::c11",
+        "2303.05039v2::p4::c27",
+        "2303.08559v2::p14::c59",
+        "2303.08559v2::p14::c62"
+      ],
+      "retrieval": {
+        "ndcg_at_5": null,
+        "recall_at_10": null,
+        "mrr": null
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 144765,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0056_2303.05039v2",
+      "category": "out_of_corpus",
+      "text": "What is the average number of words per user used for the experiments in the dataset from which a data sample of a user's Receptiviti score is shown? Please write the answer in float format.",
+      "retrieved_chunk_ids": [
+        "2303.05039v2::p4::c27",
+        "2303.05039v2::p2::c9",
+        "2303.05039v2::p4::c26",
+        "2303.05039v2::p4::tab3",
+        "2303.05039v2::p5::c35",
+        "2303.05039v2::p5::c34",
+        "2303.05039v2::p2::c10",
+        "2303.05039v2::p4::tab2",
+        "2303.05039v2::p8::c46",
+        "2303.05039v2::p4::tab1"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 137670,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0057_2303.05039v2",
+      "category": "out_of_corpus",
+      "text": "What is the average number of words per user used for the experiments in the dataset from which a data sample of a user's LIWC score is shown? Please write the answer in float format.",
+      "retrieved_chunk_ids": [
+        "2303.05039v2::p4::tab3",
+        "2303.05039v2::p4::c27",
+        "2303.05039v2::p2::c9",
+        "2303.05039v2::p4::c26",
+        "2307.09288v2::p11::tab7",
+        "2305.14160v4::p3::c9",
+        "2305.13186v3::p24::c91",
+        "2303.08559v2::p3::c12",
+        "2303.08559v2::p28::tab18",
+        "2023.findings-emnlp.248::p14::tab5"
+      ],
+      "retrieval": {
+        "ndcg_at_5": null,
+        "recall_at_10": null,
+        "mrr": null
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 133984,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0058_2303.05039v2",
+      "category": "figure",
+      "text": "What is the color of the personality vector in the soft-labled  personality embedding matrix that with the highest Receptiviti score for User A2GBIFL43U1LKJ?",
+      "retrieved_chunk_ids": [
+        "2303.05039v2::p4::tab2",
+        "2303.05039v2::p5::fig1",
+        "2303.05039v2::p2::c9",
+        "2303.08559v2::p8::fig5",
+        "2303.05039v2::p8::tab5",
+        "2303.05039v2::p6::page",
+        "2303.05039v2::p3::page",
+        "2303.05039v2::p1::page",
+        "2303.05039v2::p7::page",
+        "2303.05039v2::p9::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 157859,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0059_2303.05039v2",
+      "category": "figure",
+      "text": "What are the personality scores of the data sample with extreme personality cases, in which the personality vector color is blue in the overall model structure? Please write down the answer in list format with ascending order, e.g., [\"1\",\"2\"]",
+      "retrieved_chunk_ids": [
+        "2303.05039v2::p6::tab4",
+        "2303.05039v2::p5::fig1",
+        "2303.05039v2::p4::c26",
+        "2303.05039v2::p2::c10",
+        "2303.05039v2::p7::c38",
+        "2303.05039v2::p3::page",
+        "2303.05039v2::p1::page",
+        "2305.14160v4::p8::page",
+        "2307.09288v2::p74::page",
+        "2307.09288v2::p69::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 103922,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0060_2303.05039v2",
+      "category": "figure",
+      "text": "What is the highest hit rate number in the dataset for the personality located furthest to the left in the distribution of personality traits figure?",
+      "retrieved_chunk_ids": [
+        "2303.05039v2::p6::fig2",
+        "2303.05039v2::p5::c36",
+        "2303.05039v2::p7::c42",
+        "2303.05039v2::p2::c14",
+        "2303.05039v2::p4::c28",
+        "2303.08559v2::p15::tab7",
+        "2303.05039v2::p3::page",
+        "2303.05039v2::p8::page",
+        "2303.05039v2::p1::page",
+        "2303.05039v2::p9::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 154797,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0061_2303.05039v2",
+      "category": "figure",
+      "text": "What is the evaluation metric that has highest number for the method located at the bottom of the model structure figure across the three datasets? Please write down the answer with string format.",
+      "retrieved_chunk_ids": [
+        "2310.05634v2::p7::tab2",
+        "2210.02442v1::p5::c18",
+        "2310.07609v1::p6::page",
+        "2303.08559v2::p8::c32",
+        "2306.05425v1::p10::page",
+        "2310.05634v2::p14::c63",
+        "2310.05634v2::p6::c30",
+        "2307.09288v2::p18::page",
+        "2303.05039v2::p5::fig1",
+        "2305.13186v3::p25::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.6509209298071326,
+        "recall_at_10": 1.0,
+        "mrr": 0.5
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 96046,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0062_2305.13186v3",
+      "category": "figure",
+      "text": "How many green and grey rectangles in the first figure of the paper? Please list the numbers in the list format by descending order. e.g., [\"2\",\"1\"]",
+      "retrieved_chunk_ids": [
+        "2303.08559v2::p3::c14",
+        "2309.17421v2::p1::tab1",
+        "0e94b4197b10096b1f4c699701570fbf::p3::page",
+        "2023.findings-emnlp.248::p19::c81",
+        "2309.17421v2::p82::page",
+        "2305.13186v3::p25::tab18",
+        "2210.02442v1::p16::page",
+        "2309.17421v2::p41::c58",
+        "0e94b4197b10096b1f4c699701570fbf::p8::page",
+        "2023.findings-emnlp.248::p17::c71"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 52734,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0063_2305.13186v3",
+      "category": "out_of_corpus",
+      "text": "How many green and grey triangles in the first figure of the paper? Please list the numbers in the list format by descending order. e.g., [\"2\",\"1\"]",
+      "retrieved_chunk_ids": [
+        "2309.17421v2::p1::tab1",
+        "2309.17421v2::p92::page",
+        "2023.findings-emnlp.248::p19::c81",
+        "2309.17421v2::p34::page",
+        "2305.13186v3::p25::tab18",
+        "2309.17421v2::p14::page",
+        "2309.17421v2::p41::c58",
+        "2309.17421v2::p85::page",
+        "2023.findings-emnlp.248::p17::c71",
+        "2210.02442v1::p16::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": null,
+        "recall_at_10": null,
+        "mrr": null
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 53094,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0064_2305.13186v3",
+      "category": "figure",
+      "text": "How many reasoning steps are involved in the figure 1 in the paper? ",
+      "retrieved_chunk_ids": [
+        "2023.findings-emnlp.248::p1::c3",
+        "2310.07609v1::p1::c4",
+        "2023.acl-long.386::p4::c14",
+        "2305.13186v3::p5::fig3",
+        "2305.13186v3::p4::c15",
+        "2306.05425v1::p2::page",
+        "2023.acl-long.386::p5::page",
+        "2023.acl-long.386::p3::c13",
+        "2023.acl-long.386::p2::page",
+        "2023.acl-long.386::p1::c4"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.43067655807339306,
+        "recall_at_10": 1.0,
+        "mrr": 0.25
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 143015,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0065_2305.13186v3",
+      "category": "table",
+      "text": "How many more claims does the Wiki Table datasets have comparing to scientific articles datasets? Please writeh the answer in int format. ",
+      "retrieved_chunk_ids": [
+        "2305.13186v3::p4::tab1",
+        "2023.acl-long.386::p5::c19",
+        "2023.acl-long.386::p2::c7",
+        "2305.13186v3::p3::c11",
+        "2305.13186v3::p1::c3",
+        "2305.13186v3::p7::c27",
+        "2305.13186v3::p9::page",
+        "2305.13186v3::p8::c33",
+        "2305.13186v3::p5::c18",
+        "2305.13186v3::p2::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 65545,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0066_2305.13186v3",
+      "category": "out_of_corpus",
+      "text": "How many more claims does the Health Table datasets have comparing to Newspaper datasets? Please writeh the answer in int format. ",
+      "retrieved_chunk_ids": [
+        "2305.13186v3::p4::tab1",
+        "2305.13186v3::p2::c10",
+        "2023.acl-long.386::p5::c19",
+        "2305.13186v3::p7::page",
+        "2305.13186v3::p1::c3",
+        "2305.13186v3::p8::c33",
+        "2305.13186v3::p9::page",
+        "2305.13186v3::p3::c11",
+        "11-21-16-Updated-Post-Election-Release::p37::page",
+        "2305.13186v3::p18::c72"
+      ],
+      "retrieval": {
+        "ndcg_at_5": null,
+        "recall_at_10": null,
+        "mrr": null
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 77063,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0067_2305.13186v3",
+      "category": "table",
+      "text": "How many USD dollars will the author spend if the annotators finish annotating all of claims of the authors' proposed dataset? Please write the answer in float format.",
+      "retrieved_chunk_ids": [
+        "2305.13186v3::p3::c12",
+        "2305.13186v3::p9::c35",
+        "2305.13186v3::p2::c7",
+        "2305.13186v3::p4::c13",
+        "2305.13186v3::p2::c9",
+        "2305.13186v3::p5::c18",
+        "2023.acl-long.386::p5::c19",
+        "2305.13186v3::p6::c24",
+        "2210.02442v1::p14::c44",
+        "2310.05634v2::p14::c63"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.43067655807339306,
+        "recall_at_10": 1.0,
+        "mrr": 0.25
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 59296,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0068_2305.13186v3",
+      "category": "figure",
+      "text": "How many claims are with the highest percentage of reasoning steps  in the author's proposed dataset?",
+      "retrieved_chunk_ids": [
+        "2305.13186v3::p5::fig3",
+        "2305.13186v3::p4::c14",
+        "2023.acl-long.386::p5::c19",
+        "2310.07609v1::p5::c18",
+        "2023.acl-long.386::p18::page",
+        "2305.13186v3::p1::c3",
+        "2023.acl-long.386::p2::c7",
+        "2023.acl-long.386::p21::page",
+        "2023.acl-long.386::p4::page",
+        "2023.acl-long.386::p6::c25"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 88500,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0069_2305.13186v3",
+      "category": "figure",
+      "text": "How many figures are there in the Appendix in the paper? Please write down the answer into int format.",
+      "retrieved_chunk_ids": [
+        "2309.17421v2::p1::tab1",
+        "2309.17421v2::p5::tab5",
+        "2023.acl-long.386::p23::c94",
+        "2307.09288v2::p47::page",
+        "2305.13186v3::p5::page",
+        "2023.acl-long.386::p8::c31",
+        "2023.acl-long.386::p24::page",
+        "2309.17421v2::p4::tab4",
+        "2309.17421v2::p57::page",
+        "2305.13186v3::p2::c10"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.5,
+        "recall_at_10": 0.2222222222222222,
+        "mrr": 0.3333333333333333
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 251547,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0070_2309.17421v2",
+      "category": "figure",
+      "text": "In Figure 122, what's the colour of OSCARb in the prompt?",
+      "retrieved_chunk_ids": [
+        "2309.17421v2::p17::c42",
+        "2310.05634v2::p19::c79",
+        "2309.17421v2::p153::page",
+        "2303.08559v2::p3::fig1",
+        "2309.17421v2::p65::page",
+        "2309.17421v2::p14::fig6",
+        "2309.17421v2::p84::page",
+        "2310.05634v2::p18::c75",
+        "2310.05634v2::p3::page",
+        "2307.09288v2::p32::c102"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.5,
+        "recall_at_10": 1.0,
+        "mrr": 0.3333333333333333
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 48906,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0071_2309.17421v2",
+      "category": "figure",
+      "text": "In Figure 113, what's the name of the music app shown in the computer screen?",
+      "retrieved_chunk_ids": [
+        "2303.05039v2::p1::c1",
+        "2309.17421v2::p143::page",
+        "2021-Apple-Catalog::p24::fig123",
+        "2309.17421v2::p144::page",
+        "2303.05039v2::p7::c37",
+        "2309.17421v2::p142::page",
+        "2303.05039v2::p6::fig2",
+        "2309.17421v2::p121::page",
+        "2303.05039v2::p3::c24",
+        "2309.17421v2::p133::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.6309297535714575,
+        "recall_at_10": 1.0,
+        "mrr": 0.5
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 44765,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0072_2309.17421v2",
+      "category": "figure",
+      "text": "In Figure 111, what's the price of the keyboard shown in the screenshot?",
+      "retrieved_chunk_ids": [
+        "2309.17421v2::p19::c47",
+        "2309.17421v2::p121::page",
+        "2021-Apple-Catalog::p20::fig110",
+        "2309.17421v2::p140::page",
+        "2021-Apple-Catalog::p21::fig114",
+        "2309.17421v2::p141::page",
+        "2021-Apple-Catalog::p17::fig101",
+        "2309.17421v2::p136::page",
+        "2021-Apple-Catalog::p11::fig56",
+        "2309.17421v2::p139::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 1.0,
+        "mrr": 0.16666666666666666
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 47140,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0073_2309.17421v2",
+      "category": "figure",
+      "text": "In Figure 107, what's the battery percentage shown in the screenshot?",
+      "retrieved_chunk_ids": [
+        "2309.17421v2::p19::c46",
+        "2210.02442v1::p19::tab7",
+        "2309.17421v2::p137::page",
+        "2307.09288v2::p30::c95",
+        "2309.17421v2::p21::page",
+        "2310.07609v1::p2::c5",
+        "2210.02442v1::p7::page",
+        "2307.09288v2::p68::page",
+        "2021-Apple-Catalog::p15::fig97",
+        "2309.17421v2::p22::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.6309297535714575,
+        "recall_at_10": 1.0,
+        "mrr": 0.5
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 97672,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0074_2309.17421v2",
+      "category": "figure",
+      "text": "In Figure 101, which country is the person on the cover of the news on the politico website from?",
+      "retrieved_chunk_ids": [
+        "2303.08559v2::p28::tab18",
+        "2309.17421v2::p129::page",
+        "2023.acl-long.386::p18::c81",
+        "2309.17421v2::p130::page",
+        "2303.08559v2::p24::c93",
+        "2309.17421v2::p131::page",
+        "2021-Apple-Catalog::p17::fig101",
+        "2309.17421v2::p28::page",
+        "2303.08559v2::p23::c92",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p6::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 1.0,
+        "mrr": 0.16666666666666666
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 128655,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0075_2309.17421v2",
+      "category": "figure",
+      "text": "In Figure 89, what is the brand name of the coffee machine in the picture?",
+      "retrieved_chunk_ids": [
+        "2309.17421v2::p15::c31",
+        "2309.17421v2::p118::page",
+        "2021-Apple-Catalog::p14::fig91",
+        "2309.17421v2::p117::page",
+        "2306.05425v1::p20::c66",
+        "2309.17421v2::p116::page",
+        "2310.05634v2::p15::c70",
+        "2309.17421v2::p6::page",
+        "2309.17421v2::p38::c51",
+        "2309.17421v2::p35::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.6309297535714575,
+        "recall_at_10": 1.0,
+        "mrr": 0.5
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 46062,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0076_2005.12872v3",
+      "category": "table",
+      "text": "According to the DETR PyTorch inference code, what is the output dimension of the linear_class layer?",
+      "retrieved_chunk_ids": [
+        "2005.12872v3::p26::c63",
+        "2005.12872v3::p6::c19",
+        "2005.12872v3::p25::c62",
+        "2005.12872v3::p9::tab1",
+        "2005.12872v3::p9::c29",
+        "2005.12872v3::p10::c31",
+        "2005.12872v3::p15::c38",
+        "2005.12872v3::p8::c25",
+        "2005.12872v3::p23::c57",
+        "2005.12872v3::p10::c30"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 111500,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0077_2005.12872v3",
+      "category": "figure",
+      "text": "When number of visible instances = 60, which category has the largest proportion of missed instances?",
+      "retrieved_chunk_ids": [
+        "2005.12872v3::p25::fig13",
+        "2210.02442v1::p2::c4",
+        "2005.12872v3::p23::c60",
+        "2005.12872v3::p24::page",
+        "2309.17421v2::p5::tab5",
+        "2005.12872v3::p14::page",
+        "2305.13186v3::p18::c72",
+        "2305.14160v4::p8::page",
+        "2307.09288v2::p31::c97",
+        "2306.05425v1::p7::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 245812,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0078_2005.12872v3",
+      "category": "table",
+      "text": "What's the AP50 value of DETR with L1 loss and without GIoU loss on the COCO validation set?",
+      "retrieved_chunk_ids": [
+        "2005.12872v3::p9::tab1",
+        "2005.12872v3::p12::c35",
+        "2005.12872v3::p13::tab4",
+        "2005.12872v3::p9::c29",
+        "2005.12872v3::p10::c30",
+        "2005.12872v3::p23::c57",
+        "2005.12872v3::p23::c58",
+        "2005.12872v3::p10::c31",
+        "2005.12872v3::p16::tab5",
+        "2005.12872v3::p8::c24"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.5,
+        "recall_at_10": 1.0,
+        "mrr": 0.3333333333333333
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 108516,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0079_2005.12872v3",
+      "category": "out_of_corpus",
+      "text": "What's the AP50 value of DETR without L1 loss and without GIoU loss on the COCO validation set?",
+      "retrieved_chunk_ids": [
+        "2005.12872v3::p9::tab1",
+        "2005.12872v3::p12::c35",
+        "2005.12872v3::p9::c29",
+        "2005.12872v3::p13::tab4",
+        "2005.12872v3::p10::c30",
+        "2005.12872v3::p16::tab5",
+        "2005.12872v3::p10::c31",
+        "2005.12872v3::p23::c57",
+        "2005.12872v3::p23::c58",
+        "2005.12872v3::p8::c24"
+      ],
+      "retrieval": {
+        "ndcg_at_5": null,
+        "recall_at_10": null,
+        "mrr": null
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 109061,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0080_2005.12872v3",
+      "category": "figure",
+      "text": "According to Fig 10 architecture of DETR\u2019s transformer, what is the colour of the Multi-Head Self-Attention layer?",
+      "retrieved_chunk_ids": [
+        "2005.12872v3::p22::fig10",
+        "2005.12872v3::p6::c19",
+        "2005.12872v3::p14::fig7",
+        "2005.12872v3::p10::c30",
+        "2005.12872v3::p1::c1",
+        "2005.12872v3::p7::page",
+        "2005.12872v3::p17::c41",
+        "2005.12872v3::p15::page",
+        "2005.12872v3::p11::page",
+        "2005.12872v3::p2::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 59579,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0081_2005.12872v3",
+      "category": "out_of_corpus",
+      "text": "How many multi-head self-attention layers does DETR's default structure have?",
+      "retrieved_chunk_ids": [
+        "2005.12872v3::p6::c19",
+        "2005.12872v3::p10::c30",
+        "2005.12872v3::p15::c38",
+        "2005.12872v3::p26::c63",
+        "2005.12872v3::p8::c25",
+        "2005.12872v3::p22::page",
+        "2005.12872v3::p9::c28",
+        "2005.12872v3::p11::page",
+        "2005.12872v3::p7::page",
+        "2005.12872v3::p25::c62"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.6309297535714575,
+        "recall_at_10": 1.0,
+        "mrr": 0.5
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 72875,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0082_12-15-15-ISIS-and-terrorism-re",
+      "category": "figure",
+      "text": "In 2015, how many percentage of surveyed adults, Republicans, and Democrats believed that the goverment was doing very/fairly well in reducing the threat of terrorism? Please write the answer in list format, e.g., [\"3\",\"2\"]",
+      "retrieved_chunk_ids": [
+        "12-15-15-ISIS-and-terrorism-release-final::p11::c23",
+        "12-15-15-ISIS-and-terrorism-release-final::p12::c24",
+        "12-15-15-ISIS-and-terrorism-release-final::p24::c52",
+        "12-15-15-ISIS-and-terrorism-release-final::p18::c37",
+        "12-15-15-ISIS-and-terrorism-release-final::p2::c2",
+        "12-15-15-ISIS-and-terrorism-release-final::p3::c6",
+        "12-15-15-ISIS-and-terrorism-release-final::p21::c47",
+        "12-15-15-ISIS-and-terrorism-release-final::p12::c25",
+        "12-15-15-ISIS-and-terrorism-release-final::p13::c27",
+        "12-15-15-ISIS-and-terrorism-release-final::p14::c29"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.8503449055347546,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 56780,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0083_12-15-15-ISIS-and-terrorism-re",
+      "category": "out_of_corpus",
+      "text": "In 2020, how many percentage of surveyed adults, Republicans, and Democrats believed that the goverment was doing very/fairly well in reducing the threat of terrorism? Please write the answer in list format, e.g., [\"3\",\"2\"]",
+      "retrieved_chunk_ids": [
+        "12-15-15-ISIS-and-terrorism-release-final::p11::c23",
+        "12-15-15-ISIS-and-terrorism-release-final::p12::c24",
+        "12-15-15-ISIS-and-terrorism-release-final::p18::c37",
+        "12-15-15-ISIS-and-terrorism-release-final::p2::c2",
+        "12-15-15-ISIS-and-terrorism-release-final::p13::c27",
+        "12-15-15-ISIS-and-terrorism-release-final::p14::c28",
+        "12-15-15-ISIS-and-terrorism-release-final::p21::c47",
+        "12-15-15-ISIS-and-terrorism-release-final::p3::c6",
+        "12-15-15-ISIS-and-terrorism-release-final::p24::c52",
+        "11-21-16-Updated-Post-Election-Release::p20::c37"
+      ],
+      "retrieval": {
+        "ndcg_at_5": null,
+        "recall_at_10": null,
+        "mrr": null
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 58890,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0084_12-15-15-ISIS-and-terrorism-re",
+      "category": "figure",
+      "text": "In 2015, among all those that are considered as bigger threats to well-being of the United States compared to August 2014, which one has the biggest R-D difference? ",
+      "retrieved_chunk_ids": [
+        "12-15-15-ISIS-and-terrorism-release-final::p15::c30",
+        "12-15-15-ISIS-and-terrorism-release-final::p15::c31",
+        "12-15-15-ISIS-and-terrorism-release-final::p16::c32",
+        "12-15-15-ISIS-and-terrorism-release-final::p16::c33",
+        "12-15-15-ISIS-and-terrorism-release-final::p2::c3",
+        "12-15-15-ISIS-and-terrorism-release-final::p10::tab3",
+        "12-15-15-ISIS-and-terrorism-release-final::p11::c23",
+        "12-15-15-ISIS-and-terrorism-release-final::p9::c21",
+        "12-15-15-ISIS-and-terrorism-release-final::p9::c20",
+        "12-15-15-ISIS-and-terrorism-release-final::p9::tab2"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 76516,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0085_12-15-15-ISIS-and-terrorism-re",
+      "category": "out_of_corpus",
+      "text": "In 2015, among all those that are considered as bigger threats to well-being of the China compared to August 2014, which one has the biggest R-D difference? ",
+      "retrieved_chunk_ids": [
+        "12-15-15-ISIS-and-terrorism-release-final::p16::c32",
+        "12-15-15-ISIS-and-terrorism-release-final::p15::c31",
+        "12-15-15-ISIS-and-terrorism-release-final::p15::c30",
+        "12-15-15-ISIS-and-terrorism-release-final::p10::tab3",
+        "12-15-15-ISIS-and-terrorism-release-final::p16::c33",
+        "12-15-15-ISIS-and-terrorism-release-final::p2::c3",
+        "12-15-15-ISIS-and-terrorism-release-final::p9::tab2",
+        "12-15-15-ISIS-and-terrorism-release-final::p9::c21",
+        "12-15-15-ISIS-and-terrorism-release-final::p11::c23",
+        "12-15-15-ISIS-and-terrorism-release-final::p10::c22"
+      ],
+      "retrieval": {
+        "ndcg_at_5": null,
+        "recall_at_10": null,
+        "mrr": null
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 70108,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0086_12-15-15-ISIS-and-terrorism-re",
+      "category": "figure",
+      "text": "How many bar charts are in the report?Please write the answer in float format.",
+      "retrieved_chunk_ids": [
+        "2303.08559v2::p9::tab3",
+        "0e94b4197b10096b1f4c699701570fbf::p15::page",
+        "2309.17421v2::p1::tab1",
+        "2306.05425v1::p7::page",
+        "2307.09288v2::p8::tab4",
+        "2309.17421v2::p65::page",
+        "2307.09288v2::p48::tab18",
+        "11-21-16-Updated-Post-Election-Release::p11::page",
+        "2305.13186v3::p18::c72",
+        "11-21-16-Updated-Post-Election-Release::p36::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 144188,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0087_12-15-15-ISIS-and-terrorism-re",
+      "category": "figure",
+      "text": "although few says that current military effort in Iraq and Syria is going well,  what are the more people's attitude in still believe that the U.S. and its allies in the ISIS flight in the end in 2015?",
+      "retrieved_chunk_ids": [
+        "12-15-15-ISIS-and-terrorism-release-final::p18::c36",
+        "12-15-15-ISIS-and-terrorism-release-final::p19::c40",
+        "12-15-15-ISIS-and-terrorism-release-final::p17::c34",
+        "12-15-15-ISIS-and-terrorism-release-final::p20::c45",
+        "12-15-15-ISIS-and-terrorism-release-final::p11::c23",
+        "12-15-15-ISIS-and-terrorism-release-final::p15::page",
+        "12-15-15-ISIS-and-terrorism-release-final::p9::page",
+        "12-15-15-ISIS-and-terrorism-release-final::p16::page",
+        "12-15-15-ISIS-and-terrorism-release-final::p3::page",
+        "12-15-15-ISIS-and-terrorism-release-final::p2::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 60265,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0088_2023.findings-emnlp.248",
+      "category": "table",
+      "text": "For the dataset that uses Prover9 as the symbolic solver, how many examples in this dataset are used for evaluation?",
+      "retrieved_chunk_ids": [
+        "2023.findings-emnlp.248::p6::c23",
+        "2023.findings-emnlp.248::p5::c18",
+        "2023.findings-emnlp.248::p6::c22",
+        "2023.findings-emnlp.248::p8::c31",
+        "2023.findings-emnlp.248::p5::tab1",
+        "2023.findings-emnlp.248::p1::c5",
+        "2023.findings-emnlp.248::p5::c20",
+        "2023.findings-emnlp.248::p1::c1",
+        "2310.05634v2::p3::c13",
+        "2023.findings-emnlp.248::p7::c29"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 191420,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0089_2023.findings-emnlp.248",
+      "category": "out_of_corpus",
+      "text": "For the dataset that uses HOVER as the symbolic solver, how many examples in this dataset are used for evaluation?",
+      "retrieved_chunk_ids": [
+        "2023.acl-long.386::p5::c21",
+        "2310.07609v1::p5::c18",
+        "2023.acl-long.386::p5::c19",
+        "2023.acl-long.386::p14::c62",
+        "2023.findings-emnlp.248::p6::c23",
+        "2023.acl-long.386::p7::c29",
+        "2023.acl-long.386::p5::c20",
+        "2023.acl-long.386::p6::tab1",
+        "2023.acl-long.386::p8::tab2",
+        "2023.acl-long.386::p14::c61"
+      ],
+      "retrieval": {
+        "ndcg_at_5": null,
+        "recall_at_10": null,
+        "mrr": null
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 109359,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0090_2023.findings-emnlp.248",
+      "category": "figure",
+      "text": "For all the examples given in Figure 5 and Figure 6, how many of them Logic-LM predicted the correct answer?",
+      "retrieved_chunk_ids": [
+        "2023.findings-emnlp.248::p9::c36",
+        "2023.findings-emnlp.248::p19::c82",
+        "2023.findings-emnlp.248::p8::c31",
+        "2023.findings-emnlp.248::p14::c60",
+        "2023.findings-emnlp.248::p1::c4",
+        "2023.findings-emnlp.248::p6::c22",
+        "2023.findings-emnlp.248::p7::c26",
+        "2303.08559v2::p20::page",
+        "2023.findings-emnlp.248::p3::page",
+        "2023.findings-emnlp.248::p15::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 83609,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0091_2023.findings-emnlp.248",
+      "category": "out_of_corpus",
+      "text": "For all the examples given in Figure 7 and Figure 8, how many of them Logic-LM predicted the correct answer?",
+      "retrieved_chunk_ids": [
+        "2023.findings-emnlp.248::p8::c31",
+        "2023.findings-emnlp.248::p1::c1",
+        "2023.findings-emnlp.248::p14::c60",
+        "2023.findings-emnlp.248::p9::c36",
+        "2023.findings-emnlp.248::p19::c82",
+        "2023.findings-emnlp.248::p7::c26",
+        "2023.findings-emnlp.248::p3::page",
+        "2023.findings-emnlp.248::p6::c24",
+        "2023.acl-long.386::p15::page",
+        "2303.08559v2::p20::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": null,
+        "recall_at_10": null,
+        "mrr": null
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 85359,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0092_2023.findings-emnlp.248",
+      "category": "figure",
+      "text": "How many prompt examples are given in the Appendix? ",
+      "retrieved_chunk_ids": [
+        "2307.09288v2::p29::c94",
+        "2023.acl-long.386::p8::c32",
+        "2310.07609v1::p3::c10",
+        "2303.08559v2::p3::c14",
+        "2310.05634v2::p4::c21",
+        "2307.09288v2::p27::c86",
+        "2303.08559v2::p7::c30",
+        "2310.05634v2::p13::c58",
+        "2307.09288v2::p27::c87",
+        "2307.09288v2::p10::c28"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 146437,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0093_2023.findings-emnlp.248",
+      "category": "table",
+      "text": "When using GPT-4 as the base language model, how many datasets does Logic-LM (without self-refinement) outperform the two baseline models in? ",
+      "retrieved_chunk_ids": [
+        "2023.findings-emnlp.248::p7::c26",
+        "2023.findings-emnlp.248::p1::c1",
+        "2023.findings-emnlp.248::p8::c31",
+        "2023.findings-emnlp.248::p6::c24",
+        "2023.findings-emnlp.248::p10::page",
+        "2303.08559v2::p17::c72",
+        "2023.findings-emnlp.248::p9::page",
+        "2023.acl-long.386::p2::c6",
+        "2023.findings-emnlp.248::p2::page",
+        "2306.05425v1::p9::tab2"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 90655,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0094_2023.findings-emnlp.248",
+      "category": "figure",
+      "text": "In this paper, what symbolic solver is used to implement the logic programming module shown in Figure 1?",
+      "retrieved_chunk_ids": [
+        "2023.findings-emnlp.248::p1::c4",
+        "2023.findings-emnlp.248::p3::c12",
+        "2023.findings-emnlp.248::p5::c18",
+        "2023.findings-emnlp.248::p7::c26",
+        "2023.findings-emnlp.248::p8::c31",
+        "2023.findings-emnlp.248::p4::page",
+        "2023.findings-emnlp.248::p2::page",
+        "2023.findings-emnlp.248::p9::page",
+        "2023.findings-emnlp.248::p10::page",
+        "2023.findings-emnlp.248::p6::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.6934264036172708,
+        "recall_at_10": 1.0,
+        "mrr": 0.5
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 65016,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0095_2023.findings-emnlp.248",
+      "category": "table",
+      "text": "Which dataset used in this paper was proposed in 2022 and all of its logical reasoning problems are multiple-choice questions with 5 options?",
+      "retrieved_chunk_ids": [
+        "2023.findings-emnlp.248::p6::c23",
+        "2023.findings-emnlp.248::p1::c5",
+        "2023.findings-emnlp.248::p6::c24",
+        "2023.acl-long.386::p8::c32",
+        "2305.13186v3::p9::c35",
+        "2310.07609v1::p5::c18",
+        "2023.findings-emnlp.248::p6::c22",
+        "2305.13186v3::p1::c3",
+        "2023.findings-emnlp.248::p7::c27",
+        "2023.acl-long.386::p2::c7"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 0.5,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 84811,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0096_2023.acl-long.386",
+      "category": "figure",
+      "text": "What are the program execution function names with blue background in our proposed model in the first figure in the paper?  Please write down the answer in a list format with ascending alphabetical order, e.g., [\"a\",\"b\"]",
+      "retrieved_chunk_ids": [
+        "2023.acl-long.386::p2::fig1",
+        "2023.acl-long.386::p4::c17",
+        "2023.acl-long.386::p7::c30",
+        "2023.acl-long.386::p3::c13",
+        "2023.acl-long.386::p1::c4",
+        "2023.acl-long.386::p15::page",
+        "2303.08559v2::p3::fig1",
+        "2023.acl-long.386::p19::page",
+        "2023.acl-long.386::p22::page",
+        "2023.acl-long.386::p8::c31"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 56907,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0097_2023.acl-long.386",
+      "category": "out_of_corpus",
+      "text": "What are the program execution function names with grey background in our proposed model in the first figure in the paper?  Please write down the answer in a list format with ascending alphabetical order, e.g., [\"a\",\"b\"]",
+      "retrieved_chunk_ids": [
+        "2023.acl-long.386::p2::fig1",
+        "2023.acl-long.386::p4::c17",
+        "2023.acl-long.386::p7::c30",
+        "2023.acl-long.386::p3::c13",
+        "2023.acl-long.386::p1::c4",
+        "2023.acl-long.386::p19::page",
+        "2023.acl-long.386::p8::c31",
+        "2023.acl-long.386::p15::page",
+        "2023.acl-long.386::p22::page",
+        "2023.findings-emnlp.248::p3::c12"
+      ],
+      "retrieval": {
+        "ndcg_at_5": null,
+        "recall_at_10": null,
+        "mrr": null
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 61717,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0098_2023.acl-long.386",
+      "category": "factual",
+      "text": "How many prompts examples are shown in the paper's main body?",
+      "retrieved_chunk_ids": [
+        "2307.09288v2::p29::c94",
+        "2309.17421v2::p4::tab4",
+        "2307.09288v2::p19::c55",
+        "2303.08559v2::p3::c14",
+        "2023.findings-emnlp.248::p14::c60",
+        "2307.09288v2::p18::c52",
+        "2023.acl-long.386::p8::c32",
+        "2303.08559v2::p3::fig1",
+        "2309.17421v2::p10::c15",
+        "2023.acl-long.386::p14::c64"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.6309297535714575,
+        "recall_at_10": 1.0,
+        "mrr": 0.5
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 134547,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0099_2023.acl-long.386",
+      "category": "figure",
+      "text": "How many complete in-context examples are shown in the figure at the top of page 6985? Please write down the answer with integer format.",
+      "retrieved_chunk_ids": [
+        "2306.05425v1::p8::c26",
+        "2306.05425v1::p4::c12",
+        "2023.acl-long.386::p15::c65",
+        "2306.05425v1::p5::page",
+        "2305.14160v4::p10::page",
+        "2023.findings-emnlp.248::p6::c24",
+        "2306.05425v1::p20::page",
+        "2306.05425v1::p7::c23",
+        "2303.08559v2::p12::page",
+        "2309.17421v2::p19::c48"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.43067655807339306,
+        "recall_at_10": 1.0,
+        "mrr": 0.25
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 226641,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0100_2023.acl-long.386",
+      "category": "out_of_corpus",
+      "text": "How many complete in-context examples are shown in the figure at the bottom of page 6985? Please write down the answer with float format.",
+      "retrieved_chunk_ids": [
+        "2306.05425v1::p8::c26",
+        "2023.acl-long.386::p15::c65",
+        "2306.05425v1::p5::page",
+        "2306.05425v1::p20::page",
+        "2023.findings-emnlp.248::p6::c24",
+        "2305.14160v4::p10::page",
+        "2309.17421v2::p19::c48",
+        "2303.08559v2::p12::page",
+        "2310.07609v1::p3::c10",
+        "2309.17421v2::p5::tab5"
+      ],
+      "retrieval": {
+        "ndcg_at_5": null,
+        "recall_at_10": null,
+        "mrr": null
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 225265,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0101_2023.acl-long.386",
+      "category": "table",
+      "text": "Which type of semantic errors has the lowest total percentages in HOVER dataset?",
+      "retrieved_chunk_ids": [
+        "2023.acl-long.386::p7::c29",
+        "2023.acl-long.386::p8::tab2",
+        "2023.acl-long.386::p6::tab1",
+        "2023.acl-long.386::p5::c19",
+        "2023.acl-long.386::p17::page",
+        "2310.07609v1::p5::c18",
+        "2023.acl-long.386::p15::page",
+        "2310.07609v1::p6::page",
+        "2023.acl-long.386::p11::c47",
+        "2023.acl-long.386::p9::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.6309297535714575,
+        "recall_at_10": 1.0,
+        "mrr": 0.5
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 142842,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0102_2023.acl-long.386",
+      "category": "out_of_corpus",
+      "text": "Which type of semantic errors has the lowest total percentages in FEVER dataset?",
+      "retrieved_chunk_ids": [
+        "2023.acl-long.386::p8::tab2",
+        "2023.acl-long.386::p7::c29",
+        "2310.05634v2::p11::c49",
+        "2023.acl-long.386::p6::tab1",
+        "2023.acl-long.386::p17::page",
+        "2023.acl-long.386::p15::page",
+        "2023.acl-long.386::p5::c20",
+        "2305.13186v3::p4::page",
+        "2023.acl-long.386::p13::c56",
+        "2310.07609v1::p5::c18"
+      ],
+      "retrieval": {
+        "ndcg_at_5": null,
+        "recall_at_10": null,
+        "mrr": null
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 138344,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0103_2023.acl-long.386",
+      "category": "figure",
+      "text": "What is the performance of the InstructGPT model with Self-Ask in the closed-book setting on the dataset with the highest ProgramFC retrieval recall at 10? Please write down the answer in float format with 1 decimal.",
+      "retrieved_chunk_ids": [
+        "2023.acl-long.386::p8::c32",
+        "2023.acl-long.386::p8::tab3",
+        "2023.acl-long.386::p7::c28",
+        "2303.08559v2::p8::c33",
+        "2305.13186v3::p6::c23",
+        "2303.08559v2::p8::c32",
+        "2305.13186v3::p7::c28",
+        "2023.acl-long.386::p4::c17",
+        "2023.acl-long.386::p2::c5",
+        "2023.acl-long.386::p2::c6"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 90858,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0104_2023.acl-long.386",
+      "category": "figure",
+      "text": "Please list the F1 scores for ProgramFC on different datasets with gold evidence in relation to Flan-T5-small, in descending order, with one decimal place. For example: [\"3.0\", \"2.0\"].",
+      "retrieved_chunk_ids": [
+        "2023.acl-long.386::p6::tab1",
+        "2023.acl-long.386::p7::fig5",
+        "2310.07609v1::p6::tab1",
+        "2023.acl-long.386::p5::c21",
+        "2023.acl-long.386::p8::tab3",
+        "2310.07609v1::p5::c18",
+        "2023.acl-long.386::p15::page",
+        "2023.acl-long.386::p9::page",
+        "2023.acl-long.386::p2::page",
+        "2023.acl-long.386::p3::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.6309297535714575,
+        "recall_at_10": 1.0,
+        "mrr": 0.5
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 164657,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0105_11-21-16-Updated-Post-Election",
+      "category": "figure",
+      "text": "What is the highest point of % of voters who say there was more mudslinging than in past elections?",
+      "retrieved_chunk_ids": [
+        "11-21-16-Updated-Post-Election-Release::p7::c11",
+        "11-21-16-Updated-Post-Election-Release::p33::c64",
+        "11-21-16-Updated-Post-Election-Release::p34::c65",
+        "11-21-16-Updated-Post-Election-Release::p7::c13",
+        "11-21-16-Updated-Post-Election-Release::p34::fig38",
+        "11-21-16-Updated-Post-Election-Release::p23::c43",
+        "11-21-16-Updated-Post-Election-Release::p34::c66",
+        "11-21-16-Updated-Post-Election-Release::p38::c72",
+        "11-21-16-Updated-Post-Election-Release::p7::c10",
+        "11-21-16-Updated-Post-Election-Release::p30::c57"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 54750,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0106_11-21-16-Updated-Post-Election",
+      "category": "figure",
+      "text": "Do more men or women (in %) think a female president will be elected in a lifetime?",
+      "retrieved_chunk_ids": [
+        "11-21-16-Updated-Post-Election-Release::p10::c17",
+        "05-03-18-political-release::p9::c14",
+        "11-21-16-Updated-Post-Election-Release::p4::page",
+        "11-21-16-Updated-Post-Election-Release::p45::tab5",
+        "05-03-18-political-release::p10::page",
+        "11-21-16-Updated-Post-Election-Release::p14::c27",
+        "11-21-16-Updated-Post-Election-Release::p15::page",
+        "11-21-16-Updated-Post-Election-Release::p13::c24",
+        "05-03-18-political-release::p7::page",
+        "11-21-16-Updated-Post-Election-Release::p3::c4"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 51875,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0107_11-21-16-Updated-Post-Election",
+      "category": "out_of_corpus",
+      "text": "Do more White or Black Americans (in %) think a female president will be elected in a lifetime?",
+      "retrieved_chunk_ids": [
+        "11-21-16-Updated-Post-Election-Release::p10::c17",
+        "11-21-16-Updated-Post-Election-Release::p22::c41",
+        "05-03-18-political-release::p14::c21",
+        "12-15-15-ISIS-and-terrorism-release-final::p6::tab1",
+        "11-21-16-Updated-Post-Election-Release::p4::page",
+        "05-03-18-political-release::p12::c18",
+        "05-03-18-political-release::p10::page",
+        "05-03-18-political-release::p13::c19",
+        "11-21-16-Updated-Post-Election-Release::p15::page",
+        "11-21-16-Updated-Post-Election-Release::p45::tab5"
+      ],
+      "retrieval": {
+        "ndcg_at_5": null,
+        "recall_at_10": null,
+        "mrr": null
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 70906,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0108_11-21-16-Updated-Post-Election",
+      "category": "figure",
+      "text": "How many line plots are there in the report?",
+      "retrieved_chunk_ids": [
+        "2309.17421v2::p1::tab1",
+        "2309.17421v2::p9::c14",
+        "2309.17421v2::p6::tab6",
+        "2309.17421v2::p19::page",
+        "2303.08559v2::p9::tab3",
+        "2309.17421v2::p25::page",
+        "2305.13186v3::p7::tab4",
+        "2307.09288v2::p58::page",
+        "2309.17421v2::p4::tab4",
+        "2309.17421v2::p24::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.2,
+        "mrr": 0.16666666666666666
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 189625,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0109_11-21-16-Updated-Post-Election",
+      "category": "figure",
+      "text": "Who has a higher median campaign grade? Trump or Clinton?",
+      "retrieved_chunk_ids": [
+        "11-21-16-Updated-Post-Election-Release::p28::c51",
+        "11-21-16-Updated-Post-Election-Release::p7::tab1",
+        "11-21-16-Updated-Post-Election-Release::p29::c53",
+        "11-21-16-Updated-Post-Election-Release::p30::c57",
+        "11-21-16-Updated-Post-Election-Release::p3::c4",
+        "11-21-16-Updated-Post-Election-Release::p21::c40",
+        "11-21-16-Updated-Post-Election-Release::p31::page",
+        "11-21-16-Updated-Post-Election-Release::p19::c36",
+        "11-21-16-Updated-Post-Election-Release::p34::page",
+        "11-21-16-Updated-Post-Election-Release::p45::tab5"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.9197207891481876,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 51265,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0110_11-21-16-Updated-Post-Election",
+      "category": "figure",
+      "text": "How many charts are related to mudslinging?",
+      "retrieved_chunk_ids": [
+        "11-21-16-Updated-Post-Election-Release::p7::c11",
+        "11-21-16-Updated-Post-Election-Release::p34::page",
+        "2309.17421v2::p4::tab4",
+        "2307.09288v2::p20::c56",
+        "2309.17421v2::p130::page",
+        "2210.02442v1::p3::c12",
+        "2303.08559v2::p10::page",
+        "2005.12872v3::p23::c60",
+        "2024.ug.eprospectus::p26::page",
+        "2303.08559v2::p9::tab5"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 140295,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0111_11-21-16-Updated-Post-Election",
+      "category": "figure",
+      "text": "How many % of voters reactions are \"uneasy\" and \"excited\" about Trump's victory?",
+      "retrieved_chunk_ids": [
+        "11-21-16-Updated-Post-Election-Release::p13::c23",
+        "11-21-16-Updated-Post-Election-Release::p7::c13",
+        "11-21-16-Updated-Post-Election-Release::p12::c22",
+        "11-21-16-Updated-Post-Election-Release::p11::c19",
+        "11-21-16-Updated-Post-Election-Release::p3::c3",
+        "11-21-16-Updated-Post-Election-Release::p3::c4",
+        "11-21-16-Updated-Post-Election-Release::p9::tab2",
+        "11-21-16-Updated-Post-Election-Release::p4::c5",
+        "11-21-16-Updated-Post-Election-Release::p26::c49",
+        "11-21-16-Updated-Post-Election-Release::p45::tab5"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.5,
+        "mrr": 0.16666666666666666
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 50859,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0112_11-21-16-Updated-Post-Election",
+      "category": "out_of_corpus",
+      "text": "How many % of voters reactions are \"angry\" about Trump's victory?",
+      "retrieved_chunk_ids": [
+        "11-21-16-Updated-Post-Election-Release::p13::c23",
+        "11-21-16-Updated-Post-Election-Release::p12::c22",
+        "11-21-16-Updated-Post-Election-Release::p7::c13",
+        "11-21-16-Updated-Post-Election-Release::p11::c19",
+        "11-21-16-Updated-Post-Election-Release::p3::c3",
+        "11-21-16-Updated-Post-Election-Release::p3::c4",
+        "11-21-16-Updated-Post-Election-Release::p9::tab2",
+        "11-21-16-Updated-Post-Election-Release::p26::c49",
+        "11-21-16-Updated-Post-Election-Release::p4::c5",
+        "11-21-16-Updated-Post-Election-Release::p9::c15"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 52437,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0113_2306.05425v1",
+      "category": "figure",
+      "text": "What task is on the top of the planning branch of the tree?",
+      "retrieved_chunk_ids": [
+        "2306.05425v1::p22::c74",
+        "2023.findings-emnlp.248::p17::c72",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p6::c22",
+        "2306.05425v1::p2::page",
+        "2306.05425v1::p9::c27",
+        "2306.05425v1::p4::page",
+        "0e94b4197b10096b1f4c699701570fbf::p4::page",
+        "2005.12872v3::p2::c6",
+        "2023.findings-emnlp.248::p14::c63",
+        "2023.findings-emnlp.248::p15::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.43067655807339306,
+        "recall_at_10": 1.0,
+        "mrr": 0.25
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 49047,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0114_2306.05425v1",
+      "category": "out_of_corpus",
+      "text": "What task is on the top of the action branch of the tree?",
+      "retrieved_chunk_ids": [
+        "2306.05425v1::p22::c74",
+        "2023.findings-emnlp.248::p16::page",
+        "2023.findings-emnlp.248::p17::c72",
+        "2309.17421v2::p116::page",
+        "2005.12872v3::p2::c6",
+        "2309.17421v2::p120::page",
+        "2023.findings-emnlp.248::p14::c63",
+        "2309.17421v2::p76::page",
+        "2005.12872v3::p1::c3",
+        "2309.17421v2::p119::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": null,
+        "recall_at_10": null,
+        "mrr": null
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 45359,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0115_2306.05425v1",
+      "category": "figure",
+      "text": "How many bar plots (including subplots) are in this paper?",
+      "retrieved_chunk_ids": [
+        "2305.13186v3::p7::tab4",
+        "2305.13186v3::p15::c66",
+        "2309.17421v2::p5::tab5",
+        "2023.acl-long.386::p1::page",
+        "2309.17421v2::p4::tab4",
+        "2310.07609v1::p6::page",
+        "2303.08559v2::p9::tab3",
+        "2309.17421v2::p15::page",
+        "2303.08559v2::p7::page",
+        "2307.09288v2::p46::c160"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 0.5,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 262155,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0116_2306.05425v1",
+      "category": "figure",
+      "text": "According to the figure, what is the first step of cold start?",
+      "retrieved_chunk_ids": [
+        "2306.05425v1::p5::fig3",
+        "2210.02442v1::p1::c2",
+        "2210.02442v1::p2::fig1",
+        "2210.02442v1::p7::c23",
+        "2210.02442v1::p15::c46",
+        "2210.02442v1::p3::c8",
+        "2210.02442v1::p12::page",
+        "2210.02442v1::p8::page",
+        "2210.02442v1::p5::page",
+        "2210.02442v1::p4::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 142922,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0117_2306.05425v1",
+      "category": "figure",
+      "text": "What sport is shown in the visual examples of MIMIC-IT and Otter?",
+      "retrieved_chunk_ids": [
+        "2306.05425v1::p8::fig5",
+        "2306.05425v1::p1::c1",
+        "2306.05425v1::p4::c12",
+        "2306.05425v1::p5::tab1",
+        "2306.05425v1::p3::c7",
+        "2306.05425v1::p10::c33",
+        "2306.05425v1::p9::c28",
+        "2306.05425v1::p2::page",
+        "2306.05425v1::p15::page",
+        "2306.05425v1::p6::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.5706417189553201,
+        "recall_at_10": 1.0,
+        "mrr": 0.3333333333333333
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 109515,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0118_2306.05425v1",
+      "category": "out_of_corpus",
+      "text": "What literature is shown in the visual examples of MIMIC-IT and Otter?",
+      "retrieved_chunk_ids": [
+        "2306.05425v1::p8::fig5",
+        "2306.05425v1::p1::c1",
+        "2306.05425v1::p3::c7",
+        "2306.05425v1::p5::tab1",
+        "2306.05425v1::p9::c28",
+        "2306.05425v1::p2::c6",
+        "2306.05425v1::p10::c34",
+        "2306.05425v1::p4::c12",
+        "2306.05425v1::p15::page",
+        "2306.05425v1::p6::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": null,
+        "recall_at_10": null,
+        "mrr": null
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 111266,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0119_2306.05425v1",
+      "category": "table",
+      "text": "How many languages are shown in the in-context examples for multi-lingual translation query?",
+      "retrieved_chunk_ids": [
+        "2306.05425v1::p16::fig7",
+        "2306.05425v1::p15::c51",
+        "2306.05425v1::p5::fig3",
+        "2306.05425v1::p2::c6",
+        "2306.05425v1::p11::c35",
+        "2309.17421v2::p61::page",
+        "2309.17421v2::p60::page",
+        "2306.05425v1::p7::c23",
+        "2309.17421v2::p59::page",
+        "2306.05425v1::p10::c34"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 249077,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0120_2306.05425v1",
+      "category": "figure",
+      "text": "How many line plots are shown in the paper?",
+      "retrieved_chunk_ids": [
+        "2309.17421v2::p19::c46",
+        "2309.17421v2::p5::tab5",
+        "2210.02442v1::p8::page",
+        "2309.17421v2::p6::tab6",
+        "2023.acl-long.386::p23::c92",
+        "2309.17421v2::p25::page",
+        "2309.17421v2::p4::tab4",
+        "2305.14160v4::p1::page",
+        "2305.13186v3::p7::tab4",
+        "2307.09288v2::p3::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": null,
+        "recall_at_10": null,
+        "mrr": null
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 234218,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0121_2306.05425v1",
+      "category": "out_of_corpus",
+      "text": "How many line plots are shown in the slides?",
+      "retrieved_chunk_ids": [
+        "2309.17421v2::p5::tab5",
+        "2309.17421v2::p25::page",
+        "2309.17421v2::p4::tab4",
+        "2309.17421v2::p24::page",
+        "2307.09288v2::p2::tab1",
+        "2309.17421v2::p148::page",
+        "2306.05425v1::p5::tab1",
+        "2309.17421v2::p147::page",
+        "2309.17421v2::p19::c46",
+        "2309.17421v2::p45::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": null,
+        "recall_at_10": null,
+        "mrr": null
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 241250,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0122_2210.02442v1",
+      "category": "figure",
+      "text": "How many figures convey similar messages as the first figure?",
+      "retrieved_chunk_ids": [
+        "2307.09288v2::p16::c47",
+        "2305.14160v4::p12::c53",
+        "2309.17421v2::p81::page",
+        "2210.02442v1::p7::c23",
+        "2309.17421v2::p42::c64",
+        "2023.findings-emnlp.248::p9::page",
+        "2307.09288v2::p17::c48",
+        "2309.17421v2::p44::page",
+        "2210.02442v1::p1::c2",
+        "2309.17421v2::p88::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 0.3333333333333333,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 140406,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0123_2210.02442v1",
+      "category": "figure",
+      "text": "How many strategies outperform the random selection baseline on CIFAR-10-LT?",
+      "retrieved_chunk_ids": [
+        "2210.02442v1::p7::fig4",
+        "2210.02442v1::p1::c1",
+        "2210.02442v1::p2::c7",
+        "2210.02442v1::p7::c22",
+        "2210.02442v1::p6::tab2",
+        "2210.02442v1::p6::tab1",
+        "2210.02442v1::p7::c21",
+        "2210.02442v1::p5::c19",
+        "2210.02442v1::p21::fig10",
+        "2210.02442v1::p2::fig1"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 155625,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0124_2210.02442v1",
+      "category": "out_of_corpus",
+      "text": "How many strategies outperform the uniform sampling baseline on CIFAR-10-LT?",
+      "retrieved_chunk_ids": [
+        "2210.02442v1::p6::tab1",
+        "2210.02442v1::p1::c1",
+        "2210.02442v1::p6::tab2",
+        "2210.02442v1::p19::c50",
+        "2210.02442v1::p2::c7",
+        "2210.02442v1::p21::fig10",
+        "2210.02442v1::p19::tab7",
+        "2210.02442v1::p3::c13",
+        "2210.02442v1::p7::c22",
+        "2210.02442v1::p20::fig9"
+      ],
+      "retrieval": {
+        "ndcg_at_5": null,
+        "recall_at_10": null,
+        "mrr": null
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 156452,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0125_2210.02442v1",
+      "category": "figure",
+      "text": "What querying criteria yields the worst label diversity generally on all the datasets?",
+      "retrieved_chunk_ids": [
+        "2210.02442v1::p16::fig6",
+        "2210.02442v1::p19::c50",
+        "2210.02442v1::p21::fig10",
+        "2210.02442v1::p17::fig7",
+        "2210.02442v1::p2::c7",
+        "2210.02442v1::p20::fig9",
+        "2210.02442v1::p6::tab1",
+        "2210.02442v1::p4::page",
+        "2210.02442v1::p7::page",
+        "2210.02442v1::p5::fig3"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.43067655807339306,
+        "recall_at_10": 1.0,
+        "mrr": 0.25
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 160750,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0126_2210.02442v1",
+      "category": "figure",
+      "text": "How many line plots are in this paper?",
+      "retrieved_chunk_ids": [
+        "2309.17421v2::p19::c46",
+        "2309.17421v2::p5::tab5",
+        "2309.17421v2::p25::page",
+        "2023.acl-long.386::p23::c92",
+        "2309.17421v2::p6::tab6",
+        "2210.02442v1::p8::page",
+        "2303.08559v2::p9::tab3",
+        "2210.02442v1::p20::page",
+        "2309.17421v2::p4::tab4",
+        "2307.09288v2::p3::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.5,
+        "mrr": 0.16666666666666666
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 235077,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0127_2210.02442v1",
+      "category": "table",
+      "text": "What are the optimizers used in this research?",
+      "retrieved_chunk_ids": [
+        "2305.14160v4::p14::c56",
+        "2307.09288v2::p5::c10",
+        "2005.12872v3::p9::c28",
+        "2305.14160v4::p9::c41",
+        "2303.08559v2::p9::tab3",
+        "2307.09288v2::p15::c42",
+        "2210.02442v1::p15::tab6",
+        "2210.02442v1::p6::tab1",
+        "2005.12872v3::p8::c26",
+        "2210.02442v1::p5::c18"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.8772153153380493,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 152594,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0128_2210.02442v1",
+      "category": "out_of_corpus",
+      "text": "What are the large language models used in this research?",
+      "retrieved_chunk_ids": [
+        "2023.findings-emnlp.248::p10::c41",
+        "2310.07609v1::p7::c24",
+        "2309.17421v2::p8::c4",
+        "2307.09288v2::p35::c111",
+        "2303.08559v2::p1::c3",
+        "2305.13186v3::p12::c50",
+        "2023.acl-long.386::p9::c37",
+        "2023.findings-emnlp.248::p13::c58",
+        "2303.08559v2::p10::c39",
+        "2023.acl-long.386::p14::c60"
+      ],
+      "retrieval": {
+        "ndcg_at_5": null,
+        "recall_at_10": null,
+        "mrr": null
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 67047,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0129_2210.02442v1",
+      "category": "figure",
+      "text": "On the dataset map of PathMNIST, does the map by ground truth or pseudo-labels have a larger confidence variance?",
+      "retrieved_chunk_ids": [
+        "2210.02442v1::p22::fig11",
+        "2210.02442v1::p7::c21",
+        "2210.02442v1::p2::c7",
+        "2210.02442v1::p18::c49",
+        "2210.02442v1::p4::c14",
+        "2210.02442v1::p5::fig3",
+        "2210.02442v1::p23::page",
+        "2210.02442v1::p3::c12",
+        "2210.02442v1::p6::tab1",
+        "2210.02442v1::p16::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 155155,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0130_2210.02442v1",
+      "category": "out_of_corpus",
+      "text": "On the dataset map of DermaMNIST, does the map by ground truth or pseudo-labels have a larger confidence variance?",
+      "retrieved_chunk_ids": [
+        "2210.02442v1::p22::fig11",
+        "2210.02442v1::p5::fig3",
+        "2210.02442v1::p7::c21",
+        "2210.02442v1::p4::c14",
+        "2210.02442v1::p2::c7",
+        "2210.02442v1::p18::c49",
+        "2210.02442v1::p23::fig12",
+        "2210.02442v1::p3::c12",
+        "2210.02442v1::p16::page",
+        "2005.12872v3::p24::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": null,
+        "recall_at_10": null,
+        "mrr": null
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 154844,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0131_2307.09288v2",
+      "category": "table",
+      "text": "How many tables are included in Pages 5-10?",
+      "retrieved_chunk_ids": [
+        "2309.17421v2::p5::tab5",
+        "0b85477387a9d0cc33fca0f4becaa0e5::p6::c24",
+        "2309.17421v2::p57::page",
+        "12-15-15-ISIS-and-terrorism-release-final::p9::tab2",
+        "2309.17421v2::p147::page",
+        "2309.17421v2::p6::tab6",
+        "2309.17421v2::p7::page",
+        "2306.05425v1::p12::c42",
+        "2309.17421v2::p148::page",
+        "2303.05039v2::p9::c53"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.6509209298071326,
+        "recall_at_10": 0.75,
+        "mrr": 0.5
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 234405,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0132_2307.09288v2",
+      "category": "out_of_corpus",
+      "text": "How many tables are included in Pages 100-110?",
+      "retrieved_chunk_ids": [
+        "2309.17421v2::p6::tab6",
+        "2305.14160v4::p10::c43",
+        "2309.17421v2::p7::tab7",
+        "2309.17421v2::p3::tab3",
+        "2309.17421v2::p1::tab1",
+        "2303.08559v2::p12::page",
+        "2309.17421v2::p5::tab5",
+        "2023.acl-long.386::p5::c20",
+        "2210.02442v1::p10::page",
+        "12-15-15-ISIS-and-terrorism-release-final::p14::tab5"
+      ],
+      "retrieval": {
+        "ndcg_at_5": null,
+        "recall_at_10": null,
+        "mrr": null
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 241797,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0133_2307.09288v2",
+      "category": "figure",
+      "text": "list the top-3 models in Figure 3",
+      "retrieved_chunk_ids": [
+        "2023.findings-emnlp.248::p8::fig3",
+        "2310.05634v2::p7::tab2",
+        "2305.13186v3::p7::tab4",
+        "2023.acl-long.386::p5::page",
+        "2303.08559v2::p9::tab3",
+        "2303.05039v2::p7::page",
+        "2307.09288v2::p8::tab4",
+        "2305.13186v3::p24::page",
+        "2307.09288v2::p4::page",
+        "2307.09288v2::p7::c15"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 1.0,
+        "mrr": 0.16666666666666666
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 156280,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0134_2307.09288v2",
+      "category": "out_of_corpus",
+      "text": "list the top-100 models in Figure 3",
+      "retrieved_chunk_ids": [
+        "2305.13186v3::p7::tab4",
+        "2023.acl-long.386::p5::page",
+        "2310.05634v2::p7::tab2",
+        "2309.17421v2::p54::page",
+        "2303.08559v2::p9::tab3",
+        "2307.09288v2::p8::tab4",
+        "2305.13186v3::p6::page",
+        "2307.09288v2::p7::c15",
+        "2023.findings-emnlp.248::p6::page",
+        "2310.07609v1::p6::tab1"
+      ],
+      "retrieval": {
+        "ndcg_at_5": null,
+        "recall_at_10": null,
+        "mrr": null
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 192937,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0135_2307.09288v2",
+      "category": "table",
+      "text": "which model performs best in 0-shot setting on QUAC dataset according to Table 23?",
+      "retrieved_chunk_ids": [
+        "2307.09288v2::p48::c165",
+        "2307.09288v2::p7::c16",
+        "2306.05425v1::p10::fig6",
+        "2307.09288v2::p34::c105",
+        "2307.09288v2::p8::tab5",
+        "2307.09288v2::p50::page",
+        "2305.13186v3::p7::tab4",
+        "2305.13186v3::p25::page",
+        "2023.acl-long.386::p4::c17",
+        "2305.13186v3::p24::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 1.0,
+        "mrr": 0.16666666666666666
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 155500,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0136_2307.09288v2",
+      "category": "table",
+      "text": "How many slots are missed in Table 21?",
+      "retrieved_chunk_ids": [
+        "2307.09288v2::p48::c165",
+        "2210.02442v1::p15::tab5",
+        "2303.08559v2::p21::c89",
+        "12-15-15-ISIS-and-terrorism-release-final::p10::tab3",
+        "2210.02442v1::p14::page",
+        "2005.12872v3::p23::c60",
+        "2303.08559v2::p29::page",
+        "2303.08559v2::p15::tab7",
+        "2303.08559v2::p17::page",
+        "2210.02442v1::p6::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 149687,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0137_2307.09288v2",
+      "category": "table",
+      "text": "How many datasets are reported in Pages 49-50?",
+      "retrieved_chunk_ids": [
+        "2303.08559v2::p15::tab6",
+        "2309.17421v2::p5::tab5",
+        "2305.14160v4::p4::page",
+        "2210.02442v1::p15::tab5",
+        "2305.14160v4::p5::page",
+        "2023.findings-emnlp.248::p7::tab2",
+        "2307.09288v2::p11::page",
+        "2303.05039v2::p4::page",
+        "12-15-15-ISIS-and-terrorism-release-final::p6::tab1",
+        "2310.05634v2::p7::tab2"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 252437,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0138_2307.09288v2",
+      "category": "figure",
+      "text": "How many more emojis does the right subfig have than the left subfig in Figure 9?",
+      "retrieved_chunk_ids": [
+        "2307.09288v2::p16::fig9",
+        "2305.14160v4::p12::c53",
+        "2305.14160v4::p13::page",
+        "2309.17421v2::p19::c46",
+        "2005.12872v3::p15::page",
+        "2305.13186v3::p24::fig9",
+        "2309.17421v2::p80::page",
+        "0e94b4197b10096b1f4c699701570fbf::p9::fig9",
+        "2210.02442v1::p6::page",
+        "2305.13186v3::p14::c63"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 55578,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0139_2305.14160v4",
+      "category": "figure",
+      "text": "Does the mean significance of information flow from the text part to label words always greater than the mean significance of information flow from label words to the target position? Answer 'yes' or 'no' directly.",
+      "retrieved_chunk_ids": [
+        "2305.14160v4::p3::c10",
+        "2305.14160v4::p11::c49",
+        "2305.14160v4::p2::c4",
+        "2305.14160v4::p4::c13",
+        "2305.14160v4::p1::c3",
+        "2305.14160v4::p7::page",
+        "2305.14160v4::p12::page",
+        "2305.14160v4::p5::page",
+        "2305.14160v4::p6::page",
+        "2305.14160v4::p9::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.8772153153380493,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 53000,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0140_2305.14160v4",
+      "category": "figure",
+      "text": "Does the  information flow from label words to the target position dominate in all layers? Answer 'yes' or 'no' directly.",
+      "retrieved_chunk_ids": [
+        "2305.14160v4::p3::c10",
+        "2305.14160v4::p11::c49",
+        "2305.14160v4::p3::c11",
+        "2305.14160v4::p2::c4",
+        "2305.14160v4::p1::c3",
+        "2305.14160v4::p3::c8",
+        "2305.14160v4::p5::c18",
+        "2305.14160v4::p4::c15",
+        "2305.14160v4::p2::c7",
+        "2305.14160v4::p3::c12"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 54296,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0141_2305.14160v4",
+      "category": "figure",
+      "text": "Does randomly isolating non-label words within the last 5 layers have almost no impact? Answer 'yes' or 'no' directly.",
+      "retrieved_chunk_ids": [
+        "2305.14160v4::p4::c13",
+        "2305.14160v4::p14::fig19",
+        "2305.14160v4::p4::fig5",
+        "2305.14160v4::p4::c14",
+        "2305.14160v4::p11::c51",
+        "2310.07609v1::p3::c11",
+        "2305.14160v4::p12::c54",
+        "2305.14160v4::p7::c29",
+        "2305.14160v4::p2::c4",
+        "2305.14160v4::p3::c12"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 51578,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0142_2305.14160v4",
+      "category": "table",
+      "text": "How much does the Anchor Re-weighting method improve the performance of vanilla ICL on average?",
+      "retrieved_chunk_ids": [
+        "2305.14160v4::p2::c5",
+        "2305.14160v4::p6::c25",
+        "2305.14160v4::p7::tab1",
+        "2305.14160v4::p6::c27",
+        "2305.14160v4::p1::c1",
+        "2305.14160v4::p2::c4",
+        "2305.14160v4::p5::c20",
+        "2305.14160v4::p6::c24",
+        "2305.14160v4::p9::c37",
+        "2305.14160v4::p6::c22"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.5,
+        "recall_at_10": 1.0,
+        "mrr": 0.3333333333333333
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 154202,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0143_2305.14160v4",
+      "category": "table",
+      "text": "Using anchor-only context compression, how much can GPT2-XL speed up on AGNews?",
+      "retrieved_chunk_ids": [
+        "2305.14160v4::p7::c31",
+        "2305.14160v4::p8::tab3",
+        "2305.14160v4::p2::c5",
+        "2305.14160v4::p12::c54",
+        "2305.14160v4::p3::c9",
+        "2305.14160v4::p11::c48",
+        "2305.14160v4::p14::page",
+        "2305.14160v4::p4::page",
+        "2305.14160v4::p6::c27",
+        "2305.14160v4::p13::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": null,
+        "recall_at_10": null,
+        "mrr": null
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 99718,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0144_2305.14160v4",
+      "category": "figure",
+      "text": "What is the most confusing category of Abbreviation?",
+      "retrieved_chunk_ids": [
+        "2305.14160v4::p8::c35",
+        "2305.14160v4::p8::c33",
+        "2305.14160v4::p8::c34",
+        "2307.09288v2::p22::tab12",
+        "2305.14160v4::p15::c60",
+        "2303.08559v2::p24::c94",
+        "2303.08559v2::p20::c82",
+        "2305.14160v4::p15::c61",
+        "2303.08559v2::p24::c95",
+        "2309.17421v2::p5::tab5"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 239734,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0145_2021-Apple-Catalog",
+      "category": "figure",
+      "text": "How many different iPad solutions are shown in the document?",
+      "retrieved_chunk_ids": [
+        "2021-Apple-Catalog::p2::tab1",
+        "2021-Apple-Catalog::p6::page",
+        "2309.17421v2::p5::tab5",
+        "2021-Apple-Catalog::p17::page",
+        "2021-Apple-Catalog::p19::c33",
+        "2021-Apple-Catalog::p7::page",
+        "2305.14160v4::p7::tab2",
+        "2021-Apple-Catalog::p13::page",
+        "2021-Apple-Catalog::p18::c32",
+        "2021-Apple-Catalog::p10::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.6309297535714575,
+        "recall_at_10": 1.0,
+        "mrr": 0.5
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 248327,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0146_2021-Apple-Catalog",
+      "category": "out_of_corpus",
+      "text": "Are there 11 different iPad solutions shown in the document?",
+      "retrieved_chunk_ids": [
+        "2021-Apple-Catalog::p2::tab1",
+        "2021-Apple-Catalog::p19::c33",
+        "2305.14160v4::p7::tab2",
+        "2021-Apple-Catalog::p18::c31",
+        "2021-Apple-Catalog::p47::c73",
+        "2021-Apple-Catalog::p18::c32",
+        "2021-Apple-Catalog::p45::c69",
+        "2021-Apple-Catalog::p11::fig56",
+        "2021-Apple-Catalog::p11::fig57",
+        "2021-Apple-Catalog::p19::fig109"
+      ],
+      "retrieval": {
+        "ndcg_at_5": null,
+        "recall_at_10": null,
+        "mrr": null
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 47657,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0147_2021-Apple-Catalog",
+      "category": "figure",
+      "text": "Regarding macbook high security solution, which numbers of features are not presented in the illustration?",
+      "retrieved_chunk_ids": [
+        "2021-Apple-Catalog::p24::c39",
+        "2021-Apple-Catalog::p22::c35",
+        "2021-Apple-Catalog::p39::c56",
+        "2021-Apple-Catalog::p49::page",
+        "2210.02442v1::p2::fig1",
+        "2021-Apple-Catalog::p11::page",
+        "2021-Apple-Catalog::p25::fig128",
+        "2021-Apple-Catalog::p19::page",
+        "2021-Apple-Catalog::p16::fig99",
+        "2021-Apple-Catalog::p32::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.6309297535714575,
+        "recall_at_10": 1.0,
+        "mrr": 0.5
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 52140,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "query_id": "mmlb_0148_2021-Apple-Catalog",
+      "category": "table",
+      "text": "One40 can only be used for Apple Watch, is that true? Please directly answer 'yes' or 'no'.",
+      "retrieved_chunk_ids": [
+        "2310.07609v1::p3::c11",
+        "2021-Apple-Catalog::p28::c45",
+        "2305.13186v3::p18::c75",
+        "2310.07609v1::p10::c38",
+        "2306.05425v1::p17::c54",
+        "2310.07609v1::p3::c10",
+        "2021-Apple-Catalog::p2::tab1",
+        "2021-Apple-Catalog::p29::c46",
+        "2021-Apple-Catalog::p40::fig186",
+        "2021-Apple-Catalog::p40::fig187"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.6309297535714575,
+        "recall_at_10": 0.5,
+        "mrr": 0.5
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 52765,
+      "tokens_in": 0,
+      "tokens_out": 0
+    }
+  ]
+}
