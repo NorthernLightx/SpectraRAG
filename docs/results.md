@@ -13,7 +13,7 @@ each row; per-category breakdowns and methodology in the sections below.
 
 | Component | Baseline | Improved | Δ rel | Test set | Reference run |
 |---|---|---|---|---|---|
-| **Retrieval** (recall@10) | 0.6854 | **0.7515** | **+9.6 %** | n=111 in-corpus | router (`cc45831697b6`) vs text-only (`589f7269d617`) |
+| **Retrieval** (recall@10) | 0.6746 | **0.8396** | **+24.5 %** | n=107 in-corpus | LLM router (`76c164307b05`) vs text-only (`3de944c0d03d`) |
 | **Dispatch** (any→hybrid) | 17.4 % | **71.8 %** | **+54 pp** | n=149 queries | LLM classifier (`gpt-4o-mini`) vs regex (ADR 0008) |
 | **Generation** (gold-match) | 0.330 | **0.623** | **+89 %** | n=106, identical context | `qwen3-vl-32b` vision vs `gpt-4o-mini` text |
 
@@ -36,7 +36,7 @@ stack (Ryzen 5800X / RTX 3070 / 16 GB; Ollama on CPU; Qdrant in Docker).
 | **Dense search** | Qdrant top-50 | 14 ms | 46 ms | HNSW; effectively constant in N |
 | **BM25 search** | `rank_bm25`, in-process | <5 ms | — | Bag-of-words; not measured (legacy schema, ingest fresh to measure) |
 | **RRF fusion** | pure Python | <1 ms | — | Rank-list math |
-| **Reranker** | BGE-rerank-v2-m3, GPU | ~5,500 ms | — | From v2 baseline; dominates whole-query latency |
+| **Reranker** | BGE-rerank-v2-m3, GPU | ~5,500 ms | — | From v2 baseline (short chunks); dominates whole-query latency. On long MMLongBench docs it is far slower — ADR 0013 measured ~33 s on a sampled query, and whole-query latency in the router run ran to minutes |
 | **Generation** | `gpt-4o-mini` via OpenRouter | ~2,000 ms | — | Network + remote |
 | **Generation (alt)** | `qwen2.5:7b` via Ollama GPU | ~60 s | — | From v2 baseline |
 
@@ -49,22 +49,36 @@ no hops on our side.
 
 ## Why multi-modal? — one concrete example
 
-`mmlb_0008` from MMLongBench-Doc, paper `2310.05634v2`, gold page 8:
+`mmlb_0002` from MMLongBench-Doc, paper `0e94b4197b10096b1f4c699701570fbf`,
+gold page 10:
 
-> *"In figure 5, what is the color of the line that has no intersection
-> with any other line?"*  → expected answer: **red**
+> *"What range does red color represent in approximate distance from the
+> Mississippi River in the chart that tracks the West Nile Virus in
+> Europe?"*  → expected answer: **0–375 miles**
 
-| Stack | top-10 retrieved pages | recall@10 |
+| Stack | top-10 retrieved pages (rank order) | recall@10 |
 |---|---|---|
-| text-only (`589f7269d617`) | `[25, 23, 24, 94, 16, 35, 4]` | **0.00** |
-| router (`cc45831697b6`) | `[25, 5, 23, 12, 24, 8, 94, 16, 15]` | **1.00** |
+| text-only (`3de944c0d03d`) | `[24, 19, 27, 26, 6, 5, 7, 14]` | **0.00** |
+| LLM router (`76c164307b05`) | `[24, 10, 19, 9, 27, 5, 26, 55, 6, 46]` | **1.00** |
 
 This is the kind of question that's fundamentally unanswerable from
 extracted text — the answer lives in the chart's colour-coding. The text
-retriever can't surface page 8 because the relevant signal was never in the
-text layer; the visual leg (ColQwen2 multi-vector + late-interaction MaxSim
-on the rendered page image) recovers it. 6 more queries with the same
-shape are listed in the output of `scripts/legacy/find_visual_wins.py`.
+retriever never surfaces page 10 (none of its hits are even from the gold
+paper); the visual leg (ColQwen2 multi-vector + late-interaction MaxSim on
+the rendered page image) puts `…::p10::page` at rank 2. Across the 107
+scored queries, 15 went from a 0.00 text-only recall@10 to a positive
+router recall@10 — all figure/table, all recoverable from the committed
+`baseline-mmlongbench-{text,router}.json` per-query records.
+
+A note on page-level scoring: `rescore_mmlb_pages.py` matches on page
+*number*, not paper, so a retrieved page-8 chunk from the wrong document
+counts as a hit on a gold-page-8 query. That makes a few per-query scores
+generous — `mmlb_0008` (figure 5, gold page 8) reads 1.00 in *both* runs
+only because a page-8 figure from a different paper sits at rank 1 — so it
+is no longer a clean text-vs-visual contrast. `mmlb_0002` above is a true
+same-paper recovery, which is why it replaced `mmlb_0008` as the worked
+example. The macro numbers are unaffected by the swap; the artefact is
+per-query and cross-paper.
 
 **The honest tradeoff.** Multi-modal retrieval helps when figures encode
 information as pixels — chart colours, layout geometry, screenshot content,
@@ -72,7 +86,7 @@ image-only diagrams. It helps less when figures encode information as a
 text layer the PDF parser can extract — most modern arXiv preprints
 serialise even figure-internal labels and captions as selectable text,
 which is why golden v3's per-query router showed only +1.9 % on figure
-subsets while MMLongBench shows +15.3 % on the same category. ADR 0007 +
+subsets while MMLongBench shows +33.4 % on the same category. ADR 0007 +
 [`docs/decisions/0008`](./decisions/0008-phase32-routing.md) explain the
 mechanism.
 
@@ -130,14 +144,17 @@ ran both over the same 149 queries:
 
 The LLM over-dispatches some factual queries (0 % → 56 %) but the fail-safe
 is bounded: hybrid retrieval on a text-only-needed query just costs more
-compute, the answer is still correct.
+compute, the answer is still correct. This experiment classified with
+`gpt-4o-mini`; the shipped router runs the keyless `gemma3:4b` classifier
+(ADR 0013), which over-dispatches more aggressively still — on this
+benchmark that helps, since ~93 % of answerable queries are visual.
 
 ## Composed pipeline — end-to-end win
 
 Three lifts compose into a single deployed answer:
 
-1. **Visual retriever** (ColQwen2 in `RoutingRetriever`): +9.6 % recall@10
-   aggregate, +15.3 % on figure subset.
+1. **Visual retriever** (ColQwen2 in `RoutingRetriever`): +24.5 % recall@10
+   aggregate, +33.4 % on figure subset.
 2. **LLM classifier** (`LLMQueryClassifier`, opt-in via `classifier=` on
    RoutingRetriever): dispatches 87 % of figure queries to hybrid vs the
    regex's 25 %.
@@ -210,36 +227,56 @@ modern arXiv PDFs, so caption text is nearly always sufficient.
 47-page PDFs with 22.5 % unanswerable queries (refusal-gate friendly),
 GPT-4o tops out at 44.9 % F1 — a non-saturated benchmark.
 
-20 docs / 149 queries (76 figure + 24 table + 9 factual + 40 OOC),
-page-level scoring. Both runs use BGE-rerank + gpt-4o-mini for generation
-and as judge.
+20 docs / 149 queries (76 figure + 24 table + 9 factual + 40 OOC). The
+golden labels relevant *pages*, not chunks, so retrieval is page-scored via
+[`scripts/rescore_mmlb_pages.py`](../scripts/rescore_mmlb_pages.py). Two of
+the in-corpus queries (one figure, one table) carry no `relevant_pages`
+label, so they drop out of scoring: 109 in-corpus → **107 scored**. Both
+retrieval runs are retrieval-only on the current Docling pipeline with
+BGE-rerank; the router uses the shipped LLM classifier (`gemma3:4b` via
+Ollama, ADR 0013) to send figure/table queries to the ColQwen2 visual leg.
 
-| | text-only `589f7269d617` | router `cc45831697b6` | Δ rel |
+| | text-only `3de944c0d03d` | LLM router `76c164307b05` | Δ rel |
 |---|---|---|---|
-| **Retrieval** (n=111 in-corpus) | | | |
-| nDCG@5 | 0.5904 | 0.6177 | +4.6 % |
-| recall@10 | 0.6854 | **0.7515** | **+9.6 %** |
-| MRR | 0.5741 | 0.6009 | +4.7 % |
+| **Retrieval** (n=107 scored) | | | |
+| nDCG@5 | 0.5496 | **0.6554** | **+19.2 %** |
+| recall@10 | 0.6746 | **0.8396** | **+24.5 %** |
+| MRR | 0.5240 | **0.6238** | **+19.0 %** |
 | **figure subset** (n=75) | | | |
-| nDCG@5 | 0.5161 | 0.5565 | +7.8 % |
-| recall@10 | 0.6378 | **0.7356** | **+15.3 %** |
-| **Generation** (post judge-bug fix, all 149) | | | |
+| nDCG@5 | 0.4984 | **0.6358** | **+27.6 %** |
+| recall@10 | 0.6357 | **0.8479** | **+33.4 %** |
+| MRR | 0.4778 | **0.6054** | **+26.7 %** |
+
+The visual leg's lift on figure-subset recall@10 (+33.4 %) is the clean
+win that golden v3 couldn't show. The numbers reproduce ADR 0013's
+independent measurement (text 0.672, llm-router 0.821, against a 0.841
+category-oracle ceiling).
+
+The generation arm below is a **separate, earlier experiment** — the
+regex-era runs `589f7269d617` (text) / `cc45831697b6` (router), which had
+`gpt-4o-mini` generation + judge enabled. It is not part of the
+retrieval-only measurement above and its run-ids differ deliberately.
+
+| Generation (post judge-bug fix, all 149) | text `589f7269d617` | router `cc45831697b6` | Δ rel |
+|---|---|---|---|
 | faithfulness | 0.5990 | 0.6074 | +1.4 % |
 | answer_relevance | 0.6812 | 0.6879 | +1.0 % |
 | context_precision | 0.4315 | 0.4369 | +1.3 % |
 
-The visual leg's lift on figure-subset recall@10 (+15.3 %) is the clean
-win that golden v3 couldn't show.
-
 ## Multi-modal regression gate
 
-The MMLongBench router run is committed as
-[`data/eval/baseline-mmlongbench.json`](../data/eval/baseline-mmlongbench.json)
-so future changes can't silently lose the +9.6 % recall@10 win. The eval
-runner stores chunk-level scores against `relevant_chunk_ids` (always 0.0
-for MMLongBench, since the golden uses page-level relevance). Page-level
-scoring lives in
-[`scripts/rescore_mmlb_pages.py`](../scripts/rescore_mmlb_pages.py); the
+The two MMLongBench retrieval runs are committed as a pair —
+[`data/eval/baseline-mmlongbench-text.json`](../data/eval/baseline-mmlongbench-text.json)
+(text-only, `3de944c0d03d`) and
+[`data/eval/baseline-mmlongbench-router.json`](../data/eval/baseline-mmlongbench-router.json)
+(LLM router, `76c164307b05`) — so future changes can't silently lose the
++24.5 % recall@10 win. The earlier
+[`baseline-mmlongbench.json`](../data/eval/baseline-mmlongbench.json)
+(regex-era router `cc45831697b6`, recall@10 0.7469) is superseded by this
+pair but left in place for provenance. The eval runner stores chunk-level
+scores against `relevant_chunk_ids` (always 0.0 for MMLongBench, since the
+golden uses page-level relevance). Page-level scoring lives in
+[`scripts/rescore_mmlb_pages.py`](../scripts/rescore_mmlb_pages.py); each
 committed baseline is its output.
 
 To check a candidate run against the gate:
@@ -250,17 +287,18 @@ To check a candidate run against the gate:
     --golden data/golden/mmlongbench-v1.yaml \
     --output /tmp/candidate-rescored.json
 .venv/Scripts/python.exe -m scripts.check_regression \
-    --baseline data/eval/baseline-mmlongbench.json \
+    --baseline data/eval/baseline-mmlongbench-router.json \
     --candidate /tmp/candidate-rescored.json \
     --metrics ndcg_at_5 recall_at_10 mrr
 ```
 
 The gate fails if any retrieval metric regresses > 5 %. Verified locally:
-running it with the **text-only** run as candidate fails with
-`recall_at_10 delta -9.18 %` — exactly the regression we'd see if a future
-change disabled the visual leg. CI doesn't run MMLongBench (it needs
-Qdrant + Ollama + 15 min of compute); this is a manual gate, run before
-merging any change that touches retrieval.
+running it with the **text-only** baseline as candidate against the router
+baseline fails with `recall_at_10 -19.66 %` (nDCG@5 -16.14 %, MRR
+-16.00 %, exit 1) — exactly the regression we'd see if a future change
+disabled the visual leg. CI doesn't run MMLongBench (it needs Qdrant +
+Ollama + 15 min of compute); this is a manual gate, run before merging any
+change that touches retrieval.
 
 ## Failure modes — when this gets it wrong
 
