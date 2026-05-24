@@ -118,9 +118,7 @@ def rescore(run: dict[str, Any], golden: dict[str, Any]) -> dict[str, Any]:
     """
     relevant_by_qid: dict[str, set[Page]] = {
         q["query_id"]: {
-            (q["paper_id"], page)
-            for page in (q.get("relevant_pages") or [])
-            if q.get("paper_id")
+            (q["paper_id"], page) for page in (q.get("relevant_pages") or []) if q.get("paper_id")
         }
         for q in golden["queries"]
     }
