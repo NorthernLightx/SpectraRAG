@@ -51,8 +51,7 @@ data/figures/
 data/pages/*
 !data/pages/.gitkeep
 !data/pages/2604.*
-# Higher-DPI render experiments — regenerable scratch (the DPI sweep was a
-# no-op: ColQwen2 caps image area, so higher render DPI changes nothing).
+# Regenerable DPI render scratch.
 data/pages_dpi*/
 # qdrant_local/ — baked Qdrant snapshot for the deploy image. Committed
 # alongside data/pages/2604.* so CI does only `docker build` + `docker push`.
@@ -87,7 +86,7 @@ CLAUDE.md
 GEMINI.md
 AGENTS.md
 docs/superpowers/
-# Overnight research journals/notes — local working artefacts, not repo content.
+# Local research notes.
 docs/research/
 
 # Git worktrees (isolated dev workspaces)
