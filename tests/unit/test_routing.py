@@ -9,6 +9,7 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
+from src.rag.hybrid import RankedItem, reciprocal_rank_fusion
 from src.rag.retrievers.routing import (
     Category,
     RoutingRetriever,
@@ -264,6 +265,90 @@ async def test_top_k_limits_hybrid_fused_results() -> None:
     results = await router.retrieve(Query(text="Compare Figure 1 vs Figure 2", top_k=3))
 
     assert len(results) == 3
+
+
+# --------------------------------------------------------------------------
+# ADR 0023: visual-favoring weighted page-level RRF
+# --------------------------------------------------------------------------
+
+
+def test_weighted_fusion_default_weight_equals_equal_weight_rrf() -> None:
+    """w_visual=1.0 must reproduce the shipped equal-weight RRF page order exactly.
+
+    Ground truth is src.rag.hybrid.reciprocal_rank_fusion over the same per-leg
+    page lists (the dedup + RankedItem path _fuse_page_level used before ADR
+    0023). Overlapping + disjoint pages, ties, and visual-only pages are all
+    present so the comparison exercises the insertion-order tie break too.
+    """
+    # text leg: pages 1,2,3 ; visual leg: 3,4,1 (overlap on 1 and 3, ranks differ)
+    text_results = [
+        _text_chunk("paper1::p1::c0", 0.9, page=1),
+        _text_chunk("paper1::p2::c0", 0.8, page=2),
+        _text_chunk("paper1::p3::c0", 0.7, page=3),
+    ]
+    visual_results = [
+        _visual_page(3, 0.9),
+        _visual_page(4, 0.8),
+        _visual_page(1, 0.7),
+    ]
+    router = RoutingRetriever(
+        text=_RecordingRetriever("t", []), visual=_RecordingRetriever("v", [])
+    )
+
+    fused = router._fuse_page_level(text_results, visual_results, top_k=10)
+    got_pages = [r.page_numbers[0] for r in fused]
+
+    # Oracle: plain RRF over the same first-appearance page lists.
+    text_pages = [RankedItem(id="paper1::p1", score=1.0)] + [
+        RankedItem(id=f"paper1::p{n}", score=1.0) for n in (2, 3)
+    ]
+    visual_pages = [RankedItem(id=f"paper1::p{n}", score=1.0) for n in (3, 4, 1)]
+    oracle = reciprocal_rank_fusion([text_pages, visual_pages], k=60, top_k=10)
+    oracle_pages = [int(item.id.split("::p")[1]) for item in oracle]
+
+    assert got_pages == oracle_pages
+
+
+def test_weighted_fusion_high_visual_weight_reorders_toward_visual() -> None:
+    """A large visual weight promotes a visual-only page above a text-only page.
+
+    Legs: text=[p1,p2] (p2 also visual-ranked #2), visual=[p3,p2]. p3 is
+    visual-only, p1 text-only. At w=1.0 they tie on the RRF score 1/61 and
+    insertion order keeps text's p1 first (-> p2,p1,p3). At w=10 the visual leg
+    dominates: p3 (10/61) overtakes p1 (1/61) -> p2,p3,p1. The reordering is
+    the load-bearing assertion: same inputs, weight alone flips p1 vs p3.
+    """
+    text_results = [
+        _text_chunk("paper1::p1::c0", 0.9, page=1),
+        _text_chunk("paper1::p2::c0", 0.8, page=2),
+    ]
+    visual_results = [
+        _visual_page(3, 0.9),
+        _visual_page(2, 0.8),
+    ]
+    text_ret = _RecordingRetriever("t", [])
+    visual_ret = _RecordingRetriever("v", [])
+
+    equal = RoutingRetriever(text=text_ret, visual=visual_ret, visual_fusion_weight=1.0)
+    weighted = RoutingRetriever(text=text_ret, visual=visual_ret, visual_fusion_weight=10.0)
+
+    equal_pages = [
+        r.page_numbers[0] for r in equal._fuse_page_level(text_results, visual_results, top_k=10)
+    ]
+    weighted_pages = [
+        r.page_numbers[0] for r in weighted._fuse_page_level(text_results, visual_results, top_k=10)
+    ]
+
+    assert equal_pages == [2, 1, 3]
+    assert weighted_pages == [2, 3, 1]
+
+
+def test_weighted_fusion_default_constructor_weight_is_one() -> None:
+    """No visual_fusion_weight arg => 1.0 (the conservative ADR 0023 default)."""
+    router = RoutingRetriever(
+        text=_RecordingRetriever("t", []), visual=_RecordingRetriever("v", [])
+    )
+    assert router._visual_fusion_weight == 1.0
 
 
 # ADR 0010: cascade mode — text first, fall back to visual only on uncertainty.

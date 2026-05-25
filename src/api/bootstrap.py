@@ -272,6 +272,7 @@ async def _wire_retriever_from_settings(
                     text=text_retriever,
                     visual=visual_retriever,
                     classifier=classifier,
+                    visual_fusion_weight=settings.visual_fusion_weight,
                 )
             )
             log.info(

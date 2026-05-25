@@ -114,6 +114,20 @@ class Settings(BaseSettings):
     routing_mode: Literal["category", "cascade"] = "category"
     cascade_confidence_threshold: float | None = None
 
+    # ADR 0023: visual-leg weight for page-level RRF on the hybrid path. The
+    # fused per-page score becomes 1/(k+rank_text) + w/(k+rank_visual), so w>1
+    # biases fusion toward the visual leg. Default 1.0 reproduces the
+    # equal-weight fusion ADR 0008 shipped exactly — no silent baseline change.
+    # On MMLongBench (~93 % visual) w=5 lifts figure recall@10 0.729 -> 0.807
+    # (beats both equal-weight and visual-only). But the cross-corpus eval
+    # (ADR 0023, v3 arXiv) showed w>1 REGRESSES text-heavy corpora, so this is
+    # per-corpus: visual-heavy set ~5, text-heavy keep 1.0. w>1 is validated on
+    # figure/table only (multi_hop and cascade fall-back fusion inherit it
+    # unmeasured). Note w=0 still surfaces visual-only pages at RRF score 0 — it
+    # is NOT a text-only switch. Only affects hybrid-routed queries; text-routed
+    # queries are unaffected.
+    visual_fusion_weight: float = Field(default=1.0, ge=0.0)
+
     # When set, the production Generator attaches the rendered page PNG
     # (`<pages_dir>/<paper>/<paper>_pN.png`) for any visual RetrievalResult to
     # the LLM call as an OpenAI-compat content-block. Pair with a vision-capable

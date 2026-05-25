@@ -24,7 +24,6 @@ from opentelemetry import trace
 from opentelemetry.trace import Span
 
 from src.observability.logging import get_logger
-from src.rag.hybrid import RankedItem, reciprocal_rank_fusion
 from src.rag.retrievers.protocol import Retriever
 from src.types import Query, RetrievalResult, RoutingInfo
 
@@ -121,10 +120,10 @@ class RoutingRetriever:
     `set_retriever()` wiring as a drop-in replacement for `PipelineRetriever`.
 
     Hybrid path runs both legs concurrently via asyncio.gather, fuses their
-    rankings at page granularity using src.rag.hybrid.reciprocal_rank_fusion,
-    and maps each fused page back to a single RetrievalResult — the
-    highest-scoring text chunk on that page when text contributed, else the
-    visual page result.
+    rankings at page granularity with a weighted RRF (ADR 0023; equal-weight
+    per ADR 0008 by default), and maps each fused page back to a single
+    RetrievalResult — the highest-scoring text chunk on that page when text
+    contributed, else the visual page result.
 
     Visual-leg failures (GPU OOM, model-load errors) fall back to text-only;
     `routing.visual_failed=true` is set on the current OTel span so the
@@ -146,6 +145,7 @@ class RoutingRetriever:
         classifier: LLMQueryClassifier | None = None,
         mode: RoutingMode = "category",
         cascade_confidence_threshold: float | None = None,
+        visual_fusion_weight: float = 1.0,
     ) -> None:
         if mode == "cascade" and cascade_confidence_threshold is None:
             raise ValueError(
@@ -157,6 +157,9 @@ class RoutingRetriever:
         self._classifier = classifier
         self._mode = mode
         self._cascade_threshold = cascade_confidence_threshold
+        # ADR 0023: visual-leg weight for the page-level RRF. 1.0 (default)
+        # reproduces ADR 0008's equal-weight fusion exactly.
+        self._visual_fusion_weight = visual_fusion_weight
 
     async def retrieve(self, query: Query) -> list[RetrievalResult]:
         # query.routing_mode overrides the constructor mode for this call only.
@@ -437,6 +440,13 @@ class RoutingRetriever:
         rank order and recording each unique page once at its first appearance.
         That preserves the leg-internal ordering that RRF expects while
         avoiding double-counting multiple text chunks on the same page.
+
+        ADR 0023: the visual leg's RRF contribution is scaled by
+        `self._visual_fusion_weight`, so the fused per-page score is
+        1/(k+rank_text) + w/(k+rank_visual). At the default w=1.0 this is the
+        plain equal-weight RRF `src.rag.hybrid.reciprocal_rank_fusion` computes
+        (same k, same first-appearance dedup, same stable text-before-visual
+        tie order) — so default routing is byte-identical to ADR 0008.
         """
         # Best text RetrievalResult per page (highest score among chunks on that page).
         # Used to pick the "preferred" RetrievalResult to return for each fused page.
@@ -461,14 +471,19 @@ class RoutingRetriever:
                 text_pages_in_rank.append(page_id)
         visual_pages_in_rank = [_to_page_id(r.chunk_id) for r in visual_results]
 
-        text_ranked = [RankedItem(id=p, score=1.0) for p in text_pages_in_rank]
-        visual_ranked = [RankedItem(id=p, score=1.0) for p in visual_pages_in_rank]
-
-        fused = reciprocal_rank_fusion([text_ranked, visual_ranked], k=_RRF_K, top_k=top_k)
+        # Weighted RRF, computed inline so the visual leg can carry a weight the
+        # shared reciprocal_rank_fusion (one weightless list-of-lists) doesn't
+        # model. Insertion order is text-then-visual and the sort is stable, so
+        # at w=1.0 the page ordering matches reciprocal_rank_fusion exactly.
+        rrf: dict[str, float] = {}
+        for rank, page_id in enumerate(text_pages_in_rank):
+            rrf[page_id] = rrf.get(page_id, 0.0) + 1.0 / (_RRF_K + rank + 1)
+        for rank, page_id in enumerate(visual_pages_in_rank):
+            rrf[page_id] = rrf.get(page_id, 0.0) + self._visual_fusion_weight / (_RRF_K + rank + 1)
+        fused_pages = sorted(rrf.items(), key=lambda pair: pair[1], reverse=True)[:top_k]
 
         out: list[RetrievalResult] = []
-        for fused_item in fused:
-            page_id = fused_item.id
+        for page_id, _score in fused_pages:
             if page_id in best_text_per_page:
                 out.append(best_text_per_page[page_id])
             elif page_id in visual_by_page:
