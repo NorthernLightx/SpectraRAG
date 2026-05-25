@@ -90,6 +90,26 @@
         transition: background 0.15s ease, transform 0.06s ease;
       }
 
+      .hero-cta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        text-decoration: none;
+        background: var(--accent-tint);
+        border: 1px solid var(--accent);
+        border-radius: 10px;
+        padding: 16px 20px;
+        margin: 0 0 16px;
+        transition: background 0.15s ease, transform 0.06s ease;
+      }
+      .hero-cta:hover { background: rgba(88, 166, 255, 0.22); }
+      .hero-cta:active { transform: translateY(1px); }
+      .hero-cta-text { display: flex; flex-direction: column; gap: 3px; }
+      .hero-cta-text strong { color: var(--fg-strong); font-size: 15px; }
+      .hero-cta-text span { color: var(--muted); font-size: 13px; }
+      .hero-cta-arrow { color: var(--accent); font-size: 22px; font-weight: 600; flex-shrink: 0; }
+
       .row { display: flex; gap: 12px; align-items: center; margin-top: 12px; }
       .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
       .muted { color: var(--muted); font-size: 13px; }
@@ -160,7 +180,16 @@
         <a href="/chat.html">Chat</a>
         <a href="/papers.html">Papers</a>
         <a href="/figures.html">Figures</a>
+        <a href="/why-multimodal.html">Why multimodal?</a>
       </nav>
+
+      <a href="/why-multimodal.html" class="hero-cta">
+        <div class="hero-cta-text">
+          <strong>See why a visual retriever beats text-only RAG.</strong>
+          <span>Six figure questions where text-only search misses the page and the visual router finds it. The answer is visible in the image.</span>
+        </div>
+        <span class="hero-cta-arrow" aria-hidden="true">→</span>
+      </a>
 
       <section class="card">
         <div class="grid-2">

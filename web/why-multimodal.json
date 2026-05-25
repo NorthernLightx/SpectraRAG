@@ -1,0 +1,136 @@
+{
+  "note": "Replays committed MMLongBench retrieval results. text_pages / router_pages are the gold-paper page numbers in each retriever top-10, derived from data/eval/baseline-mmlongbench-{text,router}.json (per_query[].retrieved_chunk_ids). Gold page is absent from text_pages and present in router_pages for every card.",
+  "cards": [
+    {
+      "id": "mmlb_0072",
+      "question": "In Figure 111, what's the price of the keyboard shown in the screenshot?",
+      "answer": "$49.99",
+      "paper_label": "GPT-4V technical report (arXiv 2309.17421)",
+      "paper_id": "2309.17421v2",
+      "figure_label": "Figure 111",
+      "gold_pages": [
+        141
+      ],
+      "image": "assets/why-multimodal/2309.17421v2_p141.jpg",
+      "text_pages": [
+        19,
+        15,
+        16
+      ],
+      "router_pages": [
+        19,
+        121,
+        140,
+        141,
+        136,
+        139
+      ]
+    },
+    {
+      "id": "mmlb_0073",
+      "question": "In Figure 107, what's the battery percentage shown in the screenshot?",
+      "answer": "76%",
+      "paper_label": "GPT-4V technical report (arXiv 2309.17421)",
+      "paper_id": "2309.17421v2",
+      "figure_label": "Figure 107",
+      "gold_pages": [
+        137
+      ],
+      "image": "assets/why-multimodal/2309.17421v2_p137.jpg",
+      "text_pages": [
+        19
+      ],
+      "router_pages": [
+        19,
+        137,
+        21,
+        22
+      ]
+    },
+    {
+      "id": "mmlb_0002",
+      "question": "What range does red color represents in approximate distance from the Mississippi River in the chart that tracks the West NIle Virus in Europe?",
+      "answer": "0-375 miles",
+      "paper_label": "West Nile Virus infographic",
+      "paper_id": "0e94b4197b10096b1f4c699701570fbf",
+      "figure_label": "distance chart",
+      "gold_pages": [
+        10
+      ],
+      "image": "assets/why-multimodal/0e94b4197b10096b1f4c699701570fbf_p10.jpg",
+      "text_pages": [],
+      "router_pages": [
+        10,
+        9,
+        5
+      ]
+    },
+    {
+      "id": "mmlb_0001",
+      "question": "According to the chart on page 14 how much time was spent with family and friends in 2010?",
+      "answer": "21%",
+      "paper_label": "Time-use infographic",
+      "paper_id": "0e94b4197b10096b1f4c699701570fbf",
+      "figure_label": "weekend pie charts",
+      "gold_pages": [
+        14
+      ],
+      "image": "assets/why-multimodal/0e94b4197b10096b1f4c699701570fbf_p14.jpg",
+      "text_pages": [],
+      "router_pages": [
+        14
+      ]
+    },
+    {
+      "id": "mmlb_0004",
+      "question": "Which category has the most increase from 2005 to 2010 for time spent on weedends?",
+      "answer": "Eating out",
+      "paper_label": "Time-use infographic",
+      "paper_id": "0e94b4197b10096b1f4c699701570fbf",
+      "figure_label": "weekend pie charts",
+      "gold_pages": [
+        14
+      ],
+      "image": "assets/why-multimodal/0e94b4197b10096b1f4c699701570fbf_p14.jpg",
+      "text_pages": [],
+      "router_pages": [
+        14,
+        15,
+        12,
+        7
+      ]
+    },
+    {
+      "id": "mmlb_0015",
+      "question": "Among the top 10 reasons why NTU smart campus is for you, which is the reason that does not include any person in the corresponding figure?",
+      "answer": "Most Beautiful Campus",
+      "paper_label": "NTU undergraduate prospectus 2024",
+      "paper_id": "2024.ug.eprospectus",
+      "figure_label": "Top 10 reasons spread",
+      "gold_pages": [
+        3
+      ],
+      "image": "assets/why-multimodal/2024.ug.eprospectus_p3.jpg",
+      "text_pages": [
+        21,
+        2,
+        6,
+        23,
+        7,
+        22
+      ],
+      "router_pages": [
+        21,
+        2,
+        22,
+        23,
+        7,
+        3,
+        6,
+        24,
+        5,
+        20
+      ]
+    }
+  ]
+}
