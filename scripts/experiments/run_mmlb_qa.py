@@ -131,6 +131,26 @@ _SYSTEM_PROMPT = (
 _USER_TEMPLATE = "Question: {query}\n\nAnswer using only the {n_pages} page image(s) above."
 
 
+# Opt-in strict variant (--prompt-variant strict): forces a terse single-line
+# final answer (so the stage-2 extractor is not fed verbose prose that buries the
+# gold token), instructs on-page arithmetic, and refuses ONLY when the value is
+# genuinely absent (preserving true out-of-corpus refusal). Tests the
+# generation-side output-format + anti-refusal lever from the 2026-05-29 analysis.
+_STRICT_SYSTEM_PROMPT = (
+    "You are a careful research assistant answering a question from the page "
+    "images of a document. Use only what is visible in the images.\n"
+    "- Read the pages (text, tables, charts, figures) carefully, then output the "
+    "SHORTEST possible final answer: a bare number, a short phrase, or a short "
+    "list of items. No explanation, no sentence, no restating the question.\n"
+    "- If the answer needs arithmetic on shown values (e.g. a percentage of a "
+    "stated total, a difference between two bars), compute it and give the final "
+    "number.\n"
+    '- Reply exactly "Not answerable" ONLY if the answer is genuinely not on any '
+    "page. If a relevant value is visible, do not refuse.\n"
+    "- Output only the final answer, on a single line."
+)
+
+
 def _png_path(paper: str, page: int) -> Path:
     return _PAGES_ROOT / paper / f"{paper}_p{page}.png"
 
@@ -308,7 +328,11 @@ async def run(args: argparse.Namespace) -> int:
                 else:
                     missing_png.add(str(p))
 
-            cache_key = f"{args.model}::k{args.top_k}::{qid}"
+            # The cache key must include anything that changes the prompt, or a
+            # reused --cache silently serves stale answers. The default prompt
+            # variant adds no suffix, so pre-existing caches still match.
+            _key_extra = f"::pv{args.prompt_variant}" if args.prompt_variant != "default" else ""
+            cache_key = f"{args.model}::k{args.top_k}{_key_extra}::{qid}"
             cached = cache.get(cache_key)
             if cached is not None:
                 vision = cached
@@ -326,13 +350,16 @@ async def run(args: argparse.Namespace) -> int:
                     }
                 else:
                     user = _USER_TEMPLATE.format(query=question, n_pages=len(page_paths))
+                    system_prompt = (
+                        _STRICT_SYSTEM_PROMPT if args.prompt_variant == "strict" else _SYSTEM_PROMPT
+                    )
                     t0 = time.time()
                     try:
                         if or_client is not None:
                             answer, tin, tout = await _chat_vision_openrouter(
                                 or_client,
                                 args.model,
-                                _SYSTEM_PROMPT,
+                                system_prompt,
                                 user,
                                 [p for _, p in page_paths],
                                 temperature=args.temperature,
@@ -344,7 +371,7 @@ async def run(args: argparse.Namespace) -> int:
                                 client,
                                 args.ollama_url,
                                 args.model,
-                                _SYSTEM_PROMPT,
+                                system_prompt,
                                 user,
                                 images_b64,
                                 temperature=args.temperature,
@@ -485,6 +512,15 @@ def main() -> None:
     )
     parser.add_argument("--temperature", type=float, default=0.0)
     parser.add_argument("--max-tokens", type=int, default=512)
+    parser.add_argument(
+        "--prompt-variant",
+        choices=("default", "strict"),
+        default="default",
+        help="system prompt. 'default' = the original concise prompt; 'strict' = a "
+        "terse single-line + on-page-arithmetic + careful-anti-refusal prompt that "
+        "tests the generation-side output-format lever. The cache key includes the "
+        "prompt variant, so runs with different variants do not collide.",
+    )
     parser.add_argument(
         "--num-gpu",
         type=int,
