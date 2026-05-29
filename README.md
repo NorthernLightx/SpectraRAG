@@ -72,27 +72,19 @@ flowchart LR
 1. **Ingest.** Each PDF goes through [Docling](https://github.com/docling-project/docling)
    for layout-aware, section-attributed text chunks plus figure and table
    extraction, with a figure-role classifier separating real figures from
-   page decoration (ADRs [0020](./docs/decisions/), [0021](./docs/decisions/),
-   [0022](./docs/decisions/)). Text, figure, and table chunks are indexed
+   page decoration. Text, figure, and table chunks are indexed
    twice: BGE-M3 dense vectors in Qdrant and a BM25 sparse index in process.
    Pages are rendered to PNG, and ColQwen2 embeds each page into a
    multi-vector tensor held in memory.
 2. **Classify.** A per-query classifier routes to text-only or text+visual.
    The default is an LLM zero-shot classifier (`gemma3:4b` over Ollama, no
-   API key); a regex classifier is the fallback. ADR 0013 measured this as
-   the single largest accuracy lever.
+   API key); a regex classifier is the fallback.
 3. **Retrieve.** The text leg (BM25 + BGE-M3 dense + reciprocal-rank fusion +
    BGE-reranker-v2-m3) always runs. On hybrid routes the visual leg
    (ColQwen2 late-interaction MaxSim over page images) also runs, and the two
    fuse at page granularity.
 4. **Generate.** A vision-capable model reads the retrieved chunks and their
    page images and returns an answer with chunk-level citations.
-
-Every non-obvious decision has an ADR in
-[`docs/decisions/`](./docs/decisions/), including the ones that were measured
-and rejected: a GraphRAG tier (`0018`, lost 5–1 to plain BM25-RAG on global
-synthesis), an agentic decomposition tier (`0019`, within judge noise), and
-two reranker and routing-fairness studies (`0012`, `0015`).
 
 ## Quickstart
 
@@ -176,6 +168,34 @@ classifier) is measured in isolation, so a recall change traces to one knob
 rather than a framework default. See [`docs/evals.md`](./docs/evals.md) for the golden schema and
 metric definitions.
 
+## What the evaluation found (end-to-end)
+
+Beyond retrieval, the project pins down where end-to-end answer accuracy actually
+tops out, and part of the apparent ceiling turned out to be the scorer rather than
+the model.
+
+- **It's a RAG ↔ long-context tradeoff.** Where a document fits the model's
+  context, feeding the *whole* document beats a top-5 retrieval cut by ~0.12
+  (tables +0.18); past context, retrieval is required. We measured both directions
+  and shipped route-by-fit as an opt-in eval policy (ADR
+  [0024](./docs/decisions/)). It is deliberately not wired into the corpus-wide
+  demo, which would first have to identify the target document.
+- **The strict scorer understated accuracy by ~0.11, and we caught it.** The
+  standard extract-then-match step marks terse-but-correct answers as "Not
+  answerable" (even GPT-4o does this). A strictness-checked re-grade lifts the
+  oracle read from ~0.45 to ~0.55. The honest ceiling is ~0.55; the published SOTA
+  is ~0.62 (whole document, full 1082-query set).
+- **Scaling the model doesn't move the reading.** A 31B, a 235B, and frontier
+  gemini-2.5-pro read the gold pages within a point of each other; the bottleneck
+  is fine-grained figure and table reading, not model size.
+- **Negatives are measured, not assumed.** GraphRAG lost to plain RAG (ADR
+  [0018](./docs/decisions/), 5–1 on global synthesis); agentic query-decomposition
+  did not transfer and hurt retrieval on this corpus (ADR
+  [0019](./docs/decisions/)); text rerankers were a wash (ADR
+  [0012](./docs/decisions/)).
+
+Full methodology in [`docs/results.md`](./docs/results.md).
+
 ## Limitations
 
 - **The visual leg needs a CUDA GPU.** The hosted demo is CPU-only on Cloud
@@ -190,17 +210,6 @@ metric definitions.
   image (e.g. *"the line is red"*) and the judge sees only text, faithfulness
   is scored low. For generation quality, trust gold-answer match, not the
   judge.
-- **End-to-end QA is a RAG↔long-context tradeoff, not a fixed ceiling.** The
-  recall@10 win above is the headline the repo stands on. On *answer* accuracy:
-  GPT-4o (the old 0.44 number) is now the leaderboard *floor* (SOTA ~0.62), and our
-  number isn't comparable anyway — we do top-5 RAG, the leaderboard feeds whole
-  documents. On docs that fit context, feeding the *whole doc* beats top-5 by ~0.12
-  (top-5 is an over-tight cut), while RAG stays necessary for docs/corpora beyond
-  context — so the right design routes between them. A bigger model doesn't move it
-  (a 31B, a 235B, and frontier gemini-2.5-pro all read the gold pages ~equally).
-  The strict scorer also *understates* reading accuracy by ~0.11: its extract-then-match
-  step mis-marks terse-but-correct answers, and a verified-strict re-grade lifts the
-  oracle read from ~0.45 to ~0.55. Numbers in [`docs/results.md`](./docs/results.md).
 - **Cold start.** The demo runs at `min-instances=0`, so the first query
   after idle waits for the model and index to load; the UI shows a warm-up
   notice and retries.
