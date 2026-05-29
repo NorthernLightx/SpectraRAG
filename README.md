@@ -198,7 +198,9 @@ metric definitions.
   (top-5 is an over-tight cut), while RAG stays necessary for docs/corpora beyond
   context — so the right design routes between them. A bigger model doesn't move it
   (a 31B, a 235B, and frontier gemini-2.5-pro all read the gold pages ~equally).
-  Numbers in [`docs/results.md`](./docs/results.md).
+  The strict scorer also *understates* reading accuracy by ~0.11: its extract-then-match
+  step mis-marks terse-but-correct answers, and a verified-strict re-grade lifts the
+  oracle read from ~0.45 to ~0.55. Numbers in [`docs/results.md`](./docs/results.md).
 - **Cold start.** The demo runs at `min-instances=0`, so the first query
   after idle waits for the model and index to load; the UI shows a warm-up
   notice and retries.

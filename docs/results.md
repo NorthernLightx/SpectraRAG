@@ -290,11 +290,13 @@ gemma3:4b extractor) showed the loss is mostly *not* where we assumed:
 The honest headline: the retrieval win above is real, but the end-to-end number
 sits on a spectrum, not below a fixed bar. Two corrections matter. **First, GPT-4o
 (0.427) is the 2024 paper baseline — the leaderboard *floor*, not the bar.** Current
-MMLongBench-Doc SOTA is ~0.62 (Qwen3.6 Plus), and our ~0.46 is comparable to
-neither: the leaderboard feeds the *whole document*, we do top-5 RAG, on a strict
-149-query subset with a local extractor. A leaderboard-class model (qwen3-vl-235b)
-scored 0.62 on the whole-doc setup but 0.46 on ours — the gap is the task + harness,
-not the model. **Second, the lever is how much we feed.** The model-side levers are
+MMLongBench-Doc SOTA is ~0.62 (Qwen3.6 Plus, published), and our number is
+comparable to neither floor nor SOTA: the leaderboard feeds the *whole document*
+over the full 1082-question set with its own GPT-4o-graded harness, while we score
+top-5 RAG (or oracle pages) on a strict in-corpus subset with a local extractor. We
+did not reproduce the leaderboard config — our own whole-doc arm (gemma-4-31b)
+reached only ~0.38 strict on the docs where it ran — so the gap to 0.62 is task,
+harness, and model entangled, not attributable to any one of them. **Second, the lever is how much we feed.** The model-side levers are
 measured-closed (fewer pages refuted; prompt net-neutral; a stronger VLM up to
 frontier gemini-2.5-pro gives no lift — three readers converge ~0.42 oracle). But on
 docs that fit context, **whole-doc beats top-5 RAG by +0.12** (figures +0.12, tables
@@ -303,9 +305,22 @@ dominated. Whole-doc fails or loses *beyond* context (it errored on 30 % of quer
 here and lost on the >50-page docs), where RAG is required. So the real picture is
 the RAG↔long-context **spectrum**: long-context when the content fits, RAG when it
 doesn't — and the repo's per-query router is the natural place to choose ("route
-before retrieve"). A fair-scoring pass (relaxing the strict extractor) recovers a
-further ~0.08. The page-count sweep, failure taxonomy, three-model VLM test, and the
-whole-doc comparison are in
+before retrieve").
+
+**The strict scorer understates the oracle read by ~0.11 (verified).** Auditing the
+oracle failures showed the official extract-then-match step mis-marks terse-but-correct
+answers as "Not answerable" — even GPT-4o does this, because it is built to pull a
+short answer out of *verbose* reasoning, and a one-word correct answer reads to it as
+no-analysis. A direct correctness judge that still respects the gold (it rejects wrong
+values, refusals, and even a truncated answer, and does not credit a suspected-wrong
+gold) lifts the oracle read by **+0.08 to +0.13 across three models**: gemini
+0.45→0.52, gemma-4-31b 0.45→0.56, qwen3-vl-235b 0.43→0.56 (~+0.11 average; gemini
+recovers least because it genuinely refuses more). So the honest oracle ceiling is
+**~0.52–0.56**, and the residual below the 0.62 frontier is genuine hard figure/table
+reading plus the whole-doc/full-set harness gap, not bad gold.
+
+The page-count sweep, failure taxonomy, three-model VLM test, the oracle-failure audit,
+and the whole-doc comparison are in
 [`docs/research/2026-05-29-agenda/RESULTS.md`](./research/2026-05-29-agenda/RESULTS.md).
 
 ## Multi-modal regression gate
