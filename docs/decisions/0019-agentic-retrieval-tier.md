@@ -7,6 +7,9 @@ ship. Stays in tree opt-in (`--agentic` in `eval_run`), since the
 per-category split is real and useful as a future routing input:
 **figure +9.2pp**, **factual −5.0pp**, **table −10.0pp**. Fifth honest-
 negative ADR in this repo (0012, 0013/0015, 0016, 0018, 0019).
+**Amended 2026-05-29:** the selective-gate follow-up this ADR left open was tested
+on MMLongBench and **refuted** — agentic decomposition degrades page-recall there
+(−0.08) and the gate has nothing to switch on. See "Amendment" below.
 **Date:** 2026-05-20
 
 ## Context
@@ -143,6 +146,39 @@ is the next ADR's job, not this one's — exactly the discipline ADR
   tighten the band; the −0.0013 overall delta might survive or might
   invert. Either outcome is honest; the current data says "not better"
   with the available judge.
+
+## Amendment (2026-05-29) — the selective gate, tested on MMLongBench, is refuted
+
+This ADR left the **selective / router-style agentic** gate (decompose only where it
+helps) as the obvious next experiment. It was run on 2026-05-29 and **does not work
+on MMLongBench**.
+
+The shipped `AgenticRetriever` (gemma3:4b decompose → per-subquery `PipelineRetriever`
+→ RRF) ran over the same `routing_study` collection the committed depth-50 baseline
+uses, all 149 queries, scored at **page-recall** against the gold pages — MMLongBench
+gold is pages, so no judge is needed, which sidesteps the v3 judge-noise band that
+made this ADR's verdict inconclusive. `scripts/experiments/bet2_agentic_mmlb_run.py`
++ `bet2_mmlb_gate.py`.
+
+- **Agentic decomposition degrades retrieval** (n=107 in-corpus): page-recall@10
+  **0.632 → 0.551** (−0.081, 95% CI [−0.143, −0.020], excludes zero); figure −0.076,
+  table −0.130. The v3 **+9.2 pp figure** gain does **not** transfer: MMLongBench
+  questions are precise and page-grounded ("the chart on page 14…"), so splitting them
+  into vaguer sub-questions dilutes the specificity that retrieved the gold page, and
+  RRF over the diffuse sub-rankings buries it.
+- **The selective gate has nothing to switch on.** The only category where agentic ≥
+  baseline is `factual`, where it is a literal no-op, so an oracle category-gate
+  reproduces the baseline exactly (**+0.000**); even the unreachable per-query oracle
+  nets only +0.028.
+- **Validated apples-to-apples:** the 21 queries the decomposer left atomic match the
+  baseline text leg 20/21 exactly (the pipeline is identical when it does not
+  decompose), and the 128 it decomposed diverge hard (page-jaccard 0.35), so the drop
+  is real decomposition work, not a no-op.
+
+**Verdict: do not build the selective-gate classifier.** The 2026-05-20 open question
+is closed. Caveat: one decomposer (`gemma3:4b`, the shipped router model) and the text
+leg only; a stronger decomposer is untested, but the shipped tier hurts. Full record:
+`docs/research/2026-05-29-agenda/RESULTS.md`.
 
 ## Related
 
