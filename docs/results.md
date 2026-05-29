@@ -262,6 +262,52 @@ retrieval-only measurement above and its run-ids differ deliberately.
 | answer_relevance | 0.6812 | 0.6879 | +1.0 % |
 | context_precision | 0.4315 | 0.4369 | +1.3 % |
 
+## End-to-end — a RAG↔long-context spectrum, not a fixed ceiling
+
+The retrieval lift and the strong oracle-page generation are both real, but they
+do not multiply into a SOTA end-to-end QA number. Measuring the real path (cached
+qwen3-vl-235b answers over real top-5 retrieval, official three-stage protocol,
+gemma3:4b extractor) showed the loss is mostly *not* where we assumed:
+
+- **Oracle pages, strong VLM:** qwen3-vl-32b fed the gold page scores **ACC 0.505
+  / F1 0.518** (n=106). This is the official metric on our 106-query in-corpus
+  subset with a local extractor (a conservative lower bound), not the 1082-query
+  leaderboard number; read it as competitive with GPT-4o's 0.436 (the 2024
+  baseline, now the leaderboard floor — current SOTA is ~0.62), not a leaderboard
+  win.
+- **Real retrieval — the gold page is usually there, generation loses it.** On
+  the full answerable set (n=110), the gold page is in the real top-5 **72 %** of
+  the time, yet generation converts only **~46-48 %** of those — it loses about
+  half *with the page in hand*. Holding the model fixed (gemma-4-31b on both arms), the
+  clean oracle→real retrieval tax is just **0.07** (0.42→0.35); the larger
+  cross-model drop is a confound. And a bigger generator showed no
+  benefit on the queries we could compare head-to-head (235B ≈ 31B, n=19). So the dominant
+  end-to-end loss is **post-retrieval**, not retrieval recall.
+- **The recall ceiling** (recall@5 0.66, @10 0.75 over the full n=111) is a real
+  upper bound on what retrieval can deliver, but it is not the binding constraint
+  on the measured queries — generation is.
+
+The honest headline: the retrieval win above is real, but the end-to-end number
+sits on a spectrum, not below a fixed bar. Two corrections matter. **First, GPT-4o
+(0.427) is the 2024 paper baseline — the leaderboard *floor*, not the bar.** Current
+MMLongBench-Doc SOTA is ~0.62 (Qwen3.6 Plus), and our ~0.46 is comparable to
+neither: the leaderboard feeds the *whole document*, we do top-5 RAG, on a strict
+149-query subset with a local extractor. A leaderboard-class model (qwen3-vl-235b)
+scored 0.62 on the whole-doc setup but 0.46 on ours — the gap is the task + harness,
+not the model. **Second, the lever is how much we feed.** The model-side levers are
+measured-closed (fewer pages refuted; prompt net-neutral; a stronger VLM up to
+frontier gemini-2.5-pro gives no lift — three readers converge ~0.42 oracle). But on
+docs that fit context, **whole-doc beats top-5 RAG by +0.12** (figures +0.12, tables
++0.18) — top-5 was an over-aggressive cut, and retrieval-loss, not distraction,
+dominated. Whole-doc fails or loses *beyond* context (it errored on 30 % of queries
+here and lost on the >50-page docs), where RAG is required. So the real picture is
+the RAG↔long-context **spectrum**: long-context when the content fits, RAG when it
+doesn't — and the repo's per-query router is the natural place to choose ("route
+before retrieve"). A fair-scoring pass (relaxing the strict extractor) recovers a
+further ~0.08. The page-count sweep, failure taxonomy, three-model VLM test, and the
+whole-doc comparison are in
+[`docs/research/2026-05-29-agenda/RESULTS.md`](./research/2026-05-29-agenda/RESULTS.md).
+
 ## Multi-modal regression gate
 
 The two MMLongBench retrieval runs are committed as a pair —

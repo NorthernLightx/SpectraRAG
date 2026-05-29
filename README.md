@@ -190,6 +190,15 @@ metric definitions.
   image (e.g. *"the line is red"*) and the judge sees only text, faithfulness
   is scored low. For generation quality, trust gold-answer match, not the
   judge.
+- **End-to-end QA is a RAG↔long-context tradeoff, not a fixed ceiling.** The
+  recall@10 win above is the headline the repo stands on. On *answer* accuracy:
+  GPT-4o (the old 0.44 number) is now the leaderboard *floor* (SOTA ~0.62), and our
+  number isn't comparable anyway — we do top-5 RAG, the leaderboard feeds whole
+  documents. On docs that fit context, feeding the *whole doc* beats top-5 by ~0.12
+  (top-5 is an over-tight cut), while RAG stays necessary for docs/corpora beyond
+  context — so the right design routes between them. A bigger model doesn't move it
+  (a 31B, a 235B, and frontier gemini-2.5-pro all read the gold pages ~equally).
+  Numbers in [`docs/results.md`](./docs/results.md).
 - **Cold start.** The demo runs at `min-instances=0`, so the first query
   after idle waits for the model and index to load; the UI shows a warm-up
   notice and retries.

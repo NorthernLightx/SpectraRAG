@@ -82,6 +82,7 @@ import argparse
 import asyncio
 import base64
 import json
+import re
 import sys
 import time
 from pathlib import Path
@@ -174,6 +175,56 @@ def select_pages(fused_top50: list[str], top_k: int) -> list[Page]:
     _dedup_pages_in_rank.
     """
     return _dedup_pages_in_rank(fused_top50)[:top_k]
+
+
+# ADR 0024: route-by-fit page selector. Composes with select_pages (does not
+# replace it). Feed the whole document when it fits the context budget, else
+# fall back to the top-k RAG cut. The fit test is a CLOSED interval
+# (page_count <= budget routes whole-doc). page_count is taken as a plain int so
+# this helper is source-agnostic and pure; the caller resolves the document's
+# TRUE page count + full page list (the load-bearing input: retrieval surfaces
+# only top-50, so the count must come from outside the retrieved set).
+def route_pages_by_fit(
+    page_count: int,
+    budget: int,
+    all_pages: list[Page],
+    fused: list[str],
+    top_k: int,
+) -> list[Page]:
+    """Whole-doc page list when it fits the budget, else select_pages(fused, top_k).
+
+    Returns list[Page] (same type as select_pages) so the call site stays
+    type-uniform regardless of which arm fires.
+    """
+    if page_count <= budget:
+        return all_pages
+    return select_pages(fused, top_k)
+
+
+def _resolve_doc_pages(paper: str) -> tuple[int, list[Page]] | None:
+    """The document's TRUE page count + full ordered page list, from the
+    rendered-pages directory (data/pages/<paper>/<paper>_p<N>.png).
+
+    NOT derived from fused_top50: retrieval surfaces only top-50, so deriving
+    "all pages" from the retrieved set silently under-feeds the model. The page
+    number is parsed from each filename (renders are not zero-padded and may have
+    gaps), pages are returned sorted ascending, and count is len(pages). Returns
+    None when the directory is absent or holds no page renders, so the caller can
+    FAIL LOUD rather than silently falling back to RAG on a missing doc.
+    """
+    paper_dir = _PAGES_ROOT / paper
+    if not paper_dir.is_dir():
+        return None
+    page_re = re.compile(rf"^{re.escape(paper)}_p(\d+)\.png$")
+    pages: list[Page] = []
+    for png in paper_dir.glob(f"{paper}_p*.png"):
+        match = page_re.match(png.name)
+        if match is not None:
+            pages.append((paper, int(match.group(1))))
+    if not pages:
+        return None
+    pages.sort(key=lambda pg: pg[1])
+    return len(pages), pages
 
 
 async def _chat_vision(
@@ -296,6 +347,7 @@ async def run(args: argparse.Namespace) -> int:
     out_records: list[dict[str, Any]] = []
     skipped_no_gold = 0
     missing_png: set[str] = set()
+    missing_pages_dir: set[str] = set()
     n = len(per_query_in)
 
     # OpenRouter generation reuses the project client (it builds the image_url
@@ -315,7 +367,28 @@ async def run(args: argparse.Namespace) -> int:
 
             question = gold.get("text") or rec.get("query") or ""
             fused = rec.get("fused_top50") or []
-            pages = select_pages(fused, args.top_k)
+            if args.page_budget is None:
+                pages = select_pages(fused, args.top_k)
+            else:
+                # ADR 0024: route-by-fit. Resolve the doc's TRUE page count + full
+                # page list from disk (NOT fused_top50, which is retrieval-only and
+                # would under-feed the model). FAIL LOUD on an unresolvable doc
+                # (log + skip, the same "make the gap visible" posture as
+                # missing_png) rather than silently routing it to RAG.
+                resolved = _resolve_doc_pages(gold.get("paper_id") or "")
+                if resolved is None:
+                    missing_pages_dir.add(str(gold.get("paper_id")))
+                    print(
+                        f"  [{i + 1}/{n}] {qid}  PAGES DIR UNRESOLVED for paper "
+                        f"{gold.get('paper_id')!r} -- skipped (route-by-fit needs the "
+                        "true page count from disk)",
+                        flush=True,
+                    )
+                    continue
+                page_count, all_pages = resolved
+                pages = route_pages_by_fit(
+                    page_count, args.page_budget, all_pages, fused, args.top_k
+                )
 
             # Resolve page PNGs; skip any page whose image is missing on disk
             # (record it so the operator sees the gap rather than silently
@@ -328,10 +401,13 @@ async def run(args: argparse.Namespace) -> int:
                 else:
                     missing_png.add(str(p))
 
-            # The cache key must include anything that changes the prompt, or a
-            # reused --cache silently serves stale answers. The default prompt
-            # variant adds no suffix, so pre-existing caches still match.
-            _key_extra = f"::pv{args.prompt_variant}" if args.prompt_variant != "default" else ""
+            # The cache key must include anything that changes the fed pages or
+            # the prompt, or a reused --cache silently serves stale answers (e.g.
+            # top-5 answers against a whole-doc page set). Default page_budget /
+            # prompt_variant add no suffix, so pre-existing caches still match. (ADR 0024)
+            _key_extra = (f"::pb{args.page_budget}" if args.page_budget is not None else "") + (
+                f"::pv{args.prompt_variant}" if args.prompt_variant != "default" else ""
+            )
             cache_key = f"{args.model}::k{args.top_k}{_key_extra}::{qid}"
             cached = cache.get(cache_key)
             if cached is not None:
@@ -453,6 +529,10 @@ async def run(args: argparse.Namespace) -> int:
             "retrieval": str(args.retrieval),
             "golden": str(args.golden),
             "answer_prompt": "run_mmlb_qa._SYSTEM_PROMPT",
+            # ADR 0024: a moved metric must be explainable. Record the page-budget
+            # and whether route-by-fit was active for this run.
+            "page_budget": args.page_budget,
+            "route_by_fit": args.page_budget is not None,
         },
         "per_query": out_records,
     }
@@ -467,6 +547,13 @@ async def run(args: argparse.Namespace) -> int:
     if missing_png:
         print(f"  WARNING: {len(missing_png)} page PNG(s) referenced but missing on disk, e.g.:")
         for missing in sorted(missing_png)[:5]:
+            print(f"    {missing}")
+    if missing_pages_dir:
+        print(
+            f"  WARNING: {len(missing_pages_dir)} doc(s) skipped (pages dir unresolved "
+            "for route-by-fit), e.g.:"
+        )
+        for missing in sorted(missing_pages_dir)[:5]:
             print(f"    {missing}")
     print(
         "\nScore with:\n"
@@ -509,6 +596,16 @@ def main() -> None:
     parser.add_argument("--ollama-url", default="http://localhost:11434")
     parser.add_argument(
         "--top-k", type=int, default=5, help="number of UNIQUE pages from fused_top50 to feed"
+    )
+    parser.add_argument(
+        "--page-budget",
+        type=int,
+        default=None,
+        help="ADR 0024 route-by-fit: when set, feed the WHOLE document (every "
+        "rendered page from data/pages/<paper>, the doc's true page count) when its "
+        "page count <= this budget, else fall back to the --top-k RAG cut. Unset "
+        "(default) keeps the top-k path byte-for-byte. A doc whose pages dir can't be "
+        "resolved is skipped loudly, not silently sent to RAG.",
     )
     parser.add_argument("--temperature", type=float, default=0.0)
     parser.add_argument("--max-tokens", type=int, default=512)
