@@ -116,3 +116,34 @@ async def test_chat_does_not_retry_on_401() -> None:
             model="any/model",
         )
     assert route.call_count == 1  # no retries
+
+
+@respx.mock
+async def test_chat_retries_on_missing_choices_then_succeeds() -> None:
+    """Free-tier models intermittently return a 200 whose body is an error
+    object with no `choices`. That must be retried (OpenRouterUpstreamError),
+    not crash on data["choices"] with a KeyError."""
+    route = respx.post("https://openrouter.ai/api/v1/chat/completions").mock(
+        side_effect=[
+            httpx.Response(200, json={"error": {"message": "rate-limited upstream"}}),
+            httpx.Response(
+                200,
+                json={
+                    "model": "m",
+                    "choices": [{"message": {"content": "OK"}}],
+                    "usage": {"prompt_tokens": 1, "completion_tokens": 1},
+                },
+            ),
+        ]
+    )
+    import tenacity
+
+    original = tenacity.nap.sleep
+    tenacity.nap.sleep = lambda _: None  # type: ignore[assignment]
+    try:
+        client = OpenRouterClient(api_key="sk-test")
+        resp = await client.chat(messages=[Message(role="user", content="ping")], model="m")
+    finally:
+        tenacity.nap.sleep = original
+    assert resp.text == "OK"
+    assert route.call_count == 2

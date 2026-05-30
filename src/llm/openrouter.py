@@ -15,6 +15,12 @@ _OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 _DEFAULT_TIMEOUT_SECONDS = 60.0
 
 
+class OpenRouterUpstreamError(RuntimeError):
+    """A 200 response carrying an error/rate-limit body instead of `choices`.
+    Free-tier models emit this under load (surfaced as KeyError: 'choices'
+    downstream). Retryable: it usually clears on the next attempt."""
+
+
 def _should_retry_request(exc: BaseException) -> bool:
     """Retry on transport errors and on HTTP 429 (rate limit). 4xx other than
     429 are not retryable (auth errors, model not found, etc); 5xx are
@@ -26,7 +32,7 @@ def _should_retry_request(exc: BaseException) -> bool:
     hit this on call ~120 of a v3 run). Exponential backoff with a longer
     cap (60s) covers minute-bounded rate windows.
     """
-    if isinstance(exc, (httpx.TransportError, httpx.RemoteProtocolError)):
+    if isinstance(exc, (httpx.TransportError, httpx.RemoteProtocolError, OpenRouterUpstreamError)):
         return True
     return isinstance(exc, httpx.HTTPStatusError) and exc.response.status_code == 429
 
@@ -78,6 +84,14 @@ class OpenRouterClient:
         data = response.json()
         if not isinstance(data, dict):
             raise ValueError(f"OpenRouter returned non-object response: {type(data).__name__}")
+        # Free-tier models intermittently return a 200 whose body is an
+        # error/rate-limit object with no `choices`. Raise a retryable error so
+        # the backoff above gets another attempt instead of crashing the run on
+        # `data["choices"]` (the agenda's KeyError: 'choices').
+        if not data.get("choices"):
+            raise OpenRouterUpstreamError(
+                f"OpenRouter response had no choices (transient upstream body): {data.get('error')}"
+            )
         return data
 
     async def chat(
