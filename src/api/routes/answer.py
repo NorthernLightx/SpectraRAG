@@ -4,11 +4,13 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Request
 
-from src.api.deps import get_generator, get_retriever, get_tracer
+from src.api.deps import get_generator, get_retriever, get_settings, get_tracer
 from src.api.rate_limit import limiter
+from src.config.settings import Settings
 from src.observability.langfuse import LangfuseLike, trace_query
 from src.observability.otel import get_tracer as get_otel_tracer
 from src.rag.generate import Generator
+from src.rag.page_budget import resolve_whole_doc_pages
 from src.rag.retrievers.protocol import Retriever
 from src.types import Answer, Query
 
@@ -27,12 +29,29 @@ async def answer(
     retriever: Retriever = Depends(get_retriever),
     generator: Generator = Depends(get_generator),
     tracer: LangfuseLike | None = Depends(get_tracer),
+    settings: Settings = Depends(get_settings),
 ) -> Answer:
     otel_tracer = get_otel_tracer()
     with otel_tracer.start_as_current_span("rag.retrieve") as span:
         span.set_attribute("rag.query.text_len", len(payload.text))
         span.set_attribute("rag.query.top_k", payload.top_k)
-        retrieved = await retriever.retrieve(payload)
+        # ADR 0024 route-by-fit: when the query names a paper and that document
+        # fits the page budget, feed the WHOLE document's page images instead of
+        # the top-k RAG cut. Decision inputs (paper id, budget, on-disk page
+        # count) need no retrieval, so a whole-doc hit skips retrieval entirely.
+        # Falls back to RAG when route-by-fit is off, the query isn't
+        # paper-scoped, or the doc is missing / over budget.
+        whole_doc = None
+        paper_id = payload.paper_id_filter()
+        if settings.page_budget is not None and settings.pages_dir is not None and paper_id:
+            whole_doc = resolve_whole_doc_pages(paper_id, settings.pages_dir, settings.page_budget)
+        if whole_doc is not None:
+            retrieved = whole_doc
+            span.set_attribute("rag.route_by_fit", "whole_doc")
+            span.set_attribute("rag.route_by_fit.pages", len(whole_doc))
+        else:
+            retrieved = await retriever.retrieve(payload)
+            span.set_attribute("rag.route_by_fit", "rag")
         span.set_attribute("rag.retrieved.count", len(retrieved))
 
     with otel_tracer.start_as_current_span("rag.generate") as span:

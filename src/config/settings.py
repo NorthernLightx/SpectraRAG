@@ -136,6 +136,19 @@ class Settings(BaseSettings):
     # behaviour (the previous default).
     pages_dir: Path | None = None
 
+    # ADR 0024: route-by-fit page budget for the production /answer path. When set
+    # AND the query is paper-scoped (Query.filters['paper_id'], ADR 0009) AND the
+    # named document's page count <= this budget, /answer feeds the WHOLE
+    # document's page images instead of the top-k RAG cut — the measured +0.12
+    # lever on docs that fit (ADR 0024). Larger docs, and any corpus query that
+    # doesn't name a paper, fall back to RAG. Default None keeps the top-k path
+    # unchanged. Requires `pages_dir` + a vision `default_chat_model`. The
+    # generator's per-call vision-image cap is raised to this budget so a fitting
+    # document isn't silently truncated. Sizing caveat: feeding many page images
+    # is a large payload — ADR 0024 measured whole-doc choking the free tier on
+    # big docs, so set the budget to your model's context + cost envelope.
+    page_budget: int | None = Field(default=None, ge=1)
+
     # Embedder backend for the FastAPI app's retrieval path. `ollama` is the
     # local-dev default (uses the docker-compose ollama sidecar).
     # `sentence_transformers` is the deploy default — in-process torch

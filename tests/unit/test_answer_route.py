@@ -3,13 +3,22 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
+from pathlib import Path
 from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
 
-from src.api.deps import _GeneratorState, _RetrieverState, get_generator, get_retriever, get_tracer
+from src.api.deps import (
+    _GeneratorState,
+    _RetrieverState,
+    get_generator,
+    get_retriever,
+    get_settings,
+    get_tracer,
+)
 from src.api.main import create_app
+from src.config.settings import Settings
 from src.types import Answer, Citation, Query, RetrievalResult
 from tests.fakes import FakeRetriever
 
@@ -164,3 +173,104 @@ def test_create_app_does_not_wire_generator_when_key_unset() -> None:
     """Without the key, _GeneratorState stays None — /answer returns 503 by design."""
     create_app(log_file=None)
     assert _GeneratorState.instance is None
+
+
+# --- ADR 0024 route-by-fit on /answer ------------------------------------
+
+
+class _TrackingRetriever:
+    """Retriever stub that records whether retrieve() ran — lets the route-by-fit
+    tests assert the whole-doc path skipped retrieval entirely. FakeRetriever
+    doesn't track calls, so the skip assertion needs this."""
+
+    def __init__(self, results: list[RetrievalResult]) -> None:
+        self._results = results
+        self.calls: list[Query] = []
+
+    async def retrieve(self, query: Query) -> list[RetrievalResult]:
+        self.calls.append(query)
+        return self._results[: query.top_k]
+
+
+def _two_page_doc(pages_dir: Path, paper_id: str, n_pages: int) -> None:
+    paper_dir = pages_dir / paper_id
+    paper_dir.mkdir(parents=True)
+    for p in range(1, n_pages + 1):
+        (paper_dir / f"{paper_id}_p{p}.png").write_bytes(b"\x89PNG\r\n")
+
+
+def test_answer_whole_doc_when_paper_scoped_and_fits(tmp_path: Path) -> None:
+    # Paper-scoped query + budget + doc fits -> feed the whole document's page
+    # images and SKIP retrieval entirely (route-by-fit, ADR 0024).
+    _two_page_doc(tmp_path, "paperX", 2)
+    retriever = _TrackingRetriever(_retrieved())
+    generator = _StubGenerator(_answer_payload())
+
+    app = create_app(log_file=None)
+    app.dependency_overrides[get_retriever] = lambda: retriever
+    app.dependency_overrides[get_generator] = lambda: generator
+    app.dependency_overrides[get_settings] = lambda: Settings(page_budget=5, pages_dir=tmp_path)
+
+    client = TestClient(app)
+    resp = client.post("/answer", json={"text": "q", "filters": {"paper_id": "paperX"}})
+
+    assert resp.status_code == 200
+    assert retriever.calls == []  # retrieval skipped on the whole-doc path
+    fed = generator.calls[0][1]
+    assert len(fed) == 2
+    assert all(r.source == "visual" for r in fed)
+    assert {r.chunk_id for r in fed} == {"paperX::p1::page", "paperX::p2::page"}
+
+
+def test_answer_falls_back_to_rag_when_not_paper_scoped(tmp_path: Path) -> None:
+    # Budget set but the query names no paper -> RAG path (retriever is called).
+    retriever = _TrackingRetriever(_retrieved())
+    generator = _StubGenerator(_answer_payload())
+
+    app = create_app(log_file=None)
+    app.dependency_overrides[get_retriever] = lambda: retriever
+    app.dependency_overrides[get_generator] = lambda: generator
+    app.dependency_overrides[get_settings] = lambda: Settings(page_budget=5, pages_dir=tmp_path)
+
+    client = TestClient(app)
+    resp = client.post("/answer", json={"text": "q"})
+
+    assert resp.status_code == 200
+    assert len(retriever.calls) == 1
+    assert generator.calls[0][1][0].chunk_id == "c1"
+
+
+def test_answer_falls_back_to_rag_when_doc_over_budget(tmp_path: Path) -> None:
+    # Paper-scoped but the doc exceeds the budget -> RAG (whole-doc would blow context).
+    _two_page_doc(tmp_path, "paperBig", 3)
+    retriever = _TrackingRetriever(_retrieved())
+    generator = _StubGenerator(_answer_payload())
+
+    app = create_app(log_file=None)
+    app.dependency_overrides[get_retriever] = lambda: retriever
+    app.dependency_overrides[get_generator] = lambda: generator
+    app.dependency_overrides[get_settings] = lambda: Settings(page_budget=2, pages_dir=tmp_path)
+
+    client = TestClient(app)
+    resp = client.post("/answer", json={"text": "q", "filters": {"paper_id": "paperBig"}})
+
+    assert resp.status_code == 200
+    assert len(retriever.calls) == 1
+
+
+def test_answer_falls_back_to_rag_when_budget_unset(tmp_path: Path) -> None:
+    # Default (page_budget None): the top-k path is unchanged even for a scoped query.
+    _two_page_doc(tmp_path, "paperX", 2)
+    retriever = _TrackingRetriever(_retrieved())
+    generator = _StubGenerator(_answer_payload())
+
+    app = create_app(log_file=None)
+    app.dependency_overrides[get_retriever] = lambda: retriever
+    app.dependency_overrides[get_generator] = lambda: generator
+    app.dependency_overrides[get_settings] = lambda: Settings(pages_dir=tmp_path)
+
+    client = TestClient(app)
+    resp = client.post("/answer", json={"text": "q", "filters": {"paper_id": "paperX"}})
+
+    assert resp.status_code == 200
+    assert len(retriever.calls) == 1

@@ -2,9 +2,10 @@
 
 **Status:** Accepted for the eval generation path; shipped as an opt-in policy
 in `scripts/experiments/run_mmlb_qa.py` (`route_pages_by_fit`, behind
-`--page-budget`, default off — the top-k path is unchanged). Production `/answer`
-wiring is explicitly out of scope (see §"What this leaves open"). Not a baseline
-change.
+`--page-budget`, default off — the top-k path is unchanged). Not a baseline
+change. **Amended 2026-06-01:** the production `/answer` path is now wired for
+the **paper-scoped** subset only, opt-in behind `Settings.page_budget` (default
+None). See "Amendment" below.
 **Date:** 2026-05-29.
 
 ## Context
@@ -68,16 +69,16 @@ window entirely. The crossover is real and measured.
 
 ## What this leaves open
 
-- **Production `/answer` is deliberately not wired.** `Generator.answer` consumes
-  only `list[RetrievalResult]`, and `RetrievalResult` carries no document
+- **Production `/answer` is deliberately not wired.** *(Superseded for the
+  paper-scoped subset by the 2026-06-01 amendment below.)* `Generator.answer`
+  consumes only `list[RetrievalResult]`, and `RetrievalResult` carries no document
   page-count, so the policy's input does not exist on the production path. Worse,
   the measured win is single-doc QA where "the document" is given by the gold
   label; a corpus-wide endpoint must first *identify* the document, which is
-  unsolved and unmeasured here. Wiring prod would mean new ingestion metadata, a
-  doc→page-count lookup, retriever→generator plumbing, and doc-identification
-  logic — speculative surface for a portfolio demo. Production keeps its
-  `_MAX_VISION_IMAGES = 4` cap. Revisit only if a corpus-setting measurement
-  justifies it.
+  unsolved and unmeasured here. The amendment resolves the page-count input from
+  disk and restricts to paper-scoped queries (where the document is already
+  named), so it sidesteps doc-identification; the unscoped corpus case stays
+  unwired.
 
 - **The +0.116 is on a feasibility-filtered subset.** Whole-doc *failed on
   45/149 queries (30%)* — large page-image payloads choked the free tier — so the
@@ -96,6 +97,53 @@ window entirely. The crossover is real and measured.
   generation/extraction pair. The crossover budget is corpus- and
   context-window-specific; the rule generalizes, the threshold does not transfer
   unmeasured.
+
+## Amendment (2026-06-01) — paper-scoped production wiring
+
+The original decision left production `/answer` unwired, citing two blockers: the
+policy's page-count input doesn't exist on the production path, and a corpus-wide
+endpoint must first *identify* the document (unsolved). The first is mechanical;
+the second only applies to unscoped corpus queries. So this amendment wires
+route-by-fit for the **paper-scoped subset** — queries that already name the
+document via `Query.filters['paper_id']` (ADR 0009) — which is the exact single-doc
+regime the +0.12 was measured in, and which sidesteps document identification
+entirely.
+
+Wiring (opt-in, default off, no baseline change):
+
+- `Settings.page_budget: int | None = None`. Unset reproduces the top-k path
+  byte-for-byte.
+- `src/rag/page_budget.py:resolve_whole_doc_pages(paper_id, pages_dir, budget)` —
+  resolves the document's true page count from the rendered-pages directory (NOT
+  from retrieval, per §"What this leaves open"), and returns whole-document page
+  images as visual `RetrievalResult`s when `page_count <= budget`, else `None`.
+- `/answer` calls it only when `page_budget` is set AND the query is paper-scoped
+  AND `pages_dir` is set; a whole-doc hit skips retrieval entirely, else it falls
+  back to RAG. Emits `rag.route_by_fit` on the span.
+- `Generator(max_vision_images=...)` — the previously hardcoded `_MAX_VISION_IMAGES
+  = 4` cap is now a constructor arg; bootstrap raises it to `page_budget` so a
+  fitting document isn't silently truncated to 4 images (the failure §"What this
+  leaves open" warns about). Default stays 4.
+
+Honest scope limits:
+
+- **Unscoped corpus queries still get RAG.** Document identification remains
+  unsolved/unmeasured; this amendment does not attempt it.
+- **The +0.12 is not re-measured in production.** This wires the *mechanism* the
+  eval proved, on the same single-doc regime; it is not a fresh production
+  benchmark. The threshold is corpus/model-specific and does not transfer
+  unmeasured (original caveat stands).
+- **Payload cost is real.** A whole-doc feed sends every page image in one call;
+  the operator sizes `page_budget` to the model's context + cost envelope. The
+  eval saw whole-doc choke the free tier on big docs.
+- **Context shape differs slightly from the eval path.** The production generator
+  still builds its (now empty-text) context blocks around the page images, where
+  `run_mmlb_qa` fed images + question only. The page images carry the signal
+  either way; the empty blocks are minor prompt noise.
+
+Tests: `tests/unit/test_page_budget.py` (resolver: fit/boundary/over-budget/
+missing/prefix-collision/sort), `test_generate.py` (image-cap default 4 vs raised),
+`test_answer_route.py` (whole-doc vs RAG-fallback branches).
 
 ## Related
 

@@ -57,6 +57,7 @@ class Generator:
         refusal_score_threshold: float | None = None,
         refusal_text: str = "I cannot answer this question from the provided corpus.",
         pages_dir: Path | None = None,
+        max_vision_images: int = _MAX_VISION_IMAGES,
     ) -> None:
         self._llm = llm
         self._prompt = prompt
@@ -66,6 +67,10 @@ class Generator:
         self._refusal_score_threshold = refusal_score_threshold
         self._refusal_text = refusal_text
         self._pages_dir = pages_dir
+        # Cap on page images attached to one call. Default 4 (a single answer
+        # rarely needs more). ADR 0024's route-by-fit raises this to the page
+        # budget so a whole-document feed isn't silently truncated.
+        self._max_vision_images = max_vision_images
 
     async def answer(self, query: str, retrieved: list[RetrievalResult]) -> Answer:
         if self._refusal_score_threshold is not None and self._should_refuse(retrieved):
@@ -130,7 +135,7 @@ class Generator:
 
         Skips retrievals that aren't visual, missing pages_dir, malformed chunk_ids,
         and missing image files (logs a warning for the last). Capped at
-        _MAX_VISION_IMAGES to keep input tokens bounded.
+        self._max_vision_images to keep input tokens bounded.
         """
         if self._pages_dir is None:
             return []
@@ -148,8 +153,8 @@ class Generator:
                 _log.warning("generate.image_missing", path=str(img_path), chunk=r.chunk_id)
                 continue
             out.append(img_path)
-            if len(out) >= _MAX_VISION_IMAGES:
-                _log.info("generate.images_capped", cap=_MAX_VISION_IMAGES, chunk=r.chunk_id)
+            if len(out) >= self._max_vision_images:
+                _log.info("generate.images_capped", cap=self._max_vision_images, chunk=r.chunk_id)
                 break
         return out
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 from src.llm.protocol import ChatResponse, Message
@@ -197,3 +198,43 @@ async def test_citation_ignores_malformed_bbox_metadata() -> None:
         answer = await gen.answer("q", [_result("c1", "text", metadata=bad)])
         [cit] = answer.citations
         assert cit.bbox is None, f"should reject malformed bbox metadata: {bad!r}"
+
+
+def _whole_doc_visual_results(
+    pages_dir: Path, paper_id: str, n_pages: int
+) -> list[RetrievalResult]:
+    """Render n placeholder page PNGs for `paper_id` and return matching visual results."""
+    paper_dir = pages_dir / paper_id
+    paper_dir.mkdir()
+    out: list[RetrievalResult] = []
+    for n in range(1, n_pages + 1):
+        (paper_dir / f"{paper_id}_p{n}.png").write_bytes(b"\x89PNG\r\n")
+        out.append(
+            RetrievalResult(
+                chunk_id=f"{paper_id}::p{n}::page",
+                paper_id=paper_id,
+                score=1.0,
+                text="",
+                page_numbers=[n],
+                source="visual",
+            )
+        )
+    return out
+
+
+def test_collect_image_paths_default_cap_is_four(tmp_path: Path) -> None:
+    # ADR 0024: the default vision-image cap stays 4 (back-compat) — a whole-doc
+    # feed without the raised cap would be silently truncated.
+    results = _whole_doc_visual_results(tmp_path, "p1", 6)
+    gen = Generator(llm=_StubLLM("x"), prompt=_prompt(), model="m", pages_dir=tmp_path)
+    assert len(gen._collect_image_paths(results)) == 4
+
+
+def test_collect_image_paths_respects_raised_cap(tmp_path: Path) -> None:
+    # ADR 0024: with max_vision_images raised to the page budget, a whole document
+    # is fed in full rather than truncated to the default 4.
+    results = _whole_doc_visual_results(tmp_path, "p1", 6)
+    gen = Generator(
+        llm=_StubLLM("x"), prompt=_prompt(), model="m", pages_dir=tmp_path, max_vision_images=6
+    )
+    assert len(gen._collect_image_paths(results)) == 6
