@@ -23,7 +23,7 @@ from src.llm.openrouter import OpenRouterClient
 from src.observability.logging import get_logger
 from src.prompts.loader import load_prompt_by_name
 from src.rag.bm25 import Bm25Index
-from src.rag.generate import Generator
+from src.rag.generate import _MAX_VISION_IMAGES, Generator
 from src.rag.rerank import BgeReranker
 from src.rag.retrievers.pipeline import PipelineRetriever
 from src.rag.retrievers.protocol import Retriever
@@ -60,6 +60,11 @@ def _wire_generator_from_settings(settings: Settings) -> bool:
             pages_dir=settings.pages_dir,
             # Calibrated refusal gate (settings docstring + ADR 0009 follow-up).
             refusal_score_threshold=settings.refusal_score_threshold,
+            # ADR 0024: when route-by-fit is enabled, a fitting whole document
+            # resolves to ALL its pages; the per-call image cap must rise to the
+            # page budget or _collect_image_paths silently truncates to 4 and
+            # erases the win. Unset budget keeps the constructor default cap.
+            max_vision_images=settings.page_budget or _MAX_VISION_IMAGES,
         )
     )
     return True

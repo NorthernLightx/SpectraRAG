@@ -51,6 +51,7 @@ def _settings(
     openrouter_api_key: str | None = None,
     refusal_score_threshold: float | None = 0.105,
     reranker_model: str | None = None,
+    page_budget: int | None = None,
 ) -> Settings:
     kwargs: dict[str, object] = {
         "env": "test",
@@ -63,6 +64,8 @@ def _settings(
     }
     if pages_dir is not None:
         kwargs["pages_dir"] = pages_dir
+    if page_budget is not None:
+        kwargs["page_budget"] = page_budget
     if openrouter_api_key is not None:
         kwargs["openrouter_api_key"] = openrouter_api_key
     if reranker_model is not None:
@@ -418,4 +421,25 @@ def test_wire_generator_skips_when_no_api_key() -> None:
     """No OpenRouter key = no generator wired = /answer 503s."""
     wired = _wire_generator_from_settings(_settings(openrouter_api_key=None))
     assert wired is False
-    assert _GeneratorState.instance is None
+
+
+def test_wire_generator_raises_image_cap_to_page_budget() -> None:
+    """ADR 0024: when page_budget is set, the Generator's vision-image cap must rise
+    to it, else a fitting whole document is silently truncated to 4 images (the win
+    is erased). Guards the real bootstrap wiring, not a hand-built Generator."""
+    wired = _wire_generator_from_settings(
+        _settings(openrouter_api_key="sk-test", page_budget=30)
+    )
+    assert wired is True
+    assert _GeneratorState.instance is not None
+    assert _GeneratorState.instance._max_vision_images == 30
+
+
+def test_wire_generator_keeps_default_cap_when_no_page_budget() -> None:
+    """Unset page_budget = default cap (4) = unchanged top-k/text behaviour."""
+    from src.rag.generate import _MAX_VISION_IMAGES
+
+    wired = _wire_generator_from_settings(_settings(openrouter_api_key="sk-test"))
+    assert wired is True
+    assert _GeneratorState.instance is not None
+    assert _GeneratorState.instance._max_vision_images == _MAX_VISION_IMAGES
