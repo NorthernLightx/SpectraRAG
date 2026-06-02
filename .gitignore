@@ -106,3 +106,13 @@ data/unlabeled_inspect/
 # Single-paper smoke-test corpora.
 data/papers_one/
 data/papers_*_smoke/
+
+# Local human gold-review tool + its saved verdicts (Bet 1 eval audit).
+tools/gold_review/
+data/eval/audit/
+
+# Isolated MinerU extractor venv + its parse output (ADR 0025).
+tools/_mineru_venv/
+tools/_mineru_out/
+# Local agent/workflow run artifacts.
+output/

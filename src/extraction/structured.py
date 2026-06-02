@@ -179,16 +179,17 @@ class MinerULocalExtractor:
                 )
             else:
                 async with httpx.AsyncClient(timeout=self._timeout) as client:
-                    response = await client.post(
-                        f"{self._url}/file_parse", files=files, data=data
-                    )
+                    response = await client.post(f"{self._url}/file_parse", files=files, data=data)
             response.raise_for_status()
             results = response.json().get("results", {})
         except (httpx.HTTPError, OSError):
             return _FAILED
         md = next(
-            (v["md_content"] for v in results.values()
-             if isinstance(v, dict) and "md_content" in v),
+            (
+                v["md_content"]
+                for v in results.values()
+                if isinstance(v, dict) and "md_content" in v
+            ),
             "",
         )
         return md or _FAILED

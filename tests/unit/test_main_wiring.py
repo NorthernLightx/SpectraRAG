@@ -427,9 +427,7 @@ def test_wire_generator_raises_image_cap_to_page_budget() -> None:
     """ADR 0024: when page_budget is set, the Generator's vision-image cap must rise
     to it, else a fitting whole document is silently truncated to 4 images (the win
     is erased). Guards the real bootstrap wiring, not a hand-built Generator."""
-    wired = _wire_generator_from_settings(
-        _settings(openrouter_api_key="sk-test", page_budget=30)
-    )
+    wired = _wire_generator_from_settings(_settings(openrouter_api_key="sk-test", page_budget=30))
     assert wired is True
     assert _GeneratorState.instance is not None
     assert _GeneratorState.instance._max_vision_images == 30
