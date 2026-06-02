@@ -149,6 +149,25 @@ class Settings(BaseSettings):
     # big docs, so set the budget to your model's context + cost envelope.
     page_budget: int | None = Field(default=None, ge=1)
 
+    # ADR 0025: structured-extraction backend (operator/deploy choice, not a
+    # per-query one). When not "none" the operator opts a structured extractor
+    # into the pipeline — it transcribes a page's tables/charts to text offline
+    # so the reader gets the data alongside the pixels (the +0.12 lever). The
+    # backends mirror the eval bench: "qwen-cloud" routes page images through
+    # Ollama to a vision model (`extractor_model`); "mineru-local" POSTs them to
+    # a local MinerU2.5 API server (`mineru_url`) that fits the 8 GB GPU and
+    # matches the cloud on recall. Extraction is slow (~1-3 min/page for
+    # mineru-local), so it belongs at ingest, not the query path — this selector
+    # names the backend; the ingest-time consumer is gated on the lever clearing
+    # significance. Default "none" leaves the pipeline unchanged.
+    extractor_backend: Literal["none", "qwen-cloud", "mineru-local"] = "none"
+    # Vision model for the "qwen-cloud" extractor, served via Ollama (its cloud
+    # passthrough for :cloud tags). Ignored unless extractor_backend is qwen-cloud.
+    extractor_model: str = "qwen3-vl:235b-cloud"
+    # MinerU2.5 API server for the "mineru-local" extractor (model preloaded once
+    # = efficient). Ignored unless extractor_backend is mineru-local.
+    mineru_url: str = "http://127.0.0.1:8011"
+
     # Embedder backend for the FastAPI app's retrieval path. `ollama` is the
     # local-dev default (uses the docker-compose ollama sidecar).
     # `sentence_transformers` is the deploy default — in-process torch

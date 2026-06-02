@@ -188,6 +188,16 @@ the model.
 - **Scaling the model doesn't move the reading.** A 31B, a 235B, and frontier
   gemini-2.5-pro read the gold pages within a point of each other; the bottleneck
   is fine-grained figure and table reading, not model size.
+- **Changing what the reader sees helps where a bigger model doesn't.** The
+  bottleneck is reading figures and tables, so this lever works on the input rather
+  than the model: transcribe a page's tables and charts to text offline and feed it
+  to the reader alongside the page image. On the post-retrieval failure set that
+  adds about 0.12, but on too few cases to call significant yet. The extractor can
+  be a local 1.2B model (MinerU2.5) instead of a cloud one: it matches
+  qwen3-vl-235b on extraction recall, a tie rather than a win. The backend selector
+  is in place (`RAG_EXTRACTOR_BACKEND`, default off); the ingest-time path that
+  would feed it to the reader waits until the result holds up
+  (ADR [0025](./docs/decisions/)).
 - **Negatives are measured, not assumed.** GraphRAG lost to plain RAG (ADR
   [0018](./docs/decisions/), 5–1 on global synthesis); agentic query-decomposition
   did not transfer and hurt retrieval on this corpus (ADR
