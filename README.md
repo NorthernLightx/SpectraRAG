@@ -102,9 +102,10 @@ uv run uvicorn src.api.main:app --reload --port 8000
 
 Then open:
 
-- <http://localhost:8000/> — single-shot search UI
-- <http://localhost:8000/chat.html> — conversational UI (fresh retrieval per
-  turn, with a query-condense step on follow-ups)
+- <http://localhost:8000/> — conversational chat UI (fresh retrieval per turn,
+  with a query-condense step on follow-ups)
+- <http://localhost:8000/inspection.html> — single-shot retrieval inspection:
+  force the route, set top-K, filter by paper, and see the route the server chose
 - <http://localhost:8000/figures.html> — figure browser: every figure and
   table chunk with bbox-highlighted thumbnails and caption search
 
@@ -202,7 +203,9 @@ the model.
   [0018](./docs/decisions/), 5–1 on global synthesis); agentic query-decomposition
   did not transfer and hurt retrieval on this corpus (ADR
   [0019](./docs/decisions/)); text rerankers were a wash (ADR
-  [0012](./docs/decisions/)).
+  [0012](./docs/decisions/)); and direct-corpus-interaction (a grep-tool agent) is
+  off the reading bottleneck here, so it ships as an experimental opt-in, not a
+  default (ADR [0026](./docs/decisions/)).
 
 Full methodology in [`docs/results.md`](./docs/results.md).
 

@@ -1,0 +1,876 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PrismRAG</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"
+      crossorigin="anonymous"
+    />
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
+      crossorigin="anonymous"
+    ></script>
+    <link rel="stylesheet" href="/styles.css" />
+    <style>
+      html {
+        scroll-behavior: smooth;
+      }
+      html, body {
+        margin: 0;
+        padding: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+        font-size: 15px;
+        line-height: 1.55;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      body { transition: background 0.18s ease, color 0.18s ease; }
+      main { max-width: 880px; margin: 0 auto; padding: 22px 24px 64px; }
+
+      header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 6px;
+      }
+      .icon-btn {
+        background: transparent;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        width: 36px;
+        height: 36px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--fg);
+        cursor: pointer;
+        transition: background 0.15s ease, border-color 0.15s ease;
+      }
+      .icon-btn:hover { background: var(--canvas); border-color: var(--accent); }
+
+      .nav {
+        display: flex;
+        gap: 4px;
+        font-size: 13px;
+        margin: 14px 0 18px;
+      }
+
+      .card {
+        background: var(--canvas);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 20px;
+        margin: 16px 0;
+        box-shadow: var(--shadow-sm);
+      }
+      textarea { min-height: 100px; resize: vertical; }
+      button {
+        background: var(--accent);
+        color: #ffffff;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        padding: 10px 18px;
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+        font-family: inherit;
+        transition: background 0.15s ease, transform 0.06s ease;
+      }
+
+      .hero-cta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        text-decoration: none;
+        background: var(--accent-tint);
+        border: 1px solid var(--accent);
+        border-radius: 10px;
+        padding: 16px 20px;
+        margin: 0 0 16px;
+        transition: background 0.15s ease, transform 0.06s ease;
+      }
+      .hero-cta:hover { background: rgba(88, 166, 255, 0.22); }
+      .hero-cta:active { transform: translateY(1px); }
+      .hero-cta-text { display: flex; flex-direction: column; gap: 3px; }
+      .hero-cta-text strong { color: var(--fg-strong); font-size: 15px; }
+      .hero-cta-text span { color: var(--muted); font-size: 13px; }
+      .hero-cta-arrow { color: var(--accent); font-size: 22px; font-weight: 600; flex-shrink: 0; }
+
+      .row { display: flex; gap: 12px; align-items: center; margin-top: 12px; }
+      .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+      .muted { color: var(--muted); font-size: 13px; }
+      .advanced { margin-bottom: 16px; }
+
+      pre {
+        background: var(--code-bg);
+        color: var(--code);
+        border: 1px solid var(--border-subtle);
+        border-radius: 6px;
+        padding: 10px;
+        overflow-x: auto;
+        white-space: pre-wrap;
+      }
+      .answer { white-space: pre-wrap; }
+      .answer:empty::after {
+        content: "";
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--muted);
+        animation: pulse 1.2s ease-in-out infinite;
+      }
+
+      details {
+        margin-top: 14px;
+        border: 1px solid var(--border-subtle);
+        border-radius: 8px;
+        background: var(--canvas-elevated);
+      }
+      footer {
+        margin-top: 36px;
+        color: var(--muted);
+        font-size: 12px;
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      footer a { color: var(--accent); text-decoration: none; }
+      footer a:hover { text-decoration: underline; }
+      .hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div class="title-block">
+          <h1>PrismRAG</h1>
+          <p>
+            Ask questions about 20 prebaked research papers and get answers
+            grounded in the exact passages and figures, with clickable
+            citations. 
+          </p>
+        </div>
+        <button class="icon-btn" id="themeToggle" aria-label="Toggle theme" title="Toggle theme">
+          <svg class="icon-sun" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <path d="M8 12a4 4 0 1 1 0-8 4 4 0 0 1 0 8ZM8 0a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0V.75A.75.75 0 0 1 8 0Zm0 13a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0v-1.5A.75.75 0 0 1 8 13Zm8-5a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 16 8ZM3 8a.75.75 0 0 1-.75.75H.75a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 3 8Zm10.657-5.657a.75.75 0 0 1 0 1.06l-1.06 1.061a.75.75 0 1 1-1.061-1.06l1.06-1.061a.75.75 0 0 1 1.061 0Zm-9.193 9.193a.75.75 0 0 1 0 1.061l-1.06 1.06a.75.75 0 1 1-1.061-1.06l1.06-1.06a.75.75 0 0 1 1.061 0Zm9.193 2.121a.75.75 0 0 1-1.06 0l-1.061-1.06a.75.75 0 1 1 1.06-1.061l1.061 1.06a.75.75 0 0 1 0 1.061ZM4.464 4.464a.75.75 0 0 1-1.06 0l-1.061-1.06a.75.75 0 1 1 1.06-1.061l1.061 1.06a.75.75 0 0 1 0 1.061Z"/>
+          </svg>
+          <svg class="icon-moon" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <path d="M9.598 1.591a.749.749 0 0 1 .785-.175 7.001 7.001 0 1 1-8.967 8.967.75.75 0 0 1 .961-.96 5.5 5.5 0 0 0 7.046-7.046.75.75 0 0 1 .175-.786Zm1.616 1.945a7 7 0 0 1-7.678 7.678 5.499 5.499 0 1 0 7.678-7.678Z"/>
+          </svg>
+        </button>
+      </header>
+
+      <nav class="nav">
+        <a href="/">Chat</a>
+        <a href="/inspection.html" class="active">Inspection</a>
+        <a href="/papers.html">Papers</a>
+        <a href="/figures.html">Figures</a>
+        <a href="/why-multimodal.html">Why multimodal?</a>
+      </nav>
+
+      <section class="card">
+        <div class="grid-2">
+          <div>
+            <label for="apiKey">OpenRouter API key</label>
+            <input id="apiKey" type="password" autocomplete="off" placeholder="sk-or-v1-..." />
+            <div class="hint">
+              Get one at <a href="https://openrouter.ai/keys" target="_blank" rel="noopener">openrouter.ai/keys</a>.
+              Stored in your browser's local storage.
+            </div>
+          </div>
+          <div>
+            <label for="model">Model</label>
+            <select id="model">
+              <option value="openai/gpt-4o-mini">openai/gpt-4o-mini (vision, cheapest)</option>
+              <option value="anthropic/claude-sonnet-4.6">anthropic/claude-sonnet-4.6 (vision)</option>
+              <option value="openai/gpt-4o">openai/gpt-4o (vision)</option>
+              <option value="qwen/qwen3-vl-32b-instruct">qwen/qwen3-vl-32b-instruct (vision)</option>
+              <option value="meta-llama/llama-3.1-70b-instruct">meta-llama/llama-3.1-70b-instruct (text-only)</option>
+            </select>
+            <div class="hint" id="modeHint">Multi-modal mode auto-detected from server.</div>
+          </div>
+        </div>
+
+        <details class="advanced">
+          <summary>Advanced retrieval settings</summary>
+          <div class="advanced-grid">
+            <div>
+              <label for="route">
+                Force route
+                <span class="info-icon"
+                      title="Force the retrieval path: text-only or text + visual. Lets you compare paths on the same query.">i</span>
+              </label>
+              <select id="route">
+                <option value="">Auto (classifier)</option>
+                <option value="text">Text only</option>
+                <option value="hybrid">Text + visual</option>
+              </select>
+            </div>
+            <div>
+              <label for="dciMode">
+                DCI (experimental)
+                <span class="info-icon"
+                      title="Agentic grep retrieval: an LLM agent searches the raw text with SEARCH/GREP/READ instead of vector search. Text-only (no figures) and slower. It runs server-side, so it sends your OpenRouter key to the server, used in-memory for the request and not stored.">i</span>
+              </label>
+              <input id="dciMode" type="checkbox" />
+            </div>
+            <div>
+              <label for="routingMode">
+                Routing mode
+                <span class="info-icon"
+                      title="Category routes by query intent; cascade routes by confidence — text first, visual fallback when text is uncertain.">i</span>
+              </label>
+              <select id="routingMode">
+                <option value="">Server default</option>
+                <option value="category">Category (classifier)</option>
+                <option value="cascade">Cascade (confidence)</option>
+              </select>
+            </div>
+            <div>
+              <label for="topK">
+                Top K
+                <span class="info-icon"
+                      title="Chunks fed to the generator. Higher = more context, more cost.">i</span>
+              </label>
+              <input id="topK" type="number" min="1" max="20" value="5" />
+            </div>
+            <div>
+              <label for="paperFilter">
+                Paper
+                <span class="info-icon"
+                      title="Limit to one paper, or leave blank to search the whole corpus.">i</span>
+              </label>
+              <select id="paperFilter">
+                <option value="">All papers</option>
+              </select>
+            </div>
+          </div>
+        </details>
+
+        <label for="query">Question</label>
+        <textarea id="query" placeholder="What is the inter-basin gain criterion?"></textarea>
+
+        <div class="row">
+          <button id="ask">Ask</button>
+          <span class="muted" id="status"></span>
+        </div>
+      </section>
+
+      <section id="result" class="card" hidden>
+        <label>Answer</label>
+        <div class="answer" id="answer"></div>
+        <details id="citationsWrap" hidden>
+          <summary>Citations</summary>
+          <div class="details-body" id="citations"></div>
+        </details>
+        <details id="chunksWrap" hidden>
+          <summary>Retrieved chunks</summary>
+          <div class="details-body" id="chunks"></div>
+        </details>
+        <div class="row muted" id="meta" style="margin-top: 14px"></div>
+      </section>
+
+      <footer>
+        <a href="https://github.com/NorthernLightx/prismrag">Source on GitHub</a>
+        <a href="/docs">OpenAPI</a>
+      </footer>
+    </main>
+
+    <script src="/app.js"></script>
+    <script>
+      const apiKeyInput = document.getElementById("apiKey");
+      const modelSelect = document.getElementById("model");
+      const routeSelect = document.getElementById("route");
+      const dciModeInput = document.getElementById("dciMode");
+      const routingModeSelect = document.getElementById("routingMode");
+      const topKInput = document.getElementById("topK");
+      const paperFilterSelect = document.getElementById("paperFilter");
+      const queryInput = document.getElementById("query");
+      const askBtn = document.getElementById("ask");
+      const statusEl = document.getElementById("status");
+      const resultEl = document.getElementById("result");
+      const answerEl = document.getElementById("answer");
+      const citationsWrap = document.getElementById("citationsWrap");
+      const citationsEl = document.getElementById("citations");
+      const chunksWrap = document.getElementById("chunksWrap");
+      const chunksEl = document.getElementById("chunks");
+      const metaEl = document.getElementById("meta");
+      const modeHint = document.getElementById("modeHint");
+
+      apiKeyInput.value = localStorage.getItem("rag.apiKey") || "";
+      modelSelect.value = localStorage.getItem("rag.model") || modelSelect.value;
+      routeSelect.value = localStorage.getItem("rag.route") || "";
+      routingModeSelect.value = localStorage.getItem("rag.routingMode") || "";
+      topKInput.value = localStorage.getItem("rag.topK") || "5";
+      // Paper filter hydrates after /papers resolves; setting it here would
+      // race the fetch and clobber empty selections.
+      apiKeyInput.addEventListener("change", () =>
+        localStorage.setItem("rag.apiKey", apiKeyInput.value)
+      );
+      modelSelect.addEventListener("change", () =>
+        localStorage.setItem("rag.model", modelSelect.value)
+      );
+      routeSelect.addEventListener("change", () =>
+        localStorage.setItem("rag.route", routeSelect.value)
+      );
+      routingModeSelect.addEventListener("change", () =>
+        localStorage.setItem("rag.routingMode", routingModeSelect.value)
+      );
+      topKInput.addEventListener("change", () =>
+        localStorage.setItem("rag.topK", topKInput.value)
+      );
+      paperFilterSelect.addEventListener("change", () =>
+        localStorage.setItem("rag.paperFilter", paperFilterSelect.value)
+      );
+
+      fetch("/papers")
+        .then((r) => (r.ok ? r.json() : []))
+        .then((papers) => {
+          for (const p of papers || []) {
+            const opt = document.createElement("option");
+            opt.value = p.paper_id;
+            opt.textContent = p.title ? `${p.title} (${p.paper_id})` : p.paper_id;
+            paperFilterSelect.append(opt);
+          }
+          const saved = localStorage.getItem("rag.paperFilter") || "";
+          if (saved && Array.from(paperFilterSelect.options).some((o) => o.value === saved)) {
+            paperFilterSelect.value = saved;
+          }
+        })
+        .catch(() => {});
+
+      let pagesAvailable = false;
+      fetch("/health")
+        .then((r) => r.json())
+        .then((h) => {
+          pagesAvailable = !!h.pages_available;
+          modeHint.textContent = pagesAvailable
+            ? "Multi-modal: page images attached to vision-capable models."
+            : "Text-only: server has no pages_dir; vision models receive text chunks only.";
+        })
+        .catch(() => {
+          modeHint.textContent = "Server status unknown.";
+        });
+
+      askBtn.addEventListener("click", askHandler);
+      queryInput.addEventListener("keydown", (e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key === "Enter") askHandler();
+      });
+
+      async function askHandler() {
+        const query = queryInput.value.trim();
+        const apiKey = apiKeyInput.value.trim();
+        const model = modelSelect.value;
+        if (!query) return setStatus("Type a question first.", true);
+        if (!apiKey) return setStatus("Paste an OpenRouter API key.", true);
+
+        askBtn.disabled = true;
+        setStatus("Retrieving chunks…", false);
+        clearAnswer();
+        resultEl.hidden = true;
+
+        const t0 = performance.now();
+        let chunks;
+        try {
+          chunks = await retrieveChunks(query);
+        } catch (err) {
+          askBtn.disabled = false;
+          return setStatus(
+            `Retrieval failed: ${err.message || err}. The server may be starting up — try again in a few seconds.`,
+            true,
+          );
+        }
+        const tRetrieve = performance.now() - t0;
+
+        renderChunks(chunks);
+        chunksWrap.hidden = chunks.length === 0;
+        resultEl.hidden = false;
+
+        if (chunks.length === 0) {
+          setStatus("No chunks retrieved — corpus may not be ingested.", true);
+          askBtn.disabled = false;
+          return;
+        }
+
+        const useImages = pagesAvailable && supportsVision(model);
+        setStatus(
+          useImages
+            ? "Generating with vision (chunks + page images)…"
+            : "Generating (text-only)…",
+          false
+        );
+
+        const messages = buildMessages(query, chunks, useImages);
+        const tGenStart = performance.now();
+        try {
+          const { text, usage } = await streamOpenRouter(apiKey, model, messages);
+          const tGen = performance.now() - tGenStart;
+          const { newText, ids } = renumberCitations(text);
+          renderAnswer(newText);
+          makeCitationsClickable(answerEl, "cite");
+          renderCitations(ids, chunks, "cite");
+          renderMeta(model, usage, Math.round(tRetrieve), Math.round(tGen), useImages, chunks._routing);
+          setStatus("");
+        } catch (err) {
+          setStatus(
+            `Generation failed: ${err.message || err}. Check that your OpenRouter key is valid and has credits.`,
+            true,
+          );
+        } finally {
+          askBtn.disabled = false;
+        }
+      }
+
+      async function retrieveChunks(query) {
+        const topK = parseInt(topKInput.value, 10) || 5;
+        const body = { text: query, top_k: Math.min(Math.max(topK, 1), 20) };
+        if (routeSelect.value) body.force_route = routeSelect.value;
+        if (routingModeSelect.value) body.routing_mode = routingModeSelect.value;
+        if (paperFilterSelect.value) {
+          body.filters = { paper_id: paperFilterSelect.value };
+        }
+        // DCI (experimental) runs the agent server-side, so it goes to /query/dci
+        // and carries your key in a header (not the body — bodies are logged).
+        const dci = dciModeInput.checked;
+        const url = dci ? "/query/dci" : "/query";
+        const headers = { "Content-Type": "application/json" };
+        if (dci) {
+          const k = apiKeyInput.value.trim();
+          if (!k) throw new Error("DCI mode runs server-side and needs your OpenRouter key.");
+          headers["X-OpenRouter-Key"] = k;
+        }
+        // /query returns 503 ("Retriever not configured") during the
+        // post-cold-start warm-up, while the model + index load in the
+        // background. That is "wait", not "failed": show an honest notice
+        // and retry until it's ready, rather than surfacing it as an error
+        // the visitor reads as broken. Any other non-OK status, or 503 past
+        // the warm-up budget, falls through to the existing thrown error.
+        const warmupDeadline = performance.now() + 120000;
+        while (true) {
+          const res = await fetch(url, {
+            method: "POST",
+            headers,
+            body: JSON.stringify(body),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            const results = data.results || [];
+            results._routing = data.routing || null;
+            return results;
+          }
+          const detail = await res.text();
+          if (res.status === 503 && performance.now() < warmupDeadline) {
+            setStatus(
+              "Server is warming up after a cold start — the first query loads the model and index and can take a minute or two. Retrying automatically…",
+              false,
+            );
+            await new Promise((r) => setTimeout(r, 3000));
+            continue;
+          }
+          throw new Error(`${res.status} ${res.statusText} — ${detail}`);
+        }
+      }
+
+      function buildMessages(query, chunks, useImages) {
+        // Mirrors src/prompts/library/answer.yaml v5 so the single-shot path
+        // inherits the same strict refusal contract as the server-side /answer.
+        const system = [
+          "You are a careful research assistant answering questions from the supplied documents.",
+          "- Use only the provided context. If the context does not contain the answer, say exactly \"Not stated in the provided context.\" — do not speculate.",
+          "- Out-of-domain questions (e.g. about a topic completely unrelated to the chunks) must be refused with the exact phrase above. Do not produce a generic summary of the chunks instead.",
+          "- If the user asks to see a figure, plot, or graph and the retrieved chunks don't contain one matching the question, say so plainly — do not claim you cannot display images.",
+          "- Cite specific chunk IDs when making factual claims by wrapping the literal id in square brackets. Example: if a chunk header is [2604.22753v1::p5::c24], cite it as [2604.22753v1::p5::c24] — NOT [chunk_id 2604.22753v1::p5::c24] and NOT [chunk 24]. Use only ids that appear in the provided context.",
+          "- Keep answers concise (3-6 sentences unless the question demands more).",
+        ].join("\n");
+
+        const content = [];
+        for (const c of chunks) {
+          content.push({
+            type: "text",
+            text: `[chunk ${c.chunk_id}] paper=${c.paper_id} pages=${(c.page_numbers || []).join(",")}\n${c.text || ""}`,
+          });
+          if (useImages && Array.isArray(c.page_numbers)) {
+            for (const page of c.page_numbers) {
+              const url = `${window.location.origin}/pages/${encodeURIComponent(c.paper_id)}/${encodeURIComponent(c.paper_id)}_p${page}.png`;
+              content.push({ type: "image_url", image_url: { url } });
+            }
+          }
+        }
+        content.push({ type: "text", text: `\nQuestion: ${query}` });
+
+        return [
+          { role: "system", content: system },
+          { role: "user", content },
+        ];
+      }
+
+      function supportsVision(model) {
+        return !model.includes("llama-3.1-70b");
+      }
+
+      async function streamOpenRouter(apiKey, model, messages) {
+        const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+            "HTTP-Referer": window.location.origin,
+            "X-Title": "PrismRAG",
+          },
+          body: JSON.stringify({
+            model,
+            messages,
+            temperature: 0.2,
+            max_tokens: 800,
+            stream: true,
+            usage: { include: true },
+          }),
+        });
+        if (!res.ok || !res.body) {
+          const detail = await res.text();
+          throw new Error(`${res.status} ${res.statusText} — ${detail}`);
+        }
+
+        let acc = "";
+        let usage = { prompt_tokens: 0, completion_tokens: 0 };
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buf = "";
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+          let nl;
+          while ((nl = buf.indexOf("\n")) >= 0) {
+            const line = buf.slice(0, nl).trim();
+            buf = buf.slice(nl + 1);
+            if (!line.startsWith("data:")) continue;
+            const payload = line.slice(5).trim();
+            if (payload === "[DONE]") continue;
+            try {
+              const obj = JSON.parse(payload);
+              const delta = obj.choices?.[0]?.delta?.content || "";
+              if (delta) {
+                acc += delta;
+                answerEl.textContent = acc;
+              }
+              if (obj.usage) usage = obj.usage;
+            } catch {
+              // heartbeat / partial — skip
+            }
+          }
+        }
+        return { text: acc, usage };
+      }
+
+      // Rewrite the LLM's inline chunk-id citations into compact numeric
+      // references. The model emits either `[chunks ID, ID]` or `[ID]`
+      // (where ID matches `<paper>::p<N>::c<N>`); we replace each one with
+      // `[1]`, `[2]`, ... preserving the order the model first cited each
+      // chunk. Returns the rewritten text plus the ordered chunk-id list so
+      // the citation panel can render a matching <ol>.
+      function renumberCitations(text) {
+        const idMap = new Map();
+        const orderedIds = [];
+        const chunkIdRe = /[A-Za-z0-9_.\-]+::p\d+::c\d+/g;
+        const newText = text.replace(/\[([^\]]+)\]/g, (match, inner) => {
+          const ids = inner.match(chunkIdRe);
+          if (!ids || ids.length === 0) return match;
+          return ids
+            .map((id) => {
+              if (!idMap.has(id)) {
+                idMap.set(id, orderedIds.length + 1);
+                orderedIds.push(id);
+              }
+              return `[${idMap.get(id)}]`;
+            })
+            .join("");
+        });
+        return { newText, ids: orderedIds };
+      }
+
+      function renderAnswer(text) {
+        answerEl.textContent = text || "(empty answer)";
+        renderMath(answerEl);
+      }
+
+      function clearAnswer() {
+        answerEl.textContent = "";
+        clear(citationsEl);
+        citationsWrap.hidden = true;
+        clear(chunksEl);
+        chunksWrap.hidden = true;
+        metaEl.textContent = "";
+      }
+
+      function renderCitations(ids, chunks, anchorPrefix) {
+        clear(citationsEl);
+        if (ids.length === 0) {
+          citationsWrap.hidden = true;
+          return;
+        }
+        const byId = new Map(chunks.map((c) => [c.chunk_id, c]));
+        const ol = document.createElement("ol");
+        ol.className = "citation-list";
+        ids.forEach((id, i) => {
+          const c = byId.get(id);
+          const li = document.createElement("li");
+          li.id = `${anchorPrefix}-${i + 1}`;
+          const code = document.createElement("code");
+          code.textContent = id;
+          if (c) {
+            const pages = (c.page_numbers || []).join(", ");
+            const sourceText = `paper ${c.paper_id}${pages ? ` · p${pages}` : ""}`;
+            if (/^\d{4}\.\d{4,5}(v\d+)?$/.test(c.paper_id)) {
+              const a = document.createElement("a");
+              a.href = `https://arxiv.org/abs/${c.paper_id}`;
+              a.target = "_blank";
+              a.rel = "noopener";
+              a.className = "cite-source";
+              a.append(code);
+              a.append(document.createTextNode(` — ${sourceText}`));
+              li.append(a);
+            } else {
+              li.append(code);
+              li.append(document.createTextNode(` — ${sourceText}`));
+            }
+            const firstPage = (c.page_numbers || [])[0];
+            if (firstPage) {
+              const a = document.createElement("a");
+              a.href = `/pages/${c.paper_id}/${c.paper_id}_p${firstPage}.png`;
+              a.target = "_blank";
+              a.rel = "noopener";
+              const img = document.createElement("img");
+              img.className = "cite-thumb";
+              img.src = a.href;
+              img.alt = `Page ${firstPage} of ${c.paper_id}`;
+              img.loading = "lazy";
+              a.append(img);
+              // ADR 0009 + ADR 0021: when the cited chunk carries a bbox,
+              // overlay a region highlight on the thumbnail. Figures/tables
+              // have bboxes since ADR 0009; text chunks since ADR 0021's
+              // Docling-based chunker. Same coord math as figures.html:
+              // pageW_pts = naturalW * 72 / 150-DPI page render. The bbox
+              // travels through `RetrievalResult.metadata`, not as a flat
+              // field on the chunk.
+              const bbox = (c.metadata && c.metadata.bbox) || null;
+              if (Array.isArray(bbox) && bbox.length === 4) {
+                a.className = "cite-thumb-wrap";
+                img.addEventListener(
+                  "load",
+                  () => {
+                    const naturalW = img.naturalWidth;
+                    const naturalH = img.naturalHeight;
+                    if (!naturalW || !naturalH) return;
+                    const DPI = 150;
+                    const pageWPts = (naturalW * 72) / DPI;
+                    const pageHPts = (naturalH * 72) / DPI;
+                    const [x0, y0, x1, y1] = bbox;
+                    const bboxDiv = document.createElement("div");
+                    bboxDiv.className = "cite-bbox";
+                    bboxDiv.style.left = `${(x0 / pageWPts) * 100}%`;
+                    bboxDiv.style.top = `${(y0 / pageHPts) * 100}%`;
+                    bboxDiv.style.width = `${((x1 - x0) / pageWPts) * 100}%`;
+                    bboxDiv.style.height = `${((y1 - y0) / pageHPts) * 100}%`;
+                    a.append(bboxDiv);
+                  },
+                  { once: true }
+                );
+              }
+              li.append(a);
+            }
+          } else {
+            li.append(code);
+            li.append(document.createTextNode(" — (not in retrieved set)"));
+          }
+          ol.append(li);
+        });
+        citationsEl.append(ol);
+        citationsWrap.hidden = false;
+      }
+
+      // After KaTeX has rendered (math is now in spans, citations remain
+      // as plain text `[N]`), walk the remaining text nodes and replace
+      // each `[N]` marker with an anchor that jumps to the matching <li>
+      // in the citation list. Skips nodes inside .katex spans so math
+      // expressions like `\[x_{[i]}\]` are never rewritten.
+      function makeCitationsClickable(rootEl, anchorPrefix) {
+        const walker = document.createTreeWalker(rootEl, NodeFilter.SHOW_TEXT, {
+          acceptNode(n) {
+            return n.parentElement && n.parentElement.closest(".katex")
+              ? NodeFilter.FILTER_REJECT
+              : NodeFilter.FILTER_ACCEPT;
+          },
+        });
+        const targets = [];
+        let n;
+        while ((n = walker.nextNode())) {
+          if (/\[\d+\]/.test(n.nodeValue)) targets.push(n);
+        }
+        for (const textNode of targets) {
+          const parent = textNode.parentNode;
+          const parts = textNode.nodeValue.split(/(\[\d+\])/);
+          for (const part of parts) {
+            if (/^\[\d+\]$/.test(part)) {
+              const num = part.slice(1, -1);
+              const a = document.createElement("a");
+              a.href = `#${anchorPrefix}-${num}`;
+              a.className = "cite-ref";
+              a.textContent = part;
+              parent.insertBefore(a, textNode);
+            } else if (part) {
+              parent.insertBefore(document.createTextNode(part), textNode);
+            }
+          }
+          parent.removeChild(textNode);
+        }
+      }
+
+
+      function renderChunks(chunks) {
+        clear(chunksEl);
+        for (const r of chunks) chunksEl.append(renderChunk(r));
+      }
+
+      // PDF text extraction inserts a newline at every visual line wrap,
+      // which makes raw chunk text render as fragmented short lines once
+      // we drop the monospace `<pre>` wrapper. Collapse single newlines
+      // into spaces and preserve paragraph breaks (>=2 consecutive
+      // newlines). Truncate to ~480 chars at a sentence boundary when
+      // possible, falling back to the hard limit otherwise.
+      function previewText(raw) {
+        const text = String(raw || "")
+          .split(/\n{2,}/)
+          .map((para) =>
+            para
+              .replace(/[ \t]*\n[ \t]*/g, " ")
+              .replace(/[ \t]{2,}/g, " ")
+              .trim()
+          )
+          .filter(Boolean)
+          .join("\n\n");
+        const HARD = 480;
+        if (text.length <= HARD) return text;
+        const slice = text.slice(0, HARD);
+        const lastSentence = Math.max(
+          slice.lastIndexOf(". "),
+          slice.lastIndexOf("! "),
+          slice.lastIndexOf("? ")
+        );
+        const cut = lastSentence > 280 ? lastSentence + 1 : HARD;
+        return text.slice(0, cut).trim() + "…";
+      }
+
+      function renderChunk(r) {
+        const div = document.createElement("div");
+        div.className = "chunk";
+        const meta = document.createElement("div");
+        meta.className = "chunk-meta";
+        const badge = document.createElement("span");
+        badge.className =
+          "badge " + (r.source === "visual" ? "badge-visual" : "badge-pipeline");
+        badge.textContent = r.source || "";
+        const code = document.createElement("code");
+        code.textContent = r.chunk_id || "";
+        meta.append(badge, code);
+        const pages = (r.page_numbers || []).join(", ");
+        if (pages) meta.append(document.createTextNode(` · p${pages}`));
+        const score = typeof r.score === "number" ? r.score : 0;
+        meta.append(document.createTextNode(` · score ${score.toFixed(3)}`));
+        const body = document.createElement("div");
+        body.className = "chunk-text";
+        body.textContent = previewText(r.text);
+        div.append(meta, body);
+        return div;
+      }
+
+      function renderMeta(model, usage, retrieveMs, generateMs, useImages, routing) {
+        const tokens = `${usage.prompt_tokens || 0} in / ${usage.completion_tokens || 0} out`;
+        const modeBadge = document.createElement("span");
+        modeBadge.className = useImages ? "badge badge-multimodal" : "badge badge-pipeline";
+        modeBadge.textContent = useImages ? "multi-modal" : "text";
+        clear(metaEl);
+        metaEl.append(modeBadge);
+        metaEl.append(
+          document.createTextNode(
+            ` ${model} · ${tokens} · retrieve ${retrieveMs} ms · generate ${generateMs} ms`
+          )
+        );
+        if (routing) {
+          const routeBadge = document.createElement("span");
+          routeBadge.className = "badge";
+          routeBadge.title = formatRoutingTitle(routing);
+          routeBadge.textContent = formatRoutingLabel(routing);
+          metaEl.append(document.createTextNode(" · "));
+          metaEl.append(routeBadge);
+        }
+      }
+
+      function formatRoutingLabel(r) {
+        if (r.mode === "cascade") {
+          return `cascade → ${r.path}`;
+        }
+        const cat = r.category ? ` (${r.category})` : "";
+        const forced = r.forced ? " forced" : "";
+        return `${r.path}${cat}${forced}`;
+      }
+
+      function formatRoutingTitle(r) {
+        const parts = [`mode: ${r.mode}`, `path: ${r.path}`];
+        if (r.category) parts.push(`category: ${r.category}`);
+        if (r.forced) parts.push("force_route applied");
+        if (r.cascade_decision) parts.push(`decision: ${r.cascade_decision}`);
+        if (r.cascade_top_score != null)
+          parts.push(`text top-1: ${r.cascade_top_score.toFixed(3)}`);
+        if (r.cascade_threshold != null)
+          parts.push(`threshold: ${r.cascade_threshold.toFixed(2)}`);
+        if (r.visual_failed) parts.push("visual leg failed (degraded)");
+        return parts.join("\n");
+      }
+
+      function setStatus(msg, isErr) {
+        statusEl.textContent = msg;
+        statusEl.classList.toggle("err", !!isErr);
+      }
+
+      function clear(node) {
+        while (node.firstChild) node.removeChild(node.firstChild);
+      }
+
+      // KaTeX is loaded async from a CDN. By the time the user clicks
+      // Ask and the model finishes streaming, `renderMathInElement`
+      // will be defined; if for some reason it isn't (offline, blocked),
+      // we silently skip rendering and leave the raw LaTeX visible.
+      function renderMath(el) {
+        if (typeof window.renderMathInElement !== "function") return;
+        try {
+          window.renderMathInElement(el, {
+            delimiters: [
+              { left: "$$", right: "$$", display: true },
+              { left: "\\[", right: "\\]", display: true },
+              { left: "\\(", right: "\\)", display: false },
+            ],
+            throwOnError: false,
+          });
+        } catch (_) {
+          // graceful: leave text as-is on render error
+        }
+      }
+    </script>
+  </body>
+</html>
