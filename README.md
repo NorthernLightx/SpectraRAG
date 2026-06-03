@@ -283,6 +283,31 @@ tests/      unit + integration suites, mirrors src/
 - **Deploy**: Cloud Run via GitHub Actions with Workload Identity Federation
 - **Eval benchmark**: [MMLongBench-Doc](https://arxiv.org/abs/2407.01523)
 
+## References
+
+Papers and benchmarks this project builds on or measures against:
+
+- **ColPali: Efficient Document Retrieval with Vision Language Models** (Faysse
+  et al., [arXiv:2407.01449](https://arxiv.org/abs/2407.01449)). The
+  late-interaction visual-retrieval architecture; the deployed visual leg runs
+  ColQwen2 from this line.
+- **BGE M3-Embedding** (Chen et al.,
+  [arXiv:2402.03216](https://arxiv.org/abs/2402.03216)). The dense and sparse
+  text embeddings behind the text leg.
+- **Docling Technical Report** (Auer et al., IBM,
+  [arXiv:2408.09869](https://arxiv.org/abs/2408.09869)). Layout-aware PDF parsing
+  for the structure-attributed chunker.
+- **MMLongBench-Doc** ([arXiv:2407.01523](https://arxiv.org/abs/2407.01523)).
+  The long-document multimodal benchmark behind the headline retrieval result.
+- **BRIGHT: A Realistic and Challenging Benchmark for Reasoning-Intensive
+  Retrieval** (Su et al., [arXiv:2407.12883](https://arxiv.org/abs/2407.12883)).
+  Retrieval that needs reasoning rather than surface similarity; the benchmark
+  the Agentic search experiment is scored on.
+- **Beyond Semantic Similarity: Rethinking Retrieval for Agentic Search via
+  Direct Corpus Interaction** ([arXiv:2605.05242](https://arxiv.org/abs/2605.05242)).
+  The grep-the-raw-corpus agent behind the experimental Agentic search toggle
+  (ADR [0026](./docs/decisions/)).
+
 ## FAQ
 
 **Why not LlamaIndex or LangChain?**
