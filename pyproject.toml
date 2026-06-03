@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "prismrag"
+name = "spectrarag"
 version = "0.1.0"
 description = "Multi-modal PDF RAG comparing text-pipeline vs visual retrieval."
 readme = "README.md"

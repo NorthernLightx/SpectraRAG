@@ -51,7 +51,7 @@ Implemented the agent (`src/dci/`) and a BRIGHT harness
   (`scripts/experiments/{grep_recovers_misses,dense_control_misses}.py`).
 - **About a third of answerable queries are pixel-only** (`answer_in_text.py`) —
   the answer lives in chart/figure pixels, where a grep agent is structurally
-  blind. PrismRAG's visual leg is the right tool there, not DCI.
+  blind. SpectraRAG's visual leg is the right tool there, not DCI.
 
 ## Decision
 

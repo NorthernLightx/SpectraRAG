@@ -93,7 +93,7 @@ def create_app(*, log_file: Path | None = Path("logs/api.log")) -> FastAPI:
         yield
 
     app = FastAPI(
-        title="PrismRAG",
+        title="SpectraRAG",
         version="0.1.0",
         description="Multi-modal PDF RAG comparing text-pipeline vs visual retrieval.",
         lifespan=lifespan,

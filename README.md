@@ -1,16 +1,16 @@
-# PrismRAG
+# SpectraRAG
 
 > Question answering over PDFs whose answers live in figures, charts, and
 > tables, where text-only search comes up short. Two retrievers, a per-query
 > router, and an eval behind every change.
 
-[![ci](https://github.com/NorthernLightx/prismrag/actions/workflows/ci.yml/badge.svg)](https://github.com/NorthernLightx/prismrag/actions/workflows/ci.yml)
-[![docker](https://github.com/NorthernLightx/prismrag/actions/workflows/docker.yml/badge.svg)](https://github.com/NorthernLightx/prismrag/actions/workflows/docker.yml)
-[![security](https://github.com/NorthernLightx/prismrag/actions/workflows/security.yml/badge.svg)](https://github.com/NorthernLightx/prismrag/actions/workflows/security.yml)
+[![ci](https://github.com/NorthernLightx/spectrarag/actions/workflows/ci.yml/badge.svg)](https://github.com/NorthernLightx/spectrarag/actions/workflows/ci.yml)
+[![docker](https://github.com/NorthernLightx/spectrarag/actions/workflows/docker.yml/badge.svg)](https://github.com/NorthernLightx/spectrarag/actions/workflows/docker.yml)
+[![security](https://github.com/NorthernLightx/spectrarag/actions/workflows/security.yml/badge.svg)](https://github.com/NorthernLightx/spectrarag/actions/workflows/security.yml)
 [![python 3.12](https://img.shields.io/badge/python-3.12-blue)](https://www.python.org/downloads/release/python-3120/)
 [![license: MIT](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
 
-**▶ Live demo: <https://prismrag-ar6wxit42a-ew.a.run.app>**
+**▶ Live demo: <https://spectrarag-ar6wxit42a-ew.a.run.app>**
 
 ## The problem
 
@@ -20,7 +20,7 @@ tell you the answer isn't in the context. It's right: the colour lives in the
 chart's pixels, not the text. The same blind spot covers plot geometry,
 screenshots, and image-only diagrams.
 
-PrismRAG runs a text retriever and a visual retriever over rendered page
+SpectraRAG runs a text retriever and a visual retriever over rendered page
 images, and a per-query classifier decides which to use. When a question is
 visual, the page image is sent to a vision model at answer time. The corpus
 here is scientific PDFs and MMLongBench-Doc, but nothing is domain-specific:
@@ -89,8 +89,8 @@ flowchart LR
 ## Quickstart
 
 ```bash
-git clone https://github.com/NorthernLightx/prismrag
-cd prismrag
+git clone https://github.com/NorthernLightx/spectrarag
+cd spectrarag
 uv sync --extra dev
 cp .env.example .env
 docker compose up -d qdrant postgres langfuse ollama

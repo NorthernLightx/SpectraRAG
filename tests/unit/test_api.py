@@ -76,7 +76,7 @@ def test_root_serves_bundled_frontend() -> None:
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/html")
     body = response.text
-    assert "PrismRAG" in body
+    assert "SpectraRAG" in body
     # Sanity: the static mount didn't shadow /docs (FastAPI matches explicit
     # routes before the catch-all StaticFiles mount).
     assert client.get("/docs").status_code == 200

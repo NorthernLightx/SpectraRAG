@@ -1,6 +1,6 @@
 """DciRetriever: experimental agentic grep retrieval over the corpus (opt-in).
 
-Adapts the DCI agent (`src/dci`) to PrismRAG's retrieval interface. It materialises
+Adapts the DCI agent (`src/dci`) to SpectraRAG's retrieval interface. It materialises
 the in-memory chunk index into a grep-able text corpus and lets an LLM agent search
 it with SEARCH/GREP/READ, returning the chunks it ranks.
 

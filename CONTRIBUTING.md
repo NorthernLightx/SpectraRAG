@@ -11,8 +11,8 @@ Compose, and a CUDA-capable GPU if you want to run the visual or rerank
 stack locally.
 
 ```bash
-git clone https://github.com/NorthernLightx/prismrag.git
-cd prismrag
+git clone https://github.com/NorthernLightx/spectrarag.git
+cd spectrarag
 uv sync --extra dev
 cp .env.example .env
 docker compose up -d qdrant postgres langfuse ollama

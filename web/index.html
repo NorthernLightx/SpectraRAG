@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>PrismRAG — chat</title>
+    <title>SpectraRAG — chat</title>
     <link
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"
@@ -329,7 +329,7 @@
   <body>
     <header>
       <div class="title-block">
-        <h1>PrismRAG</h1>
+        <h1>SpectraRAG</h1>
         <p>
           Ask follow-up questions across 20 prebaked research papers; each turn
           re-retrieves against the right context.
@@ -451,7 +451,7 @@
       <div class="footer-note">
         <span class="status" id="status"></span>
         <div class="footer-meta">
-          <a href="https://github.com/NorthernLightx/prismrag">GitHub</a>
+          <a href="https://github.com/NorthernLightx/spectrarag">GitHub</a>
           <a href="/docs">API docs</a>
         </div>
       </div>
@@ -737,7 +737,7 @@
             "Content-Type": "application/json",
             Authorization: `Bearer ${apiKey}`,
             "HTTP-Referer": window.location.origin,
-            "X-Title": "PrismRAG (condense)",
+            "X-Title": "SpectraRAG (condense)",
           },
           body: JSON.stringify({
             model,
@@ -867,7 +867,7 @@
             "Content-Type": "application/json",
             Authorization: `Bearer ${apiKey}`,
             "HTTP-Referer": window.location.origin,
-            "X-Title": "PrismRAG",
+            "X-Title": "SpectraRAG",
           },
           body: JSON.stringify({
             model,

@@ -15,7 +15,7 @@ router = APIRouter()
 
 def _service_version() -> str:
     try:
-        return version("prismrag")
+        return version("spectrarag")
     except PackageNotFoundError:
         return "0.0.0+local"
 
