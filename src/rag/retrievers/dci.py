@@ -16,7 +16,7 @@ retrieval is not the bottleneck (see the DCI ADR), so this is a showcase mode.
 
 from __future__ import annotations
 
-from src.dci.agent import DciAgent
+from src.dci.agent import DciAgent, DciResult
 from src.dci.tools import CorpusTools
 from src.llm.protocol import LLMClient
 from src.types import Chunk, Query, RetrievalResult
@@ -54,6 +54,12 @@ class DciRetriever:
         self._agent = DciAgent(corpus, llm, model, max_steps=max_steps, toolset="readgrep")
 
     async def retrieve(self, query: Query) -> list[RetrievalResult]:
+        results, _ = await self.run(query)
+        return results
+
+    async def run(self, query: Query) -> tuple[list[RetrievalResult], DciResult]:
+        """Like ``retrieve`` but also returns the agent's step trace, so the
+        /query/dci route can surface what the agent searched and read."""
         result = await self._agent.run(query.text, mode="retrieval", top_k=query.top_k)
         out: list[RetrievalResult] = []
         for rank, sur in enumerate(result.ranked_doc_ids[: query.top_k]):
@@ -71,4 +77,4 @@ class DciRetriever:
                     metadata={**chunk.metadata, "retriever": "dci"},
                 )
             )
-        return out
+        return out, result

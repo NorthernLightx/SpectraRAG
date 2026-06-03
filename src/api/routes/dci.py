@@ -11,6 +11,7 @@ body, so it never lands in the request log.
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
+from pydantic import BaseModel
 
 from src.api.deps import get_chunks, get_settings
 from src.config.settings import Settings
@@ -18,10 +19,25 @@ from src.dci.tools import CorpusTools
 from src.llm.openrouter import OpenRouterClient
 from src.observability.logging import get_logger
 from src.rag.retrievers.dci import DciRetriever, build_dci_corpus
-from src.types import Chunk, Query, RetrievalResponse
+from src.types import Chunk, Query, RetrievalResult
 
 _log = get_logger(__name__)
 router = APIRouter()
+
+
+class DciTraceStep(BaseModel):
+    """One turn of the DCI agent loop, surfaced to the demo UI."""
+
+    action: str
+    arg: str
+    observation: str
+
+
+class DciQueryResponse(BaseModel):
+    """DCI retrieval results plus the agent's step trace (what it searched/read)."""
+
+    results: list[RetrievalResult]
+    trace: list[DciTraceStep]
 
 
 class _DciCorpusState:
@@ -31,13 +47,13 @@ class _DciCorpusState:
     sur_to_chunk: dict[str, str] | None = None
 
 
-@router.post("/query/dci", response_model=RetrievalResponse)
+@router.post("/query/dci", response_model=DciQueryResponse)
 async def query_dci(
     payload: Query,
     x_openrouter_key: str | None = Header(default=None, alias="X-OpenRouter-Key"),
     chunks: dict[str, Chunk] = Depends(get_chunks),
     settings: Settings = Depends(get_settings),
-) -> RetrievalResponse:
+) -> DciQueryResponse:
     if not settings.enable_dci:
         raise HTTPException(
             status.HTTP_404_NOT_FOUND, "DCI retrieval is disabled (set RAG_ENABLE_DCI)."
@@ -61,12 +77,17 @@ async def query_dci(
         OpenRouterClient(api_key=key),
         settings.dci_model,
     )
-    results = await retriever.retrieve(payload)
+    results, dci_result = await retriever.run(payload)
+    trace = [
+        DciTraceStep(action=s.action, arg=s.arg, observation=s.observation)
+        for s in dci_result.steps
+    ]
     # Log the query and the key SOURCE, never the key value.
     _log.info(
         "dci.query",
         query=payload.text,
         returned=len(results),
+        steps=len(trace),
         key_source="user" if x_openrouter_key else "server",
     )
-    return RetrievalResponse(results=results, routing=None)
+    return DciQueryResponse(results=results, trace=trace)

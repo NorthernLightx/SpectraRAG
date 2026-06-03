@@ -162,23 +162,53 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
   border: 1px solid var(--border);
   vertical-align: middle;
 }
-/* Checkbox row: keep the box, label and info icon on one line. Without this the
-   global `input { width: 100% }` stretches the checkbox to the full column. */
+/* Checkbox row: inline box + label + icon. width:auto undoes the global
+   input{width:100%} that would otherwise stretch the checkbox full-width. */
 .advanced-grid .checkbox-field { align-self: center; }
 .checkbox-field label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
   margin: 0;
   cursor: pointer;
 }
 .checkbox-field input[type="checkbox"] {
   width: auto;
-  flex: none;
-  margin: 0;
+  margin: 0 6px 0 0;
   padding: 0;
+  vertical-align: middle;
   cursor: pointer;
   accent-color: var(--accent);
+}
+
+/* Agentic-search (DCI) step trace — one card per agent turn in the transcript. */
+.trace-step { padding: 7px 0; border-top: 1px solid var(--border); }
+.trace-step:first-child { border-top: none; padding-top: 0; }
+.trace-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.trace-num { color: var(--muted); font-size: 11px; min-width: 1.1em; text-align: right; }
+.trace-action {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--accent-tint);
+  color: var(--accent);
+}
+.trace-arg {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, monospace;
+  font-size: 12px;
+  color: var(--fg);
+  word-break: break-word;
+}
+.trace-obs {
+  margin: 4px 0 0 8px;
+  padding-left: 8px;
+  border-left: 2px solid var(--border);
+  color: var(--muted);
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 9em;
+  overflow: auto;
 }
 
 pre, code {

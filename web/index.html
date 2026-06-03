@@ -643,6 +643,15 @@
           assistantTurn.chunks = chunks;
           renderChunksInto(nodes.chunksEl, chunks);
           nodes.chunksWrap.hidden = chunks.length === 0;
+          // Agentic search returns the agent's tool loop — show it inline.
+          if (chunks._trace && chunks._trace.length) {
+            assistantTurn.trace = chunks._trace;
+            renderTraceInto(nodes.traceEl, chunks._trace);
+            nodes.traceWrap.querySelector("summary").textContent =
+              `Agent steps (${chunks._trace.length})`;
+            nodes.traceWrap.hidden = false;
+            nodes.traceWrap.open = true;
+          }
 
           if (chunks.length === 0) {
             nodes.answer.textContent =
@@ -772,6 +781,7 @@
           const data = await res.json();
           const results = data.results || [];
           results._routing = data.routing || null;
+          results._trace = data.trace || null;
           return results;
         }
         // /query returns 503 ("Retriever not configured") during the
@@ -972,6 +982,15 @@
         const citationsBody = document.createElement("div");
         citationsBody.className = "details-body";
         citationsWrap.append(citationsSummary, citationsBody);
+        // Agent steps: only populated for Agentic search (DCI), where the route
+        // returns the agent's SEARCH/GREP/READ trace. Stays hidden otherwise.
+        const traceWrap = document.createElement("details");
+        traceWrap.hidden = true;
+        const traceSummary = document.createElement("summary");
+        traceSummary.textContent = "Agent steps";
+        const traceBody = document.createElement("div");
+        traceBody.className = "details-body";
+        traceWrap.append(traceSummary, traceBody);
         const chunksWrap = document.createElement("details");
         chunksWrap.hidden = true;
         const chunksSummary = document.createElement("summary");
@@ -981,7 +1000,7 @@
         chunksWrap.append(chunksSummary, chunksBody);
         const meta = document.createElement("div");
         meta.className = "meta";
-        body.append(tag, searched, answer, citationsWrap, chunksWrap, meta);
+        body.append(tag, searched, answer, citationsWrap, traceWrap, chunksWrap, meta);
         wrap.append(avatar, body);
         transcriptInner.append(wrap);
         transcriptEl.scrollTop = transcriptEl.scrollHeight;
@@ -990,6 +1009,8 @@
           answer,
           citationsWrap,
           citationsEl: citationsBody,
+          traceWrap,
+          traceEl: traceBody,
           chunksWrap,
           chunksEl: chunksBody,
           meta,
@@ -1118,6 +1139,40 @@
       function renderChunksInto(target, chunks) {
         clear(target);
         for (const r of chunks) target.append(renderChunk(r));
+      }
+
+      // One card per agent turn: an action badge (SEARCH/GREP/READ/RANK), its
+      // argument, and the observation the tool returned. Mirrors the DciStep
+      // trace the /query/dci route now sends.
+      function renderTraceInto(target, trace) {
+        clear(target);
+        trace.forEach((step, i) => {
+          const div = document.createElement("div");
+          div.className = "trace-step";
+          const head = document.createElement("div");
+          head.className = "trace-head";
+          const num = document.createElement("span");
+          num.className = "trace-num";
+          num.textContent = i + 1;
+          const action = document.createElement("span");
+          action.className = "trace-action";
+          action.textContent = step.action || "?";
+          head.append(num, action);
+          if (step.arg) {
+            const arg = document.createElement("span");
+            arg.className = "trace-arg";
+            arg.textContent = step.arg;
+            head.append(arg);
+          }
+          div.append(head);
+          if (step.observation) {
+            const obs = document.createElement("div");
+            obs.className = "trace-obs";
+            obs.textContent = step.observation;
+            div.append(obs);
+          }
+          target.append(div);
+        });
       }
 
       function renderChunk(r) {

@@ -189,6 +189,29 @@ def test_dci_retriever_maps_agent_ranking_to_chunks() -> None:
     assert results[0].score > results[1].score  # rank-reciprocal preserves order
 
 
+def test_dci_retriever_run_surfaces_step_trace() -> None:
+    chunks = {
+        "pa::p1::c1": Chunk(
+            chunk_id="pa::p1::c1", paper_id="pa", page_numbers=[1], text="Eiffel Tower, Paris."
+        ),
+        "pb::p2::c1": Chunk(
+            chunk_id="pb::p2::c1", paper_id="pb", page_numbers=[2], text="Gustave Eiffel built it."
+        ),
+    }
+    corpus, sur_to_chunk = build_dci_corpus(chunks)
+    llm = _ScriptedLLM(
+        [
+            "THOUGHT: search\nACTION: SEARCH Eiffel",
+            "THOUGHT: rank\nACTION: RANK c1, c0",
+        ]
+    )
+    retr = DciRetriever(corpus, sur_to_chunk, chunks, llm, "fake", max_steps=4)
+    results, dci_result = asyncio.run(retr.run(Query(text="who built it", top_k=2)))
+    assert [r.chunk_id for r in results] == ["pb::p2::c1", "pa::p1::c1"]
+    assert [s.action for s in dci_result.steps] == ["SEARCH", "RANK"]
+    assert dci_result.steps[0].observation  # the SEARCH observation is populated
+
+
 def test_budget_exhaustion_still_ranks() -> None:
     tools = CorpusTools(_DOCS)
     # two alternating actions never finalize but never trip the repeat detector
