@@ -419,6 +419,14 @@
               <option value="">All papers</option>
             </select>
           </div>
+          <div>
+            <label for="dciMode">
+              Agentic search (experimental)
+              <span class="info-icon"
+                    title="Agentic grep retrieval (DCI): an LLM agent searches the raw text with SEARCH/GREP/READ to find chunks, then the answer is generated over those pages as usual. Text-finding only (blind to figure-only answers) and slower. Runs server-side, so it sends your OpenRouter key to the server, used in-memory for the request and not stored.">i</span>
+            </label>
+            <input id="dciMode" type="checkbox" />
+          </div>
         </div>
       </details>
     </div>
@@ -449,6 +457,7 @@
     <script src="/app.js"></script>
     <script>
       const apiKeyInput = document.getElementById("apiKey");
+      const dciModeInput = document.getElementById("dciMode");
       const modelSelect = document.getElementById("model");
       const routeSelect = document.getElementById("route");
       const routingModeSelect = document.getElementById("routingMode");
@@ -741,6 +750,26 @@
         if (routingModeSelect.value) body.routing_mode = routingModeSelect.value;
         if (paperFilterSelect.value) {
           body.filters = { paper_id: paperFilterSelect.value };
+        }
+        // Agentic search (DCI) runs the agent server-side: POST /query/dci with
+        // the key in a header (not the body — bodies are logged). No warm-up
+        // retry here; a 503 from this route means "no key", not "warming up".
+        if (dciModeInput.checked) {
+          const k = apiKeyInput.value.trim();
+          if (!k) throw new Error("Agentic search runs server-side and needs your OpenRouter key.");
+          const res = await fetch("/query/dci", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-OpenRouter-Key": k },
+            body: JSON.stringify(body),
+          });
+          if (!res.ok) {
+            const detail = await res.text();
+            throw new Error(`${res.status} ${res.statusText} — ${detail}`);
+          }
+          const data = await res.json();
+          const results = data.results || [];
+          results._routing = data.routing || null;
+          return results;
         }
         // /query returns 503 ("Retriever not configured") during the
         // post-cold-start warm-up, while the model + index load in the
