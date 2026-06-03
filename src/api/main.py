@@ -22,7 +22,7 @@ from src.api.bootstrap import _wire_generator_from_settings, _wire_retriever_fro
 from src.api.deps import set_tracer
 from src.api.middleware import request_context_middleware
 from src.api.rate_limit import limiter
-from src.api.routes import answer, figures, health, papers, query
+from src.api.routes import answer, dci, figures, health, papers, query
 from src.config.settings import load_settings
 from src.observability.langfuse import make_langfuse_client
 from src.observability.logging import configure_logging, get_logger
@@ -121,6 +121,7 @@ def create_app(*, log_file: Path | None = Path("logs/api.log")) -> FastAPI:
 
     app.include_router(health.router)
     app.include_router(query.router)
+    app.include_router(dci.router)
     app.include_router(answer.router)
     app.include_router(papers.router)
     app.include_router(figures.router)

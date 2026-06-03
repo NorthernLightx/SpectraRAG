@@ -76,9 +76,14 @@ class Settings(BaseSettings):
     # production deploy. Local dev with a populated `pages_dir` flips this
     # on to exercise the end-to-end multi-modal path.
     enable_multimodal: bool = False
+    # Experimental opt-in: agentic DCI retrieval at /query/dci. Off by default —
+    # text-only, slow (a multi-step LLM loop), and the agent runs server-side, so
+    # the route needs an OpenRouter key (the server's, or the caller's per-request).
+    enable_dci: bool = False
+    dci_model: str = "qwen/qwen3-235b-a22b-2507"
     # Optional override for the LLM classifier model. When `enable_multimodal`
     # is on AND `openrouter_api_key` is set, RoutingRetriever uses the LLM
-    # classifier (~$0.0001 per query) instead of ADR 0008's regex. The LLM
+    # classifier (one cheap per-query LLM call) instead of ADR 0008's regex. The LLM
     # closes the dispatch gap on natural-language queries that don't carry
     # "Figure X" / "Table N" keywords (run cc45831697b6 → exp_classifier_dispatch:
     # regex 17 % vs LLM 72 % hybrid dispatch on MMLongBench).
