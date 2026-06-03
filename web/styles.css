@@ -162,6 +162,24 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
   border: 1px solid var(--border);
   vertical-align: middle;
 }
+/* Checkbox row: keep the box, label and info icon on one line. Without this the
+   global `input { width: 100% }` stretches the checkbox to the full column. */
+.advanced-grid .checkbox-field { align-self: center; }
+.checkbox-field label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  cursor: pointer;
+}
+.checkbox-field input[type="checkbox"] {
+  width: auto;
+  flex: none;
+  margin: 0;
+  padding: 0;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
 
 pre, code {
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, monospace;

@@ -356,7 +356,10 @@
     <div class="settings">
       <div class="settings-row">
         <div>
-          <label for="apiKey">OpenRouter API key</label>
+          <label for="apiKey">OpenRouter API key
+            <span class="info-icon"
+                  title="Required to generate answers, including the vision models that read the page images directly. Stored in your browser; the server never logs or stores it.">i</span>
+          </label>
           <input id="apiKey" type="password" autocomplete="off" placeholder="sk-or-v1-..." />
         </div>
         <div>
@@ -419,13 +422,13 @@
               <option value="">All papers</option>
             </select>
           </div>
-          <div>
+          <div class="checkbox-field">
             <label for="dciMode">
+              <input id="dciMode" type="checkbox" />
               Agentic search (experimental)
               <span class="info-icon"
-                    title="Agentic grep retrieval (DCI): an LLM agent searches the raw text with SEARCH/GREP/READ to find chunks, then the answer is generated over those pages as usual. Text-finding only (blind to figure-only answers) and slower. Runs server-side, so it sends your OpenRouter key to the server, used in-memory for the request and not stored.">i</span>
+                    title="An LLM agent uses tools to search the document for answers. Slower, text-only, runs server-side with your key.">i</span>
             </label>
-            <input id="dciMode" type="checkbox" />
           </div>
         </div>
       </details>

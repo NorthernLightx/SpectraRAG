@@ -186,11 +186,14 @@
       <section class="card">
         <div class="grid-2">
           <div>
-            <label for="apiKey">OpenRouter API key</label>
+            <label for="apiKey">OpenRouter API key
+              <span class="info-icon"
+                    title="Required to generate answers, including the vision models that read the page images directly.">i</span>
+            </label>
             <input id="apiKey" type="password" autocomplete="off" placeholder="sk-or-v1-..." />
             <div class="hint">
               Get one at <a href="https://openrouter.ai/keys" target="_blank" rel="noopener">openrouter.ai/keys</a>.
-              Stored in your browser's local storage.
+              Stored in your browser's local storage; the server never logs or stores it.
             </div>
           </div>
           <div>
@@ -221,13 +224,13 @@
                 <option value="hybrid">Text + visual</option>
               </select>
             </div>
-            <div>
+            <div class="checkbox-field">
               <label for="dciMode">
+                <input id="dciMode" type="checkbox" />
                 Agentic search (experimental)
                 <span class="info-icon"
-                      title="Agentic grep retrieval (DCI): an LLM agent searches the raw text with SEARCH/GREP/READ instead of vector search. Text-only (no figures) and slower. It runs server-side, so it sends your OpenRouter key to the server, used in-memory for the request and not stored.">i</span>
+                      title="An LLM agent uses tools to search the document for answers. Slower, text-only, runs server-side with your key.">i</span>
               </label>
-              <input id="dciMode" type="checkbox" />
             </div>
             <div>
               <label for="routingMode">
