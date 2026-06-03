@@ -118,7 +118,9 @@ and slower, so it is a showcase rather than the default path.
 
 Generation is bring-your-own-key. Paste an OpenRouter key into the UI and the
 chat call goes browser-direct to OpenRouter; the server only handles
-retrieval (`/query`) and never sees, logs, or stores the key. Vision-capable
+retrieval (`/query`) and never sees, logs, or stores the key. The one exception
+is the opt-in DCI mode, whose agent runs server-side: it holds your key in
+memory for that request only, never stored or logged. Vision-capable
 models (`gpt-4o`, `claude-sonnet-4.x`, `qwen3-vl`) receive the retrieved page
 PNGs as image blocks when `RAG_PAGES_DIR` is set; populate it with
 `python -m scripts.render_pages --pdf-dir data/papers`.
