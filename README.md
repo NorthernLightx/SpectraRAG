@@ -112,7 +112,7 @@ Then open:
 Both query UIs carry an Advanced panel to force the retrieval route, switch
 intent vs cascade routing, set top-K, and filter by paper; the response shows
 the route the server actually chose. The Inspection page also has an experimental
-DCI toggle (ADR [0026](./docs/decisions/)): an LLM agent greps the corpus with
+agentic-search toggle (DCI; ADR [0026](./docs/decisions/)): an LLM agent greps the corpus with
 terminal-style tools instead of vector search. It is off by default, text-only,
 and slower, so it is a showcase rather than the default path.
 

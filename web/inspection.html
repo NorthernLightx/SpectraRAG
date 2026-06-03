@@ -223,9 +223,9 @@
             </div>
             <div>
               <label for="dciMode">
-                DCI (experimental)
+                Agentic search (experimental)
                 <span class="info-icon"
-                      title="Agentic grep retrieval: an LLM agent searches the raw text with SEARCH/GREP/READ instead of vector search. Text-only (no figures) and slower. It runs server-side, so it sends your OpenRouter key to the server, used in-memory for the request and not stored.">i</span>
+                      title="Agentic grep retrieval (DCI): an LLM agent searches the raw text with SEARCH/GREP/READ instead of vector search. Text-only (no figures) and slower. It runs server-side, so it sends your OpenRouter key to the server, used in-memory for the request and not stored.">i</span>
               </label>
               <input id="dciMode" type="checkbox" />
             </div>
@@ -451,7 +451,7 @@
         const headers = { "Content-Type": "application/json" };
         if (dci) {
           const k = apiKeyInput.value.trim();
-          if (!k) throw new Error("DCI mode runs server-side and needs your OpenRouter key.");
+          if (!k) throw new Error("Agentic search runs server-side and needs your OpenRouter key.");
           headers["X-OpenRouter-Key"] = k;
         }
         // /query returns 503 ("Retriever not configured") during the
