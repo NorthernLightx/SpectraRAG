@@ -63,6 +63,9 @@ logs/
 qdrant_storage/
 postgres_data/
 
+# Personal cost kill switch, not part of the deployed app
+deploy/cost-guard/
+
 # Coding-agent / LLM-tooling local state and agent-specific docs
 .claude/
 .cursor/

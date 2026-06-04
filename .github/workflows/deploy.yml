@@ -68,7 +68,8 @@ jobs:
           # --update-env-vars MERGES (does not replace), so the out-of-band env
           # config (corpus collection, pages dir, etc.) is preserved. Enables the
           # experimental DCI mode; with no server key it runs on the caller's key.
-          flags: --port=8000 --memory=8Gi --cpu=2 --cpu-boost --min-instances=0 --max-instances=2 --allow-unauthenticated --update-env-vars=RAG_ENABLE_DCI=true
+          # max-instances=1 + timeout bound the worst-case Cloud Run burn rate.
+          flags: --port=8000 --memory=8Gi --cpu=2 --cpu-boost --min-instances=0 --max-instances=1 --timeout=120 --allow-unauthenticated --update-env-vars=RAG_ENABLE_DCI=true
 
       - name: Print URL
         run: |
