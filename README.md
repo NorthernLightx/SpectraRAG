@@ -10,7 +10,7 @@
 [![python 3.12](https://img.shields.io/badge/python-3.12-blue)](https://www.python.org/downloads/release/python-3120/)
 [![license: MIT](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
 
-**▶ Live demo: <https://spectrarag-ar6wxit42a-ew.a.run.app>**
+**▶ Live demo: <https://spectrarag-997818771923.europe-west1.run.app>**
 
 ## The problem
 
