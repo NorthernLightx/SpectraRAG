@@ -34,7 +34,11 @@ def make_api_key_middleware(
     async def _middleware(
         request: Request, call_next: Callable[[Request], Awaitable[Response]]
     ) -> Response:
-        if api_key is None or request.url.path in _EXEMPT_PATHS:
+        # Gate on scope["path"] (the routed path), not request.url.path:
+        # request.url is rebuilt from the Host header and can be poisoned by a
+        # malformed one (CVE-2026-48710), making url.path diverge from the path
+        # routing actually dispatched on. scope["path"] is what the router uses.
+        if api_key is None or request.scope["path"] in _EXEMPT_PATHS:
             return await call_next(request)
         provided = request.headers.get("X-API-Key", "")
         # hmac.compare_digest avoids leaking the key length / prefix via timing.
