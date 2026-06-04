@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 import fitz
+import pytest
 
 from src.ingestion.pipeline import IngestedPaper, ingest_paper
 from src.llm.protocol import ChatResponse, Message
@@ -13,6 +14,10 @@ from src.rag.bm25 import Bm25Index
 from src.rag.vectorstore import QdrantVectorStore
 from src.types import Paper
 from tests.fakes import FakeEmbedder
+
+# Real docling conversion downloads/loads a HF figure-classifier model — too
+# heavy for the fast pre-push gauntlet. Runs in CI, skipped by the local hook.
+pytestmark = pytest.mark.slow
 
 
 class _StubLLM:

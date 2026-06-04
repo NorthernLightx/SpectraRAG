@@ -148,6 +148,7 @@ async def test_wire_populates_pipeline_retriever_from_qdrant() -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.slow  # real wiring reranks → CrossEncoder model download; CI only
 async def test_wired_retriever_can_serve_a_query() -> None:
     """Sanity check beyond construction: the wired retriever actually returns
     chunks (so set_retriever didn't silently register a broken instance)."""
@@ -347,6 +348,7 @@ async def test_multimodal_on_without_visual_leg_degrades_to_text() -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.slow  # real wiring reranks → CrossEncoder model download; CI only
 async def test_multimodal_routing_actually_dispatches_figure_to_hybrid(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

@@ -39,9 +39,9 @@ PYTEST="$VENV_DIR/pytest"
 
 printf "pre-push gauntlet:\n"
 
-# Match the gates in .github/workflows/ci.yml exactly — running a narrower
-# subset means CI fails at the runner level on things the hook should have
-# caught (which is exactly what we're trying to prevent).
+# Lint, format, and types match .github/workflows/ci.yml exactly. The pytest
+# step runs only the fast subset; slow / integration tests pull model downloads
+# or docker-compose services and run in CI, not in this quick local gate.
 
 # 1. Ruff lint
 if "$RUFF" check . >/dev/null; then
@@ -67,8 +67,8 @@ else
     fail "mypy strict"
 fi
 
-# 4. Full pytest
-if "$PYTEST" tests/ -q --no-header >/tmp/pre-push-pytest.log 2>&1; then
+# 4. Fast pytest subset (slow + integration run in CI, not here)
+if "$PYTEST" tests/ -m "not slow and not integration" -q --no-header >/tmp/pre-push-pytest.log 2>&1; then
     pass "pytest ($(grep -oE '[0-9]+ passed' /tmp/pre-push-pytest.log | head -1))"
 else
     cat /tmp/pre-push-pytest.log
