@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>SpectraRAG — why multimodal</title>
+    <title>Why multimodal - SpectraRAG</title>
     <link rel="stylesheet" href="/styles.css" />
     <style>
       html { scroll-behavior: smooth; }
@@ -317,7 +317,7 @@
         cap.append(document.createTextNode(`${c.paper_label} · `));
         const pin = el("span", "pin", `gold page ${goldPage}`);
         cap.append(pin);
-        cap.append(document.createTextNode(` — the ${c.figure_label} holding the answer.`));
+        cap.append(document.createTextNode(`. The ${c.figure_label} holding the answer.`));
         fig.append(img, cap);
         imgWrap.append(fig);
 

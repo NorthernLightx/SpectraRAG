@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>SpectraRAG</title>
+    <title>Inspection - SpectraRAG</title>
     <link
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"
@@ -224,19 +224,11 @@
                 <option value="hybrid">Text + visual</option>
               </select>
             </div>
-            <div class="checkbox-field">
-              <label for="dciMode">
-                <input id="dciMode" type="checkbox" />
-                Agentic search (experimental)
-                <span class="info-icon"
-                      title="An LLM agent uses tools to search the document for answers. Slower, text-only, runs server-side with your key.">i</span>
-              </label>
-            </div>
             <div>
               <label for="routingMode">
                 Routing mode
                 <span class="info-icon"
-                      title="Category routes by query intent; cascade routes by confidence — text first, visual fallback when text is uncertain.">i</span>
+                      title="Category routes by query intent; cascade routes by confidence: text first, then a visual fallback when text is uncertain.">i</span>
               </label>
               <select id="routingMode">
                 <option value="">Server default</option>
@@ -261,6 +253,14 @@
               <select id="paperFilter">
                 <option value="">All papers</option>
               </select>
+            </div>
+            <div class="checkbox-field">
+              <label for="dciMode">
+                <input id="dciMode" type="checkbox" />
+                Agentic search (experimental)
+                <span class="info-icon"
+                      title="An LLM agent uses tools to search the document for answers. Slower, text-only, runs server-side with your key.">i</span>
+              </label>
             </div>
           </div>
         </details>
@@ -394,7 +394,7 @@
         } catch (err) {
           askBtn.disabled = false;
           return setStatus(
-            `Retrieval failed: ${err.message || err}. The server may be starting up — try again in a few seconds.`,
+            `Retrieval failed: ${err.message || err}. The server may be starting up. Try again in a few seconds.`,
             true,
           );
         }
@@ -405,7 +405,7 @@
         resultEl.hidden = false;
 
         if (chunks.length === 0) {
-          setStatus("No chunks retrieved — corpus may not be ingested.", true);
+          setStatus("No chunks retrieved. The corpus may not be ingested.", true);
           askBtn.disabled = false;
           return;
         }
@@ -479,13 +479,13 @@
           const detail = await res.text();
           if (res.status === 503 && performance.now() < warmupDeadline) {
             setStatus(
-              "Server is warming up after a cold start — the first query loads the model and index and can take a minute or two. Retrying automatically…",
+              "Server is warming up after a cold start. The first query loads the model and index and can take a minute or two. Retrying automatically…",
               false,
             );
             await new Promise((r) => setTimeout(r, 3000));
             continue;
           }
-          throw new Error(`${res.status} ${res.statusText} — ${detail}`);
+          throw new Error(`${res.status} ${res.statusText}: ${detail}`);
         }
       }
 
@@ -546,7 +546,7 @@
         });
         if (!res.ok || !res.body) {
           const detail = await res.text();
-          throw new Error(`${res.status} ${res.statusText} — ${detail}`);
+          throw new Error(`${res.status} ${res.statusText}: ${detail}`);
         }
 
         let acc = "";
@@ -646,11 +646,11 @@
               a.rel = "noopener";
               a.className = "cite-source";
               a.append(code);
-              a.append(document.createTextNode(` — ${sourceText}`));
+              a.append(document.createTextNode(` · ${sourceText}`));
               li.append(a);
             } else {
               li.append(code);
-              li.append(document.createTextNode(` — ${sourceText}`));
+              li.append(document.createTextNode(` · ${sourceText}`));
             }
             const firstPage = (c.page_numbers || [])[0];
             if (firstPage) {
@@ -699,7 +699,7 @@
             }
           } else {
             li.append(code);
-            li.append(document.createTextNode(" — (not in retrieved set)"));
+            li.append(document.createTextNode(" (not in retrieved set)"));
           }
           ol.append(li);
         });

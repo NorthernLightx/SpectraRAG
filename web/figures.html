@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>SpectraRAG — figures</title>
+    <title>Figures - SpectraRAG</title>
     <link rel="stylesheet" href="/styles.css" />
     <style>
       html, body {
@@ -363,7 +363,7 @@
       </div>
       <div class="type-filter-wrap">
         <label>Element types
-          <span class="info-icon" title="ADR 0022 — picks from Docling's DocumentFigureClassifier-v2.5 labels (logo, bar_chart, flow_chart, photograph, ...) plus extracted tables. Multi-select; click 'All' to flip everything on/off.">i</span>
+          <span class="info-icon" title="Picks from Docling's DocumentFigureClassifier-v2.5 labels (logo, bar_chart, flow_chart, photograph, ...) plus extracted tables. Multi-select; click 'All' to flip everything on/off.">i</span>
         </label>
         <div class="type-filter" id="typeFilter"></div>
       </div>
@@ -587,12 +587,12 @@
           }
           if (res.status === 503 && performance.now() < warmupDeadline) {
             statusEl.textContent =
-              "Server is warming up after a cold start — the first request loads the model and index and can take a minute or two. Retrying automatically…";
+              "Server is warming up after a cold start. The first request loads the model and index and can take a minute or two. Retrying automatically…";
             await new Promise((r) => setTimeout(r, 3000));
             continue;
           }
           const detail = res.status === 503
-            ? "Corpus not loaded (server returned 503 — ingest a corpus to populate /figures)."
+            ? "Corpus not loaded (server returned 503; ingest a corpus to populate /figures)."
             : `HTTP ${res.status}`;
           fetchError = `Failed to load figures: ${detail}`;
           return;

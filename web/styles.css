@@ -164,7 +164,9 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 }
 /* Checkbox row: inline box + label + icon. width:auto undoes the global
    input{width:100%} that would otherwise stretch the checkbox full-width. */
-.advanced-grid .checkbox-field { align-self: center; }
+/* Full-width own row so the label text and its info icon never wrap apart in a
+   narrow grid cell. */
+.advanced-grid .checkbox-field { grid-column: 1 / -1; align-self: center; }
 .checkbox-field label {
   margin: 0;
   cursor: pointer;
