@@ -48,16 +48,18 @@ from src.types import Paper
 async def _main(
     *,
     pdf_dir: Path,
+    pdfs: list[Path] | None,
     qdrant_url: str,
     ollama_url: str,
     collection: str,
     force: bool,
+    append: bool,
     extract_figures: bool,
     extract_tables: bool,
     vlm_caption_model: str | None,
 ) -> None:
     log = get_logger("scripts.bootstrap_corpus")
-    pdf_paths = sorted(pdf_dir.glob("*.pdf"))
+    pdf_paths = sorted(pdfs) if pdfs else sorted(pdf_dir.glob("*.pdf"))
     if not pdf_paths:
         raise SystemExit(f"No .pdf files found in {pdf_dir}")
     print(f"Found {len(pdf_paths)} PDFs in {pdf_dir}")
@@ -75,10 +77,10 @@ async def _main(
     vectorstore = QdrantVectorStore(url=qdrant_url, collection_name=collection, dim=embedder.dim)
 
     existing = await vectorstore.count()
-    if existing > 0 and not force:
+    if existing > 0 and not force and not append:
         print(
             f"Collection {collection!r} already has {existing} points — "
-            f"skipping ingestion (pass --force to re-ingest)."
+            f"skipping ingestion (pass --force to re-ingest, or --append to add)."
         )
         log.info("bootstrap.skip", collection=collection, existing_points=existing, force=force)
         return
@@ -132,6 +134,17 @@ if __name__ == "__main__":
         description="Idempotently ingest every PDF in --pdf-dir into a Qdrant collection."
     )
     parser.add_argument("--pdf-dir", type=Path, default=Path("data/papers"))
+    parser.add_argument(
+        "--pdf",
+        dest="pdfs",
+        type=Path,
+        action="append",
+        help=(
+            "Ingest specific PDF file(s) instead of globbing --pdf-dir (repeatable). "
+            "Pair with --append to add documents one at a time, keeping peak memory "
+            "bounded on small boxes."
+        ),
+    )
     parser.add_argument("--qdrant", default="http://localhost:6333")
     parser.add_argument("--ollama", default="http://localhost:11434")
     parser.add_argument("--collection", default="rag_corpus")
@@ -139,6 +152,14 @@ if __name__ == "__main__":
         "--force",
         action="store_true",
         help="Re-ingest even if the collection already contains points.",
+    )
+    parser.add_argument(
+        "--append",
+        action="store_true",
+        help=(
+            "Ingest into an existing non-empty collection without dropping it (upsert). "
+            "Pair with per-file --pdf for memory-bounded batched bakes."
+        ),
     )
     parser.add_argument(
         "--no-extract-figures",
@@ -172,10 +193,12 @@ if __name__ == "__main__":
     asyncio.run(
         _main(
             pdf_dir=args.pdf_dir,
+            pdfs=args.pdfs,
             qdrant_url=args.qdrant,
             ollama_url=args.ollama,
             collection=args.collection,
             force=args.force,
+            append=args.append,
             extract_figures=args.extract_figures,
             extract_tables=args.extract_tables,
             vlm_caption_model=args.vlm_caption_model,

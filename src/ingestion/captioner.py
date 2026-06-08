@@ -34,7 +34,6 @@ import httpx
 from tenacity import (
     retry,
     retry_if_exception,
-    retry_if_exception_type,
     stop_after_attempt,
     wait_exponential,
 )
@@ -53,7 +52,10 @@ def _should_retry_vlm_request(exc: BaseException) -> bool:
 _log = get_logger(__name__)
 
 _DEFAULT_TIMEOUT_SECONDS = 600.0
-_DEFAULT_CONCURRENCY = 2
+# Serial by default: cloud VLMs (Ollama :cloud, OpenRouter) return HTTP 429 under
+# concurrent bursts. One request in flight plus the 429 backoff-retry on each
+# captioner keeps a bake under the rate limit; local models just run a bit slower.
+_DEFAULT_CONCURRENCY = 1
 # Reasoning-style VLMs (Nemotron Nano 12B VL, gemini-thinking, etc.) emit
 # chain-of-thought tokens before the final caption. With the old 200-token
 # cap they truncated mid-reasoning and returned empty `content`. 400 covers
@@ -105,9 +107,9 @@ class OllamaVisionCaptioner:
         self._max_tokens = max_tokens
 
     @retry(
-        retry=retry_if_exception_type((httpx.TransportError, httpx.RemoteProtocolError)),
-        wait=wait_exponential(multiplier=0.5, min=0.5, max=8),
-        stop=stop_after_attempt(3),
+        retry=retry_if_exception(_should_retry_vlm_request),
+        wait=wait_exponential(multiplier=2, min=2, max=60),
+        stop=stop_after_attempt(6),
         reraise=True,
     )
     async def caption(self, image_path: Path, *, prompt: str | None = None) -> str:
@@ -144,6 +146,11 @@ class OllamaVisionCaptioner:
             async with httpx.AsyncClient(timeout=self._timeout) as ad_hoc:
                 response = await ad_hoc.post(url, json=payload)
 
+        if response.status_code == 429:
+            # Raise so tenacity backs off + retries (cloud rate limit), matching
+            # the OpenRouter captioner. Other non-200 fall through to the graceful
+            # empty-string path below.
+            response.raise_for_status()
         if response.status_code != 200:
             _log.warning(
                 "vlm_caption.http_error",
