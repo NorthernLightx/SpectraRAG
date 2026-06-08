@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from src.embeddings.protocol import Embedder
-from src.ingestion.captioner import _Captioner, caption_figures
+from src.ingestion.captioner import _Captioner, caption_figures, relatex_captions
 from src.ingestion.chunking import chunk_pages, figure_to_chunk, table_to_chunk
 from src.ingestion.contextualize import contextualize_chunks
 from src.ingestion.figures import extract_figures
@@ -123,6 +123,7 @@ async def ingest_paper(
             if extract_figures_enabled:
                 if vlm_captioner is not None and docling_figs:
                     docling_figs = await caption_figures(docling_figs, captioner=vlm_captioner)
+                    docling_figs = await relatex_captions(docling_figs, captioner=vlm_captioner)
                     figures_captioned = sum(1 for f in docling_figs if f.vlm_caption)
                 chunks.extend(figure_to_chunk(f) for f in docling_figs)
                 figure_count = len(docling_figs)
@@ -134,6 +135,7 @@ async def ingest_paper(
                 figures = extract_figures(paper.paper_id, paper.pdf_path, out_dir=figures_out_dir)
                 if vlm_captioner is not None and figures:
                     figures = await caption_figures(figures, captioner=vlm_captioner)
+                    figures = await relatex_captions(figures, captioner=vlm_captioner)
                     figures_captioned = sum(1 for f in figures if f.vlm_caption)
                 chunks.extend(figure_to_chunk(f) for f in figures)
                 figure_count = len(figures)

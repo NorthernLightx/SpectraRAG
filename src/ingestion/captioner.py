@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import re
 from pathlib import Path
 from typing import Any, Protocol, runtime_checkable
 
@@ -66,7 +67,13 @@ _DEFAULT_PROMPT = (
     "(a) the type of plot or diagram, (b) what variables/axes/categories appear, and "
     "(c) the key quantitative or qualitative takeaway shown. Be specific. Avoid "
     "generic phrases like 'this is a figure' or 'a chart is shown'. Do not include "
-    "preamble like 'Here's a description'."
+    "preamble like 'Here's a description'. "
+    # Math is destroyed by PDF text extraction (a superscript 2 reads as 'R 2');
+    # the VLM sees the rendered image, so have it re-encode math as LaTeX so the
+    # indexed caption is faithful and stays consistent for downstream generation.
+    "Render every mathematical symbol, variable, super/subscript and equation as inline "
+    "LaTeX delimited by $...$ — e.g. write $R^2$ not 'R 2', $\\Delta V_{\\text{inter}}$, "
+    "$\\{L_i(r)\\}_{i=1}^{5}$. Use LaTeX only for the mathematics; leave ordinary prose as text."
 )
 
 
@@ -103,13 +110,17 @@ class OllamaVisionCaptioner:
         stop=stop_after_attempt(3),
         reraise=True,
     )
-    async def caption(self, image_path: Path) -> str:
+    async def caption(self, image_path: Path, *, prompt: str | None = None) -> str:
         """Return a caption string for `image_path`. Empty string on permanent failure.
+
+        `prompt` overrides the instance prompt for a single call (used by the
+        caption-relatex pass, which feeds the existing caption back in).
 
         Errors that won't get better on retry (404, malformed image, vision-model
         not present) become a logged warning and an empty string — caller decides
         whether to use the original PDF caption or accept no caption.
         """
+        effective_prompt = self._prompt if prompt is None else prompt
         # Path I/O is blocking; offload so we don't stall the event loop while a
         # batch of figures is being captioned concurrently.
         if not await asyncio.to_thread(image_path.exists):
@@ -120,7 +131,7 @@ class OllamaVisionCaptioner:
         b64 = base64.b64encode(image_bytes).decode("ascii")
         payload: dict[str, Any] = {
             "model": self._model,
-            "messages": [{"role": "user", "content": self._prompt, "images": [b64]}],
+            "messages": [{"role": "user", "content": effective_prompt, "images": [b64]}],
             "stream": False,
             "options": {"temperature": self._temperature, "num_predict": self._max_tokens},
         }
@@ -160,7 +171,7 @@ class _Captioner(Protocol):
     helper caring which provider is in use.
     """
 
-    async def caption(self, image_path: Path) -> str: ...
+    async def caption(self, image_path: Path, *, prompt: str | None = None) -> str: ...
 
 
 _OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
@@ -212,14 +223,18 @@ class OpenRouterVisionCaptioner:
         stop=stop_after_attempt(6),
         reraise=True,
     )
-    async def caption(self, image_path: Path) -> str:
+    async def caption(self, image_path: Path, *, prompt: str | None = None) -> str:
         """Return a caption for `image_path`. Empty string on permanent failure.
+
+        `prompt` overrides the instance prompt for a single call (used by the
+        caption-relatex pass, which feeds the existing caption back in).
 
         Free-tier OpenRouter VLMs commonly return 429 under burst load;
         we raise on 429 so tenacity retries with exponential backoff.
         Other non-200 (401, 404, 5xx after retries) become a logged
         warning and an empty string — caller falls back to the PDF caption.
         """
+        effective_prompt = self._prompt if prompt is None else prompt
         if not await asyncio.to_thread(image_path.exists):
             _log.warning("vlm_caption.image_missing", path=str(image_path))
             return ""
@@ -233,7 +248,7 @@ class OpenRouterVisionCaptioner:
                 {
                     "role": "user",
                     "content": [
-                        {"type": "text", "text": self._prompt},
+                        {"type": "text", "text": effective_prompt},
                         {"type": "image_url", "image_url": {"url": data_url}},
                     ],
                 }
@@ -372,4 +387,95 @@ async def caption_figures(
         for slot, fig in zip(eligible_indices, captioned, strict=True):
             results[slot] = fig
         ctx["with_caption"] = sum(1 for f in results if f.vlm_caption)
+    return results
+
+
+# Built by concatenation, not str.format, because the LaTeX examples contain
+# literal braces ({\text{...}}) that format() would read as field names.
+_RELATEX_PROMPT = (
+    "The text below is the caption for the attached scientific figure, but its "
+    "mathematical notation was flattened by PDF text extraction (for example a "
+    "superscript two reads as 'R 2'). Using the image to disambiguate, output the "
+    "caption again with exactly the same wording, order and meaning, but written so "
+    "every mathematical symbol, variable, super/subscript and equation is inline LaTeX "
+    "delimited by $...$ (e.g. $R^2$, $\\Delta V_{\\text{inter}}$). Change only the math "
+    "formatting. Add and remove nothing else, and output no preamble.\n\nCaption:\n"
+)
+
+# Conservative flag for "this caption carries math the text layer flattened".
+# A lone CAPITAL variable then a single digit (R 2, V 2) is the flattened
+# super/subscript case. Capital-only so "a 1B-parameter" / "a 3D view" do not
+# match, and "Figure 2" does not (the digit follows a whole word). Plus equals
+# signs, math operators and Greek letters. The noqa lines below silence ruff's
+# ambiguous-unicode check (it reads Greek letters as Latin look-alikes), which
+# is exactly the signal we want. Surviving unicode super/subscripts already
+# render, so they are not flagged.
+_FLAT_MATH_RE = re.compile(
+    r"(?<![A-Za-z0-9])[A-Z]\s\d(?![0-9])"
+    r"|[=≤≥≈≠→↦∑∫√∈∇±×∆∞]"  # noqa: RUF001 — intentional math operators, not typos
+    r"|[Α-ω]"  # noqa: RUF001 — Greek letters are the math signal, not a Latin-A typo
+)
+
+
+def _caption_has_math(figure: Figure) -> bool:
+    """True when a figure's PDF caption looks like it carries text-flattened math.
+
+    Skips figures that already have a VLM caption (produced with the LaTeX-aware
+    prompt, so its math is already encoded). Conservative on purpose: a false
+    positive costs one extra VLM call that returns the caption unchanged; a false
+    negative just leaves one caption flat.
+    """
+    if figure.vlm_caption:
+        return False
+    caption = figure.caption.strip()
+    if not caption:
+        return False
+    return bool(_FLAT_MATH_RE.search(caption))
+
+
+async def relatex_captions(
+    figures: list[Figure],
+    *,
+    captioner: _Captioner,
+    concurrency: int = _DEFAULT_CONCURRENCY,
+) -> list[Figure]:
+    """Re-encode text-flattened math in PDF captions as LaTeX, preserving wording.
+
+    Targets only math-looking captions (`_caption_has_math`), so clean author
+    captions stay untouched and the VLM cost stays bounded. The VLM reads the
+    rendered image (where a superscript is visibly raised) and re-emits the same
+    caption with `$...$` math. The result is written back to `figure.caption` —
+    still the author's caption, only the math fixed — so `figure_to_chunk` picks
+    it up without swapping in a from-scratch VLM description.
+    """
+    if not figures:
+        return []
+    eligible = [i for i, f in enumerate(figures) if _caption_has_math(f)]
+    if not eligible:
+        return list(figures)
+
+    semaphore = asyncio.Semaphore(concurrency)
+
+    async def _one(figure: Figure) -> Figure:
+        async with semaphore:
+            try:
+                relatexed = await captioner.caption(
+                    figure.image_path,
+                    prompt=_RELATEX_PROMPT + figure.caption,
+                )
+            except (httpx.HTTPError, RuntimeError) as exc:
+                _log.warning("relatex_caption.failed", figure_id=figure.figure_id, error=str(exc))
+                return figure
+        if not relatexed:
+            return figure
+        return figure.model_copy(update={"caption": relatexed})
+
+    with timed_event(
+        _log, "relatex_caption.done", n_figures=len(figures), n_eligible=len(eligible)
+    ) as ctx:
+        results = list(figures)
+        fixed = await asyncio.gather(*(_one(figures[i]) for i in eligible))
+        for slot, fig in zip(eligible, fixed, strict=True):
+            results[slot] = fig
+        ctx["relatexed"] = sum(1 for i in eligible if results[i].caption != figures[i].caption)
     return results

@@ -11,6 +11,7 @@ from src.ingestion.captioner import (
     OllamaVisionCaptioner,
     OpenRouterVisionCaptioner,
     caption_figures,
+    relatex_captions,
 )
 from src.types import Figure
 
@@ -186,6 +187,44 @@ async def test_caption_figures_keeps_original_when_vlm_returns_empty(tmp_path: P
 async def test_caption_figures_returns_empty_for_no_figures() -> None:
     captioner = OllamaVisionCaptioner(model="gemma3:4b")
     assert await caption_figures([], captioner=captioner) == []
+
+
+@respx.mock
+async def test_relatex_captions_rewrites_only_math_captions(tmp_path: Path) -> None:
+    # The flattened-math caption ("R 2") is re-emitted as LaTeX in place; the
+    # clean prose caption is left untouched and never hits the VLM.
+    figs = [
+        _figure("math", _write_png(tmp_path / "m.png"), caption="Figure 2: target-region R 2 over budget."),
+        _figure("clean", _write_png(tmp_path / "c.png"), caption="Figure 1: a clear description, no math here."),
+    ]
+    route = respx.post("http://localhost:11434/api/chat").mock(
+        return_value=httpx.Response(
+            200,
+            json={"message": {"content": "Figure 2: target-region $R^2$ over budget."}, "done": True},
+        )
+    )
+    captioner = OllamaVisionCaptioner(model="gemma3:4b")
+    out = await relatex_captions(figs, captioner=captioner)
+
+    assert route.call_count == 1  # only the math caption was sent to the VLM
+    assert out[0].caption == "Figure 2: target-region $R^2$ over budget."
+    assert out[1].caption == "Figure 1: a clear description, no math here."
+
+
+@respx.mock
+async def test_relatex_captions_skips_vlm_captioned(tmp_path: Path) -> None:
+    # A figure already carrying a VLM caption (made with the LaTeX-aware prompt)
+    # is not re-processed even if its PDF caption looks mathy.
+    fig = _figure("f", _write_png(tmp_path / "f.png"), caption="Figure 3: R 2 plot.")
+    fig = fig.model_copy(update={"vlm_caption": "VLM caption with $R^2$."})
+    route = respx.post("http://localhost:11434/api/chat").mock(
+        return_value=httpx.Response(200, json={"message": {"content": "x"}, "done": True})
+    )
+    captioner = OllamaVisionCaptioner(model="gemma3:4b")
+    [out] = await relatex_captions([fig], captioner=captioner)
+
+    assert route.call_count == 0
+    assert out.caption == "Figure 3: R 2 plot."
 
 
 # OpenRouterVisionCaptioner — cloud VLM via OpenRouter (gpt-4o-mini-vision etc).
