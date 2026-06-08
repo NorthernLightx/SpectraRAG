@@ -100,21 +100,22 @@ uv run python -m scripts.bootstrap_corpus --pdf-dir data/papers
 uv run uvicorn src.api.main:app --reload --port 8000
 ```
 
-Then open:
+Then open <http://localhost:8000/>. It's a single-page app with five tabs:
 
-- <http://localhost:8000/> — conversational chat UI (fresh retrieval per turn,
-  with a query-condense step on follow-ups)
-- <http://localhost:8000/inspection.html> — single-shot retrieval inspection:
-  force the route, set top-K, filter by paper, and see the route the server chose
-- <http://localhost:8000/figures.html> — figure browser: every figure and
-  table chunk with bbox-highlighted thumbnails and caption search
+- **Chat** re-retrieves on every turn (with a condense step on follow-ups). The
+  panel beside the answer shows the route the server picked, the ranked chunks,
+  and the page images it read.
+- **Inspection** traces one query through routing, retrieval, and rerank.
+- **Papers** and **Figures** browse the indexed corpus. Figures are bbox-cropped
+  thumbnails with caption search.
+- **Why multimodal?** walks through real MMLongBench questions where text-only
+  retrieval misses the page the answer is on and the router finds it.
 
-Both query UIs carry an Advanced panel to force the retrieval route, switch
-intent vs cascade routing, set top-K, and filter by paper; the response shows
-the route the server actually chose. The Inspection page also has an experimental
-agentic-search toggle (DCI; ADR [0026](./docs/decisions/)): an LLM agent greps the corpus with
-terminal-style tools instead of vector search. It is off by default, text-only,
-and slower, so it is a showcase rather than the default path.
+Chat and Inspection both carry an Advanced panel to force the route, switch intent
+vs cascade routing, set top-K, and filter by paper. Chat's routing also has an
+agentic option (DCI; ADR [0026](./docs/decisions/)): an LLM agent greps the corpus
+with terminal-style tools instead of vector search. It's off by default, text-only,
+and slower, so treat it as a demo of the approach, not the default path.
 
 Generation is bring-your-own-key. Paste an OpenRouter key into the UI and the
 chat call goes browser-direct to OpenRouter; the server only handles
@@ -256,7 +257,7 @@ visual leg with `RAG_ENABLE_MULTIMODAL=false`.
 ```
 src/        FastAPI app, retrievers, ingestion, eval, observability
 scripts/    CLI entry points (bootstrap, render, eval, regression)
-web/        BYOK frontend — static HTML/CSS/JS, no build step, baked into the image
+web/        BYOK frontend — React via in-browser Babel, no build step, baked into the image
 data/       gitignored except curated_demo/papers.txt, eval baselines,
             golden sets, and the committed demo page renders
 docs/       ADRs, eval methodology, results
