@@ -7,6 +7,28 @@ function clip(s, n) {
   return t.length > n ? t.slice(0, n).trim() + "…" : t;
 }
 
+// Render a caption with KaTeX. Captions carry relatex'd math in $...$ or \(...\)
+// (the VLM emits either), so both delimiters are enabled. Caption-only by design.
+function MathText({ text, className, style }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof window.renderMathInElement !== "function") return;
+    try {
+      window.renderMathInElement(el, {
+        delimiters: [
+          { left: "$$", right: "$$", display: true },
+          { left: "\\[", right: "\\]", display: true },
+          { left: "$", right: "$", display: false },
+          { left: "\\(", right: "\\)", display: false },
+        ],
+        throwOnError: false,
+      });
+    } catch (_) { /* leave the raw text on a KaTeX error */ }
+  }, [text]);
+  return <p ref={ref} className={className} style={style}>{text}</p>;
+}
+
 // Drop repeated paragraphs (older ingests stored the caption sentence twice).
 function dedupeParagraphs(text) {
   const seen = new Set();
@@ -140,7 +162,7 @@ function FigureLightbox({ f, onClose }) {
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <details open className="lb-drop">
                 <summary>Caption</summary>
-                {hasCaption ? <p className="lb-cap serif" style={{ fontSize: 14, margin: 0 }}>{name}</p> : noCap}
+                {hasCaption ? <MathText text={name} className="lb-cap serif" style={{ fontSize: 14, margin: 0 }} /> : noCap}
               </details>
               <details open className="lb-drop">
                 <summary>Data</summary>
@@ -148,7 +170,7 @@ function FigureLightbox({ f, onClose }) {
               </details>
             </div>
           ) : (
-            hasCaption ? <p className="lb-cap serif">{name}</p> : noCap
+            hasCaption ? <MathText text={name} className="lb-cap serif" /> : noCap
           )}
           <hr className="divider" style={{ margin: "16px 0" }} />
           <div className="lb-note">
