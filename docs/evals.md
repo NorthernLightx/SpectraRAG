@@ -125,3 +125,26 @@ ingestion/main.json` is the post-ADR-0017 reference. Graph (entities/
 relations, isolates, community shape) and bib-filter precision dimensions
 are added by the GraphRAG spike; bib-filter ground truth is human-labelled
 (the machine never authors truth — see `promote_candidates.py`).
+
+## Figure-caption invariant guard
+
+A deterministic structural guard, not a labelled set, so it stays inside the
+machine-never-authors-truth rule. It encodes one rule from ADR 0022: a picture
+whose caption starts with a primary `Figure N` / `Fig. N` / `Table N` / `Tab. N`
+label must never be *surfaced* as `role=unlabeled` — a captioned figure is never
+hidden behind the gallery's "unknown" bucket. (The bug it pins: `2604.28177v1`
+p13, a real captioned illustration shown as `unlabeled`.) "Surfaced" is the role
+`figures._to_browse_item` returns; the stored 3-way role is left alone, since the
+retrieval filter still needs `decoration` and `unlabeled`.
+
+Two pytest arms, both in the fast pre-push subset (`pytest -m "not slow and not
+integration"`), so a breach fails the push before it reaches CI:
+
+- `tests/unit/test_figure_caption_invariant.py` — runs synthetic captioned
+  chunks through the real `_to_browse_item` and the caption-first arm of
+  `_classify_figure_role`. Microseconds; catches the *code* regressing.
+- `tests/unit/test_figure_caption_invariant_corpus.py` — scans the committed
+  `qdrant_local/rag_corpus` snapshot and asserts the same invariant over every
+  baked figure/table chunk, so a bad `--force` re-bake (e.g. reverting the
+  `table → figure` map) turns red against the shipping data. Read-only scroll,
+  ~0.5 s; skips if the snapshot is absent.
