@@ -96,6 +96,13 @@
 .lb-drop:not([open]) > summary::before { content: "▸ "; }
 .md-pre { font-size: 11px; line-height: 1.5; white-space: pre; overflow-x: auto; color: var(--text-dim); margin: 0; }
 
+/* lightbox Fields / JSON view toggle */
+.lb-viewtoggle { display: inline-flex; margin: 12px 0 14px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.vt-btn { font-family: inherit; font-size: 11.5px; padding: 5px 13px; background: transparent; color: var(--text-dim); border: 0; cursor: pointer; transition: background .12s, color .12s; }
+.vt-btn:hover { color: var(--text); }
+.vt-btn.on { background: var(--visual-soft); color: var(--visual); }
+.vt-btn + .vt-btn { border-left: 1px solid var(--border); }
+
 /* ---------- source-page region modal ---------- */
 .pm-scrim { position: fixed; inset: 0; background: rgba(0,0,0,0.64); display: grid; place-items: center; z-index: 120; padding: 32px; backdrop-filter: blur(3px); }
 .pm { width: min(900px, 94vw); max-height: 88vh; display: grid; grid-template-columns: 1fr 332px; background: var(--panel); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; box-shadow: var(--shadow); }

@@ -1,6 +1,12 @@
 /* Shared primitives — exported to window for the other babel scripts. */
 const { useState, useEffect, useRef, useMemo, useCallback } = React;
 
+/* Collapse whitespace and truncate to n chars with an ellipsis. */
+function clip(s, n) {
+  const t = String(s || "").replace(/\s+/g, " ").trim();
+  return t.length > n ? t.slice(0, n).trim() + "…" : t;
+}
+
 /* ---- icons (simple stroke set) ---- */
 const PATHS = {
   chat: "M21 11.5a8.38 8.38 0 0 1-8.5 8.5 9 9 0 0 1-4-1L3 20l1-4.5a8.5 8.5 0 1 1 17-4Z",

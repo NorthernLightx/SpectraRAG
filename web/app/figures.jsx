@@ -2,15 +2,14 @@
    Each card crops the source page image to the figure's bbox; the lightbox
    shows the full page with the bbox overlaid. */
 
-function clip(s, n) {
-  const t = String(s || "").replace(/\s+/g, " ").trim();
-  return t.length > n ? t.slice(0, n).trim() + "…" : t;
-}
-
 // Render a caption with KaTeX. Captions carry relatex'd math in $...$ or \(...\)
 // (the VLM emits either), so both delimiters are enabled. Caption-only by design.
 function MathText({ text, className, style }) {
   const ref = useRef(null);
+  // The relatex VLM writes LaTeX-correct `\%` for a literal percent, but KaTeX
+  // only renders the math spans, so a prose `\%` shows its backslash. Unescape
+  // `\%` -> `%` outside `$...$` (inside math, `%` is a comment so leave it).
+  const cleaned = String(text || "").replace(/(\$[^$]*\$)|\\%/g, (_m, math) => math || "%");
   useEffect(() => {
     const el = ref.current;
     if (!el || typeof window.renderMathInElement !== "function") return;
@@ -25,18 +24,33 @@ function MathText({ text, className, style }) {
         throwOnError: false,
       });
     } catch (_) { /* leave the raw text on a KaTeX error */ }
-  }, [text]);
-  return <p ref={ref} className={className} style={style}>{text}</p>;
+  }, [cleaned]);
+  return <p ref={ref} className={className} style={style}>{cleaned}</p>;
 }
 
-// Drop repeated paragraphs (older ingests stored the caption sentence twice).
+// Drop repeated paragraphs. Table chunks store the caption twice — once as the
+// extracted caption, once embedded in Docling's table markdown — and after the
+// relatex pass one copy carries LaTeX ($\Delta V$) while the other is still flat
+// (∆ V). Normalise to bare alphanumerics so the two collapse to one key, and
+// keep the LaTeX copy. Plain duplicate paragraphs (identical) dedupe too.
+function normCaption(p) {
+  return String(p)
+    .replace(/\$/g, "")
+    .replace(/\\[a-zA-Z]+/g, "")
+    .replace(/[{}^_\\]/g, "")
+    .replace(/[^a-zA-Z0-9]/g, "")
+    .toLowerCase();
+}
 function dedupeParagraphs(text) {
-  const seen = new Set();
-  return String(text || "")
-    .split(/\n{2,}/)
-    .map((p) => p.trim())
-    .filter((p) => { if (!p || seen.has(p)) return false; seen.add(p); return true; })
-    .join("\n\n");
+  const kept = [];
+  const keys = [];
+  for (const p of String(text || "").split(/\n{2,}/).map((s) => s.trim()).filter(Boolean)) {
+    const k = normCaption(p);
+    const idx = k ? keys.indexOf(k) : -1;
+    if (idx === -1) { keys.push(k); kept.push(p); }
+    else if (p.includes("$") && !kept[idx].includes("$")) { kept[idx] = p; }
+  }
+  return kept.join("\n\n");
 }
 
 // A table chunk's text is "caption\n\n<markdown>" (chunking.table_to_chunk).
@@ -85,11 +99,17 @@ function FigCrop({ url, bbox, fallbackH = 150 }) {
 }
 
 function FigureCard({ f, onOpen }) {
+  const { name } = splitCaptionData(f.caption);
+  const hasCap = name && !/^\[.+\]$/.test(name.trim());
   return (
     <button className="figure-card" onClick={() => onOpen(f)}>
       <FigCrop url={f.page_image_url} bbox={f.bbox} />
       <div className="figure-card-body">
-        <div className="figure-card-cap">{clip(f.caption, 120)}</div>
+        {hasCap
+          ? (name.includes("$") || name.includes("\\("))
+            ? <MathText text={name} className="figure-card-cap" />
+            : <div className="figure-card-cap">{name}</div>
+          : <div className="figure-card-cap" style={{ color: "var(--text-faint)", fontStyle: "italic" }}>No caption captured</div>}
         <div className="figure-card-meta">
           <span className="mono">{f.paper_id}</span>
           <span className="figure-card-page">p.{f.page_number}</span>
@@ -104,6 +124,7 @@ function FigureCard({ f, onOpen }) {
 
 function FigureLightbox({ f, onClose }) {
   const [ov, setOv] = useState(null);
+  const [jsonView, setJsonView] = useState(false);
   const imgRef = useRef(null);
 
   // Place the bbox overlay in pixels relative to .lb-img, derived from the
@@ -127,7 +148,7 @@ function FigureLightbox({ f, onClose }) {
     });
   }, [f]);
 
-  useEffect(() => { setOv(null); }, [f]);
+  useEffect(() => { setOv(null); setJsonView(false); }, [f]);
   useEffect(() => {
     if (!f) return;
     const onEsc = (e) => { if (e.key === "Escape") onClose(); };
@@ -140,6 +161,14 @@ function FigureLightbox({ f, onClose }) {
   const { name, data } = splitCaptionData(f.caption);
   const hasCaption = name && !/^\[.+\]$/.test(name.trim());
   const noCap = <p className="lb-cap" style={{ fontSize: 13, margin: 0, color: "var(--text-faint)", fontStyle: "italic" }}>No caption captured.</p>;
+  const jsonObj = {
+    paper_id: f.paper_id,
+    page: f.page_number,
+    type: f.role || "figure",
+    ...(f.docling_label ? { docling_label: f.docling_label } : {}),
+    caption: hasCaption ? name : null,
+    ...(data ? { data } : {}),
+  };
 
   return (
     <div className="lb-scrim" onClick={onClose}>
@@ -158,7 +187,13 @@ function FigureLightbox({ f, onClose }) {
             <button className="btn ghost sm" onClick={onClose}><Icon name="x" size={15} /></button>
           </div>
           <div className="lb-fignum mono">{f.paper_id} · page {f.page_number}{f.docling_label ? ` · ${f.docling_label.replace(/_/g, " ")}` : ""}</div>
-          {data ? (
+          <div className="lb-viewtoggle">
+            <button className={"vt-btn" + (!jsonView ? " on" : "")} onClick={() => setJsonView(false)}>Fields</button>
+            <button className={"vt-btn" + (jsonView ? " on" : "")} onClick={() => setJsonView(true)}>JSON</button>
+          </div>
+          {jsonView ? (
+            <pre className="md-pre mono">{JSON.stringify(jsonObj, null, 2)}</pre>
+          ) : data ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <details open className="lb-drop">
                 <summary>Caption</summary>
