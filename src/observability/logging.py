@@ -134,6 +134,13 @@ def configure_logging(
     # Tame third-party noise but keep app logs visible.
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("httpcore").setLevel(logging.WARNING)
+    # The OTLP metrics exporter retries on a background thread and logs a
+    # "Failed to export metrics" ERROR every interval when no collector is
+    # reachable (the default in tests/local). Left at ERROR it propagates to
+    # the root file handler and pollutes the JSON app log — a stray record that
+    # breaks readers expecting only their own output. The SDK's self-reported
+    # export failures are infrastructure noise, not app logs; drop them.
+    logging.getLogger("opentelemetry").setLevel(logging.CRITICAL)
 
 
 def get_logger(name: str) -> BoundLogger:
