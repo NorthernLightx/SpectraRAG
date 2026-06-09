@@ -4,7 +4,9 @@
    to the same endpoints with the same battle-tested behaviour: same-origin
    POST /query (with the post-cold-start 503 warm-up retry), POST /query/dci for
    the agentic tier, and client-side OpenRouter generation with the visitor's
-   own key (BYOK). These helpers return data; the components own the rendering. */
+   own key (BYOK). Without a key, generation falls back to the server's
+   keyless demo path (POST /demo/chat — free model, daily-capped, ADR 0027).
+   These helpers return data; the components own the rendering. */
 (function () {
   const ORIGIN = window.location.origin;
 
@@ -229,29 +231,9 @@
     return messages;
   }
 
-  // Stream a completion from OpenRouter, invoking onDelta(text) per token.
-  // Returns { text, usage }.
-  async function streamChat(apiKey, model, messages, onDelta) {
-    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-        "HTTP-Referer": ORIGIN,
-        "X-Title": "SpectraRAG",
-      },
-      body: JSON.stringify({
-        model,
-        messages,
-        temperature: 0.2,
-        max_tokens: 800,
-        stream: true,
-        usage: { include: true },
-      }),
-    });
-    if (!res.ok || !res.body) {
-      throw new Error(`${res.status} ${res.statusText}: ${await res.text()}`);
-    }
+  // Read an OpenRouter-style SSE stream, invoking onDelta(text) per token.
+  // Returns { text, usage }. Shared by the BYOK and demo streaming paths.
+  async function readSse(res, onDelta) {
     let acc = "";
     let usage = { prompt_tokens: 0, completion_tokens: 0 };
     const reader = res.body.getReader();
@@ -282,6 +264,53 @@
       }
     }
     return { text: acc, usage };
+  }
+
+  // Stream a completion from OpenRouter, invoking onDelta(text) per token.
+  // Returns { text, usage }.
+  async function streamChat(apiKey, model, messages, onDelta) {
+    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+        "HTTP-Referer": ORIGIN,
+        "X-Title": "SpectraRAG",
+      },
+      body: JSON.stringify({
+        model,
+        messages,
+        temperature: 0.2,
+        max_tokens: 800,
+        stream: true,
+        usage: { include: true },
+      }),
+    });
+    if (!res.ok || !res.body) {
+      throw new Error(`${res.status} ${res.statusText}: ${await res.text()}`);
+    }
+    return readSse(res, onDelta);
+  }
+
+  // Keyless path: the server generates with its own caged key on a free
+  // model. Model choice, price pinning, and the daily quota all live
+  // server-side — the browser only sends messages. A 429 means the shared
+  // demo quota ran out; callers surface the bring-your-own-key prompt.
+  async function streamDemoChat(messages, onDelta) {
+    const res = await fetch("/demo/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messages }),
+    });
+    if (res.status === 429) {
+      const err = new Error("The free demo hit its daily limit.");
+      err.code = "demo_quota";
+      throw err;
+    }
+    if (!res.ok || !res.body) {
+      throw new Error(`${res.status} ${res.statusText}: ${await res.text()}`);
+    }
+    return readSse(res, onDelta);
   }
 
   // Rewrite the model's inline chunk-id citations (`[<paper>::p<N>::c<N>]`, or
@@ -330,6 +359,7 @@
     condense,
     buildMessages,
     streamChat,
+    streamDemoChat,
     renumberCitations,
     routeLabel,
   };

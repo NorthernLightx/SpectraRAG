@@ -320,3 +320,12 @@
   .vs-grid, .why-chart, .how-steps { grid-template-columns: 1fr; }
   .why-hero h1 { font-size: 32px; }
 }
+
+/* ---------- BYOK key modal (demo quota exhausted) ---------- */
+.km-scrim { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: grid; place-items: center; z-index: 140; padding: 24px; backdrop-filter: blur(3px); }
+.km-card { width: min(440px, 100%); background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 13px; box-shadow: var(--shadow); }
+.km-card h3 { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+.km-card p { margin: 0; color: var(--text-dim); font-size: 13.5px; line-height: 1.55; }
+.km-note { font-size: 12px; }
+.km-note a { color: var(--accent); }
+.km-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 3px; }

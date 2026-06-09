@@ -32,4 +32,7 @@ def health(settings: Settings = Depends(get_settings)) -> dict[str, Any]:
         "version": _service_version(),
         "env": settings.env,
         "pages_available": pages_available,
+        # Whether /demo/chat can generate (ADR 0027). The UI uses this to
+        # decide between the keyless demo path and the BYOK-only notice.
+        "demo_available": settings.demo_openrouter_key is not None and settings.demo_daily_cap > 0,
     }

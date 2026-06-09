@@ -43,6 +43,23 @@ class Settings(BaseSettings):
     # can't be hit by drive-by traffic. Health + OpenAPI metadata routes stay
     # exempt.
     public_api_key: SecretStr | None = None
+    # ADR 0027: caged OpenRouter key for the keyless demo path (/demo/chat).
+    # Deliberately separate from `openrouter_api_key` so it can carry a hard
+    # provider-side credit limit and be rotated or killed without touching
+    # eval/server work. Unset = the route 503s and the UI falls back to BYOK.
+    demo_openrouter_key: SecretStr | None = None
+    # Server-wide ceiling on /demo/chat generations per UTC day (all visitors
+    # combined). Kept well under OpenRouter's 1000/day account-wide free-model
+    # quota so demo abuse can't starve the account's own :free usage. 0
+    # disables the demo path.
+    demo_daily_cap: int = Field(default=300, ge=0)
+    # Comma-separated fallback chain for /demo/chat, tried in order per request
+    # (free endpoints are individually flaky — measured 0/4 to 4/4 availability
+    # across models on the same day). Non-":free" ids are dropped at request
+    # time as a misconfiguration guard. Env-overridable (RAG_DEMO_MODELS) so
+    # the chain can be re-pointed without an image rebuild when the free pool
+    # shifts. Models must be vision-capable: the demo client sends page images.
+    demo_models: str = "google/gemma-4-26b-a4b-it:free,nvidia/nemotron-nano-12b-v2-vl:free"
 
     top_k: int = Field(default=5, ge=1)
     rerank_top_k: int = Field(default=50, ge=1)

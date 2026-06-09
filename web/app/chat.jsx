@@ -104,6 +104,7 @@ function AiMessage({ msg, onCite, onFig, paperTitle }) {
           <span className="metric"><Icon name="route" size={13} /> {msg.candidates.length} chunks</span>
           {typeof msg.latencyMs === "number" && <span className="metric"><b>{(msg.latencyMs / 1000).toFixed(2)}s</b></span>}
           {tokens > 0 && <span className="metric"><b>{tokens}</b> tok</span>}
+          {msg.demo && <span className="metric" title="Generated with the shared free demo model. Add your own key for stronger models.">free demo model</span>}
         </div>
       )}
     </div>
@@ -219,7 +220,7 @@ function RetrievalPanel({ turn, highlight, settings, paperTitle }) {
   );
 }
 
-function ChatView({ settings, set, layout, resetSignal, apiKey, model, papers, pagesAvailable }) {
+function ChatView({ settings, set, layout, resetSignal, apiKey, model, papers, pagesAvailable, demoAvailable, onNeedKey }) {
   const [turns, setTurns] = useState([]);
   const [busy, setBusy] = useState(false);
   const [advOpen, setAdvOpen] = useState(false);
@@ -302,9 +303,12 @@ function ChatView({ settings, set, layout, resetSignal, apiKey, model, papers, p
         return;
       }
 
-      // Generation needs the visitor's key (BYOK); retrieval above does not.
-      // Without a key, stop here with the chunks shown on the right.
-      if (!apiKey || !apiKey.trim()) {
+      // Generation: browser-direct with the visitor's key (BYOK) when one is
+      // set, else the server's keyless demo path (free model, daily-capped).
+      // Only when the server has no demo key either does this stop at
+      // retrieval with the bring-a-key notice.
+      const hasKey = !!(apiKey && apiKey.trim());
+      if (!hasKey && !demoAvailable) {
         setStatus("Add your OpenRouter key (top-right) to generate a cited answer.");
         updateLast({
           answer: "Retrieved the chunks shown on the right. Add your OpenRouter key (top-right) to generate a cited answer from them.",
@@ -315,14 +319,16 @@ function ChatView({ settings, set, layout, resetSignal, apiKey, model, papers, p
         return;
       }
 
-      // Generate (client-side, BYOK). Stream tokens into the live turn.
-      const useImages = pagesAvailable && window.RAG.supportsVision(model);
-      if (useImages) setStatus("Reading the retrieved page images…");
+      // The demo chain is all vision-capable models, so keyless turns always
+      // attach page images when pages are served.
+      const useImages = pagesAvailable && (hasKey ? window.RAG.supportsVision(model) : true);
+      if (useImages) setStatus(hasKey ? "Reading the retrieved page images…" : "Free demo model is reading the retrieved pages…");
       const messages = await window.RAG.buildMessages(priorTurns, q, results, useImages);
       const tGen = performance.now();
-      const { text, usage } = await window.RAG.streamChat(apiKey, model, messages, (delta) => {
-        updateLast((prev) => ({ answer: prev.answer + delta }));
-      });
+      const onDelta = (delta) => updateLast((prev) => ({ answer: prev.answer + delta }));
+      const { text, usage } = hasKey
+        ? await window.RAG.streamChat(apiKey, model, messages, onDelta)
+        : await window.RAG.streamDemoChat(messages, onDelta);
 
       // Renumber the model's chunk-id citations → [1][2] and build the list.
       const { newText, ids } = window.RAG.renumberCitations(text);
@@ -337,19 +343,31 @@ function ChatView({ settings, set, layout, resetSignal, apiKey, model, papers, p
         streaming: false,
         citations,
         usage,
+        demo: !hasKey,
         latencyMs: Math.round(performance.now() - tGen + tRetrieve),
       });
     } catch (err) {
-      updateLast({
-        answer: `Request failed: ${(err && err.message) || err}. Either the server isn't reachable, or your OpenRouter key is invalid.`,
-        streaming: false,
-        error: true,
-      });
+      if (err && err.code === "demo_quota") {
+        // The shared free quota ran out for today: hand off to the key modal
+        // instead of rendering it as a failure — retrieval still worked.
+        onNeedKey && onNeedKey();
+        updateLast({
+          answer: "Today's free demo answers are used up, but retrieval still works — the chunks are on the right. Add your own OpenRouter key (top-right) to keep generating answers.",
+          streaming: false,
+          notice: true,
+        });
+      } else {
+        updateLast({
+          answer: `Request failed: ${(err && err.message) || err}. Either the server isn't reachable, or your OpenRouter key is invalid.`,
+          streaming: false,
+          error: true,
+        });
+      }
       setStatus("");
     } finally {
       setBusy(false);
     }
-  }, [busy, apiKey, model, settings, pagesAvailable]);
+  }, [busy, apiKey, model, settings, pagesAvailable, demoAvailable, onNeedKey]);
 
   const newChat = () => { setTurns([]); setHighlight(null); setBusy(false); setStatus(""); };
   const onCite = (tag) => { if (tag[0] !== "F") setHighlight(tag); };

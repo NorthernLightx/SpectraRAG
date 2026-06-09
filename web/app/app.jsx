@@ -81,12 +81,12 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "defaultLayout": "split"
 } /*EDITMODE-END*/;
 
-function ConnectionControl({ apiKey, setApiKey, model, setModel }) {
+function ConnectionControl({ apiKey, setApiKey, model, setModel, demoAvailable }) {
   const [open, setOpen] = useState(false);
   const ref = useRef();
   const keyed = apiKey.trim().length > 0;
   const cur = window.RAG.MODELS.find((m) => m.id === model) || window.RAG.MODELS[0];
-  const shortModel = cur.id.split("/").pop();
+  const shortModel = keyed ? cur.id.split("/").pop() : demoAvailable ? "free demo" : cur.id.split("/").pop();
 
   useEffect(() => {
     if (!open) return;
@@ -117,7 +117,7 @@ function ConnectionControl({ apiKey, setApiKey, model, setModel }) {
           onChange={(e) => setApiKey(e.target.value)} autoFocus />
             <span className={"endpoint-keystat mono" + (keyed ? " ok" : "")}>
               <span className={"endpoint-dot" + (keyed ? " on" : "")}></span>
-              {keyed ? "key stored locally · ready" : "add a key to run live queries"}
+              {keyed ? "key stored locally · ready" : demoAvailable ? "no key · chat runs on the shared free demo model" : "add a key to run live queries"}
             </span>
           </div>
           <div className="endpoint-field">
@@ -140,6 +140,38 @@ function ConnectionControl({ apiKey, setApiKey, model, setModel }) {
 
 }
 
+/* Shown when the keyless demo hits its daily cap: the way to keep chatting is
+   the visitor's own OpenRouter key. The key never touches the server — it
+   lives in localStorage and goes browser-direct to OpenRouter. */
+function KeyModal({ open, onSave, onClose }) {
+  const [val, setVal] = useState("");
+  useEffect(() => {
+    if (!open) return;
+    const onEsc = (e) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", onEsc);
+    return () => document.removeEventListener("keydown", onEsc);
+  }, [open, onClose]);
+  if (!open) return null;
+  const valid = val.trim().length > 0;
+  const save = () => valid && onSave(val.trim());
+  return (
+    <div className="km-scrim" onClick={onClose}>
+      <div className="km-card rise" role="dialog" aria-modal="true" aria-label="Add your OpenRouter key" onClick={(e) => e.stopPropagation()}>
+        <h3>Today's free demo is used up</h3>
+        <p>Answers here run on a shared free model with a daily cap, and it just ran out. Add your own OpenRouter key to keep chatting — and to switch to stronger models like GPT-4o or Claude.</p>
+        <input className="input" type="password" placeholder="sk-or-v1-…" value={val} autoFocus
+          onChange={(e) => setVal(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") save(); }} />
+        <p className="km-note">Your key stays in this browser and goes straight to OpenRouter — it never touches this server. No key yet? <a href="https://openrouter.ai/settings/keys" target="_blank" rel="noopener">Creating one</a> takes about a minute.</p>
+        <div className="km-actions">
+          <button className="btn ghost" onClick={onClose}>Maybe later</button>
+          <button className="btn primary" disabled={!valid} onClick={save}>Use my key</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const [theme, setThemeRaw] = useState(() => localStorage.getItem("sr-theme") || "dark");
   const [tab, setTab] = useState(() => {
@@ -159,6 +191,8 @@ function App() {
   const [papers, setPapers] = useState([]);
   const [figures, setFigures] = useState(null);
   const [pagesAvailable, setPagesAvailable] = useState(false);
+  const [demoAvailable, setDemoAvailable] = useState(false);
+  const [keyModalOpen, setKeyModalOpen] = useState(false);
 
   const setTheme = (th) => {setThemeRaw(th);localStorage.setItem("sr-theme", th);};
   useEffect(() => {document.documentElement.setAttribute("data-theme", theme);}, [theme]);
@@ -171,7 +205,7 @@ function App() {
   useEffect(() => {
     window.RAG.loadPapers().then(setPapers);
     window.RAG.loadFigures().then(setFigures);
-    window.RAG.loadHealth().then((h) => setPagesAvailable(!!h.pages_available));
+    window.RAG.loadHealth().then((h) => { setPagesAvailable(!!h.pages_available); setDemoAvailable(!!h.demo_available); });
   }, []);
 
   // apply tweaks → CSS
@@ -205,7 +239,7 @@ function App() {
           </div>
           <div className="topbar-right">
             {(tab === "chat" || tab === "inspection") &&
-            <ConnectionControl apiKey={apiKey} setApiKey={setApiKey} model={model} setModel={setModel} />
+            <ConnectionControl apiKey={apiKey} setApiKey={setApiKey} model={model} setModel={setModel} demoAvailable={demoAvailable} />
             }
             {tab === "chat" &&
             <Segmented value={layout} onChange={setLayout}
@@ -216,13 +250,15 @@ function App() {
         </div>
 
         <div className="view">
-          {tab === "chat" && <ChatView settings={settings} set={set} layout={layout} apiKey={apiKey} model={model} papers={papers} pagesAvailable={pagesAvailable} />}
+          {tab === "chat" && <ChatView settings={settings} set={set} layout={layout} apiKey={apiKey} model={model} papers={papers} pagesAvailable={pagesAvailable} demoAvailable={demoAvailable} onNeedKey={() => setKeyModalOpen(true)} />}
           {tab === "inspection" && <InspectionView settings={settings} apiKey={apiKey} model={model} papers={papers} pagesAvailable={pagesAvailable} />}
           {tab === "papers" && <PapersView setTab={setTab} papers={papers} figures={figures} />}
           {tab === "figures" && <FiguresView figures={figures} />}
           {tab === "why" && <WhyView setTab={setTab} />}
         </div>
       </main>
+
+      <KeyModal open={keyModalOpen} onClose={() => setKeyModalOpen(false)} onSave={(k) => { setApiKey(k); setKeyModalOpen(false); }} />
 
       <TweaksPanel>
         <TweakSection label="Brand" />
