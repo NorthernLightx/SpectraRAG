@@ -171,7 +171,27 @@
   // Build the OpenRouter chat messages. Mirrors src/prompts/library/answer.yaml
   // v5 so the chat path inherits the same strict refusal contract as the
   // server-side /answer route, plus one clause for multi-turn context.
-  function buildMessages(priorTurns, latestUserText, chunks, useImages) {
+  // Fetch a page image (same-origin) and inline it as a base64 data URL.
+  // Passing a link (localhost or even the public domain) makes the model's
+  // provider fetch it server-side, which fails for localhost and is flaky for
+  // public URLs — so we send the bytes inline instead. Returns null on failure.
+  async function imageToDataUrl(url) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      const blob = await res.blob();
+      return await new Promise((resolve) => {
+        const fr = new FileReader();
+        fr.onloadend = () => resolve(typeof fr.result === "string" ? fr.result : null);
+        fr.onerror = () => resolve(null);
+        fr.readAsDataURL(blob);
+      });
+    } catch {
+      return null;
+    }
+  }
+
+  async function buildMessages(priorTurns, latestUserText, chunks, useImages) {
     const system = [
       "You are a careful research assistant answering questions from the supplied documents.",
       '- Use only the provided context. If the context does not contain the answer, say exactly "Not stated in the provided context." — do not speculate.',
@@ -188,6 +208,7 @@
     }
 
     const content = [];
+    const seenPages = new Set();
     for (const c of chunks) {
       content.push({
         type: "text",
@@ -195,7 +216,11 @@
       });
       if (useImages && Array.isArray(c.page_numbers)) {
         for (const page of c.page_numbers) {
-          content.push({ type: "image_url", image_url: { url: pageImageUrl(c.paper_id, page) } });
+          const key = `${c.paper_id}:${page}`;
+          if (seenPages.has(key)) continue;
+          seenPages.add(key);
+          const dataUrl = await imageToDataUrl(pageImageUrl(c.paper_id, page));
+          if (dataUrl) content.push({ type: "image_url", image_url: { url: dataUrl } });
         }
       }
     }

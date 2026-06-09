@@ -317,7 +317,8 @@ function ChatView({ settings, set, layout, resetSignal, apiKey, model, papers, p
 
       // Generate (client-side, BYOK). Stream tokens into the live turn.
       const useImages = pagesAvailable && window.RAG.supportsVision(model);
-      const messages = window.RAG.buildMessages(priorTurns, q, results, useImages);
+      if (useImages) setStatus("Reading the retrieved page images…");
+      const messages = await window.RAG.buildMessages(priorTurns, q, results, useImages);
       const tGen = performance.now();
       const { text, usage } = await window.RAG.streamChat(apiKey, model, messages, (delta) => {
         updateLast((prev) => ({ answer: prev.answer + delta }));
