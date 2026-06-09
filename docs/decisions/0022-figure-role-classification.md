@@ -326,6 +326,32 @@ signal on its own — 3 of 5 picture detections whose caption starts `Table N`
 are Docling-classified `photograph`/`line_chart`/`flow_chart`, i.e. real
 figures with caption-bleed from an adjacent table.
 
+## Amendment — gallery collapses `unlabeled` to `figure`
+
+**Date:** 2026-06-09
+
+The `table → figure` change above fixed table-pictures but left the broader
+problem: a real figure can land in `unlabeled` for *any* reason the
+caption-first and confident-label signals both miss. Live example —
+`2604.28177v1` p13, a captioned anatomical illustration Docling labelled
+`photograph` at 0.24 (below the 0.30 trust threshold) and whose on-page
+"Figure 8:" caption the layout model failed to associate, so caption-first
+never saw it. It rendered as `unlabeled` despite being an obvious figure.
+
+`unlabeled` only ever holds *real* pictures — the area heuristic floors
+sub-5000-pt² uncaptioned detections to `decoration`, and everything above is
+kept. So for the gallery there are two meaningful buckets: real content and
+page furniture. `figures._to_browse_item` now maps `role == "unlabeled"` to
+`figure` at the view layer; `decoration` stays the only hidden bucket. On
+arXiv-2604 this empties the gallery's `unlabeled` bucket entirely.
+
+The **stored** role keeps the 3-way split — the retrieval-side filter still
+distinguishes `decoration`, and `unlabeled` stays a meaningful "kept but
+uncaptioned" marker in the index. This is a gallery presentation choice only.
+The deeper caption-association miss (recovering "Figure 8:" from the page text
+near the picture bbox so caption-first can fire at ingestion) is a separate
+improvement, left out of scope.
+
 ## Related
 
 - ADR 0009 — region-precise bboxes; this ADR rides on the same bbox

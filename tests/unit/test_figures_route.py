@@ -51,13 +51,13 @@ def test_decoration_without_bbox_is_kept() -> None:
     assert _is_tiny_decoration(_item(role="decoration", bbox=None)) is False
 
 
-def _table_picture_chunk(*, role: str, docling_label: str, confidence: float) -> Chunk:
-    # A picture-side detection of a table (kind=figure, Docling label "table").
+def _picture_chunk(*, role: str, docling_label: str, confidence: float) -> Chunk:
+    # A kind=figure picture detection with a baked role + Docling label.
     return Chunk(
         chunk_id="p::p16::fig9",
         paper_id="p",
         page_numbers=[16],
-        text="Table B.2: Configurations for ImageNet class-conditional post-training.",
+        text="A picture region.",
         metadata={
             "kind": "figure",
             "bbox": [0.0, 0.0, 200.0, 200.0],
@@ -68,28 +68,24 @@ def _table_picture_chunk(*, role: str, docling_label: str, confidence: float) ->
     )
 
 
-def test_confident_table_picture_overrides_baked_unlabeled() -> None:
-    # Pre-mapping corpora baked role="unlabeled" on a docling table-picture.
-    # The view layer promotes it to "figure" so obvious tables don't surface
-    # as "unlabeled" in the gallery.
+def test_unlabeled_table_picture_shows_as_figure() -> None:
+    # The gallery surfaces figure-vs-decoration; an "unlabeled" table picture
+    # (Docling extracts tables separately) is real content → shown as figure.
+    item = _to_browse_item(_picture_chunk(role="unlabeled", docling_label="table", confidence=0.99))
+    assert item is not None and item.role == "figure"
+
+
+def test_unlabeled_low_confidence_photograph_shows_as_figure() -> None:
+    # The 2604.28177v1 p13 case: a real figure Docling labelled photograph below
+    # the trust threshold and whose "Figure N" caption it failed to associate.
+    # Still a real figure — not surfaced as "unlabeled".
     item = _to_browse_item(
-        _table_picture_chunk(role="unlabeled", docling_label="table", confidence=0.99)
+        _picture_chunk(role="unlabeled", docling_label="photograph", confidence=0.24)
     )
     assert item is not None and item.role == "figure"
 
 
-def test_low_confidence_table_picture_keeps_baked_role() -> None:
-    # Below the trust threshold (0.30) we don't override — the baked role stands.
-    item = _to_browse_item(
-        _table_picture_chunk(role="unlabeled", docling_label="table", confidence=0.10)
-    )
-    assert item is not None and item.role == "unlabeled"
-
-
-def test_non_table_unlabeled_is_untouched() -> None:
-    # The override is table-specific: a genuinely uncertain non-table picture
-    # (Docling "other") stays unlabeled even at high confidence.
-    item = _to_browse_item(
-        _table_picture_chunk(role="unlabeled", docling_label="other", confidence=0.99)
-    )
-    assert item is not None and item.role == "unlabeled"
+def test_decoration_is_not_promoted() -> None:
+    # decoration is the one genuine "page furniture" bucket — never promoted.
+    item = _to_browse_item(_picture_chunk(role="decoration", docling_label="logo", confidence=0.99))
+    assert item is not None and item.role == "decoration"
