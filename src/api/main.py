@@ -30,20 +30,22 @@ from src.observability.otel import configure_otel
 from src.observability.sentry import configure_sentry
 
 
-class _NoCacheHTMLStatic(StaticFiles):
-    """StaticFiles that disables browser caching for HTML responses.
+class _NoCacheStatic(StaticFiles):
+    """StaticFiles that forces revalidation of the no-build SPA's assets.
 
-    Without this, the default `text/html` response carries only ETag /
-    Last-Modified — and browsers apply heuristic caching (often hours)
-    before they bother revalidating. Setting `Cache-Control: no-cache`
-    forces a revalidation request on every page load; the server still
-    returns a cheap 304 when the file is unchanged.
+    The frontend ships its source directly — index.html plus app/*.jsx
+    transpiled in-browser and *.css, none content-hash-named. With only
+    ETag / Last-Modified the browser applies heuristic caching (often
+    hours) and after an edit or deploy serves a stale mix of old and new
+    files (e.g. a new figures.jsx against an old shared.jsx). Setting
+    `Cache-Control: no-cache` forces a revalidation on every load; the
+    server still returns a cheap 304 when the file is unchanged. Page
+    images use the separate /pages mount and keep normal caching.
     """
 
     async def get_response(self, path: str, scope: Scope) -> Response:
         response = await super().get_response(path, scope)
-        if response.headers.get("content-type", "").startswith("text/html"):
-            response.headers["Cache-Control"] = "no-cache"
+        response.headers["Cache-Control"] = "no-cache"
         return response
 
 
@@ -147,7 +149,7 @@ def create_app(*, log_file: Path | None = Path("logs/api.log")) -> FastAPI:
     # default heuristic caching keeps old UIs visible for hours.
     web_dir = Path(__file__).resolve().parents[2] / "web"
     if web_dir.is_dir():
-        app.mount("/", _NoCacheHTMLStatic(directory=web_dir, html=True), name="web")
+        app.mount("/", _NoCacheStatic(directory=web_dir, html=True), name="web")
 
     # Auto-instrumentation must run after routers are added so per-route
     # spans are named correctly. HTTPXClientInstrumentor is a singleton
