@@ -114,10 +114,13 @@ _DOCLING_LABEL_TO_ROLE: dict[str, FigureRole] = {
     "stratigraphic_chart": "figure",
     "music": "figure",
     "picture_group": "figure",
-    # Docling already extracts tables via a separate model; the picture-
-    # detector firing on a table region is a duplicate, so we don't
-    # claim it as a figure here.
-    "table": "unlabeled",
+    # Docling's separate table-extraction model misses many tables the
+    # picture detector still catches (11 of 16 picture-side table hits in
+    # the arXiv-2604 corpus have no extracted-table sibling), and where
+    # both fire the picture carries the human caption the table chunk
+    # lacks. Treat a confident table-picture as real content, same role
+    # the extracted table chunk already gets in the gallery.
+    "table": "figure",
     # explicitly uncertain
     "other": "unlabeled",
     "calendar": "unlabeled",

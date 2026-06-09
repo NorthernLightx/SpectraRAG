@@ -164,13 +164,14 @@ def test_docling_label_below_confidence_falls_back_to_heuristic() -> None:
     assert role == "unlabeled"
 
 
-def test_docling_table_label_stays_unlabeled() -> None:
-    # Docling extracts tables via a separate model; the picture-
-    # detector firing on a table region is a duplicate that we
-    # deliberately don't promote to `figure`.
+def test_docling_table_label_marks_as_figure() -> None:
+    # A confident table-picture is real content: Docling's separate table
+    # extractor misses tables the picture detector catches, and where both
+    # fire the picture carries the human caption the table chunk lacks. Mapped
+    # to `figure`, the same role the extracted table chunk gets in the gallery.
     bbox = _bbox(0, 0, 200, 200)
     role = _classify_figure_role(caption="", bbox=bbox, docling_label="table", confidence=0.99)
-    assert role == "unlabeled"
+    assert role == "figure"
 
 
 def test_unknown_docling_label_falls_through_to_heuristic() -> None:

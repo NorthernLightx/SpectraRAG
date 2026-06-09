@@ -48,6 +48,9 @@ _MIN_FIGURE_AREA_PT2 = 5000.0
 # real figure: the smallest in-corpus figure is a 514-pt² caption-rescued one,
 # and real figures are never role=decoration.
 _MIN_DECORATION_AREA_PT2 = 500.0
+# Mirror of docling_parser._MIN_CLASSIFIER_CONFIDENCE — below this we don't
+# trust a Docling figure-class label.
+_MIN_CLASSIFIER_CONFIDENCE = 0.30
 _PLACEHOLDER_CAPTION_RE = re.compile(r"^\s*\[.+::p\d+::(?:fig|tab)\d+\]\s*$")
 
 Role = Literal["figure", "decoration", "unlabeled"]
@@ -139,6 +142,18 @@ def _to_browse_item(chunk: Chunk) -> FigureBrowseItem | None:
     docling_label = docling_label_raw if isinstance(docling_label_raw, str) else None
     conf_raw = chunk.metadata.get("docling_label_confidence")
     confidence = float(conf_raw) if isinstance(conf_raw, (int, float)) else None
+
+    # A confident table-picture is real content, not "unlabeled": Docling's
+    # separate table-extractor misses tables the picture detector catches, and
+    # where both fire the picture holds the caption the table chunk lacks. This
+    # mirrors _DOCLING_LABEL_TO_ROLE["table"] = "figure" at view time for
+    # corpora ingested before that mapping (their role is baked "unlabeled").
+    if (
+        role == "unlabeled"
+        and docling_label == "table"
+        and (confidence or 0.0) >= _MIN_CLASSIFIER_CONFIDENCE
+    ):
+        role = "figure"
 
     return FigureBrowseItem(
         chunk_id=chunk.chunk_id,

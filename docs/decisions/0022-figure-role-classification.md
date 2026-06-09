@@ -284,6 +284,48 @@ sampled papers; the change removes a silent figure-loss path before a corpus
 rebuild. (Also hardened: `parse_with_docling` now clears the per-paper crop dir
 each run, so re-ingests don't accumulate a palimpsest of stale crops.)
 
+## Amendment — Docling `table` label maps to `figure`, not `unlabeled`
+
+**Date:** 2026-06-09
+
+The original `_DOCLING_LABEL_TO_ROLE["table"] = "unlabeled"` rested on
+"picture-side table hits are duplicates of real tables Docling already
+extracts separately." Browsing the rebaked `rag_corpus` gallery contradicted
+that premise:
+
+- Of **16** picture-side detections Docling classifies as `table`, only **5**
+  sit on a page that also has a real extracted-table chunk. The other **11**
+  are the *only* representation of that table — Docling's separate table model
+  missed them, the picture detector caught them — and `unlabeled` buried them.
+- For the 5 that *do* have a table sibling, the two chunks are
+  **complementary, not redundant**: the picture chunk carries the paper's
+  caption ("Table B.2: Configurations …"), while the extracted-table chunk's
+  text starts with the markdown grid and renders with no caption. Dropping
+  either loses information.
+
+So a confident `table` picture is real content. It now maps to `figure` — the
+same role real table chunks already receive at the gallery layer
+(`figures.py`, `kind == "table"` → `role = "figure"`) — instead of
+`unlabeled`. On the arXiv-2604 corpus this empties the `unlabeled` bucket from
+8 items to 1 (a `photograph`-labelled anatomical illustration at 0.24
+confidence, below the trust threshold — genuinely uncertain, correctly left
+`unlabeled`).
+
+Applied in two mirrored places, matching the existing `_derive_role` cushion:
+
+- `docling_parser._DOCLING_LABEL_TO_ROLE["table"] = "figure"` — correct at the
+  source for the next ingest.
+- `figures._to_browse_item` overrides a baked `role == "unlabeled"` to
+  `figure` when `docling_label == "table"` at ≥ 0.30 confidence — so the
+  **deployed** corpus (role baked before this change) reflects it on redeploy,
+  no re-ingest.
+
+Caption-only `Table N` text with no classifier label is unchanged: it still
+falls to the area heuristic (`unlabeled`), because `^Table N` is an unreliable
+signal on its own — 3 of 5 picture detections whose caption starts `Table N`
+are Docling-classified `photograph`/`line_chart`/`flow_chart`, i.e. real
+figures with caption-bleed from an adjacent table.
+
 ## Related
 
 - ADR 0009 — region-precise bboxes; this ADR rides on the same bbox
