@@ -72,6 +72,79 @@ _FIGURE_CAPTION_RE = re.compile(
     re.IGNORECASE | re.VERBOSE,
 )
 
+# ADR 0022 (caption-recovery layer). Matches a *primary* caption line —
+# `Figure N` / `Fig. N` / `Table N` / `Tab. N` — used both to decide
+# whether Docling's own ``caption_text`` already gave us a usable caption
+# and to pick a recovery candidate from the page's text items. Broader
+# than ``_FIGURE_CAPTION_RE`` (includes table/tab) and deliberately omits
+# the ``(a)`` subfigure shape: a recovered caption must be the figure's
+# own label, not a subpanel fragment, since it then feeds the
+# caption-first authority in ``_classify_figure_role``.
+_PRIMARY_CAPTION_RE = re.compile(
+    r"^\s*(?:\d+\s+)?(?:figure|fig\.?|table|tab\.?)\s+[A-Z0-9]",
+    re.IGNORECASE,
+)
+
+# Vertical search window for caption recovery, in PDF points. Captions
+# sit within a couple of text lines of the figure edge; a 10-pt body font
+# is ~12 pt line-to-line, so ~6 lines covers a wrapped caption's first
+# line plus the usual figure-to-caption gap. Bounding the band stops a
+# match from leaking to an unrelated caption further down the column.
+_CAPTION_BAND_PT = 72.0
+# Slack absorbing sub-pixel bbox rounding when deciding above/below.
+_CAPTION_BAND_EPS_PT = 2.0
+
+
+def _x_overlap(a: Bbox, b: Bbox) -> float:
+    """Width of the horizontal overlap between two TOP-LEFT ``Bbox`` es (0 if disjoint)."""
+    return max(0.0, min(a.x1, b.x1) - max(a.x0, b.x0))
+
+
+def _associate_caption(pic_bbox: Bbox, page_text_items: list[tuple[str, Bbox]]) -> str | None:
+    """Recover a caption Docling failed to link to a picture (ADR 0022).
+
+    Docling's layout model sometimes drops the figure↔caption edge, so
+    ``pic.caption_text`` comes back empty even though the page renders a
+    "Figure N:" line right under the picture. Scan the same page's text
+    items for a primary-caption line (``_PRIMARY_CAPTION_RE``) sitting in
+    the picture's caption band and return its text, else ``None``.
+
+    All coordinates are project TOP-LEFT (``Bbox`` convention, ADR 0009):
+    y grows downward, so "below the picture" is ``y0 >= pic.y1`` and
+    "above" is ``y1 <= pic.y0``. Callers MUST pass already-flipped bboxes
+    (the same ``_flip_bbox`` output stored on the figure) so the picture
+    and the text items are in one frame.
+
+    Band rules:
+
+    - **Horizontal overlap is required** — a caption belongs to the figure
+      it sits under, not a neighbour in the next column.
+    - **Below is preferred over above** — captions in this corpus sit under
+      their figure; an above-match is the fallback for the rarer top
+      caption (mostly tables).
+    - **Nearest wins** within the chosen side, gap capped at
+      ``_CAPTION_BAND_PT`` so the match can't reach an unrelated caption.
+    """
+    below: list[tuple[float, str]] = []  # (gap, text)
+    above: list[tuple[float, str]] = []
+    for text, tbbox in page_text_items:
+        if not text or not _PRIMARY_CAPTION_RE.match(text):
+            continue
+        if _x_overlap(pic_bbox, tbbox) <= 0.0:
+            continue
+        gap_below = tbbox.y0 - pic_bbox.y1
+        gap_above = pic_bbox.y0 - tbbox.y1
+        if gap_below >= -_CAPTION_BAND_EPS_PT and gap_below <= _CAPTION_BAND_PT:
+            below.append((max(0.0, gap_below), text))
+        elif gap_above >= -_CAPTION_BAND_EPS_PT and gap_above <= _CAPTION_BAND_PT:
+            above.append((max(0.0, gap_above), text))
+    if below:
+        return min(below, key=lambda t: t[0])[1]
+    if above:
+        return min(above, key=lambda t: t[0])[1]
+    return None
+
+
 # Docling-label → our 3-role taxonomy. Every label the classifier knows
 # about gets a deliberate mapping; anything new from a future model
 # version falls into ``unlabeled``.
@@ -169,9 +242,12 @@ def _classify_figure_role(
     2. **Docling classifier label** at ≥ confidence threshold. 28 fine-
        grained labels — `logo`, `icon`, `bar_chart`, `flow_chart`, ... —
        mapped to our 3-role taxonomy via ``_DOCLING_LABEL_TO_ROLE``.
-    3. **Area heuristic.** Sub-threshold pictures with neither a Figure-N
-       caption nor a confident classifier label become ``decoration``;
-       everything else is ``unlabeled``.
+    3. **Area heuristic.** A picture with a bbox at or above the area cut
+       is a real ``figure`` — even uncaptioned and unlabelled, a large
+       crop on the page is content, not "unknown". Sub-threshold and
+       uncaptioned is ``decoration`` (page furniture). A bbox-less
+       picture can be neither placed nor measured, so it stays
+       ``unlabeled``.
     """
     if caption and _FIGURE_CAPTION_RE.match(caption):
         return "figure"
@@ -191,7 +267,14 @@ def _classify_figure_role(
     area = (bbox.x1 - bbox.x0) * (bbox.y1 - bbox.y0)
     if area < _MIN_FIGURE_AREA_PT2:
         return "decoration"
-    return "unlabeled"
+    # Large picture, no caption recovered and no confident label: caption
+    # recovery (``_associate_caption``) can still miss (multi-column pages,
+    # a caption Docling never emitted as a text item). Failing such a
+    # picture to ``figure`` rather than ``unlabeled`` keeps real figures out
+    # of the kept-but-uncaptioned bucket — the live 2604.28177v1 p13
+    # anatomical illustration (`photograph`@0.24, caption-association miss)
+    # is a figure even when both upstream signals fall through.
+    return "figure"
 
 
 _log = get_logger(__name__)
@@ -273,6 +356,39 @@ def page_heights(doc: Any) -> dict[int, float]:
     return out
 
 
+def _page_caption_candidates(
+    doc: Any, heights: dict[int, float]
+) -> dict[int, list[tuple[str, Bbox]]]:
+    """`{page_no: [(text, flipped_bbox), ...]}` for caption recovery (ADR 0022).
+
+    Enumerates ``doc.texts`` (docling-core: a flat list of ``TextItem`` and
+    its subclasses, each with ``.text`` and ``.prov[i].bbox`` /
+    ``.prov[i].page_no``) and flips every provenance bbox through the same
+    ``_flip_bbox`` the figure stores, so ``_associate_caption`` compares
+    pictures and text in one TOP-LEFT frame. Items whose bbox can't be
+    flipped (degenerate after the flip) are skipped. Built once per
+    conversion and shared across the picture loop, since several pictures
+    can sit on one page.
+    """
+    out: dict[int, list[tuple[str, Bbox]]] = {}
+    for item in getattr(doc, "texts", []) or []:
+        text = str(getattr(item, "text", "") or "").strip()
+        if not text:
+            continue
+        for prov in getattr(item, "prov", None) or []:
+            try:
+                page_no = int(getattr(prov, "page_no", 0))
+            except (TypeError, ValueError):
+                continue
+            if page_no <= 0:
+                continue
+            flipped = _flip_bbox(getattr(prov, "bbox", None), heights.get(page_no, 792.0))
+            if flipped is None:
+                continue
+            out.setdefault(page_no, []).append((text, flipped))
+    return out
+
+
 def parse_with_docling(
     paper_id: str,
     pdf_path: Path,
@@ -293,6 +409,7 @@ def parse_with_docling(
         if doc is None:
             doc = convert_with_docling(pdf_path)
         heights = page_heights(doc)
+        caption_candidates = _page_caption_candidates(doc, heights)
 
         paper_out = out_dir / paper_id
         # Clear any prior run's crops first. Figure ids are per-run (global
@@ -334,6 +451,18 @@ def parse_with_docling(
             caption = ""
             with contextlib.suppress(RuntimeError, AttributeError):
                 caption = str(pic.caption_text(doc) or "")
+            # ADR 0022: Docling's layout model sometimes fails to link the
+            # on-page "Figure N:" caption to the picture, so caption_text
+            # comes back empty (or with non-caption text) and the
+            # caption-first rule can't fire. Recover it from the page's text
+            # items by bbox proximity (needs the flipped picture bbox).
+            if bbox is not None and not _PRIMARY_CAPTION_RE.match(caption):
+                recovered = _associate_caption(bbox, caption_candidates.get(page_no, []))
+                if recovered is not None:
+                    _log.debug(
+                        "docling.caption_recovered", figure_id=figure_id, caption=recovered[:80]
+                    )
+                    caption = recovered
             docling_label, confidence = _top_docling_label(pic)
             role = _classify_figure_role(
                 caption=caption,

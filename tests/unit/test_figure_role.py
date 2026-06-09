@@ -40,13 +40,14 @@ def test_logo_sized_picture_below_5k_is_decoration() -> None:
     assert _classify_figure_role(caption="", bbox=logo) == "decoration"
 
 
-def test_above_threshold_uncaptioned_is_unlabeled_not_dropped() -> None:
-    # 124x71 = 8804 pt², the captionless SWAP-test diagram case. The
-    # paper didn't caption it as "Figure N", but it's a real diagram,
-    # so the classifier keeps it as `unlabeled` (gallery hides by
-    # default; retrieval can still hit it).
+def test_above_threshold_uncaptioned_is_figure() -> None:
+    # 124x71 = 8804 pt², the captionless SWAP-test diagram case. The paper
+    # didn't caption it as "Figure N", but a large crop is real content, so
+    # the terminal area branch fails it safe to `figure` (ADR 0022 source
+    # fix) rather than burying it as `unlabeled`. This is the bbox-present
+    # half of the live 2604.28177v1 p13 anatomical-illustration bug.
     real = _bbox(50, 100, 174, 171)
-    assert _classify_figure_role(caption="", bbox=real) == "unlabeled"
+    assert _classify_figure_role(caption="", bbox=real) == "figure"
 
 
 def test_missing_bbox_is_unlabeled_not_decoration() -> None:
@@ -55,6 +56,27 @@ def test_missing_bbox_is_unlabeled_not_decoration() -> None:
     # retrieval filter, AND the VLM captioner — a silent figure-loss path.
     # `unlabeled` keeps it retrievable; the gallery still hides it by default.
     assert _classify_figure_role(caption="", bbox=None) == "unlabeled"
+
+
+def test_large_uncaptioned_unlabelled_picture_is_figure() -> None:
+    # The live 2604.28177v1 p13 case: a 31764-pt² anatomical illustration
+    # Docling labelled `photograph`@0.24 (below the 0.30 trust threshold)
+    # whose "Figure 8:" caption the layout model failed to associate. When
+    # caption recovery also misses, the terminal area branch must fail it
+    # safe to `figure`, not `unlabeled`.
+    big = _bbox(315.8, 338.1, 513.7, 498.6)  # the measured p13 picture bbox
+    assert _classify_figure_role(caption="", bbox=big) == "figure"
+    # And once recovery supplies the real "Figure 8:" caption, caption-first
+    # carries it regardless of the photograph mislabel.
+    assert (
+        _classify_figure_role(
+            caption="Figure 8: Example of a retracted paper.",
+            bbox=big,
+            docling_label="photograph",
+            confidence=0.24,
+        )
+        == "figure"
+    )
 
 
 def test_caption_first_then_size_priority() -> None:
@@ -102,15 +124,16 @@ def test_leading_page_number_artifact_doesnt_block_match() -> None:
     assert _classify_figure_role(caption="1 Figure 9: The trade-off.", bbox=real) == "figure"
 
 
-def test_table_caption_is_not_a_figure() -> None:
-    # Docling has a separate `tables` extraction path. When the picture
-    # detector ALSO fires on a table region, leaving it as `unlabeled`
-    # avoids double-counting it as a figure. The real Table chunk lives
-    # in the tables list (different `kind`).
+def test_table_caption_only_falls_to_area_branch() -> None:
+    # A bare `Table N` caption with no classifier label is not a Figure-N
+    # signal (`_FIGURE_CAPTION_RE` excludes table), so it falls through to
+    # the area branch. At 100x100 = 10000 pt² (>= cut) the terminal branch
+    # now returns `figure` — consistent with ADR 0022's finding that a
+    # caption-only `Table N` is unreliable (3/5 such picture detections are
+    # real figures with table-caption bleed) and a large crop is content.
+    # A confident `table` classifier label maps to `figure` separately.
     real = _bbox(0, 0, 100, 100)
-    assert (
-        _classify_figure_role(caption="Table 1. Comparison of methods.", bbox=real) == "unlabeled"
-    )
+    assert _classify_figure_role(caption="Table 1. Comparison of methods.", bbox=real) == "figure"
 
 
 def test_random_subscript_letter_word_doesnt_match_subfig() -> None:
@@ -155,13 +178,15 @@ def test_docling_label_bar_chart_marks_as_figure() -> None:
 
 def test_docling_label_below_confidence_falls_back_to_heuristic() -> None:
     # Classifier said "logo" at 0.10 confidence — below the trust
-    # threshold; the heuristic (large area, no caption) wins and we
-    # keep it as `unlabeled`.
+    # threshold, so the label is ignored and the area heuristic decides.
+    # Large area, no caption → the terminal branch fails safe to `figure`
+    # (ADR 0022 source fix): a big crop is content even when both upstream
+    # signals fall through.
     big_uncaptioned = _bbox(0, 0, 200, 200)
     role = _classify_figure_role(
         caption="", bbox=big_uncaptioned, docling_label="logo", confidence=0.10
     )
-    assert role == "unlabeled"
+    assert role == "figure"
 
 
 def test_docling_table_label_marks_as_figure() -> None:
