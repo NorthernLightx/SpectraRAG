@@ -122,6 +122,9 @@ function ConnectionControl({ apiKey, setApiKey, model, setModel, demoAvailable }
           </div>
           <div className="endpoint-field">
             <label>Model</label>
+            {!keyed && demoAvailable &&
+            <span className="endpoint-keystat mono">picker applies once you add a key — keyless chat uses the free demo model</span>
+            }
             <div className="model-list">
               {window.RAG.MODELS.map((m) =>
             <button key={m.id} className={"model-row" + (m.id === model ? " on" : "")} onClick={() => setModel(m.id)}>

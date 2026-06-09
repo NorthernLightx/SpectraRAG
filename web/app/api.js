@@ -11,12 +11,16 @@
   const ORIGIN = window.location.origin;
 
   // The real, supported model slate (mirrors the prior chat's <select>).
+  // The ":free" entries are the demo chain's models, selectable here so a
+  // keyed visitor can also run at zero cost (free-tier rate limits apply).
   const MODELS = [
     { id: "openai/gpt-4o-mini", note: "vision · cheapest" },
     { id: "anthropic/claude-sonnet-4.6", note: "vision" },
     { id: "openai/gpt-4o", note: "vision" },
     { id: "qwen/qwen3-vl-32b-instruct", note: "vision · open" },
     { id: "meta-llama/llama-3.1-70b-instruct", note: "text-only" },
+    { id: "google/gemma-4-26b-a4b-it:free", note: "vision · free" },
+    { id: "nvidia/nemotron-nano-12b-v2-vl:free", note: "vision · free" },
   ];
 
   // Suggestion chips. Carried over from the prior chat, where each was checked
