@@ -33,11 +33,12 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import os
 import shutil
 from pathlib import Path
 
 from src.embeddings.ollama_bge import OllamaBgeEmbedder
-from src.ingestion.captioner import OllamaVisionCaptioner
+from src.ingestion.captioner import OllamaVisionCaptioner, OpenRouterVisionCaptioner, _Captioner
 from src.ingestion.pipeline import ingest_paper
 from src.observability.logging import configure_logging, get_logger
 from src.rag.bm25 import Bm25Index
@@ -57,6 +58,7 @@ async def _main(
     extract_figures: bool,
     extract_tables: bool,
     vlm_caption_model: str | None,
+    vlm_provider: str,
 ) -> None:
     log = get_logger("scripts.bootstrap_corpus")
     pdf_paths = sorted(pdfs) if pdfs else sorted(pdf_dir.glob("*.pdf"))
@@ -92,10 +94,21 @@ async def _main(
     await vectorstore.ensure_collection()
     bm25 = Bm25Index()  # in-process, throwaway — see module docstring caveats
 
-    vlm_captioner: OllamaVisionCaptioner | None = None
+    vlm_captioner: _Captioner | None = None
     if extract_figures and vlm_caption_model:
-        vlm_captioner = OllamaVisionCaptioner(base_url=ollama_url, model=vlm_caption_model)
-        print(f"VLM captioning enabled via Ollama model {vlm_caption_model!r}")
+        if vlm_provider == "openrouter":
+            api_key = os.environ.get("RAG_OPENROUTER_API_KEY")
+            if not api_key:
+                raise SystemExit(
+                    "--vlm-provider openrouter requires RAG_OPENROUTER_API_KEY in the environment"
+                )
+            vlm_captioner = OpenRouterVisionCaptioner(
+                api_key=api_key, model=vlm_caption_model, timeout=180.0
+            )
+            print(f"VLM captioning enabled via OpenRouter model {vlm_caption_model!r}")
+        else:
+            vlm_captioner = OllamaVisionCaptioner(base_url=ollama_url, model=vlm_caption_model)
+            print(f"VLM captioning enabled via Ollama model {vlm_caption_model!r}")
 
     total_chunks = 0
     for pdf_path in pdf_paths:
@@ -186,6 +199,16 @@ if __name__ == "__main__":
             "VLM is only called on figures with no PDF caption and role != decoration."
         ),
     )
+    parser.add_argument(
+        "--vlm-provider",
+        choices=["ollama", "openrouter"],
+        default="ollama",
+        help=(
+            "Backend for --vlm-caption-model. 'ollama' (default) runs the model "
+            "locally; 'openrouter' calls a cloud VLM (needs RAG_OPENROUTER_API_KEY) "
+            "and avoids local VRAM contention with the in-process embedder."
+        ),
+    )
     parser.set_defaults(extract_figures=True, extract_tables=True)
     args = parser.parse_args()
 
@@ -202,5 +225,6 @@ if __name__ == "__main__":
             extract_figures=args.extract_figures,
             extract_tables=args.extract_tables,
             vlm_caption_model=args.vlm_caption_model,
+            vlm_provider=args.vlm_provider,
         )
     )

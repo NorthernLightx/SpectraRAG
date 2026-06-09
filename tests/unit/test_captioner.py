@@ -12,8 +12,9 @@ from src.ingestion.captioner import (
     OpenRouterVisionCaptioner,
     caption_figures,
     relatex_captions,
+    relatex_table_captions,
 )
-from src.types import Figure
+from src.types import Figure, Table
 
 
 def _figure(figure_id: str, image_path: Path, caption: str = "") -> Figure:
@@ -194,13 +195,24 @@ async def test_relatex_captions_rewrites_only_math_captions(tmp_path: Path) -> N
     # The flattened-math caption ("R 2") is re-emitted as LaTeX in place; the
     # clean prose caption is left untouched and never hits the VLM.
     figs = [
-        _figure("math", _write_png(tmp_path / "m.png"), caption="Figure 2: target-region R 2 over budget."),
-        _figure("clean", _write_png(tmp_path / "c.png"), caption="Figure 1: a clear description, no math here."),
+        _figure(
+            "math",
+            _write_png(tmp_path / "m.png"),
+            caption="Figure 2: target-region R 2 over budget.",
+        ),
+        _figure(
+            "clean",
+            _write_png(tmp_path / "c.png"),
+            caption="Figure 1: a clear description, no math here.",
+        ),
     ]
     route = respx.post("http://localhost:11434/api/chat").mock(
         return_value=httpx.Response(
             200,
-            json={"message": {"content": "Figure 2: target-region $R^2$ over budget."}, "done": True},
+            json={
+                "message": {"content": "Figure 2: target-region $R^2$ over budget."},
+                "done": True,
+            },
         )
     )
     captioner = OllamaVisionCaptioner(model="gemma3:4b")
@@ -225,6 +237,54 @@ async def test_relatex_captions_skips_vlm_captioned(tmp_path: Path) -> None:
 
     assert route.call_count == 0
     assert out.caption == "Figure 3: R 2 plot."
+
+
+def _table(table_id: str, caption: str, page: int = 1) -> Table:
+    return Table(
+        table_id=table_id,
+        paper_id="paper1",
+        page_number=page,
+        markdown="| a | b |\n|---|---|\n| 1 | 2 |",
+        caption=caption,
+    )
+
+
+@respx.mock
+async def test_relatex_table_captions_uses_page_image(tmp_path: Path) -> None:
+    # Tables have no crop, so relatex reads the rendered page image at
+    # <pages_dir>/<paper_id>/<paper_id>_p<N>.png. Only the math caption is sent.
+    pages_dir = tmp_path / "pages"
+    _write_png(pages_dir / "paper1" / "paper1_p1.png")
+    tables = [
+        _table("math", "Table 3: report target-region R 2 across budgets."),
+        _table("clean", "Table 1: dataset sizes per split."),
+    ]
+    route = respx.post("http://localhost:11434/api/chat").mock(
+        return_value=httpx.Response(
+            200,
+            json={"message": {"content": "Table 3: report target-region $R^2$ across budgets."}},
+        )
+    )
+    captioner = OllamaVisionCaptioner(model="gemma3:4b")
+    out = await relatex_table_captions(tables, captioner=captioner, pages_dir=pages_dir)
+
+    assert route.call_count == 1
+    assert out[0].caption == "Table 3: report target-region $R^2$ across budgets."
+    assert out[1].caption == "Table 1: dataset sizes per split."
+
+
+@respx.mock
+async def test_relatex_table_captions_skips_when_page_image_missing(tmp_path: Path) -> None:
+    # No rendered page image -> nothing to read; caption stays flat, no VLM call.
+    tables = [_table("math", "Table 3: report target-region R 2 across budgets.")]
+    route = respx.post("http://localhost:11434/api/chat").mock(
+        return_value=httpx.Response(200, json={"message": {"content": "x"}})
+    )
+    captioner = OllamaVisionCaptioner(model="gemma3:4b")
+    [out] = await relatex_table_captions(tables, captioner=captioner, pages_dir=tmp_path / "absent")
+
+    assert route.call_count == 0
+    assert out.caption == "Table 3: report target-region R 2 across budgets."
 
 
 # OpenRouterVisionCaptioner — cloud VLM via OpenRouter (gpt-4o-mini-vision etc).

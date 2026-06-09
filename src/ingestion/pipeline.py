@@ -11,7 +11,12 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from src.embeddings.protocol import Embedder
-from src.ingestion.captioner import _Captioner, caption_figures, relatex_captions
+from src.ingestion.captioner import (
+    _Captioner,
+    caption_figures,
+    relatex_captions,
+    relatex_table_captions,
+)
 from src.ingestion.chunking import chunk_pages, figure_to_chunk, table_to_chunk
 from src.ingestion.contextualize import contextualize_chunks
 from src.ingestion.figures import extract_figures
@@ -50,6 +55,7 @@ async def ingest_paper(
     extract_tables_enabled: bool = False,
     use_docling: bool = True,
     figures_out_dir: Path = Path("data/figures"),
+    pages_dir: Path = Path("data/pages"),
     vlm_captioner: _Captioner | None = None,
 ) -> IngestedPaper:
     """Full pipeline: extract pages, chunk, optionally contextualize, embed, index.
@@ -128,6 +134,10 @@ async def ingest_paper(
                 chunks.extend(figure_to_chunk(f) for f in docling_figs)
                 figure_count = len(docling_figs)
             if extract_tables_enabled:
+                if vlm_captioner is not None and docling_tabs:
+                    docling_tabs = await relatex_table_captions(
+                        docling_tabs, captioner=vlm_captioner, pages_dir=pages_dir
+                    )
                 chunks.extend(table_to_chunk(t) for t in docling_tabs)
                 table_count = len(docling_tabs)
         elif not use_docling:
@@ -141,6 +151,10 @@ async def ingest_paper(
                 figure_count = len(figures)
             if extract_tables_enabled:
                 tables = extract_tables(paper.paper_id, paper.pdf_path)
+                if vlm_captioner is not None and tables:
+                    tables = await relatex_table_captions(
+                        tables, captioner=vlm_captioner, pages_dir=pages_dir
+                    )
                 chunks.extend(table_to_chunk(t) for t in tables)
                 table_count = len(tables)
         ctx["figure_chunks"] = figure_count

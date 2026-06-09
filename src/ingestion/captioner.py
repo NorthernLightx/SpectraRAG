@@ -39,7 +39,7 @@ from tenacity import (
 )
 
 from src.observability.logging import get_logger, timed_event
-from src.types import Figure
+from src.types import Figure, Table
 
 
 def _should_retry_vlm_request(exc: BaseException) -> bool:
@@ -419,9 +419,18 @@ _RELATEX_PROMPT = (
 # render, so they are not flagged.
 _FLAT_MATH_RE = re.compile(
     r"(?<![A-Za-z0-9])[A-Z]\s\d(?![0-9])"
-    r"|[=≤≥≈≠→↦∑∫√∈∇±×∆∞]"  # noqa: RUF001 — intentional math operators, not typos
+    r"|[=≤≥≈≠→↦∑∫√∈∇±×∆∞∣]"  # noqa: RUF001 — math operators incl. U+2223 norm/abs bar
     r"|[Α-ω]"  # noqa: RUF001 — Greek letters are the math signal, not a Latin-A typo
+    r"|\bO\s*\("  # big-O complexity, e.g. a flattened "O ( ... )" from O(|Y|^2)
 )
+
+
+def _text_has_flat_math(caption: str) -> bool:
+    """True when a caption string looks like it carries text-flattened math."""
+    caption = caption.strip()
+    if not caption:
+        return False
+    return bool(_FLAT_MATH_RE.search(caption))
 
 
 def _caption_has_math(figure: Figure) -> bool:
@@ -434,10 +443,7 @@ def _caption_has_math(figure: Figure) -> bool:
     """
     if figure.vlm_caption:
         return False
-    caption = figure.caption.strip()
-    if not caption:
-        return False
-    return bool(_FLAT_MATH_RE.search(caption))
+    return _text_has_flat_math(figure.caption)
 
 
 async def relatex_captions(
@@ -485,4 +491,59 @@ async def relatex_captions(
         for slot, fig in zip(eligible, fixed, strict=True):
             results[slot] = fig
         ctx["relatexed"] = sum(1 for i in eligible if results[i].caption != figures[i].caption)
+    return results
+
+
+async def relatex_table_captions(
+    tables: list[Table],
+    *,
+    captioner: _Captioner,
+    pages_dir: Path,
+    concurrency: int = _DEFAULT_CONCURRENCY,
+) -> list[Table]:
+    """Re-encode text-flattened math in table captions as LaTeX, preserving wording.
+
+    Tables carry no crop image (unlike figures), so the VLM reads the table's
+    rendered *page* image — ``<pages_dir>/<paper_id>/<paper_id>_p<N>.png`` — and
+    re-emits the caption with ``$...$`` math. Tables whose caption has no flat
+    math, or whose page image is absent (pages not rendered), are left untouched.
+    Mirrors `relatex_captions`.
+    """
+    if not tables:
+        return []
+
+    def _page(table: Table) -> Path:
+        return pages_dir / table.paper_id / f"{table.paper_id}_p{table.page_number}.png"
+
+    eligible = [
+        i
+        for i, t in enumerate(tables)
+        if t.caption and _text_has_flat_math(t.caption) and _page(t).exists()
+    ]
+    if not eligible:
+        return list(tables)
+
+    semaphore = asyncio.Semaphore(concurrency)
+
+    async def _one(table: Table) -> Table:
+        async with semaphore:
+            try:
+                relatexed = await captioner.caption(
+                    _page(table), prompt=_RELATEX_PROMPT + (table.caption or "")
+                )
+            except (httpx.HTTPError, RuntimeError) as exc:
+                _log.warning("relatex_table.failed", table_id=table.table_id, error=str(exc))
+                return table
+        if not relatexed:
+            return table
+        return table.model_copy(update={"caption": relatexed})
+
+    with timed_event(
+        _log, "relatex_table.done", n_tables=len(tables), n_eligible=len(eligible)
+    ) as ctx:
+        results = list(tables)
+        fixed = await asyncio.gather(*(_one(tables[i]) for i in eligible))
+        for slot, t in zip(eligible, fixed, strict=True):
+            results[slot] = t
+        ctx["relatexed"] = sum(1 for i in eligible if results[i].caption != tables[i].caption)
     return results
