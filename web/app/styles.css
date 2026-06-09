@@ -213,6 +213,43 @@ body {
 
 .view { flex: 1 1 auto; min-height: 0; overflow: hidden; display: flex; }
 
+/* desktop: no mobile chrome */
+.nav-burger { display: none; }
+.nav-scrim { display: none; }
+
+/* ---------- mobile: sidebar collapses to an off-canvas drawer ---------- */
+@media (max-width: 760px) {
+  .app { grid-template-columns: 1fr; }
+  .sidebar {
+    position: fixed; top: 0; left: 0; bottom: 0;
+    width: min(86vw, 320px); z-index: 200;
+    transform: translateX(-100%);
+    transition: transform .22s ease;
+    box-shadow: 0 0 40px rgba(0,0,0,0.5);
+  }
+  .sidebar.open { transform: translateX(0); }
+  .nav-scrim {
+    display: block; position: fixed; inset: 0; z-index: 150;
+    background: rgba(0,0,0,0.5); backdrop-filter: blur(2px);
+  }
+  .nav-burger {
+    display: inline-grid; place-items: center; flex: none;
+    width: 36px; height: 36px; margin-left: -4px;
+    border: 1px solid var(--border); border-radius: 9px;
+    background: var(--panel-2); color: var(--text-dim); cursor: pointer;
+  }
+  .nav-burger:hover { color: var(--text); }
+  .topbar { padding: 0 14px; gap: 11px; }
+  .topbar-sub { display: none; }
+  .topbar .tag { display: none; }
+  /* Single-column chat: a two-pane split is unusable at phone width, so hide
+     the retrieval side-panel and its toggle and let the conversation fill. */
+  .topbar .segmented { display: none; }
+  .endpoint-model { white-space: nowrap; }
+  .chat-wrap .retr-panel { display: none; }
+  .chat-wrap .chat-col { flex: 1 1 100%; }
+}
+
 /* ---------- shared endpoint control (chat + inspection) ---------- */
 .endpoint { position: relative; }
 .endpoint-pill {

@@ -86,7 +86,14 @@
 .lb-note { display: flex; gap: 9px; margin-top: 18px; padding: 12px; border-radius: 10px; background: var(--visual-soft); border: 1px solid color-mix(in srgb, var(--visual) 30%, transparent); font-size: 12px; line-height: 1.5; color: var(--text-dim); }
 .lb-note .ico { color: var(--visual); flex: none; margin-top: 2px; }
 .lb-note b { color: var(--visual); }
-@media (max-width: 760px) { .lb { grid-template-columns: 1fr; } }
+@media (max-width: 760px) {
+  .lb-scrim { padding: 12px; }
+  /* minmax(0,…) + min-width:0 lets the column shrink below the page image's
+     intrinsic width; a bare 1fr floors at min-content and blows out the row. */
+  .lb { grid-template-columns: minmax(0, 1fr); max-height: 92vh; overflow-y: auto; }
+  .lb-img { padding: 14px; border-right: 0; border-bottom: 1px solid var(--border-soft); min-width: 0; }
+  .lb-side { overflow-y: visible; min-width: 0; }
+}
 
 /* lightbox side-panel dropdowns: table name + rendered table data */
 .lb-drop { margin: 0; }

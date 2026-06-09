@@ -8,9 +8,9 @@ const NAV = [
 { id: "why", label: "Why multimodal?", icon: "why" }];
 
 
-function Sidebar({ tab, setTab, theme, setTheme, layout, setLayout, stats }) {
+function Sidebar({ tab, setTab, theme, setTheme, layout, setLayout, stats, open }) {
   return (
-    <aside className="sidebar">
+    <aside className={"sidebar" + (open ? " open" : "")}>
       <div className="brand">
         <div className="brand-row">
           <div className="brand-mark"></div>
@@ -149,6 +149,7 @@ function App() {
     return (valid.includes(h) && h) || localStorage.getItem("sr-tab") || "chat";
   });
   const [layout, setLayout] = useState(() => localStorage.getItem("sr-layout") || "split");
+  const [navOpen, setNavOpen] = useState(false);
   const [model, setModel] = useState("openai/gpt-4o-mini");
   const [apiKey, setApiKeyRaw] = useState(() => localStorage.getItem("sr-key") || "");
   const setApiKey = (v) => {setApiKeyRaw(v);localStorage.setItem("sr-key", v);};
@@ -188,12 +189,16 @@ function App() {
 
   const crumb = CRUMB[tab];
   const stats = { papers: papers.length, figures: figures ? figures.length : 0 };
+  // Tapping a nav item also dismisses the mobile drawer.
+  const selectTab = (id) => { setTab(id); setNavOpen(false); };
 
   return (
     <div className="app">
-      <Sidebar tab={tab} setTab={setTab} theme={theme} setTheme={setTheme} layout={layout} setLayout={setLayout} stats={stats} />
+      <Sidebar tab={tab} setTab={selectTab} theme={theme} setTheme={setTheme} layout={layout} setLayout={setLayout} stats={stats} open={navOpen} />
+      {navOpen && <div className="nav-scrim" onClick={() => setNavOpen(false)}></div>}
       <main className="main">
         <div className="topbar">
+          <button className="nav-burger" aria-label="Open menu" onClick={() => setNavOpen(true)}><Icon name="menu" size={18} /></button>
           <div>
             <div className="crumb"><b>{crumb.t}</b></div>
             <div className="topbar-sub">{crumb.s}</div>
