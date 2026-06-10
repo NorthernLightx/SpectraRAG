@@ -38,7 +38,7 @@ function AdvancedPanel({ settings, set, papers, routingAvailable }) {
             { value: "visual", label: "visual", disabled: noRouter, disabledTitle: offTitle },
             { value: "agentic", label: "agentic" }]} />
         {noRouter &&
-        <span className="field-note">visual routing needs the GPU leg — off on this deployment; figure questions still work via page images</span>
+        <span className="field-note">visual routing needs the GPU leg — off on this CPU deployment (offline: +35% recall over text-only); figure questions still work via page images</span>
         }
       </div>
       <div className="field">
@@ -210,7 +210,7 @@ function RetrievalPanel({ turn, highlight, settings, paperTitle, routingAvailabl
           <h4>Routing decision</h4>
           {routingAvailable === false ? (
             <div className="route-card">
-              <span className="cand-src">router off on this deployment — every turn retrieves text-side; figure questions are answered from page images at generation time</span>
+              <span className="cand-src">router off on this CPU-only deployment — offline it measures <b>+35% recall</b> over text-only retrieval on MMLongBench (<a href="https://github.com/NorthernLightx/SpectraRAG/blob/main/docs/results.md" target="_blank" rel="noopener">results</a>). Here every turn retrieves text-side; figure questions read the page images at generation.</span>
             </div>
           ) : (
             <div className="route-card">

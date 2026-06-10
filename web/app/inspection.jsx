@@ -157,7 +157,7 @@ function InspectionView({ settings, papers, routingAvailable }) {
                 {visCands.length
               ? visCands.map((c, i) => <InspRow key={i} c={c} onOpen={setPageItem} />)
               : <div className="retr-empty">{routingAvailable === false
-                ? "Not built on this deployment — the visual leg needs a GPU, so retrieval runs text-side only. Figure questions are still answered from page images at generation time."
+                ? <span>Not built on this deployment — the visual leg needs a GPU. Offline it measures +35% recall@10 over text-only retrieval (<a href="https://github.com/NorthernLightx/SpectraRAG/blob/main/docs/results.md" target="_blank" rel="noopener">results</a>); here retrieval runs text-side and figure questions are answered from page images at generation time.</span>
                 : "No visual candidates passed the gate for this query."}</div>}
               </div>
             </div>

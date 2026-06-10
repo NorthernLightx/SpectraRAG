@@ -302,6 +302,7 @@ body {
 .model-row.locked:hover { opacity: .8; background: var(--panel-2); }
 .endpoint-cta { margin-top: 11px; width: 100%; justify-content: center; }
 .endpoint-keystat a { color: var(--accent); }
+.route-card a, .retr-empty a { color: var(--accent); }
 
 /* settings row (now holds New chat) */
 .adv-toggle-row {
