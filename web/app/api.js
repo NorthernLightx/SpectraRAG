@@ -137,12 +137,11 @@
   }
 
   // Condense prior turns + the latest message into one standalone search query.
-  // Non-streaming, low max_tokens, same model the user picked for generation.
-  async function condense(apiKey, model, priorTurns, latest) {
+  function condenseMessages(priorTurns, latest) {
     const transcript = priorTurns
       .map((t) => `${t.role === "user" ? "User" : "Assistant"}: ${t.text || t.answer || ""}`)
       .join("\n");
-    const messages = [
+    return [
       {
         role: "system",
         content:
@@ -157,6 +156,11 @@
           `Latest user message: ${latest}\n\nStandalone search query:`,
       },
     ];
+  }
+
+  // BYOK condense: non-streaming, low max_tokens, the user's chosen model.
+  async function condense(apiKey, model, priorTurns, latest) {
+    const messages = condenseMessages(priorTurns, latest);
     const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -174,9 +178,24 @@
     return (data.choices?.[0]?.message?.content || "").trim() || latest;
   }
 
-  // Build the OpenRouter chat messages. Mirrors src/prompts/library/answer.yaml
-  // v5 so the chat path inherits the same strict refusal contract as the
-  // server-side /answer route, plus one clause for multi-turn context.
+  // Keyless condense through the server's demo path, so follow-up turns
+  // retrieve with a resolved query instead of raw text like "what is that".
+  // Costs one extra demo-quota call per follow-up; falls back to the raw
+  // message on any failure (quota, flaky free endpoint).
+  async function condenseDemo(priorTurns, latest) {
+    try {
+      const { text } = await streamDemoChat(condenseMessages(priorTurns, latest), () => {});
+      const q = (text || "").trim().split("\n")[0].trim();
+      return q && q.length <= 300 ? q : latest;
+    } catch {
+      return latest;
+    }
+  }
+
+  // Build the OpenRouter chat messages. Based on src/prompts/library/answer.yaml
+  // v5's refusal contract, relaxed for chat: meta-conversation and follow-ups
+  // about the previous answer are answered conversationally rather than
+  // refused, and attached page images carry citable ids for figure claims.
   // Fetch a page image (same-origin) and inline it as a base64 data URL.
   // Passing a link (localhost or even the public domain) makes the model's
   // provider fetch it server-side, which fails for localhost and is flaky for
@@ -206,7 +225,8 @@
       "- If the user asks to see a figure, plot, or graph and the retrieved chunks don't contain one matching the question, say so plainly — do not claim you cannot display images.",
       "- Cite specific chunk IDs when making factual claims by wrapping the literal id in square brackets. Example: if a chunk header is [2604.22753v1::p5::c24], cite it as [2604.22753v1::p5::c24] — NOT [chunk_id 2604.22753v1::p5::c24] and NOT [chunk 24]. Use only ids that appear in the provided context.",
       "- Attached page images are labeled with their own id, e.g. [page image 2604.22753v1::p5::page]. When you describe what a figure, plot, table, or diagram shows based on looking at a page image, cite that page id (e.g. [2604.22753v1::p5::page]) — not a text chunk. Cite text chunk ids only for claims supported by the chunk text itself.",
-      "- Prior turns are included for reference, but the retrieved chunks for the current question are the only source of truth.",
+      "- Several pages may be attached. Cite the id of the page that actually contains the figure you are describing — check the label immediately before the image you read; a page that merely mentions the figure in its text is the wrong citation.",
+      "- Prior turns are included for reference. If the user follows up about something from your own previous answer (a term you used, a claim you made) and the current chunks don't cover it, explain it from the previous turn's evidence — without bracket citations — instead of refusing.",
       "- Keep answers concise (3-6 sentences unless the question demands more).",
     ].join("\n");
 
@@ -368,6 +388,7 @@
     loadFigures,
     retrieve,
     condense,
+    condenseDemo,
     buildMessages,
     streamChat,
     streamDemoChat,

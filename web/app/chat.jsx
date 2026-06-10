@@ -338,11 +338,20 @@ function ChatView({ settings, set, layout, resetSignal, apiKey, model, papers, p
         return;
       }
 
-      // Condense (skip on first turn, or when there's no key to call with —
-      // the raw message still retrieves fine).
-      const searchQuery = (priorTurns.length && apiKey && apiKey.trim())
-        ? await window.RAG.condense(apiKey, model, priorTurns, q)
-        : q;
+      // Condense follow-ups into a standalone query: BYOK browser-direct, or
+      // through the demo path keyless (one extra demo call; falls back to the
+      // raw message on failure). First turns retrieve as typed.
+      const hasKeyForCondense = !!(apiKey && apiKey.trim());
+      let searchQuery = q;
+      if (priorTurns.length) {
+        if (hasKeyForCondense) {
+          searchQuery = await window.RAG.condense(apiKey, model, priorTurns, q);
+        } else if (demoAvailable) {
+          setStatus("Condensing the follow-up into a search query…");
+          searchQuery = await window.RAG.condenseDemo(priorTurns, q);
+          setStatus("");
+        }
+      }
       updateLast({ searchedFor: searchQuery });
 
       // Retrieve.
