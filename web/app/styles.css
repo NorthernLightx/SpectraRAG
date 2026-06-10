@@ -326,6 +326,7 @@ body {
 .btn:disabled { opacity: .5; cursor: not-allowed; }
 
 .field { display: flex; flex-direction: column; gap: 6px; }
+.field-note { font-size: 10.5px; color: var(--text-faint); line-height: 1.45; }
 .field > label {
   font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase;
   color: var(--text-faint); font-weight: 600;

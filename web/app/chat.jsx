@@ -37,6 +37,9 @@ function AdvancedPanel({ settings, set, papers, routingAvailable }) {
           options={[{ value: "auto", label: "auto" }, { value: "text", label: "text" },
             { value: "visual", label: "visual", disabled: noRouter, disabledTitle: offTitle },
             { value: "agentic", label: "agentic" }]} />
+        {noRouter &&
+        <span className="field-note">visual routing needs the GPU leg — off on this deployment; figure questions still work via page images</span>
+        }
       </div>
       <div className="field">
         <label>Routing mode</label>
@@ -176,7 +179,7 @@ function Composer({ onAsk, busy }) {
 }
 
 /* ---- retrieval panel ---- */
-function RetrievalPanel({ turn, highlight, settings, paperTitle }) {
+function RetrievalPanel({ turn, highlight, settings, paperTitle, routingAvailable }) {
   const [pageItem, setPageItem] = useState(null);
   if (!turn || !turn.candidates) {
     return (
@@ -205,13 +208,19 @@ function RetrievalPanel({ turn, highlight, settings, paperTitle }) {
       <div className="retr-body">
         <div className="retr-section">
           <h4>Routing decision</h4>
-          <div className="route-card">
-            <div className="gate"><RoutePill route={turn.route} /><span className="cand-src" style={{ marginLeft: "auto" }}>mode: {settings.route}</span></div>
-            <div className="route-bars">
-              <div className="rb"><span className="lbl">text</span><div className="scorebar"><i style={{ width: txtShare + "%" }}></i></div><span className="pct">{txtShare}%</span></div>
-              <div className="rb"><span className="lbl">visual</span><div className="scorebar visual"><i style={{ width: visShare + "%" }}></i></div><span className="pct">{visShare}%</span></div>
+          {routingAvailable === false ? (
+            <div className="route-card">
+              <span className="cand-src">router off on this deployment — every turn retrieves text-side; figure questions are answered from page images at generation time</span>
             </div>
-          </div>
+          ) : (
+            <div className="route-card">
+              <div className="gate"><RoutePill route={turn.route || "text"} /><span className="cand-src" style={{ marginLeft: "auto" }}>mode: {settings.route}</span></div>
+              <div className="route-bars">
+                <div className="rb"><span className="lbl">text</span><div className="scorebar"><i style={{ width: txtShare + "%" }}></i></div><span className="pct">{txtShare}%</span></div>
+                <div className="rb"><span className="lbl">visual</span><div className="scorebar visual"><i style={{ width: visShare + "%" }}></i></div><span className="pct">{visShare}%</span></div>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="retr-section">
@@ -350,7 +359,9 @@ function ChatView({ settings, set, layout, resetSignal, apiKey, model, papers, p
       setStatus("");
       const tRetrieve = performance.now() - t0;
       const candidates = results.map(toCand);
-      updateLast({ candidates, route: window.RAG.routeLabel(routing), routing, trace });
+      // With no router on the deployment the route label is always "text" —
+      // noise, not information. Suppress the per-message pill there.
+      updateLast({ candidates, route: routingAvailable === false ? null : window.RAG.routeLabel(routing), routing, trace });
 
       if (results.length === 0) {
         updateLast({ answer: "No chunks retrieved. The corpus may not cover this query.", streaming: false, latencyMs: Math.round(tRetrieve) });
@@ -421,7 +432,7 @@ function ChatView({ settings, set, layout, resetSignal, apiKey, model, papers, p
     } finally {
       setBusy(false);
     }
-  }, [busy, apiKey, model, settings, pagesAvailable, demoAvailable, onNeedKey]);
+  }, [busy, apiKey, model, settings, pagesAvailable, demoAvailable, routingAvailable, onNeedKey]);
 
   const newChat = () => { setTurns([]); setHighlight(null); setBusy(false); setStatus(""); };
   // The retrieval panel is hidden in focus layout and at phone width, so a
@@ -479,7 +490,7 @@ function ChatView({ settings, set, layout, resetSignal, apiKey, model, papers, p
         <Composer onAsk={ask} busy={busy} />
       </div>
 
-      {layout !== "single" && <RetrievalPanel turn={lastAssistant} highlight={highlight} settings={settings} paperTitle={paperTitle} />}
+      {layout !== "single" && <RetrievalPanel turn={lastAssistant} highlight={highlight} settings={settings} paperTitle={paperTitle} routingAvailable={routingAvailable} />}
       <PageRegionModal item={pageItem} onClose={() => setPageItem(null)} paperTitle={paperTitle} />
     </div>
   );
