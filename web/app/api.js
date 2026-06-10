@@ -216,7 +216,30 @@
     }
   }
 
-  async function buildMessages(priorTurns, latestUserText, chunks, useImages) {
+  // When the question names "Figure N" / "Table N", find that element's real
+  // page via the figure index (/figures). Retrieval often returns body text
+  // that only references the figure from another page — without this, the
+  // page that actually shows it never reaches the model. Scoped to papers in
+  // the top retrieved chunks; at most two extra pages.
+  function referencedFigurePages(question, chunks, figureIndex) {
+    if (!Array.isArray(figureIndex) || figureIndex.length === 0) return [];
+    const refs = [...question.matchAll(/\b(fig(?:ure)?\.?|table)\s*(\d+)\b/gi)];
+    if (refs.length === 0) return [];
+    const papers = [...new Set(chunks.slice(0, 3).map((c) => c.paper_id))];
+    const out = [];
+    for (const [, kindRaw, num] of refs) {
+      const re = /^t/i.test(kindRaw)
+        ? new RegExp(`^table\\.?\\s*${num}\\b`, "i")
+        : new RegExp(`^fig(?:ure)?\\.?\\s*${num}\\b`, "i");
+      for (const paperId of papers) {
+        const f = figureIndex.find((g) => g.paper_id === paperId && re.test(String(g.caption || "").trim()));
+        if (f && typeof f.page_number === "number") out.push({ paperId, page: f.page_number });
+      }
+    }
+    return out.slice(0, 2);
+  }
+
+  async function buildMessages(priorTurns, latestUserText, chunks, useImages, figureIndex) {
     const system = [
       "You are a careful research assistant answering questions from the supplied documents.",
       '- Use only the provided context for factual claims. If the user asks a factual question the context cannot answer, say exactly "Not stated in the provided context." — do not speculate.',
@@ -254,6 +277,20 @@
             content.push({ type: "text", text: `[page image ${c.paper_id}::p${page}::page]` });
             content.push({ type: "image_url", image_url: { url: dataUrl } });
           }
+        }
+      }
+    }
+    // Attach the page that actually shows a figure/table the question names,
+    // when retrieval didn't already bring it in.
+    if (useImages) {
+      for (const ref of referencedFigurePages(latestUserText, chunks, figureIndex)) {
+        const key = `${ref.paperId}:${ref.page}`;
+        if (seenPages.has(key)) continue;
+        seenPages.add(key);
+        const dataUrl = await imageToDataUrl(pageImageUrl(ref.paperId, ref.page));
+        if (dataUrl) {
+          content.push({ type: "text", text: `[page image ${ref.paperId}::p${ref.page}::page]` });
+          content.push({ type: "image_url", image_url: { url: dataUrl } });
         }
       }
     }

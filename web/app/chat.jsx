@@ -270,7 +270,7 @@ function RetrievalPanel({ turn, highlight, settings, paperTitle, routingAvailabl
   );
 }
 
-function ChatView({ settings, set, layout, resetSignal, apiKey, model, papers, pagesAvailable, demoAvailable, routingAvailable, onNeedKey }) {
+function ChatView({ settings, set, layout, resetSignal, apiKey, model, papers, figures, pagesAvailable, demoAvailable, routingAvailable, onNeedKey }) {
   const [turns, setTurns] = useState([]);
   const [busy, setBusy] = useState(false);
   const [advOpen, setAdvOpen] = useState(false);
@@ -397,7 +397,7 @@ function ChatView({ settings, set, layout, resetSignal, apiKey, model, papers, p
       // attach page images when pages are served.
       const useImages = pagesAvailable && (hasKey ? window.RAG.supportsVision(model) : true);
       if (useImages) setStatus(hasKey ? "Reading the retrieved page images…" : "Free demo model is reading the retrieved pages…");
-      const messages = await window.RAG.buildMessages(priorTurns, q, results, useImages);
+      const messages = await window.RAG.buildMessages(priorTurns, q, results, useImages, figures);
       const tGen = performance.now();
       const onDelta = (delta) => updateLast((prev) => ({ answer: prev.answer + delta }));
       const { text, usage } = hasKey
@@ -445,7 +445,7 @@ function ChatView({ settings, set, layout, resetSignal, apiKey, model, papers, p
     } finally {
       setBusy(false);
     }
-  }, [busy, apiKey, model, settings, pagesAvailable, demoAvailable, routingAvailable, onNeedKey]);
+  }, [busy, apiKey, model, settings, figures, pagesAvailable, demoAvailable, routingAvailable, onNeedKey]);
 
   const newChat = () => { setTurns([]); setHighlight(null); setBusy(false); setStatus(""); };
   // The retrieval panel is hidden in focus layout and at phone width, so a
