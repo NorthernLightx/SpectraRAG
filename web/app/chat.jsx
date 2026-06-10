@@ -63,17 +63,22 @@ function AdvancedPanel({ settings, set, papers, routingAvailable }) {
   );
 }
 
-function EmptyState({ onAsk }) {
+function EmptyState({ onAsk, routingAvailable }) {
+  // Without the multimodal router (CPU-only deploys) every turn retrieves
+  // text-side, so don't advertise per-question routes on the chips.
+  const noRouter = routingAvailable === false;
   return (
     <div className="empty">
       <div className="empty-mark"><Icon name="layers" size={24} /></div>
       <h2>Ask across the corpus</h2>
-      <p>20 research papers, indexed by text and figure. Every turn re-retrieves against the right modality — watch it route in the panel on the right.</p>
+      <p>{noRouter
+        ? "20 research papers, indexed by text and figure. Watch retrieval rank the evidence live in the panel on the right."
+        : "20 research papers, indexed by text and figure. Every turn re-retrieves against the right modality — watch it route in the panel on the right."}</p>
       <div className="suggest-grid">
         {window.RAG.SUGGESTIONS.map((s, i) => (
           <button key={i} className="suggest" onClick={() => onAsk(s.q)}>
             <span className="q">{s.q}</span>
-            <RoutePill route={s.route} />
+            {!noRouter && <RoutePill route={s.route} />}
           </button>
         ))}
       </div>
@@ -419,7 +424,18 @@ function ChatView({ settings, set, layout, resetSignal, apiKey, model, papers, p
   }, [busy, apiKey, model, settings, pagesAvailable, demoAvailable, onNeedKey]);
 
   const newChat = () => { setTurns([]); setHighlight(null); setBusy(false); setStatus(""); };
-  const onCite = (tag) => { if (tag[0] !== "F") setHighlight(tag); };
+  // The retrieval panel is hidden in focus layout and at phone width, so a
+  // highlight there would be invisible — open the source-page modal instead.
+  const onCite = (tag, msg) => {
+    if (tag[0] === "F") return;
+    const panelHidden = layout === "single" || (window.matchMedia && window.matchMedia("(max-width: 760px)").matches);
+    if (panelHidden && msg && msg.citations && msg.candidates) {
+      const cit = msg.citations.find((c) => String(c.n) === String(tag));
+      const cand = cit && msg.candidates.find((cd) => cd.chunk_id === cit.id);
+      if (cand) { setPageItem(cand); return; }
+    }
+    setHighlight(tag);
+  };
   const openFig = (cand) => setPageItem(cand);
 
   const firstReset = useRef(true);
@@ -444,14 +460,14 @@ function ChatView({ settings, set, layout, resetSignal, apiKey, model, papers, p
 
         <div className="chat-scroll" ref={scrollRef}>
           {turns.length === 0 ? (
-            <EmptyState onAsk={ask} />
+            <EmptyState onAsk={ask} routingAvailable={routingAvailable} />
           ) : (
             <div className="chat-inner">
               {turns.map((t, i) =>
                 t.role === "user" ? (
                   <div className="msg msg-user rise" key={i}><div className="bubble">{t.text}</div></div>
                 ) : (
-                  <AiMessage key={i} msg={t} onCite={onCite} onFig={openFig} paperTitle={paperTitle}
+                  <AiMessage key={i} msg={t} onCite={(tag) => onCite(tag, t)} onFig={openFig} paperTitle={paperTitle}
                     pendingLabel={status || undefined} />
                 )
               )}
