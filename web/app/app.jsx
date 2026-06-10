@@ -94,7 +94,7 @@ function ConnectionControl({ apiKey, setApiKey, model, setModel, demoAvailable }
   const keyed = apiKey.trim().length > 0;
   const cur = window.RAG.MODELS.find((m) => m.id === model) || window.RAG.MODELS[0];
   const onDemo = !keyed && demoAvailable;
-  const shortModel = onDemo ? "free demo" : cur.id.split("/").pop();
+  const shortModel = onDemo ? "free (auto)" : cur.id.split("/").pop();
   const freeModels = window.RAG.MODELS.filter((m) => m.id.endsWith(":free"));
   const paidModels = window.RAG.MODELS.filter((m) => !m.id.endsWith(":free"));
 
@@ -142,7 +142,7 @@ function ConnectionControl({ apiKey, setApiKey, model, setModel, demoAvailable }
             {onDemo &&
             <button className="model-row on" onClick={() => setMenu(null)}>
               <span className="model-row-main">
-                <span className="mono model-row-id">free demo</span>
+                <span className="mono model-row-id">free (auto)</span>
                 <span className="model-row-note">server picks a free vision model · daily cap</span>
               </span>
               <Icon name="check" size={14} className="model-row-check" />
