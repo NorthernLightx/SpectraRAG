@@ -399,6 +399,10 @@ function ChatView({ settings, set, layout, resetSignal, apiKey, model, papers, p
       const { newText, ids } = window.RAG.renumberCitations(text);
       const byId = new Map(results.map((c) => [c.chunk_id, c]));
       const citations = ids.map((id, i) => {
+        // Page-image citations (`paper::pN::page`) point at an attached page,
+        // not a retrieved chunk — the model cites them for figure claims.
+        const pm = id.match(/^(.+)::p(\d+)::page$/);
+        if (pm) return { n: i + 1, id, paper: pm[1], page: +pm[2], quote: null, kind: "visual", page_cite: true };
         const c = byId.get(id);
         const pages = c ? c.page_numbers || [] : [];
         return { n: i + 1, id, paper: c ? c.paper_id : id, page: pages[0], quote: c ? previewQuote(c.text) : null, kind: c && c.source === "visual" ? "visual" : "text" };
@@ -437,12 +441,17 @@ function ChatView({ settings, set, layout, resetSignal, apiKey, model, papers, p
   const newChat = () => { setTurns([]); setHighlight(null); setBusy(false); setStatus(""); };
   // The retrieval panel is hidden in focus layout and at phone width, so a
   // highlight there would be invisible — open the source-page modal instead.
+  // Page-image citations always open the modal: they have no panel row.
   const onCite = (tag, msg) => {
     if (tag[0] === "F") return;
+    const cit = msg && msg.citations ? msg.citations.find((c) => String(c.n) === String(tag)) : null;
+    if (cit && cit.page_cite) {
+      setPageItem({ chunk_id: cit.id, paper: cit.paper, page: cit.page, pages: [cit.page], kind: "visual", bbox: null, text: "", page_cite: true });
+      return;
+    }
     const panelHidden = layout === "single" || (window.matchMedia && window.matchMedia("(max-width: 760px)").matches);
-    if (panelHidden && msg && msg.citations && msg.candidates) {
-      const cit = msg.citations.find((c) => String(c.n) === String(tag));
-      const cand = cit && msg.candidates.find((cd) => cd.chunk_id === cit.id);
+    if (panelHidden && cit && msg.candidates) {
+      const cand = msg.candidates.find((cd) => cd.chunk_id === cit.id);
       if (cand) { setPageItem(cand); return; }
     }
     setHighlight(tag);

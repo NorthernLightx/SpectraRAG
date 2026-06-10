@@ -204,6 +204,7 @@
       "- Out-of-domain questions (e.g. about a topic completely unrelated to the chunks) must be refused with the exact phrase above. Do not produce a generic summary of the chunks instead.",
       "- If the user asks to see a figure, plot, or graph and the retrieved chunks don't contain one matching the question, say so plainly — do not claim you cannot display images.",
       "- Cite specific chunk IDs when making factual claims by wrapping the literal id in square brackets. Example: if a chunk header is [2604.22753v1::p5::c24], cite it as [2604.22753v1::p5::c24] — NOT [chunk_id 2604.22753v1::p5::c24] and NOT [chunk 24]. Use only ids that appear in the provided context.",
+      "- Attached page images are labeled with their own id, e.g. [page image 2604.22753v1::p5::page]. When you describe what a figure, plot, table, or diagram shows based on looking at a page image, cite that page id (e.g. [2604.22753v1::p5::page]) — not a text chunk. Cite text chunk ids only for claims supported by the chunk text itself.",
       "- Prior turns are included for reference, but the retrieved chunks for the current question are the only source of truth.",
       "- Keep answers concise (3-6 sentences unless the question demands more).",
     ].join("\n");
@@ -226,7 +227,12 @@
           if (seenPages.has(key)) continue;
           seenPages.add(key);
           const dataUrl = await imageToDataUrl(pageImageUrl(c.paper_id, page));
-          if (dataUrl) content.push({ type: "image_url", image_url: { url: dataUrl } });
+          if (dataUrl) {
+            // Label the image so visual claims have a citable id (the system
+            // prompt directs figure descriptions at these, not text chunks).
+            content.push({ type: "text", text: `[page image ${c.paper_id}::p${page}::page]` });
+            content.push({ type: "image_url", image_url: { url: dataUrl } });
+          }
         }
       }
     }
@@ -324,7 +330,7 @@
   function renumberCitations(text) {
     const idMap = new Map();
     const orderedIds = [];
-    const chunkIdRe = /[A-Za-z0-9_.\-]+::p\d+::(?:c|tab|fig)\d+/g;
+    const chunkIdRe = /[A-Za-z0-9_.\-]+::p\d+::(?:(?:c|tab|fig)\d+|page)/g;
     const newText = text.replace(/\[([^\]]+)\]/g, (match, inner) => {
       const ids = inner.match(chunkIdRe);
       if (!ids || ids.length === 0) return match;

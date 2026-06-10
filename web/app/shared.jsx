@@ -194,7 +194,7 @@ function PageRegionModal({ item, onClose, paperTitle }) {
         </div>
         <div className="pm-side">
           <div className="pm-side-head">
-            <span className={"pill " + (isVis ? "visual" : "text")}><span className="dot"></span>{isVis ? "visual store" : "text store"}</span>
+            <span className={"pill " + (isVis ? "visual" : "text")}><span className="dot"></span>{item.page_cite ? "page image" : isVis ? "visual store" : "text store"}</span>
             <button className="btn ghost sm" onClick={onClose}><Icon name="x" size={15} /></button>
           </div>
           <div className="pm-src mono">{item.paper} · p.{item.page}</div>
@@ -224,7 +224,9 @@ function PageRegionModal({ item, onClose, paperTitle }) {
 
           <div className="pm-note">
             <Icon name={isVis ? "image" : "text"} size={13} />
-            <span>{isVis
+            <span>{item.page_cite
+              ? "Cited as a page image: the model read this page directly when describing the figure, so the whole page is the evidence."
+              : isVis
               ? "Retrieved from the visual store over page images; the box marks the figure or table region on the source page."
               : "Retrieved from the text store by the dense retriever; the box marks the cited passage on the page."}</span>
           </div>
