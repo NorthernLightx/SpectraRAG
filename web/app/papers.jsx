@@ -51,7 +51,7 @@ function PaperDrawer({ p, figs, onClose }) {
             <div style={{ marginTop: 22 }}>
               <h4 className="section-h">Indexed figures</h4>
               <div className="fig-grid-2">
-                {figs.slice(0, 8).map((f) => (
+                {figs.map((f) => (
                   <div key={f.chunk_id} className="figthumb">
                     <FigCrop url={f.page_image_url} bbox={f.bbox} fallbackH={92} />
                     <div className="figthumb-meta"><span className="mono">p.{f.page_number}</span> · {clip(f.caption, 40)}</div>

@@ -31,18 +31,20 @@ function Stage({ icon, label, value, sub, last, selected, onClick }) {
   );
 }
 
-function InspRow({ c, onOpen }) {
+function InspRow({ c, onOpen, maxScore }) {
+  // Rerank scores are logits (often > 1); scale the bar against the set's
+  // best score so widths stay comparative instead of all clamping to 100%.
+  const rel = maxScore > 0 ? c.score / maxScore : 0;
   return (
     <div className="insp-row row-clickable" onClick={() => onOpen(c)} title="View source region on page">
       <div className="insp-row-head">
         <span className={"cand-num" + (c.kind === "visual" ? " visual" : "")}>{c.kind === "visual" ? "IMG" : "TXT"}</span>
         <span className="cand-src">{c.paper} · p.{c.page}</span>
-        <span className="cand-status kept">score {c.score.toFixed(3)}</span>
       </div>
       <div className="insp-scores">
         <div className="insp-score">
           <span className="isk">relevance</span>
-          <ScoreBar score={Math.min(c.score, 1)} kind={c.kind} />
+          <ScoreBar score={Math.min(rel, 1)} kind={c.kind} />
           <span className="isv mono">{c.score.toFixed(3)}</span>
         </div>
       </div>
@@ -88,6 +90,7 @@ function InspectionView({ settings, papers, routingAvailable }) {
   const cands = result ? result.cands : [];
   const textCands = cands.filter((c) => c.kind === "text");
   const visCands = cands.filter((c) => c.kind === "visual");
+  const maxScore = cands.reduce((m, c) => Math.max(m, c.score || 0), 0);
   const routeLabel = result ? window.RAG.routeLabel(result.routing) : "text";
 
   const stageInfo = {
@@ -150,12 +153,12 @@ function InspectionView({ settings, papers, routingAvailable }) {
             <div className="insp-stores">
               <div className="insp-store">
                 <h4 className="section-h"><span className="dot-tag"><i style={{ background: "var(--accent)" }}></i>Text store</span><span className="result-count mono">{textCands.length}</span></h4>
-                {textCands.length ? textCands.map((c, i) => <InspRow key={i} c={c} onOpen={setPageItem} />) : <div className="retr-empty">No text candidates.</div>}
+                {textCands.length ? textCands.map((c, i) => <InspRow key={i} c={c} onOpen={setPageItem} maxScore={maxScore} />) : <div className="retr-empty">No text candidates.</div>}
               </div>
               <div className="insp-store">
                 <h4 className="section-h"><span className="dot-tag"><i style={{ background: "var(--visual)" }}></i>Visual store</span><span className="result-count mono">{routingAvailable === false ? "off" : visCands.length}</span></h4>
                 {visCands.length
-              ? visCands.map((c, i) => <InspRow key={i} c={c} onOpen={setPageItem} />)
+              ? visCands.map((c, i) => <InspRow key={i} c={c} onOpen={setPageItem} maxScore={maxScore} />)
               : <div className="retr-empty">{routingAvailable === false
                 ? <span>Not built on this deployment — the visual leg needs a GPU. Offline it measures +35% recall@10 over text-only retrieval (<a href="https://github.com/NorthernLightx/SpectraRAG/blob/main/docs/results.md" target="_blank" rel="noopener">results</a>); here retrieval runs text-side and figure questions are answered from page images at generation time.</span>
                 : "No visual candidates passed the gate for this query."}</div>}

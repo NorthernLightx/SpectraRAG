@@ -190,6 +190,9 @@ function RetrievalPanel({ turn, highlight, settings, paperTitle, routingAvailabl
     );
   }
   const cands = turn.candidates;
+  // Rerank scores are logits (often > 1); scale bars to the set's best score
+  // so they stay comparative instead of all clamping to 100%.
+  const maxScore = cands.reduce((m, c) => Math.max(m, c.score || 0), 0);
   const vis = cands.filter((c) => c.kind === "visual");
   const total = cands.length;
   const visShare = total ? Math.round((vis.length / total) * 100) : 0;
@@ -236,7 +239,7 @@ function RetrievalPanel({ turn, highlight, settings, paperTitle, routingAvailabl
                   <span className="cand-src">{c.paper} · p.{c.page}</span>
                   <span className="cand-score">{c.score.toFixed(3)}</span>
                 </div>
-                <ScoreBar score={c.score} kind={c.kind} />
+                <ScoreBar score={maxScore > 0 ? Math.min(c.score / maxScore, 1) : 0} kind={c.kind} />
                 {c.text && <div className="cand-quote">{previewQuote(c.text)}</div>}
                 <div className="cand-meta">
                   <span className="tag">{previewQuote(paperTitle(c.paper), 30)}</span>
