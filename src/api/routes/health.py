@@ -7,8 +7,9 @@ from typing import Any
 
 from fastapi import APIRouter, Depends
 
-from src.api.deps import get_settings
+from src.api.deps import get_settings, peek_retriever
 from src.config.settings import Settings
+from src.rag.retrievers.routing import RoutingRetriever
 
 router = APIRouter()
 
@@ -35,4 +36,9 @@ def health(settings: Settings = Depends(get_settings)) -> dict[str, Any]:
         # Whether /demo/chat can generate (ADR 0027). The UI uses this to
         # decide between the keyless demo path and the BYOK-only notice.
         "demo_available": settings.demo_openrouter_key is not None and settings.demo_daily_cap > 0,
+        # Whether the multimodal router is live. False when the visual leg
+        # couldn't build (e.g. CPU-only deploy) and force_route/routing_mode
+        # are no-ops; the UI greys those controls out instead of letting them
+        # silently do nothing.
+        "routing_available": isinstance(peek_retriever(), RoutingRetriever),
     }

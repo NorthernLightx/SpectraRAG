@@ -185,9 +185,20 @@ function ConnectionControl({ apiKey, setApiKey, model, setModel, demoAvailable }
 
 }
 
-/* Shown when the keyless demo hits its daily cap: the way to keep chatting is
-   the visitor's own OpenRouter key. The key never touches the server — it
-   lives in localStorage and goes browser-direct to OpenRouter. */
+/* Shown when a turn needs the visitor's own OpenRouter key: the keyless demo
+   hit its daily cap, or they tried agentic search (which runs on their key).
+   The key never touches the server — it lives in localStorage and goes
+   browser-direct to OpenRouter. */
+const KEY_MODAL_COPY = {
+  quota: {
+    h: "Today's free demo is used up",
+    p: "Answers here run on a shared free model with a daily cap, and it just ran out. Add your own OpenRouter key to keep chatting — and to switch to stronger models like GPT-4o or Claude.",
+  },
+  agentic: {
+    h: "Agentic search needs your key",
+    p: "The search agent runs server-side on your OpenRouter key, so it isn't part of the free demo. Add a key to try it — regular chat keeps working without one.",
+  },
+};
 function KeyModal({ open, onSave, onClose }) {
   const [val, setVal] = useState("");
   useEffect(() => {
@@ -197,13 +208,14 @@ function KeyModal({ open, onSave, onClose }) {
     return () => document.removeEventListener("keydown", onEsc);
   }, [open, onClose]);
   if (!open) return null;
+  const copy = KEY_MODAL_COPY[open] || KEY_MODAL_COPY.quota;
   const valid = val.trim().length > 0;
   const save = () => valid && onSave(val.trim());
   return (
     <div className="km-scrim" onClick={onClose}>
       <div className="km-card rise" role="dialog" aria-modal="true" aria-label="Add your OpenRouter key" onClick={(e) => e.stopPropagation()}>
-        <h3>Today's free demo is used up</h3>
-        <p>Answers here run on a shared free model with a daily cap, and it just ran out. Add your own OpenRouter key to keep chatting — and to switch to stronger models like GPT-4o or Claude.</p>
+        <h3>{copy.h}</h3>
+        <p>{copy.p}</p>
         <input className="input" type="password" placeholder="sk-or-v1-…" value={val} autoFocus
           onChange={(e) => setVal(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") save(); }} />
@@ -237,6 +249,7 @@ function App() {
   const [figures, setFigures] = useState(null);
   const [pagesAvailable, setPagesAvailable] = useState(false);
   const [demoAvailable, setDemoAvailable] = useState(false);
+  const [routingAvailable, setRoutingAvailable] = useState(true);
   const [keyModalOpen, setKeyModalOpen] = useState(false);
 
   const setTheme = (th) => {setThemeRaw(th);localStorage.setItem("sr-theme", th);};
@@ -250,7 +263,7 @@ function App() {
   useEffect(() => {
     window.RAG.loadPapers().then(setPapers);
     window.RAG.loadFigures().then(setFigures);
-    window.RAG.loadHealth().then((h) => { setPagesAvailable(!!h.pages_available); setDemoAvailable(!!h.demo_available); });
+    window.RAG.loadHealth().then((h) => { setPagesAvailable(!!h.pages_available); setDemoAvailable(!!h.demo_available); setRoutingAvailable(h.routing_available !== false); });
   }, []);
 
   // apply tweaks → CSS
@@ -295,7 +308,7 @@ function App() {
         </div>
 
         <div className="view">
-          {tab === "chat" && <ChatView settings={settings} set={set} layout={layout} apiKey={apiKey} model={model} papers={papers} pagesAvailable={pagesAvailable} demoAvailable={demoAvailable} onNeedKey={() => setKeyModalOpen(true)} />}
+          {tab === "chat" && <ChatView settings={settings} set={set} layout={layout} apiKey={apiKey} model={model} papers={papers} pagesAvailable={pagesAvailable} demoAvailable={demoAvailable} routingAvailable={routingAvailable} onNeedKey={(reason) => setKeyModalOpen(reason || "quota")} />}
           {tab === "inspection" && <InspectionView settings={settings} apiKey={apiKey} model={model} papers={papers} pagesAvailable={pagesAvailable} />}
           {tab === "papers" && <PapersView setTab={setTab} papers={papers} figures={figures} />}
           {tab === "figures" && <FiguresView figures={figures} />}

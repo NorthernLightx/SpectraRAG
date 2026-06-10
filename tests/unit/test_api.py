@@ -31,6 +31,9 @@ def test_health_returns_ok() -> None:
     # pages_available drives the BYOK frontend's decision to attach image
     # content blocks to OpenRouter calls. Always present as a bool.
     assert isinstance(body["pages_available"], bool)
+    # routing_available tells the UI whether force_route/routing_mode do
+    # anything on this deployment (False on CPU-only deploys with no router).
+    assert isinstance(body["routing_available"], bool)
 
 
 def test_query_returns_results_from_retriever() -> None:

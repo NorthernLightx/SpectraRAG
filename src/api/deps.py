@@ -55,6 +55,11 @@ def set_retriever(retriever: Retriever) -> None:
     _RetrieverState.instance = retriever
 
 
+def peek_retriever() -> Retriever | None:
+    """Non-raising reader for capability checks (e.g. /health flags)."""
+    return _RetrieverState.instance
+
+
 def get_generator() -> Generator:
     """Return the configured Generator, or raise 503 if not wired."""
     if _GeneratorState.instance is None:

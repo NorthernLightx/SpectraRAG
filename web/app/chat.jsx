@@ -23,18 +23,27 @@ function previewQuote(raw, max = 180) {
   return t.length > max ? t.slice(0, max).trim() + "…" : t;
 }
 
-function AdvancedPanel({ settings, set, papers }) {
+function AdvancedPanel({ settings, set, papers, routingAvailable }) {
+  // When the server runs without the multimodal router (no GPU visual leg),
+  // force_route/routing_mode are no-ops — grey them out rather than offering
+  // switches that silently do nothing. "agentic" stays: DCI is its own path.
+  const noRouter = routingAvailable === false;
+  const offTitle = "Needs the multimodal router (GPU visual leg) — not available on this deployment";
   return (
     <div className="adv-panel rise">
       <div className="field">
         <label>Routing</label>
         <Segmented value={settings.route} onChange={(v) => set("route", v)}
-          options={[{ value: "auto", label: "auto" }, { value: "text", label: "text" }, { value: "visual", label: "visual" }, { value: "agentic", label: "agentic" }]} />
+          options={[{ value: "auto", label: "auto" }, { value: "text", label: "text" },
+            { value: "visual", label: "visual", disabled: noRouter, disabledTitle: offTitle },
+            { value: "agentic", label: "agentic" }]} />
       </div>
       <div className="field">
         <label>Routing mode</label>
         <Segmented value={settings.routingMode} onChange={(v) => set("routingMode", v)}
-          options={[{ value: "", label: "default" }, { value: "category", label: "category" }, { value: "cascade", label: "cascade" }]} />
+          options={[{ value: "", label: "default" },
+            { value: "category", label: "category", disabled: noRouter, disabledTitle: offTitle },
+            { value: "cascade", label: "cascade", disabled: noRouter, disabledTitle: offTitle }]} />
       </div>
       <div className="field">
         <label>Context budget</label>
@@ -247,7 +256,7 @@ function RetrievalPanel({ turn, highlight, settings, paperTitle }) {
   );
 }
 
-function ChatView({ settings, set, layout, resetSignal, apiKey, model, papers, pagesAvailable, demoAvailable, onNeedKey }) {
+function ChatView({ settings, set, layout, resetSignal, apiKey, model, papers, pagesAvailable, demoAvailable, routingAvailable, onNeedKey }) {
   const [turns, setTurns] = useState([]);
   const [busy, setBusy] = useState(false);
   const [advOpen, setAdvOpen] = useState(false);
@@ -302,6 +311,19 @@ function ChatView({ settings, set, layout, resetSignal, apiKey, model, papers, p
     ]);
 
     try {
+      // Agentic search can't run keyless: the server-side agent spends the
+      // caller's OpenRouter key. Stop before retrieval with a notice instead
+      // of letting the thrown error render as a generic failure.
+      if (settings.route === "agentic" && !(apiKey && apiKey.trim())) {
+        updateLast({
+          answer: "Agentic search runs a search agent server-side on your OpenRouter key, so it needs one — add yours (top-right) to try it. The standard retrieval modes work without a key.",
+          streaming: false,
+          notice: true,
+        });
+        onNeedKey && onNeedKey("agentic");
+        return;
+      }
+
       // Condense (skip on first turn, or when there's no key to call with —
       // the raw message still retrieves fine).
       const searchQuery = (priorTurns.length && apiKey && apiKey.trim())
@@ -418,7 +440,7 @@ function ChatView({ settings, set, layout, resetSignal, apiKey, model, papers, p
           </div>
           <button className="btn ghost sm" onClick={newChat} title="Clear conversation"><Icon name="plus" size={14} /> New chat</button>
         </div>
-        {advOpen && <AdvancedPanel settings={settings} set={set} papers={papers} />}
+        {advOpen && <AdvancedPanel settings={settings} set={set} papers={papers} routingAvailable={routingAvailable} />}
 
         <div className="chat-scroll" ref={scrollRef}>
           {turns.length === 0 ? (

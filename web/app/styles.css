@@ -439,6 +439,7 @@ body {
   padding: 4px 10px; border: 0; border-radius: 6px; background: none; color: var(--text-dim); cursor: pointer;
 }
 .seg.on { background: var(--raise); color: var(--accent); box-shadow: var(--shadow-sm); }
+.seg.off { opacity: .4; cursor: not-allowed; }
 
 /* ---------- figure thumb ---------- */
 .figthumb { display: flex; flex-direction: column; gap: 5px; }

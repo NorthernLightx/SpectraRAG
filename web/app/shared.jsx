@@ -120,8 +120,9 @@ function Segmented({ options, value, onChange }) {
   return (
     <div className="segmented">
       {options.map((o) => (
-        <button key={o.value} className={"seg" + (value === o.value ? " on" : "")}
-          onClick={() => onChange(o.value)}>{o.label}</button>
+        <button key={o.value} className={"seg" + (value === o.value ? " on" : "") + (o.disabled ? " off" : "")}
+          title={o.disabled ? o.disabledTitle : undefined}
+          onClick={() => !o.disabled && onChange(o.value)}>{o.label}</button>
       ))}
     </div>
   );
