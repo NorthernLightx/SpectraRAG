@@ -81,61 +81,103 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "defaultLayout": "split"
 } /*EDITMODE-END*/;
 
+/* Two top-bar pills: model picker and key entry. Separate menus, because
+   switching models is a mid-session action and key entry is one-time setup —
+   one popover for both autofocused the password field on every model switch.
+   The model menu groups the slate into free and premium. Every browser-direct
+   call needs the visitor's key (OpenRouter requires auth even on :free
+   models), so keyless rows hand off to the key menu; keyless chat itself runs
+   on the server's demo path where the server picks the model (ADR 0027). */
 function ConnectionControl({ apiKey, setApiKey, model, setModel, demoAvailable }) {
-  const [open, setOpen] = useState(false);
+  const [menu, setMenu] = useState(null); // null | "model" | "key"
   const ref = useRef();
   const keyed = apiKey.trim().length > 0;
   const cur = window.RAG.MODELS.find((m) => m.id === model) || window.RAG.MODELS[0];
-  const shortModel = keyed ? cur.id.split("/").pop() : demoAvailable ? "free demo" : cur.id.split("/").pop();
+  const onDemo = !keyed && demoAvailable;
+  const shortModel = onDemo ? "free demo" : cur.id.split("/").pop();
+  const freeModels = window.RAG.MODELS.filter((m) => m.id.endsWith(":free"));
+  const paidModels = window.RAG.MODELS.filter((m) => !m.id.endsWith(":free"));
 
   useEffect(() => {
-    if (!open) return;
-    const onDown = (e) => {if (ref.current && !ref.current.contains(e.target)) setOpen(false);};
-    const onEsc = (e) => {if (e.key === "Escape") setOpen(false);};
+    if (!menu) return;
+    const onDown = (e) => {if (ref.current && !ref.current.contains(e.target)) setMenu(null);};
+    const onEsc = (e) => {if (e.key === "Escape") setMenu(null);};
     document.addEventListener("mousedown", onDown);
     document.addEventListener("keydown", onEsc);
     return () => {document.removeEventListener("mousedown", onDown);document.removeEventListener("keydown", onEsc);};
-  }, [open]);
+  }, [menu]);
+
+  const toggle = (which) => setMenu(menu === which ? null : which);
+  const modelRow = (m) =>
+    <button key={m.id} className={"model-row" + (keyed && m.id === model ? " on" : "") + (keyed ? "" : " locked")}
+      title={keyed ? undefined : "Needs your OpenRouter key"}
+      onClick={() => (keyed ? setModel(m.id) : setMenu("key"))}>
+      <span className="model-row-main">
+        <span className="mono model-row-id">{m.id}</span>
+        <span className="model-row-note">{m.note}</span>
+      </span>
+      {keyed && m.id === model && <Icon name="check" size={14} className="model-row-check" />}
+    </button>;
 
   return (
     <div className="endpoint" ref={ref}>
-      <button className={"endpoint-pill" + (open ? " open" : "")} onClick={() => setOpen((o) => !o)}>
-        <span className={"endpoint-dot" + (keyed ? " on" : "")} title={keyed ? "API key set" : "No API key"}></span>
+      <button className={"endpoint-pill" + (menu === "model" ? " open" : "")} onClick={() => toggle("model")}>
         <span className="endpoint-model mono">{shortModel}</span>
-        <span className="endpoint-sep"></span>
-        <Icon name="chevron" size={13} className="endpoint-caret" style={{ transform: open ? "rotate(-90deg)" : "rotate(90deg)" }} />
+        <Icon name="chevron" size={13} className="endpoint-caret" style={{ transform: menu === "model" ? "rotate(-90deg)" : "rotate(90deg)" }} />
       </button>
-      {open &&
+      <button className={"endpoint-pill" + (menu === "key" ? " open" : "")} onClick={() => toggle("key")}
+        title={keyed ? "OpenRouter key set" : "Add your OpenRouter key"}>
+        <span className={"endpoint-dot" + (keyed ? " on" : "")}></span>
+        <Icon name="key" size={13} />
+        <span className="endpoint-model endpoint-keylabel">{keyed ? "your key" : "add key"}</span>
+      </button>
+
+      {menu === "model" &&
       <div className="endpoint-pop rise">
           <div className="endpoint-pop-head">
-            <span className="endpoint-pop-title"><Icon name="server" size={13} /> Endpoint</span>
+            <span className="endpoint-pop-title"><Icon name="server" size={13} /> Model</span>
             <span className="endpoint-pop-sub mono">via OpenRouter</span>
           </div>
+          <div className="model-list">
+            {onDemo &&
+            <button className="model-row on" onClick={() => setMenu(null)}>
+              <span className="model-row-main">
+                <span className="mono model-row-id">free demo</span>
+                <span className="model-row-note">server picks a free vision model · daily cap</span>
+              </span>
+              <Icon name="check" size={14} className="model-row-check" />
+            </button>
+            }
+            <div className="model-group-label">free · costs nothing</div>
+            {freeModels.map(modelRow)}
+            <div className="model-group-label">premium · billed to your key</div>
+            {paidModels.map(modelRow)}
+          </div>
+          {!keyed &&
+          <button className="btn primary sm endpoint-cta" onClick={() => setMenu("key")}>
+            Add your OpenRouter key to pick a model
+          </button>
+          }
+        </div>
+      }
+
+      {menu === "key" &&
+      <div className="endpoint-pop rise">
+          <div className="endpoint-pop-head">
+            <span className="endpoint-pop-title"><Icon name="key" size={13} /> OpenRouter API key</span>
+            <span className="endpoint-pop-sub mono">stays in this browser</span>
+          </div>
           <div className="endpoint-field">
-            <label className="label-info">OpenRouter API key <Icon name="info" size={12} /></label>
             <input className="input" type="password" placeholder="sk-or-v1-…" value={apiKey}
           onChange={(e) => setApiKey(e.target.value)} autoFocus />
             <span className={"endpoint-keystat mono" + (keyed ? " ok" : "")}>
               <span className={"endpoint-dot" + (keyed ? " on" : "")}></span>
               {keyed ? "key stored locally · ready" : demoAvailable ? "no key · chat runs on the shared free demo model" : "add a key to run live queries"}
             </span>
-          </div>
-          <div className="endpoint-field">
-            <label>Model</label>
-            {!keyed && demoAvailable &&
-            <span className="endpoint-keystat mono">picker applies once you add a key — keyless chat uses the free demo model</span>
-            }
-            <div className="model-list">
-              {window.RAG.MODELS.map((m) =>
-            <button key={m.id} className={"model-row" + (m.id === model ? " on" : "")} onClick={() => setModel(m.id)}>
-                  <span className="model-row-main">
-                    <span className="mono model-row-id">{m.id}</span>
-                    <span className="model-row-note">{m.note}</span>
-                  </span>
-                  {m.id === model && <Icon name="check" size={14} className="model-row-check" />}
-                </button>
-            )}
-            </div>
+            <span className="endpoint-keystat">
+              Your key goes straight to OpenRouter, never to this server.{" "}
+              <a href="https://openrouter.ai/settings/keys" target="_blank" rel="noopener">Create one</a>
+            </span>
           </div>
         </div>
       }

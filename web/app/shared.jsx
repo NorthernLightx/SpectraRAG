@@ -36,6 +36,7 @@ const PATHS = {
   copy: "M9 9h11v11H9zM5 15H4V4h11v1",
   spark: "M12 2v6M12 16v6M2 12h6M16 12h6M5 5l3 3M16 16l3 3M19 5l-3 3M8 16l-3 3",
   filter: "M3 4h18l-7 8v7l-4-2v-5L3 4Z",
+  key: "M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4",
   external: "M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14 21 3",
 };
 function Icon({ name, size = 16, className = "", strokeWidth = 1.7, fill = false, style }) {

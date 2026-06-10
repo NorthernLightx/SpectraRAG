@@ -246,12 +246,13 @@ body {
      the retrieval side-panel and its toggle and let the conversation fill. */
   .topbar .segmented { display: none; }
   .endpoint-model { white-space: nowrap; }
+  .endpoint-keylabel { display: none; }
   .chat-wrap .retr-panel { display: none; }
   .chat-wrap .chat-col { flex: 1 1 100%; }
 }
 
 /* ---------- shared endpoint control (chat + inspection) ---------- */
-.endpoint { position: relative; }
+.endpoint { position: relative; display: flex; gap: 7px; }
 .endpoint-pill {
   display: inline-flex; align-items: center; gap: 9px;
   height: 32px; padding: 0 10px 0 11px; border-radius: 9px; cursor: pointer;
@@ -291,6 +292,16 @@ body {
 .model-row-id { font-size: 12px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .model-row-note { font-size: 10.5px; color: var(--text-faint); font-family: "IBM Plex Mono", monospace; }
 .model-row-check { color: var(--accent); flex: none; }
+.model-group-label {
+  font-size: 10px; letter-spacing: .07em; text-transform: uppercase;
+  color: var(--text-faint); font-family: "IBM Plex Mono", monospace;
+  margin: 9px 2px 2px;
+}
+.model-list .model-group-label:first-child { margin-top: 2px; }
+.model-row.locked { opacity: .55; }
+.model-row.locked:hover { opacity: .8; background: var(--panel-2); }
+.endpoint-cta { margin-top: 11px; width: 100%; justify-content: center; }
+.endpoint-keystat a { color: var(--accent); }
 
 /* settings row (now holds New chat) */
 .adv-toggle-row {
