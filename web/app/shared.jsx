@@ -84,20 +84,32 @@ function inlineNodes(text, onCite) {
   return out;
 }
 function Markdown({ text, onCite }) {
+  // Group consecutive lines of the same kind: models often put the intro and
+  // the bullets in one block ("Compared are:\n* a\n* b"), so a per-block
+  // all-or-nothing test renders the bullets as literal asterisks.
+  const lineKind = (l) => (/^\d+\.\s/.test(l) ? "ol" : /^[-*•]\s/.test(l) ? "ul" : "p");
+  const stripMarker = (l) => l.replace(/^(\d+\.|[-*•])\s/, "");
   const blocks = text.split("\n\n");
   return (
     <div className="md">
       {blocks.map((b, i) => {
-        const lines = b.split("\n");
-        const isOl = lines.every((l) => /^\d+\.\s/.test(l));
-        if (isOl) {
-          return (
-            <ol key={i}>
-              {lines.map((l, j) => <li key={j}>{inlineNodes(l.replace(/^\d+\.\s/, ""), onCite)}</li>)}
-            </ol>
-          );
+        const segs = [];
+        for (const l of b.split("\n")) {
+          const kind = lineKind(l);
+          const prev = segs[segs.length - 1];
+          if (prev && prev.kind === kind) prev.lines.push(l);
+          else segs.push({ kind, lines: [l] });
         }
-        return <p key={i}>{inlineNodes(b, onCite)}</p>;
+        return segs.map((s, j) => {
+          const key = i + "-" + j;
+          if (s.kind === "ol") {
+            return <ol key={key}>{s.lines.map((l, k) => <li key={k}>{inlineNodes(stripMarker(l), onCite)}</li>)}</ol>;
+          }
+          if (s.kind === "ul") {
+            return <ul key={key}>{s.lines.map((l, k) => <li key={k}>{inlineNodes(stripMarker(l), onCite)}</li>)}</ul>;
+          }
+          return <p key={key}>{inlineNodes(s.lines.join(" "), onCite)}</p>;
+        });
       })}
     </div>
   );

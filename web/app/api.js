@@ -324,7 +324,7 @@
   function renumberCitations(text) {
     const idMap = new Map();
     const orderedIds = [];
-    const chunkIdRe = /[A-Za-z0-9_.\-]+::p\d+::c\d+/g;
+    const chunkIdRe = /[A-Za-z0-9_.\-]+::p\d+::(?:c|tab|fig)\d+/g;
     const newText = text.replace(/\[([^\]]+)\]/g, (match, inner) => {
       const ids = inner.match(chunkIdRe);
       if (!ids || ids.length === 0) return match;

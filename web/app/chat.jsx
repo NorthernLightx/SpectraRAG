@@ -72,7 +72,7 @@ function EmptyState({ onAsk }) {
   );
 }
 
-function AiMessage({ msg, onCite, onFig, paperTitle }) {
+function AiMessage({ msg, onCite, onFig, paperTitle, pendingLabel }) {
   const done = !msg.streaming;
   const figs = (msg.candidates || []).filter((c) => c.kind === "visual");
   const tokens = msg.usage ? (msg.usage.prompt_tokens || 0) + (msg.usage.completion_tokens || 0) : 0;
@@ -84,8 +84,16 @@ function AiMessage({ msg, onCite, onFig, paperTitle }) {
         {msg.route && <div className="ai-meta"><RoutePill route={msg.route} /></div>}
       </div>
       <div className={"ai-body" + (msg.error ? " err" : "")}>
-        <Markdown text={msg.answer} onCite={onCite} />
-        {!done && <span className="caret"></span>}
+        {!done && !msg.answer ? (
+          <span className="mono" style={{ fontSize: 12, color: "var(--text-faint)" }}>
+            {pendingLabel || "routing query → re-retrieving"}<span className="caret"></span>
+          </span>
+        ) : (
+          <React.Fragment>
+            <Markdown text={msg.answer} onCite={onCite} />
+            {!done && <span className="caret"></span>}
+          </React.Fragment>
+        )}
       </div>
       {done && !msg.error && figs.length > 0 && (
         <div className="answer-figs rise">
@@ -402,12 +410,9 @@ function ChatView({ settings, set, layout, resetSignal, apiKey, model, papers, p
                 t.role === "user" ? (
                   <div className="msg msg-user rise" key={i}><div className="bubble">{t.text}</div></div>
                 ) : (
-                  <AiMessage key={i} msg={t} onCite={onCite} onFig={openFig} paperTitle={paperTitle} />
+                  <AiMessage key={i} msg={t} onCite={onCite} onFig={openFig} paperTitle={paperTitle}
+                    pendingLabel={status || undefined} />
                 )
-              )}
-              {busy && lastAssistant && lastAssistant.streaming && !lastAssistant.answer && (
-                <div className="msg msg-ai"><div className="ai-head"><div className="ai-avatar"><Icon name="spark" size={14} /></div><span className="ai-name">SpectraRAG</span></div>
-                  <div className="ai-body" style={{ color: "var(--text-faint)" }}><span className="mono" style={{ fontSize: 12 }}>{status || "routing query → re-retrieving"}<span className="caret"></span></span></div></div>
               )}
             </div>
           )}
