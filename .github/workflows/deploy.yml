@@ -54,9 +54,21 @@ jobs:
         run: |
           set -euo pipefail
           REPO_LOWER=$(echo "$REPO" | tr '[:upper:]' '[:lower:]')
-          URI="${GCP_REGION}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${GHCR_REMOTE_REPO}/${REPO_LOWER}:${IMAGE_TAG}"
+          # Resolve the tag to its immutable digest at GHCR before deploying.
+          # The AR remote repository caches manifests, so pulling a moving tag
+          # (":main") through it can silently deploy a stale image; a digest
+          # pull cannot be stale. The image is public, so the anonymous pull
+          # token is enough.
+          TOKEN=$(curl -fsSL "https://ghcr.io/token?scope=repository:${REPO_LOWER}:pull" | jq -r .token)
+          DIGEST=$(curl -fsSI \
+            -H "Authorization: Bearer ${TOKEN}" \
+            -H "Accept: application/vnd.oci.image.index.v1+json,application/vnd.docker.distribution.manifest.list.v2+json,application/vnd.docker.distribution.manifest.v2+json" \
+            "https://ghcr.io/v2/${REPO_LOWER}/manifests/${IMAGE_TAG}" \
+            | tr -d '\r' | awk 'tolower($1)=="docker-content-digest:"{print $2}')
+          test -n "$DIGEST"
+          URI="${GCP_REGION}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${GHCR_REMOTE_REPO}/${REPO_LOWER}@${DIGEST}"
           echo "uri=$URI" >> "$GITHUB_OUTPUT"
-          echo "Image URI: $URI"
+          echo "Image: ${IMAGE_TAG} -> ${DIGEST}"
 
       - name: Deploy to Cloud Run
         id: deploy
