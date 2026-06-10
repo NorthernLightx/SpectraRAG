@@ -210,7 +210,7 @@ function FigureLightbox({ f, onClose }) {
           <hr className="divider" style={{ margin: "16px 0" }} />
           <div className="lb-note">
             <Icon name="route" size={13} />
-            <span>Indexed as a {f.role || "figure"} chunk in the visual store; the box marks its region on the source page. {hasCaption ? (f.has_vlm_caption ? "Caption written by a VLM." : "Caption extracted from the document.") : "No caption was captured for this region."}</span>
+            <span>Indexed as a {f.role || "figure"} chunk; the box marks its region on the source page. {hasCaption ? (f.has_vlm_caption ? "Caption written by a VLM." : "Caption extracted from the document.") : "No caption was captured for this region."}</span>
           </div>
         </div>
       </div>

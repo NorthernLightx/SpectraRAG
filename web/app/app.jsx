@@ -309,7 +309,7 @@ function App() {
 
         <div className="view">
           {tab === "chat" && <ChatView settings={settings} set={set} layout={layout} apiKey={apiKey} model={model} papers={papers} pagesAvailable={pagesAvailable} demoAvailable={demoAvailable} routingAvailable={routingAvailable} onNeedKey={(reason) => setKeyModalOpen(reason || "quota")} />}
-          {tab === "inspection" && <InspectionView settings={settings} apiKey={apiKey} model={model} papers={papers} pagesAvailable={pagesAvailable} />}
+          {tab === "inspection" && <InspectionView settings={settings} apiKey={apiKey} model={model} papers={papers} pagesAvailable={pagesAvailable} routingAvailable={routingAvailable} />}
           {tab === "papers" && <PapersView setTab={setTab} papers={papers} figures={figures} />}
           {tab === "figures" && <FiguresView figures={figures} />}
           {tab === "why" && <WhyView setTab={setTab} />}

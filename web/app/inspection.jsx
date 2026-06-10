@@ -51,7 +51,7 @@ function InspRow({ c, onOpen }) {
   );
 }
 
-function InspectionView({ settings, papers }) {
+function InspectionView({ settings, papers, routingAvailable }) {
   const [draft, setDraft] = useState(window.RAG.SUGGESTIONS[0].q);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("");
@@ -153,8 +153,12 @@ function InspectionView({ settings, papers }) {
                 {textCands.length ? textCands.map((c, i) => <InspRow key={i} c={c} onOpen={setPageItem} />) : <div className="retr-empty">No text candidates.</div>}
               </div>
               <div className="insp-store">
-                <h4 className="section-h"><span className="dot-tag"><i style={{ background: "var(--visual)" }}></i>Visual store</span><span className="result-count mono">{visCands.length}</span></h4>
-                {visCands.length ? visCands.map((c, i) => <InspRow key={i} c={c} onOpen={setPageItem} />) : <div className="retr-empty">No visual candidates passed the gate for this query.</div>}
+                <h4 className="section-h"><span className="dot-tag"><i style={{ background: "var(--visual)" }}></i>Visual store</span><span className="result-count mono">{routingAvailable === false ? "off" : visCands.length}</span></h4>
+                {visCands.length
+              ? visCands.map((c, i) => <InspRow key={i} c={c} onOpen={setPageItem} />)
+              : <div className="retr-empty">{routingAvailable === false
+                ? "Not built on this deployment — the visual leg needs a GPU, so retrieval runs text-side only. Figure questions are still answered from page images at generation time."
+                : "No visual candidates passed the gate for this query."}</div>}
               </div>
             </div>
 
