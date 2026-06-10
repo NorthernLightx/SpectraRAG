@@ -148,7 +148,7 @@ function ConnectionControl({ apiKey, setApiKey, model, setModel, demoAvailable }
               <Icon name="check" size={14} className="model-row-check" />
             </button>
             }
-            <div className="model-group-label">free · costs nothing</div>
+            <div className="model-group-label">free · no charge to your key</div>
             {freeModels.map(modelRow)}
             <div className="model-group-label">premium · billed to your key</div>
             {paidModels.map(modelRow)}
