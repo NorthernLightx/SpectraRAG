@@ -76,6 +76,25 @@ function AiMessage({ msg, onCite, onFig, paperTitle, pendingLabel }) {
   const done = !msg.streaming;
   const figs = (msg.candidates || []).filter((c) => c.kind === "visual");
   const tokens = msg.usage ? (msg.usage.prompt_tokens || 0) + (msg.usage.completion_tokens || 0) : 0;
+  // KaTeX over the finished answer only: a done message's props never change,
+  // so React won't fight the DOM mutation (same pattern as the figure
+  // captions in figures.jsx). During streaming the raw $...$ stays visible.
+  const bodyRef = useRef(null);
+  useEffect(() => {
+    if (!done || msg.error || !bodyRef.current) return;
+    if (typeof window.renderMathInElement !== "function") return;
+    try {
+      window.renderMathInElement(bodyRef.current, {
+        delimiters: [
+          { left: "$$", right: "$$", display: true },
+          { left: "\\[", right: "\\]", display: true },
+          { left: "$", right: "$", display: false },
+          { left: "\\(", right: "\\)", display: false },
+        ],
+        throwOnError: false,
+      });
+    } catch (_) { /* leave the raw text on a KaTeX error */ }
+  }, [done, msg.error, msg.answer]);
   return (
     <div className="msg msg-ai rise">
       <div className="ai-head">
@@ -83,7 +102,7 @@ function AiMessage({ msg, onCite, onFig, paperTitle, pendingLabel }) {
         <span className="ai-name">SpectraRAG</span>
         {msg.route && <div className="ai-meta"><RoutePill route={msg.route} /></div>}
       </div>
-      <div className={"ai-body" + (msg.error ? " err" : "")}>
+      <div className={"ai-body" + (msg.error ? " err" : "")} ref={bodyRef}>
         {!done && !msg.answer ? (
           <span className="mono" style={{ fontSize: 12, color: "var(--text-faint)" }}>
             {pendingLabel || "routing query → re-retrieving"}<span className="caret"></span>
