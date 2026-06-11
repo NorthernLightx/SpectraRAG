@@ -243,7 +243,7 @@
       for (const paperId of papers) {
         const f = figureIndex.find((g) => g.paper_id === paperId && re.test(String(g.caption || "").trim()));
         if (f && typeof f.page_number === "number") {
-          out.push({ paperId, page: f.page_number });
+          out.push({ paperId, page: f.page_number, chunkId: f.chunk_id, caption: String(f.caption || "") });
           // One page per reference — matching the same "Figure 2" in a second
           // paper would crowd out the question's other references.
           break;
@@ -266,6 +266,7 @@
       "- Cite specific chunk IDs when making factual claims by wrapping the literal id in square brackets. Example: if a chunk header is [2604.22753v1::p5::c24], cite it as [2604.22753v1::p5::c24] — NOT [chunk_id 2604.22753v1::p5::c24] and NOT [chunk 24]. Use only ids that appear in the provided context.",
       "- Attached page images are labeled with their own id, e.g. [page image 2604.22753v1::p5::page]. When you describe what a figure, plot, table, or diagram shows based on looking at a page image, cite that page id (e.g. [2604.22753v1::p5::page]) — not a text chunk. Cite text chunk ids only for claims supported by the chunk text itself.",
       "- Several pages may be attached. Cite the id of the page that actually contains the figure you are describing — check the label immediately before the image you read; a page that merely mentions the figure in its text is the wrong citation.",
+      "- Watch figure numbers. If a retrieved chunk discusses a different figure than the one the user asked about (it says \"Fig. 2\" but the question asks about Figure 1), do not transfer its claims to the asked figure. Describe the asked figure only from its own caption chunk or its page image.",
       "- Prior turns are included for reference. If the user follows up about something from your own previous answer (a term you used, a claim you made) and the current chunks don't cover it, explain it from the previous turn's evidence — without bracket citations — instead of refusing.",
       "- Keep answers concise (3-6 sentences unless the question demands more).",
     ].join("\n");
@@ -304,18 +305,26 @@
         }
       }
     }
-    // Attach the page that actually shows a figure/table the question names,
-    // when retrieval didn't already bring it in.
-    if (useImages) {
-      for (const ref of referencedFigurePages(latestUserText, chunks, figureIndex)) {
-        const key = `${ref.paperId}:${ref.page}`;
-        if (seenPages.has(key)) continue;
-        seenPages.add(key);
-        const dataUrl = await imageToDataUrl(pageImageUrl(ref.paperId, ref.page));
-        if (dataUrl) {
-          content.push({ type: "text", text: `[page image ${ref.paperId}::p${ref.page}::page]` });
-          content.push({ type: "image_url", image_url: { url: dataUrl } });
-        }
+    // When the question names a figure/table, inject its caption as a citable
+    // chunk and attach its page. Retrieval often misses the caption chunk —
+    // captions rarely share words with the question ("Fig. 1: (a) Previous
+    // driving world models…" vs "What does Figure 1 illustrate?") — and the
+    // model then transplants text about a DIFFERENT figure onto the asked one.
+    for (const ref of referencedFigurePages(latestUserText, chunks, figureIndex)) {
+      if (ref.chunkId && ref.caption) {
+        content.push({
+          type: "text",
+          text: `[chunk ${ref.chunkId}] paper=${ref.paperId} pages=${ref.page} — caption of the figure/table named in the question\n${ref.caption.slice(0, 700)}`,
+        });
+      }
+      if (!useImages) continue;
+      const key = `${ref.paperId}:${ref.page}`;
+      if (seenPages.has(key)) continue;
+      seenPages.add(key);
+      const dataUrl = await imageToDataUrl(pageImageUrl(ref.paperId, ref.page));
+      if (dataUrl) {
+        content.push({ type: "text", text: `[page image ${ref.paperId}::p${ref.page}::page]` });
+        content.push({ type: "image_url", image_url: { url: dataUrl } });
       }
     }
     content.push({ type: "text", text: `\nQuestion: ${latestUserText}` });

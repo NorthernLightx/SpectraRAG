@@ -441,6 +441,12 @@ function ChatView({ settings, set, layout, resetSignal, apiKey, model, papers, f
         const pm = id.match(/^(.+)::p(\d+)::page$/);
         if (pm) return { n: i + 1, id, paper: pm[1], page: +pm[2], quote: null, kind: "visual", page_cite: true };
         const c = byId.get(id);
+        if (!c) {
+          // Injected figure/table caption (buildMessages adds it when the
+          // question names the element) — resolve through the figure index.
+          const fg = (figures || []).find((g) => g.chunk_id === id);
+          if (fg) return { n: i + 1, id, paper: fg.paper_id, page: fg.page_number, quote: previewQuote(fg.caption || ""), kind: "visual", fig_cite: true, bbox: fg.bbox || null };
+        }
         const pages = c ? c.page_numbers || [] : [];
         return { n: i + 1, id, paper: c ? c.paper_id : id, page: pages[0], quote: c ? previewQuote(c.text) : null, kind: c && c.source === "visual" ? "visual" : "text" };
       });
@@ -500,6 +506,11 @@ function ChatView({ settings, set, layout, resetSignal, apiKey, model, papers, f
     const cit = msg && msg.citations ? msg.citations.find((c) => String(c.n) === String(tag)) : null;
     if (cit && cit.page_cite) {
       setPageItem({ chunk_id: cit.id, paper: cit.paper, page: cit.page, pages: [cit.page], kind: "visual", bbox: null, text: "", page_cite: true });
+      return;
+    }
+    if (cit && cit.fig_cite) {
+      // Injected figure caption: open its page with the region box.
+      setPageItem({ chunk_id: cit.id, paper: cit.paper, page: cit.page, pages: [cit.page], kind: "visual", bbox: cit.bbox || null, text: cit.quote || "" });
       return;
     }
     // The panel only ever shows the LAST turn's evidence, so a highlight is
