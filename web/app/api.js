@@ -242,7 +242,12 @@
         : new RegExp(`^fig(?:ure)?\\.?\\s*${num}\\b`, "i");
       for (const paperId of papers) {
         const f = figureIndex.find((g) => g.paper_id === paperId && re.test(String(g.caption || "").trim()));
-        if (f && typeof f.page_number === "number") out.push({ paperId, page: f.page_number });
+        if (f && typeof f.page_number === "number") {
+          out.push({ paperId, page: f.page_number });
+          // One page per reference — matching the same "Figure 2" in a second
+          // paper would crowd out the question's other references.
+          break;
+        }
       }
     }
     return out.slice(0, 2);
@@ -357,6 +362,23 @@
           onDelta(delta);
         }
         if (obj.usage) usage = obj.usage;
+      }
+    }
+    // Flush a final line that arrived without a trailing newline — the
+    // usage-bearing frame is often the last thing in the stream.
+    const tail = buf.trim();
+    if (tail.startsWith("data:")) {
+      const payload = tail.slice(5).trim();
+      if (payload && payload !== "[DONE]") {
+        try {
+          const obj = JSON.parse(payload);
+          if (obj.usage) usage = obj.usage;
+          const delta = obj.choices?.[0]?.delta?.content || "";
+          if (delta) {
+            acc += delta;
+            onDelta(delta);
+          }
+        } catch { /* partial frame — drop */ }
       }
     }
     return { text: acc, usage };

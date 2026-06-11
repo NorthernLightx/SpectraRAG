@@ -18,6 +18,13 @@ function PaperCard({ p, figCount, onOpen }) {
   );
 }
 
+/* First caption line, with internal [chunk_id] placeholders hidden — the
+   Figures gallery cleans these the same way. */
+function drawerCaption(raw) {
+  const first = String(raw || "").split("\n")[0].trim();
+  return !first || /^\[[^\]]+\]$/.test(first) ? "No caption captured" : first;
+}
+
 function PaperDrawer({ p, figs, onClose }) {
   useEffect(() => {
     if (!p) return;
@@ -54,7 +61,7 @@ function PaperDrawer({ p, figs, onClose }) {
                 {figs.map((f) => (
                   <div key={f.chunk_id} className="figthumb">
                     <FigCrop url={f.page_image_url} bbox={f.bbox} fallbackH={92} />
-                    <div className="figthumb-meta"><span className="mono">p.{f.page_number}</span> · {clip(f.caption, 40)}</div>
+                    <div className="figthumb-meta"><span className="mono">p.{f.page_number}</span> · {clip(drawerCaption(f.caption), 40)}</div>
                   </div>
                 ))}
               </div>
@@ -78,10 +85,12 @@ function PapersView({ setTab, papers, figures }) {
   }, [figures]);
 
   if (!papers || papers.length === 0) {
-    return <div className="scroll-view"><div className="content-pad"><div className="retr-empty">Loading papers…</div></div></div>;
+    return <div className="scroll-view"><div className="content-pad"><div className="retr-empty">Loading papers… If this doesn't resolve, the server may be unreachable or no corpus is indexed.</div></div></div>;
   }
 
-  const filters = ["all", "arxiv", "other"];
+  // Only offer source filters when the corpus actually mixes sources — a
+  // permanently empty "other" chip reads as broken.
+  const filters = papers.some((p) => !p.is_arxiv) ? ["all", "arxiv", "other"] : ["all"];
   const filtered = papers.filter((p) => {
     const okF = filter === "all" || (filter === "arxiv" ? p.is_arxiv : !p.is_arxiv);
     const okQ = !q || ((p.title || "") + " " + p.paper_id).toLowerCase().includes(q.toLowerCase());

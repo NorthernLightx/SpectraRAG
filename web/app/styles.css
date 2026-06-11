@@ -487,6 +487,7 @@ body {
   padding: 16px 24px; border-bottom: 1px solid var(--border-soft);
   background: var(--panel-2);
 }
+@media (max-width: 760px) { .adv-panel { grid-template-columns: 1fr; } }
 .adv-panel .range-row { display: flex; align-items: center; gap: 10px; }
 .adv-panel input[type=range] { flex: 1; accent-color: var(--accent); }
 .adv-panel .range-val { font-family: "IBM Plex Mono", monospace; font-size: 12px; color: var(--accent); min-width: 24px; text-align: right; }
@@ -534,6 +535,7 @@ body {
 .ai-meta { margin-left: auto; display: flex; align-items: center; gap: 8px; font-family: "IBM Plex Mono", monospace; font-size: 11px; color: var(--text-faint); }
 .ai-body { font-size: 14px; }
 .ai-body .md p, .ai-body .md li { color: var(--text); }
+.ai-body.err .md p, .ai-body.err .md li { color: #e0716f; }
 
 /* inline figure cards inside answer */
 .answer-figs { display: flex; gap: 10px; margin: 14px 0 2px; flex-wrap: wrap; }
@@ -544,6 +546,8 @@ body {
 .answer-fig:hover { border-color: var(--accent-line); }
 .answer-fig .cap { padding: 8px 10px; font-size: 11px; color: var(--text-dim); line-height: 1.4; }
 .answer-fig .cap b { color: var(--visual); font-family: "IBM Plex Mono", monospace; font-size: 10px; }
+.answer-fig-img { overflow: hidden; background: #fdfdfb; }
+.answer-fig-img img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
 
 .ai-foot { display: flex; align-items: center; gap: 8px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border-soft); }
 .metric { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-faint); }

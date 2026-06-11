@@ -190,9 +190,12 @@ function RetrievalPanel({ turn, highlight, settings, paperTitle, routingAvailabl
     );
   }
   const cands = turn.candidates;
-  // Rerank scores are logits (often > 1); scale bars to the set's best score
-  // so they stay comparative instead of all clamping to 100%.
-  const maxScore = cands.reduce((m, c) => Math.max(m, c.score || 0), 0);
+  // Rerank scores are logits (any sign, any magnitude) — min-max scale the
+  // bars within the set so they stay comparative; all-negative sets would
+  // otherwise render every bar empty.
+  const scores = cands.map((c) => c.score || 0);
+  const sMax = Math.max(...scores), sMin = Math.min(...scores);
+  const relScore = (s) => (sMax === sMin ? 1 : (s - sMin) / (sMax - sMin));
   const vis = cands.filter((c) => c.kind === "visual");
   const total = cands.length;
   const visShare = total ? Math.round((vis.length / total) * 100) : 0;
@@ -217,7 +220,7 @@ function RetrievalPanel({ turn, highlight, settings, paperTitle, routingAvailabl
             </div>
           ) : (
             <div className="route-card">
-              <div className="gate"><RoutePill route={turn.route || "text"} /><span className="cand-src" style={{ marginLeft: "auto" }}>mode: {settings.route}</span></div>
+              <div className="gate"><RoutePill route={turn.route || "text"} /><span className="cand-src" style={{ marginLeft: "auto" }}>mode: {turn.mode || settings.route}</span></div>
               <div className="route-bars">
                 <div className="rb"><span className="lbl">text</span><div className="scorebar"><i style={{ width: txtShare + "%" }}></i></div><span className="pct">{txtShare}%</span></div>
                 <div className="rb"><span className="lbl">visual</span><div className="scorebar visual"><i style={{ width: visShare + "%" }}></i></div><span className="pct">{visShare}%</span></div>
@@ -235,11 +238,11 @@ function RetrievalPanel({ turn, highlight, settings, paperTitle, routingAvailabl
               <div key={c.chunk_id || i} className={"cand row-clickable" + (hl ? " hl" : "")}
                 onClick={() => setPageItem(c)} title="View source region on page">
                 <div className="cand-top">
-                  <span className={"cand-num" + (c.kind === "visual" ? " visual" : "")}>{c.kind === "visual" ? "IMG" : (num || "·")}</span>
+                  <span className={"cand-num" + (c.kind === "visual" ? " visual" : "")}>{num || (c.kind === "visual" ? "IMG" : "·")}</span>
                   <span className="cand-src">{c.paper} · p.{c.page}</span>
                   <span className="cand-score">{c.score.toFixed(3)}</span>
                 </div>
-                <ScoreBar score={maxScore > 0 ? Math.min(c.score / maxScore, 1) : 0} kind={c.kind} />
+                <ScoreBar score={relScore(c.score || 0)} kind={c.kind} />
                 {c.text && <div className="cand-quote">{previewQuote(c.text)}</div>}
                 <div className="cand-meta">
                   <span className="tag">{previewQuote(paperTitle(c.paper), 30)}</span>
@@ -311,20 +314,29 @@ function ChatView({ settings, set, layout, resetSignal, apiKey, model, papers, f
     return next;
   });
 
+  // Incremented by New chat: an in-flight ask compares its captured value and
+  // stops writing, so a zombie stream can't leak into the next conversation.
+  const runSeq = useRef(0);
+
   const ask = useCallback(async (q) => {
     if (busy) return;
+    const myRun = ++runSeq.current;
+    const live = (fn) => { if (runSeq.current === myRun) fn(); };
+    const upd = (patch) => live(() => updateLast(patch));
     setHighlight(null);
     setStatus("");
     setBusy(true);
 
     const priorTurns = turnsRef.current
-      .filter((t) => t.role === "user" || (t.role === "assistant" && t.answer))
+      // Error and notice turns are UI copy ("add your key…"), not assistant
+      // answers — feeding them to condense/generation pollutes the history.
+      .filter((t) => t.role === "user" || (t.role === "assistant" && t.answer && !t.error && !t.notice))
       .map((t) => ({ role: t.role, text: t.role === "user" ? t.text : t.answer }));
 
     setTurns((ts) => [
       ...ts,
       { role: "user", text: q },
-      { role: "assistant", q, answer: "", streaming: true, candidates: null, citations: [], route: null },
+      { role: "assistant", q, answer: "", streaming: true, candidates: null, citations: [], route: null, mode: settings.route },
     ]);
 
     try {
@@ -332,7 +344,7 @@ function ChatView({ settings, set, layout, resetSignal, apiKey, model, papers, f
       // caller's OpenRouter key. Stop before retrieval with a notice instead
       // of letting the thrown error render as a generic failure.
       if (settings.route === "agentic" && !(apiKey && apiKey.trim())) {
-        updateLast({
+        upd({
           answer: "Agentic search runs a search agent server-side on your OpenRouter key, so it needs one — add yours (top-right) to try it. The standard retrieval modes work without a key.",
           streaming: false,
           notice: true,
@@ -359,10 +371,10 @@ function ChatView({ settings, set, layout, resetSignal, apiKey, model, papers, f
         } else if (demoAvailable) {
           setStatus("Condensing the follow-up into a search query…");
           searchQuery = await window.RAG.condenseDemo(priorTurns, q);
-          setStatus("");
+          live(() => setStatus(""));
         }
       }
-      updateLast({ searchedFor: searchQuery });
+      upd({ searchedFor: searchQuery });
 
       // Retrieve.
       const t0 = performance.now();
@@ -373,17 +385,23 @@ function ChatView({ settings, set, layout, resetSignal, apiKey, model, papers, f
         paperId: settings.paper || "",
         dci: settings.route === "agentic",
         apiKey,
-        onStatus: setStatus,
+        onStatus: (s) => live(() => setStatus(s)),
       });
-      setStatus("");
+      live(() => setStatus(""));
       const tRetrieve = performance.now() - t0;
       const candidates = results.map(toCand);
       // With no router on the deployment the route label is always "text" —
       // noise, not information. Suppress the per-message pill there.
-      updateLast({ candidates, route: routingAvailable === false ? null : window.RAG.routeLabel(routing), routing, trace });
+      // Agentic turns are their own path (DCI), not a router decision; the
+      // pill should say so rather than defaulting to "text route".
+      upd({
+        candidates,
+        route: settings.route === "agentic" ? "agentic" : routingAvailable === false ? null : window.RAG.routeLabel(routing),
+        routing, trace,
+      });
 
       if (results.length === 0) {
-        updateLast({ answer: "No chunks retrieved. The corpus may not cover this query.", streaming: false, latencyMs: Math.round(tRetrieve) });
+        upd({ answer: "No chunks retrieved. The corpus may not cover this query.", streaming: false, latencyMs: Math.round(tRetrieve) });
         return;
       }
 
@@ -393,8 +411,8 @@ function ChatView({ settings, set, layout, resetSignal, apiKey, model, papers, f
       // retrieval with the bring-a-key notice.
       const hasKey = !!(apiKey && apiKey.trim());
       if (!hasKey && !demoAvailable) {
-        setStatus("Add your OpenRouter key (top-right) to generate a cited answer.");
-        updateLast({
+        live(() => setStatus("Add your OpenRouter key (top-right) to generate a cited answer."));
+        upd({
           answer: "Retrieved the chunks shown on the right. Add your OpenRouter key (top-right) to generate a cited answer from them.",
           streaming: false,
           notice: true,
@@ -406,10 +424,10 @@ function ChatView({ settings, set, layout, resetSignal, apiKey, model, papers, f
       // The demo chain is all vision-capable models, so keyless turns always
       // attach page images when pages are served.
       const useImages = pagesAvailable && (hasKey ? window.RAG.supportsVision(model) : true);
-      if (useImages) setStatus(hasKey ? "Reading the retrieved page images…" : "Free demo model is reading the retrieved pages…");
+      if (useImages) live(() => setStatus(hasKey ? "Reading the retrieved page images…" : "Free demo model is reading the retrieved pages…"));
       const messages = await window.RAG.buildMessages(priorTurns, q, results, useImages, figures);
       const tGen = performance.now();
-      const onDelta = (delta) => updateLast((prev) => ({ answer: prev.answer + delta }));
+      const onDelta = (delta) => upd((prev) => ({ answer: prev.answer + delta }));
       const { text, usage } = hasKey
         ? await window.RAG.streamChat(apiKey, model, messages, onDelta)
         : await window.RAG.streamDemoChat(messages, onDelta);
@@ -426,7 +444,7 @@ function ChatView({ settings, set, layout, resetSignal, apiKey, model, papers, f
         const pages = c ? c.page_numbers || [] : [];
         return { n: i + 1, id, paper: c ? c.paper_id : id, page: pages[0], quote: c ? previewQuote(c.text) : null, kind: c && c.source === "visual" ? "visual" : "text" };
       });
-      updateLast({
+      upd({
         answer: newText,
         streaming: false,
         citations,
@@ -439,33 +457,41 @@ function ChatView({ settings, set, layout, resetSignal, apiKey, model, papers, f
         // The shared free quota ran out for today: hand off to the key modal
         // instead of rendering it as a failure — retrieval still worked.
         onNeedKey && onNeedKey();
-        updateLast({
+        upd({
           answer: "Today's free demo answers are used up, but retrieval still works — the chunks are on the right. Add your own OpenRouter key (top-right) to keep generating answers.",
           streaming: false,
           notice: true,
         });
       } else if (err && (err.code === "demo_down" || err.code === "stream_error")) {
         // Upstream model failure, not the visitor's fault — say so without
-        // blaming a key they may not even have.
-        updateLast({
-          answer: `${(err && err.message) || "The model provider failed."} Retrieval still worked — the chunks are on the right.`,
+        // blaming a key they may not even have, and keep any partial answer.
+        upd((prev) => ({
+          answer: prev.answer
+            ? `${prev.answer}\n\nGeneration stopped early: ${(err && err.message) || "the model provider failed."}`
+            : `${(err && err.message) || "The model provider failed."} Retrieval still worked — the chunks are on the right.`,
           streaming: false,
           notice: true,
-        });
+        }));
       } else {
-        updateLast({
-          answer: `Request failed: ${(err && err.message) || err}. Either the server isn't reachable, or your OpenRouter key is invalid.`,
+        // Keep whatever streamed before the failure — wiping a half-answer is
+        // worse than showing it with an honest interruption note.
+        upd((prev) => ({
+          answer: prev.answer
+            ? `${prev.answer}\n\nGeneration interrupted: ${(err && err.message) || err}`
+            : `Request failed: ${(err && err.message) || err}. Either the server isn't reachable, or your OpenRouter key is invalid.`,
           streaming: false,
-          error: true,
-        });
+          error: !prev.answer,
+          notice: !!prev.answer,
+        }));
       }
-      setStatus("");
+      live(() => setStatus(""));
     } finally {
-      setBusy(false);
+      live(() => setBusy(false));
     }
   }, [busy, apiKey, model, settings, figures, pagesAvailable, demoAvailable, routingAvailable, onNeedKey]);
 
-  const newChat = () => { setTurns([]); setHighlight(null); setBusy(false); setStatus(""); };
+  // Bumping runSeq orphans any in-flight ask: its guarded writes become no-ops.
+  const newChat = () => { runSeq.current += 1; setTurns([]); setHighlight(null); setBusy(false); setStatus(""); };
   // The retrieval panel is hidden in focus layout and at phone width, so a
   // highlight there would be invisible — open the source-page modal instead.
   // Page-image citations always open the modal: they have no panel row.
@@ -476,11 +502,15 @@ function ChatView({ settings, set, layout, resetSignal, apiKey, model, papers, f
       setPageItem({ chunk_id: cit.id, paper: cit.paper, page: cit.page, pages: [cit.page], kind: "visual", bbox: null, text: "", page_cite: true });
       return;
     }
+    // The panel only ever shows the LAST turn's evidence, so a highlight is
+    // wrong for citations in older messages — open the modal for those too.
     const panelHidden = layout === "single" || (window.matchMedia && window.matchMedia("(max-width: 760px)").matches);
-    if (panelHidden && cit && msg.candidates) {
+    const isLastTurn = msg === lastAssistant;
+    if ((panelHidden || !isLastTurn) && cit && msg.candidates) {
       const cand = msg.candidates.find((cd) => cd.chunk_id === cit.id);
       if (cand) { setPageItem(cand); return; }
     }
+    if (!isLastTurn) return;
     setHighlight(tag);
   };
   const openFig = (cand) => setPageItem(cand);
@@ -515,7 +545,7 @@ function ChatView({ settings, set, layout, resetSignal, apiKey, model, papers, f
                   <div className="msg msg-user rise" key={i}><div className="bubble">{t.text}</div></div>
                 ) : (
                   <AiMessage key={i} msg={t} onCite={(tag) => onCite(tag, t)} onFig={openFig} paperTitle={paperTitle}
-                    pendingLabel={status || undefined} />
+                    pendingLabel={status || (routingAvailable === false ? "retrieving…" : undefined)} />
                 )
               )}
             </div>

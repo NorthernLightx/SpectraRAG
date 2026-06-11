@@ -20,7 +20,7 @@ function PageChips({ pages, gold }) {
   );
 }
 
-function WhyView({ setTab }) {
+function WhyView({ setTab, routingAvailable }) {
   const [data, setData] = useState(null);
   const [active, setActive] = useState(0);
 
@@ -81,6 +81,9 @@ function WhyView({ setTab }) {
           </section>
         )}
 
+        {/* Numbers come from why-multimodal.json — render nothing rather than
+            "0/0 examples" while it loads or if the fetch fails. */}
+        {cards.length > 0 &&
         <section className="why-chart">
           <div className="why-chart-text">
             <span className="why-eyebrow mono">MMLONGBENCH · FIGURE-BOUND ITEMS</span>
@@ -99,6 +102,7 @@ function WhyView({ setTab }) {
             <div className="bar-foot mono">gold page present in top-10 · {cards.length} figure-bound MMLongBench items</div>
           </div>
         </section>
+        }
 
         <section className="why-how">
           <span className="why-eyebrow mono">HOW ROUTING WORKS</span>
@@ -124,8 +128,17 @@ function WhyView({ setTab }) {
 
         <section className="why-cta">
           <div>
-            <h2 className="serif">See it route in real time.</h2>
-            <p>Ask a figure-bound question and watch the retrieval panel pick the page.</p>
+            {routingAvailable === false ? (
+              <React.Fragment>
+                <h2 className="serif">See the retrieval pipeline live.</h2>
+                <p>This deployment runs text-side (the router needs a GPU), but every stage — retrieval, reranking, evidence — traces in real time. Figure questions still read the page images.</p>
+              </React.Fragment>
+            ) : (
+              <React.Fragment>
+                <h2 className="serif">See it route in real time.</h2>
+                <p>Ask a figure-bound question and watch the retrieval panel pick the page.</p>
+              </React.Fragment>
+            )}
           </div>
           <div className="why-cta-btns">
             <button className="btn primary" onClick={() => setTab("chat")}><Icon name="chat" size={15} /> Open chat</button>

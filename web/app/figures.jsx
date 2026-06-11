@@ -98,6 +98,12 @@ function FigCrop({ url, bbox, fallbackH = 150 }) {
   );
 }
 
+/* Display category: docling table chunks carry kind="table" while their role
+   stays "figure" — surface them as tables so the filter can separate them. */
+function figCategory(f) {
+  return f.kind === "table" ? "table" : (f.role || "figure");
+}
+
 function FigureCard({ f, onOpen }) {
   const { name } = splitCaptionData(f.caption);
   const hasCap = name && !/^\[.+\]$/.test(name.trim());
@@ -115,7 +121,7 @@ function FigureCard({ f, onOpen }) {
           <span className="figure-card-page">p.{f.page_number}</span>
         </div>
         {f.docling_label && (
-          <div className="figure-card-title serif">{(f.role || "figure")} · {f.docling_label.replace(/_/g, " ")}</div>
+          <div className="figure-card-title serif">{figCategory(f)} · {f.docling_label.replace(/_/g, " ")}</div>
         )}
       </div>
     </button>
@@ -164,7 +170,7 @@ function FigureLightbox({ f, onClose }) {
   const jsonObj = {
     paper_id: f.paper_id,
     page: f.page_number,
-    type: f.role || "figure",
+    type: figCategory(f),
     ...(f.docling_label ? { docling_label: f.docling_label } : {}),
     caption: hasCaption ? name : null,
     ...(data ? { data } : {}),
@@ -177,13 +183,13 @@ function FigureLightbox({ f, onClose }) {
           <img ref={imgRef} src={f.page_image_url} alt={`page ${f.page_number}`} onLoad={place} style={{ display: "block", width: "100%", height: "auto" }} />
           {ov && (
             <div className="pm-region visual" style={{ position: "absolute", top: ov.top + "px", left: ov.left + "px", width: ov.width + "px", height: ov.height + "px" }}>
-              <span className="pm-region-tab">{f.role || "figure"} · selected</span>
+              <span className="pm-region-tab">{figCategory(f)} · selected</span>
             </div>
           )}
         </div>
         <div className="lb-side">
           <div className="lb-side-head">
-            <span className="pill visual"><span className="dot"></span>{f.role || "figure"}</span>
+            <span className="pill visual"><span className="dot"></span>{figCategory(f)}</span>
             <button className="btn ghost sm" onClick={onClose}><Icon name="x" size={15} /></button>
           </div>
           <div className="lb-fignum mono">{f.paper_id} · page {f.page_number}{f.docling_label ? ` · ${f.docling_label.replace(/_/g, " ")}` : ""}</div>
@@ -210,7 +216,7 @@ function FigureLightbox({ f, onClose }) {
           <hr className="divider" style={{ margin: "16px 0" }} />
           <div className="lb-note">
             <Icon name="route" size={13} />
-            <span>Indexed as a {f.role || "figure"} chunk; the box marks its region on the source page. {hasCaption ? (f.has_vlm_caption ? "Caption written by a VLM." : "Caption extracted from the document.") : "No caption was captured for this region."}</span>
+            <span>Indexed as a {figCategory(f)} chunk; the box marks its region on the source page. {hasCaption ? (f.has_vlm_caption ? "Caption written by a VLM." : "Caption extracted from the document.") : "No caption was captured for this region."}</span>
           </div>
         </div>
       </div>
@@ -228,9 +234,9 @@ function FiguresView({ figures }) {
   }
   const figs = figures;
 
-  const roles = ["all", ...Array.from(new Set(figs.map((f) => f.role || "figure")))];
+  const roles = ["all", ...Array.from(new Set(figs.map(figCategory)))];
   const filtered = figs.filter((f) => {
-    const okR = role === "all" || (f.role || "figure") === role;
+    const okR = role === "all" || figCategory(f) === role;
     const okQ = !q || ((f.caption || "") + " " + f.paper_id).toLowerCase().includes(q.toLowerCase());
     return okR && okQ;
   });

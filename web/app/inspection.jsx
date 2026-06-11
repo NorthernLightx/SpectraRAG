@@ -31,10 +31,9 @@ function Stage({ icon, label, value, sub, last, selected, onClick }) {
   );
 }
 
-function InspRow({ c, onOpen, maxScore }) {
-  // Rerank scores are logits (often > 1); scale the bar against the set's
-  // best score so widths stay comparative instead of all clamping to 100%.
-  const rel = maxScore > 0 ? c.score / maxScore : 0;
+function InspRow({ c, onOpen, scoreMin, scoreMax }) {
+  // Min-max scaled within the result set — logits carry any sign.
+  const rel = scoreMax === scoreMin ? 1 : ((c.score || 0) - scoreMin) / (scoreMax - scoreMin);
   return (
     <div className="insp-row row-clickable" onClick={() => onOpen(c)} title="View source region on page">
       <div className="insp-row-head">
@@ -91,7 +90,11 @@ function InspectionView({ settings, papers, routingAvailable }) {
   const cands = result ? result.cands : [];
   const textCands = cands.filter((c) => c.kind === "text");
   const visCands = cands.filter((c) => c.kind === "visual");
-  const maxScore = cands.reduce((m, c) => Math.max(m, c.score || 0), 0);
+  // Min-max scale within the set: rerank logits carry any sign, and an
+  // all-negative set must not render every bar empty.
+  const allScores = cands.map((c) => c.score || 0);
+  const scoreMax = allScores.length ? Math.max(...allScores) : 0;
+  const scoreMin = allScores.length ? Math.min(...allScores) : 0;
   const routeLabel = result ? window.RAG.routeLabel(result.routing) : "text";
 
   const stageInfo = {
@@ -118,12 +121,18 @@ function InspectionView({ settings, papers, routingAvailable }) {
           <Icon name="route" size={15} /> {busy ? "Tracing…" : "Trace"}
         </button>
         {result && routingAvailable !== false && <RoutePill route={routeLabel} />}
+        {settings.paper &&
+        <span className="result-count mono" title="Force paper filter — set in the chat's Advanced retrieval settings; traces are scoped to this paper">
+          filter: {settings.paper}
+        </span>
+        }
       </div>
       <div className="insp-examples">
         <span className="mono insp-ex-label">EXAMPLES</span>
         <div className="tag-filters">
           {window.RAG.SUGGESTIONS.map((s, i) => (
-            <button key={i} className="chip" onClick={() => { setDraft(s.q); trace(s.q); }}>{clip(s.q, 38)}</button>
+            <button key={i} className="chip" disabled={busy} style={busy ? { opacity: 0.5, cursor: "not-allowed" } : undefined}
+              onClick={() => { if (!busy) { setDraft(s.q); trace(s.q); } }}>{clip(s.q, 38)}</button>
           ))}
         </div>
       </div>
@@ -156,12 +165,12 @@ function InspectionView({ settings, papers, routingAvailable }) {
             <div className="insp-stores">
               <div className="insp-store">
                 <h4 className="section-h"><span className="dot-tag"><i style={{ background: "var(--accent)" }}></i>Text store</span><span className="result-count mono">{textCands.length}</span></h4>
-                {textCands.length ? textCands.map((c, i) => <InspRow key={i} c={c} onOpen={setPageItem} maxScore={maxScore} />) : <div className="retr-empty">No text candidates.</div>}
+                {textCands.length ? textCands.map((c, i) => <InspRow key={i} c={c} onOpen={setPageItem} scoreMin={scoreMin} scoreMax={scoreMax} />) : <div className="retr-empty">No text candidates.</div>}
               </div>
               <div className="insp-store">
                 <h4 className="section-h"><span className="dot-tag"><i style={{ background: "var(--visual)" }}></i>Visual store</span><span className="result-count mono">{routingAvailable === false ? "off" : visCands.length}</span></h4>
                 {visCands.length
-              ? visCands.map((c, i) => <InspRow key={i} c={c} onOpen={setPageItem} maxScore={maxScore} />)
+              ? visCands.map((c, i) => <InspRow key={i} c={c} onOpen={setPageItem} scoreMin={scoreMin} scoreMax={scoreMax} />)
               : <div className="retr-empty">{routingAvailable === false
                 ? <span>Not built on this deployment — the visual leg needs a GPU. Offline it measures +35% recall@10 over text-only retrieval (<a href="https://github.com/NorthernLightx/SpectraRAG/blob/main/docs/results.md" target="_blank" rel="noopener">results</a>); here retrieval runs text-side and figure questions are answered from page images at generation time.</span>
                 : "No visual candidates passed the gate for this query."}</div>}

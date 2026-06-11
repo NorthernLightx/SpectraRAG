@@ -51,8 +51,8 @@ function Icon({ name, size = 16, className = "", strokeWidth = 1.7, fill = false
 }
 
 function RoutePill({ route }) {
-  const cls = route === "visual" ? "visual" : route.includes("+") ? "mixed" : "text";
-  const label = route === "visual" ? "visual route" : route.includes("+") ? "text + visual" : "text route";
+  const cls = route === "visual" ? "visual" : route === "agentic" || route.includes("+") ? "mixed" : "text";
+  const label = route === "visual" ? "visual route" : route === "agentic" ? "agentic search" : route.includes("+") ? "text + visual" : "text route";
   return <span className={"pill " + cls}><span className="dot"></span>{label}</span>;
 }
 
@@ -73,13 +73,17 @@ function inlineNodes(text, onCite) {
   while ((m = re.exec(text))) {
     if (m.index > last) out.push(text.slice(last, m.index));
     if (m[1] !== undefined) {
-      out.push(<strong key={"b" + k++}>{m[1]}</strong>);
+      // Recurse so citations inside bold text stay clickable chips.
+      out.push(<strong key={"b" + k++}>{inlineNodes(m[1], onCite)}</strong>);
     } else {
       const tag = m[2];
       const isFig = tag[0] === "F";
-      out.push(
-        <sup key={"c" + k++} className={"cite-ref " + (isFig ? "fig" : "")}
-          onClick={() => onCite && onCite(tag)} title="Jump to evidence">{tag}</sup>
+      // F-tags have no click target in chat (the handler drops them) — render
+      // them as plain markers, not a dead "Jump to evidence" affordance.
+      out.push(isFig
+        ? <sup key={"c" + k++} className="cite-ref fig">{tag}</sup>
+        : <sup key={"c" + k++} className="cite-ref"
+            onClick={() => onCite && onCite(tag)} title="Jump to evidence">{tag}</sup>
       );
     }
     last = re.lastIndex;
@@ -233,8 +237,8 @@ function PageRegionModal({ item, onClose, paperTitle }) {
             <span>{item.page_cite
               ? "Cited as a page image: the model read this page directly when describing the figure, so the whole page is the evidence."
               : isVis
-              ? "Retrieved from the visual store over page images; the box marks the figure or table region on the source page."
-              : "Retrieved from the text store by the dense retriever; the box marks the cited passage on the page."}</span>
+              ? (hasBbox ? "Retrieved from the visual store over page images; the box marks the figure or table region on the source page." : "Retrieved from the visual store over page images.")
+              : (hasBbox ? "Retrieved from the text store by the dense retriever; the box marks the cited passage on the page." : "Retrieved from the text store by the dense retriever. This chunk spans page boundaries, so no single region box is available.")}</span>
           </div>
         </div>
       </div>

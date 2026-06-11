@@ -201,6 +201,9 @@ const KEY_MODAL_COPY = {
 };
 function KeyModal({ open, onSave, onClose }) {
   const [val, setVal] = useState("");
+  // Reset on every open: a stale half-typed key from a previous open must not
+  // be one Enter press away from becoming the active key.
+  useEffect(() => { if (open) setVal(""); }, [open]);
   useEffect(() => {
     if (!open) return;
     const onEsc = (e) => { if (e.key === "Escape") onClose(); };
@@ -254,7 +257,12 @@ function App() {
 
   const setTheme = (th) => {setThemeRaw(th);localStorage.setItem("sr-theme", th);};
   useEffect(() => {document.documentElement.setAttribute("data-theme", theme);}, [theme]);
-  useEffect(() => {localStorage.setItem("sr-tab", tab);}, [tab]);
+  useEffect(() => {
+    localStorage.setItem("sr-tab", tab);
+    // Keep the hash in sync — a stale deep-link hash would otherwise override
+    // the saved tab on every reload.
+    if ((location.hash || "").replace(/^#/, "") !== tab) history.replaceState(null, "", "#" + tab);
+  }, [tab]);
   useEffect(() => {localStorage.setItem("sr-layout", layout);}, [layout]);
 
   // Real corpus data: the paper list (feeds the paper filter) and whether page
@@ -263,7 +271,10 @@ function App() {
   useEffect(() => {
     window.RAG.loadPapers().then(setPapers);
     window.RAG.loadFigures().then(setFigures);
-    window.RAG.loadHealth().then((h) => { setPagesAvailable(!!h.pages_available); setDemoAvailable(!!h.demo_available); setRoutingAvailable(h.routing_available !== false); });
+    // routing_available must be POSITIVELY confirmed — a failed /health (or
+    // an older server without the field) should not leave routing controls
+    // offered on a deployment that can't honor them.
+    window.RAG.loadHealth().then((h) => { setPagesAvailable(!!h.pages_available); setDemoAvailable(!!h.demo_available); setRoutingAvailable(h.routing_available === true); });
   }, []);
 
   // apply tweaks → CSS
@@ -277,7 +288,15 @@ function App() {
   }, [t.accent, theme]);
   useEffect(() => {document.documentElement.setAttribute("data-density", t.density);}, [t.density]);
   useEffect(() => {document.documentElement.setAttribute("data-answerfont", t.answerFont);}, [t.answerFont]);
-  useEffect(() => {setLayout(t.defaultLayout); /* eslint-disable-next-line */}, [t.defaultLayout]);
+  // Apply the layout tweak only when it actually changes: running on mount
+  // would clobber the persisted sr-layout choice with the tweak default. The
+  // tweak speaks "focus"; the layout state machine speaks "single".
+  const layoutTweakFirst = useRef(true);
+  useEffect(() => {
+    if (layoutTweakFirst.current) { layoutTweakFirst.current = false; return; }
+    setLayout(t.defaultLayout === "focus" ? "single" : t.defaultLayout);
+    /* eslint-disable-next-line */
+  }, [t.defaultLayout]);
 
   const crumb = CRUMB[tab];
   const stats = { papers: papers.length, figures: figures ? figures.length : 0 };
@@ -308,11 +327,16 @@ function App() {
         </div>
 
         <div className="view">
-          {tab === "chat" && <ChatView settings={settings} set={set} layout={layout} apiKey={apiKey} model={model} papers={papers} figures={figures} pagesAvailable={pagesAvailable} demoAvailable={demoAvailable} routingAvailable={routingAvailable} onNeedKey={(reason) => setKeyModalOpen(reason || "quota")} />}
+          {/* ChatView stays mounted across tab switches — unmounting would
+              destroy the conversation while the chat itself points users at
+              the Papers and Figures tabs. */}
+          <div style={{ display: tab === "chat" ? "contents" : "none" }}>
+            <ChatView settings={settings} set={set} layout={layout} apiKey={apiKey} model={model} papers={papers} figures={figures} pagesAvailable={pagesAvailable} demoAvailable={demoAvailable} routingAvailable={routingAvailable} onNeedKey={(reason) => setKeyModalOpen(reason || "quota")} />
+          </div>
           {tab === "inspection" && <InspectionView settings={settings} apiKey={apiKey} model={model} papers={papers} pagesAvailable={pagesAvailable} routingAvailable={routingAvailable} />}
           {tab === "papers" && <PapersView setTab={setTab} papers={papers} figures={figures} />}
           {tab === "figures" && <FiguresView figures={figures} />}
-          {tab === "why" && <WhyView setTab={setTab} />}
+          {tab === "why" && <WhyView setTab={setTab} routingAvailable={routingAvailable} />}
         </div>
       </main>
 

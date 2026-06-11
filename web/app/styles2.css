@@ -167,13 +167,13 @@
 
 .row-clickable { cursor: pointer; }
 .figthumb-click { cursor: pointer; }
-.figthumb-click:hover .fig-ph { border-color: var(--visual); }
+.figthumb-click:hover .figthumb { border-color: var(--visual); }
 .row-clickable:hover { border-color: var(--accent-line); }
 .insp-row.row-clickable:hover { background: var(--panel-2); }
 .view-region { display: inline-flex; align-items: center; gap: 5px; font-family: "IBM Plex Mono", monospace; font-size: 10px; color: var(--text-faint); margin-left: auto; }
 .cand.row-clickable:hover .view-region, .insp-row.row-clickable:hover .view-region { color: var(--accent); }
 
-@media (max-width: 760px) { .pm { grid-template-columns: 1fr; } }
+@media (max-width: 760px) { .pm { grid-template-columns: 1fr; max-height: 92vh; overflow-y: auto; } }
 
 /* ---------- INSPECTION ---------- */
 .insp-query { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border: 1px solid var(--border); border-radius: 12px; background: var(--panel); margin-bottom: 20px; }
@@ -195,8 +195,6 @@
 .stage-label { font-size: 12px; color: var(--text-dim); font-weight: 500; }
 .stage-value { font-size: 15px; color: var(--text); font-weight: 500; }
 .stage-sub { font-size: 10.5px; color: var(--text-faint); font-family: "IBM Plex Mono", monospace; }
-.stage-dive { display: inline-flex; align-items: center; gap: 4px; margin-top: 9px; font-family: "IBM Plex Mono", monospace; font-size: 9.5px; letter-spacing: .03em; color: var(--text-faint); opacity: 0; transition: opacity .14s; }
-.stage:hover .stage-dive, .stage.selected .stage-dive { opacity: 1; color: var(--accent); }
 .stage-arrow { display: grid; place-items: center; color: var(--text-faint); padding: 0 6px; flex: none; }
 
 /* deep-dive panel */
