@@ -58,7 +58,11 @@ function RoutePill({ route }) {
 
 function ScoreBar({ score, kind = "text", dropped = false }) {
   const cls = ["scorebar", kind === "visual" ? "visual" : "", dropped ? "dropped" : ""].join(" ");
-  return <div className={cls}><i style={{ width: Math.round(score * 100) + "%" }}></i></div>;
+  // Clamp both ends: a negative width is invalid CSS, gets dropped, and the
+  // display:block fill then defaults to width:auto — a FULL bar on the worst
+  // scores. Callers normalize logits; this is the backstop.
+  const w = Math.round(Math.max(0, Math.min(1, score || 0)) * 100);
+  return <div className={cls}><i style={{ width: w + "%" }}></i></div>;
 }
 
 /* ---- tiny markdown -> react (bold, lists, citations) ---- */
@@ -215,8 +219,10 @@ function PageRegionModal({ item, onClose, paperTitle }) {
 
           {typeof item.score === "number" && (
             <div className="pm-score">
-              <div className="pm-score-row"><span className="isk">{isVis ? "patch sim" : "passage sim"}</span><span className="isv mono">{item.score.toFixed(3)}</span></div>
-              <ScoreBar score={item.score} kind={item.kind} />
+              <div className="pm-score-row"><span className="isk">{isVis ? "patch sim" : "relevance"}</span><span className="isv mono">{item.score.toFixed(3)}</span></div>
+              {/* Rerank scores are logits — a 0..1 bar only makes sense for
+                  similarity-scaled values; otherwise the number stands alone. */}
+              {item.score >= 0 && item.score <= 1 && <ScoreBar score={item.score} kind={item.kind} />}
             </div>
           )}
 

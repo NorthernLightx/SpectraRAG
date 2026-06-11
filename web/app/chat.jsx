@@ -348,7 +348,14 @@ function ChatView({ settings, set, layout, resetSignal, apiKey, model, papers, f
       let searchQuery = q;
       if (priorTurns.length) {
         if (hasKeyForCondense) {
-          searchQuery = await window.RAG.condense(apiKey, model, priorTurns, q);
+          // A transient 429/5xx on this 80-token call must not kill the turn:
+          // retrieval needs no key — fall back to the raw message, like the
+          // keyless condenseDemo does.
+          try {
+            searchQuery = await window.RAG.condense(apiKey, model, priorTurns, q);
+          } catch {
+            searchQuery = q;
+          }
         } else if (demoAvailable) {
           setStatus("Condensing the follow-up into a search query…");
           searchQuery = await window.RAG.condenseDemo(priorTurns, q);
@@ -434,6 +441,14 @@ function ChatView({ settings, set, layout, resetSignal, apiKey, model, papers, f
         onNeedKey && onNeedKey();
         updateLast({
           answer: "Today's free demo answers are used up, but retrieval still works — the chunks are on the right. Add your own OpenRouter key (top-right) to keep generating answers.",
+          streaming: false,
+          notice: true,
+        });
+      } else if (err && (err.code === "demo_down" || err.code === "stream_error")) {
+        // Upstream model failure, not the visitor's fault — say so without
+        // blaming a key they may not even have.
+        updateLast({
+          answer: `${(err && err.message) || "The model provider failed."} Retrieval still worked — the chunks are on the right.`,
           streaming: false,
           notice: true,
         });

@@ -75,6 +75,7 @@ function InspectionView({ settings, papers, routingAvailable }) {
         topK: settings.topk,
         forceRoute: settings.route === "text" ? "text" : settings.route === "visual" ? "hybrid" : "",
         routingMode: settings.routingMode || "",
+        paperId: settings.paper || "",
         onStatus: setStatus,
       });
       setStatus("");
@@ -96,8 +97,10 @@ function InspectionView({ settings, papers, routingAvailable }) {
   const stageInfo = {
     query: { icon: "text", title: "Query", body: result ? `Normalized query: “${result.query}”` : "The turn, resolved against conversation history and classified by intent." },
     embed: { icon: "layers", title: "Embed", body: "Encoded with bge-m3 into a 1024-d dense vector (L2-normalized) for nearest-neighbour search. The raw vector isn't surfaced by the API." },
-    route: { icon: "route", title: "Route gate", body: result ? `Routing mode: ${result.routing?.mode || settings.routingMode || "default"} · path: ${result.routing?.path || "text"}${result.routing?.forced ? " · forced" : ""}${result.routing?.category ? " · category: " + result.routing.category : ""}` : "A gate predicts which store(s) hold the answer." },
-    retrieve: { icon: "search", title: "Retrieve", body: result ? `${cands.length} candidates returned (${textCands.length} text, ${visCands.length} visual) from the dense index.` : "Pulls top-k candidates from each enabled store." },
+    route: { icon: "route", title: "Route gate", body: routingAvailable === false
+      ? "No router on this deployment — every query retrieves text-side. The gate runs where the GPU visual leg is built."
+      : result ? `Routing mode: ${result.routing?.mode || settings.routingMode || "default"} · path: ${result.routing?.path || "text"}${result.routing?.forced ? " · forced" : ""}${result.routing?.category ? " · category: " + result.routing.category : ""}` : "A gate predicts which store(s) hold the answer." },
+    retrieve: { icon: "search", title: "Retrieve", body: result ? `Top ${cands.length} after reranking the hybrid BM25 + dense (RRF-fused) candidate pool (${textCands.length} text, ${visCands.length} visual).` : "Pulls top-k candidates from each enabled store." },
     rerank: { icon: "filter", title: "Rerank", body: "A MiniLM cross-encoder re-scores the candidate pool; the score shown on each row is the post-rerank relevance." },
     assemble: { icon: "check", title: "Assemble", body: result ? `Top ${cands.length} chunks packed into the generation context (budget ${settings.topk}).` : "Greedily packs the highest-scoring chunks under a token budget." },
   };
@@ -114,7 +117,7 @@ function InspectionView({ settings, papers, routingAvailable }) {
         <button className="btn primary" onClick={() => trace()} disabled={!draft.trim() || busy}>
           <Icon name="route" size={15} /> {busy ? "Tracing…" : "Trace"}
         </button>
-        {result && <RoutePill route={routeLabel} />}
+        {result && routingAvailable !== false && <RoutePill route={routeLabel} />}
       </div>
       <div className="insp-examples">
         <span className="mono insp-ex-label">EXAMPLES</span>
@@ -134,7 +137,7 @@ function InspectionView({ settings, papers, routingAvailable }) {
             <div className="pipeline">
               <Stage icon="text" label="Query" value="1 turn" selected={activeStage === "query"} onClick={() => setActiveStage((a) => a === "query" ? null : "query")} />
               <Stage icon="layers" label="Embed" value="1024-d" sub="bge-m3" selected={activeStage === "embed"} onClick={() => setActiveStage((a) => a === "embed" ? null : "embed")} />
-              <Stage icon="route" label="Route" value={result.routing?.path || "text"} sub={result.routing?.mode || "default"} selected={activeStage === "route"} onClick={() => setActiveStage((a) => a === "route" ? null : "route")} />
+              <Stage icon="route" label="Route" value={routingAvailable === false ? "off" : (result.routing?.path || "text")} sub={routingAvailable === false ? "no router" : (result.routing?.mode || "default")} selected={activeStage === "route"} onClick={() => setActiveStage((a) => a === "route" ? null : "route")} />
               <Stage icon="search" label="Retrieve" value={"k=" + settings.topk} sub={cands.length + " cands"} selected={activeStage === "retrieve"} onClick={() => setActiveStage((a) => a === "retrieve" ? null : "retrieve")} />
               <Stage icon="filter" label="Rerank" value="x-enc" sub="MiniLM" selected={activeStage === "rerank"} onClick={() => setActiveStage((a) => a === "rerank" ? null : "rerank")} />
               <Stage icon="check" label="Assemble" value={"top " + cands.length} sub={"budget " + settings.topk} last selected={activeStage === "assemble"} onClick={() => setActiveStage((a) => a === "assemble" ? null : "assemble")} />

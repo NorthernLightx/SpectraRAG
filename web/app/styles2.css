@@ -250,7 +250,7 @@
 .insp-move { font-size: 11px; color: var(--good); }
 .insp-row.dropped .insp-move { color: var(--text-faint); }
 .insp-row-head .cand-status { margin-left: auto; }
-.insp-scores { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.insp-scores { display: grid; grid-template-columns: 1fr; gap: 14px; }
 .insp-score { display: grid; grid-template-columns: 50px 1fr 42px; align-items: center; gap: 8px; }
 .isk { font-size: 10px; color: var(--text-faint); font-family: "IBM Plex Mono", monospace; text-transform: uppercase; letter-spacing: .04em; }
 .isv { font-size: 11px; color: var(--text); text-align: right; }

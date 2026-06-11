@@ -108,11 +108,12 @@
       return { results: data.results || [], routing: data.routing || null, trace: data.trace || null };
     }
 
-    // /query returns 503 ("Retriever not configured") during the post-cold-start
-    // warm-up while the model + index load in the background. That is "wait",
-    // not "failed": retry until ready, surfacing an honest notice. Any other
-    // non-OK status, or 503 past the budget, throws.
-    const warmupDeadline = performance.now() + 120000;
+    // The server wires the retriever during lifespan startup, so a /query 503
+    // is either Cloud Run still routing to a starting instance (transient) or
+    // "Retriever not configured" — a corpus that failed to load, which no
+    // amount of waiting fixes. Retry both briefly (transient 503s are real),
+    // but say which one is happening; give the permanent case a short budget.
+    const start = performance.now();
     while (true) {
       const res = await fetch("/query", {
         method: "POST",
@@ -124,11 +125,13 @@
         return { results: data.results || [], routing: data.routing || null, trace: null };
       }
       const detail = await res.text();
-      if (res.status === 503 && performance.now() < warmupDeadline) {
+      const noCorpus = detail.includes("Retriever not configured");
+      const budget = noCorpus ? 20000 : 120000;
+      if (res.status === 503 && performance.now() - start < budget) {
         onStatus &&
-          onStatus(
-            "Server is warming up after a cold start. The first query loads the model and index and can take a minute or two. Retrying automatically…"
-          );
+          onStatus(noCorpus
+            ? "The server reports no corpus is loaded. Retrying briefly in case it is still starting…"
+            : "Server is warming up after a cold start. The first query can take a minute or two. Retrying automatically…");
         await new Promise((r) => setTimeout(r, 3000));
         continue;
       }
@@ -223,12 +226,18 @@
   // the top retrieved chunks; at most two extra pages.
   function referencedFigurePages(question, chunks, figureIndex) {
     if (!Array.isArray(figureIndex) || figureIndex.length === 0) return [];
-    const refs = [...question.matchAll(/\b(fig(?:ure)?\.?|table)\s*(\d+)\b/gi)];
+    // Plural-aware: "figures 2 and 3" / "tables 1, 2" carry one keyword for a
+    // list of numbers, so capture the whole number list and split it.
+    const refs = [];
+    for (const m of question.matchAll(/\b(figs?\.?|figures?|tables?)\s*(\d+(?:\s*(?:,|and|&|–|-)\s*\d+)*)\b/gi)) {
+      const isTable = /^t/i.test(m[1]);
+      for (const num of m[2].match(/\d+/g) || []) refs.push({ isTable, num });
+    }
     if (refs.length === 0) return [];
     const papers = [...new Set(chunks.slice(0, 3).map((c) => c.paper_id))];
     const out = [];
-    for (const [, kindRaw, num] of refs) {
-      const re = /^t/i.test(kindRaw)
+    for (const { isTable, num } of refs) {
+      const re = isTable
         ? new RegExp(`^table\\.?\\s*${num}\\b`, "i")
         : new RegExp(`^fig(?:ure)?\\.?\\s*${num}\\b`, "i");
       for (const paperId of papers) {
@@ -263,6 +272,11 @@
 
     const content = [];
     const seenPages = new Set();
+    // Page images average ~0.5 MB as base64; with the ctx slider at 16 an
+    // uncapped loop could inline 15+ MB and blow provider payload limits or
+    // the demo relay's read timeout. Six chunk pages plus the two referenced-
+    // figure extras keeps the body well under that.
+    let chunkImages = 0;
     for (const c of chunks) {
       content.push({
         type: "text",
@@ -270,11 +284,13 @@
       });
       if (useImages && Array.isArray(c.page_numbers)) {
         for (const page of c.page_numbers) {
+          if (chunkImages >= 6) break;
           const key = `${c.paper_id}:${page}`;
           if (seenPages.has(key)) continue;
           seenPages.add(key);
           const dataUrl = await imageToDataUrl(pageImageUrl(c.paper_id, page));
           if (dataUrl) {
+            chunkImages += 1;
             // Label the image so visual claims have a citable id (the system
             // prompt directs figure descriptions at these, not text chunks).
             content.push({ type: "text", text: `[page image ${c.paper_id}::p${page}::page]` });
@@ -321,17 +337,26 @@
         if (!line.startsWith("data:")) continue;
         const payload = line.slice(5).trim();
         if (payload === "[DONE]") continue;
+        let obj = null;
         try {
-          const obj = JSON.parse(payload);
-          const delta = obj.choices?.[0]?.delta?.content || "";
-          if (delta) {
-            acc += delta;
-            onDelta(delta);
-          }
-          if (obj.usage) usage = obj.usage;
+          obj = JSON.parse(payload);
         } catch {
-          // heartbeat / partial — skip
+          continue; // heartbeat / partial — skip
         }
+        // OpenRouter delivers mid-stream failures as an error frame on an
+        // HTTP-200 stream (common on free-tier endpoints under load).
+        // Swallowing it would render a finished, silently empty answer.
+        if (obj.error) {
+          const err = new Error(obj.error.message || "The model provider failed mid-answer.");
+          err.code = "stream_error";
+          throw err;
+        }
+        const delta = obj.choices?.[0]?.delta?.content || "";
+        if (delta) {
+          acc += delta;
+          onDelta(delta);
+        }
+        if (obj.usage) usage = obj.usage;
       }
     }
     return { text: acc, usage };
@@ -376,6 +401,13 @@
     if (res.status === 429) {
       const err = new Error("The free demo hit its daily limit.");
       err.code = "demo_quota";
+      throw err;
+    }
+    if (res.status === 502) {
+      // The server tried the whole free-model chain and every endpoint was
+      // down (free-pool churn). Keyless visitors have no key to blame.
+      const err = new Error("The free demo models are all busy right now. Retry in a minute, or add your own OpenRouter key (top-right).");
+      err.code = "demo_down";
       throw err;
     }
     if (!res.ok || !res.body) {
