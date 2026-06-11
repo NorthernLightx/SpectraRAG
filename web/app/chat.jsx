@@ -229,6 +229,33 @@ function RetrievalPanel({ turn, highlight, settings, paperTitle, routingAvailabl
           )}
         </div>
 
+        {/* Caption chunks injected for figures/tables the question names —
+            context the model saw and can cite, but not retrieval output, so
+            they get their own labeled section instead of a ranked row. */}
+        {turn.injected && turn.injected.length > 0 && (
+          <div className="retr-section">
+            <h4>Named-figure evidence <span className="n">{turn.injected.length}</span></h4>
+            {turn.injected.map((f, i) => {
+              const ct = (turn.citations || []).find((x) => x.id === f.chunkId);
+              return (
+                <div key={f.chunkId || i} className="cand row-clickable"
+                  onClick={() => setPageItem({ chunk_id: f.chunkId, paper: f.paperId, page: f.page, pages: [f.page], kind: "visual", bbox: f.bbox || null, text: f.caption || "" })}
+                  title="View source region on page">
+                  <div className="cand-top">
+                    <span className="cand-num visual">{ct ? ct.n : "·"}</span>
+                    <span className="cand-src">{f.paperId} · p.{f.page}</span>
+                    <span className="cand-score">added</span>
+                  </div>
+                  {f.caption && <div className="cand-quote">{previewQuote(f.caption)}</div>}
+                  <div className="cand-meta">
+                    <span className="pin-note">your question names this figure, so its caption joined the evidence directly</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
         <div className="retr-section">
           <h4>Ranked candidates <span className="n">{total} chunks</span></h4>
           {cands.map((c, i) => {
@@ -425,7 +452,8 @@ function ChatView({ settings, set, layout, resetSignal, apiKey, model, papers, f
       // attach page images when pages are served.
       const useImages = pagesAvailable && (hasKey ? window.RAG.supportsVision(model) : true);
       if (useImages) live(() => setStatus(hasKey ? "Reading the retrieved page images…" : "Free demo model is reading the retrieved pages…"));
-      const messages = await window.RAG.buildMessages(priorTurns, q, results, useImages, figures);
+      const { messages, injected } = await window.RAG.buildMessages(priorTurns, q, results, useImages, figures);
+      if (injected && injected.length) upd({ injected });
       const tGen = performance.now();
       const onDelta = (delta) => upd((prev) => ({ answer: prev.answer + delta }));
       const { text, usage } = hasKey

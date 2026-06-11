@@ -243,7 +243,7 @@
       for (const paperId of papers) {
         const f = figureIndex.find((g) => g.paper_id === paperId && re.test(String(g.caption || "").trim()));
         if (f && typeof f.page_number === "number") {
-          out.push({ paperId, page: f.page_number, chunkId: f.chunk_id, caption: String(f.caption || "") });
+          out.push({ paperId, page: f.page_number, chunkId: f.chunk_id, caption: String(f.caption || ""), bbox: f.bbox || null });
           // One page per reference — matching the same "Figure 2" in a second
           // paper would crowd out the question's other references.
           break;
@@ -310,7 +310,8 @@
     // captions rarely share words with the question ("Fig. 1: (a) Previous
     // driving world models…" vs "What does Figure 1 illustrate?") — and the
     // model then transplants text about a DIFFERENT figure onto the asked one.
-    for (const ref of referencedFigurePages(latestUserText, chunks, figureIndex)) {
+    const injected = referencedFigurePages(latestUserText, chunks, figureIndex);
+    for (const ref of injected) {
       if (ref.chunkId && ref.caption) {
         content.push({
           type: "text",
@@ -329,7 +330,9 @@
     }
     content.push({ type: "text", text: `\nQuestion: ${latestUserText}` });
     messages.push({ role: "user", content });
-    return messages;
+    // `injected` rides along so the UI can show this evidence in the panel —
+    // it is context the model saw, but it is not a retrieval result.
+    return { messages, injected };
   }
 
   // Read an OpenRouter-style SSE stream, invoking onDelta(text) per token.

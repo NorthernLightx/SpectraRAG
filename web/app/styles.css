@@ -611,6 +611,7 @@ body {
 .cand-score { margin-left: auto; font-family: "IBM Plex Mono", monospace; font-size: 11px; color: var(--text); font-weight: 500; }
 .cand-quote { font-family: "IBM Plex Serif", serif; font-size: 12.5px; line-height: 1.55; color: var(--text-dim); margin: 6px 0 8px; padding-left: 9px; border-left: 2px solid var(--border); }
 .cand-meta { display: flex; align-items: center; gap: 8px; margin-top: 7px; }
+.pin-note { font-size: 10.5px; color: var(--text-faint); line-height: 1.45; white-space: normal; }
 .cand-status { font-family: "IBM Plex Mono", monospace; font-size: 10px; letter-spacing: .04em; }
 .cand-status.kept { color: var(--good); }
 .cand-status.dropped { color: var(--text-faint); }
