@@ -119,7 +119,8 @@ def test_falls_back_when_primary_model_is_down(monkeypatch: pytest.MonkeyPatch) 
     assert res.status_code == 200
     assert [b["model"] for b in seen] == [
         "google/gemma-4-26b-a4b-it:free",
-        "nvidia/nemotron-nano-12b-v2-vl:free",
+        "google/gemma-4-31b-it:free",
+        "nex-agi/nex-n2-pro:free",
     ]
 
 

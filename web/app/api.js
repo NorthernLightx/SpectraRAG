@@ -328,7 +328,15 @@
         content.push({ type: "image_url", image_url: { url: dataUrl } });
       }
     }
-    content.push({ type: "text", text: `\nQuestion: ${latestUserText}` });
+    // The citation rule lives in the system prompt, but the small free models
+    // the demo chain falls back to drop it there: nemotron-nano-12b emits zero
+    // bracket citations until the rule is restated next to the question.
+    content.push({
+      type: "text",
+      text:
+        `\nQuestion: ${latestUserText}` +
+        "\n(Reminder: every factual claim taken from the context must cite its supporting chunk id in square brackets, e.g. [2604.22753v1::p5::c24] — an answer that states facts without bracket citations is rejected.)",
+    });
     messages.push({ role: "user", content });
     // `injected` rides along so the UI can show this evidence in the panel —
     // it is context the model saw, but it is not a retrieval result.

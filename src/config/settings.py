@@ -59,7 +59,10 @@ class Settings(BaseSettings):
     # time as a misconfiguration guard. Env-overridable (RAG_DEMO_MODELS) so
     # the chain can be re-pointed without an image rebuild when the free pool
     # shifts. Models must be vision-capable: the demo client sends page images.
-    demo_models: str = "google/gemma-4-26b-a4b-it:free,nvidia/nemotron-nano-12b-v2-vl:free"
+    demo_models: str = (
+        "google/gemma-4-26b-a4b-it:free,google/gemma-4-31b-it:free,"
+        "nex-agi/nex-n2-pro:free,nvidia/nemotron-nano-12b-v2-vl:free"
+    )
 
     top_k: int = Field(default=5, ge=1)
     rerank_top_k: int = Field(default=50, ge=1)
