@@ -2,18 +2,18 @@
 
 Runs once per deploy / fresh local setup: walks --pdf-dir, ingests each PDF
 through src.ingestion.pipeline.ingest_paper, and writes the resulting chunks
-+ embeddings to the named Qdrant collection. Idempotent — refuses to re-ingest
++ embeddings to the named Qdrant collection. Idempotent: refuses to re-ingest
 if the collection already has points (override with --force).
 
 Runs locally against `docker compose up qdrant ollama` for development parity.
 
 Caveats:
 
-  * BM25 lives in process memory (`src/rag/bm25.py`) — this script populates
+  * BM25 lives in process memory (`src/rag/bm25.py`). This script populates
     Qdrant but its BM25 dies with the process. The FastAPI app would need to
     rebuild BM25 from scratch at startup (or persist it separately). Eval
     scripts rebuild BM25 per run.
-  * Same for `chunks_by_id` — the PipelineRetriever needs a chunk dict to
+  * Same for `chunks_by_id`: the PipelineRetriever needs a chunk dict to
     resolve text after Qdrant returns chunk-ids. This script doesn't
     persist that either; eval / retrieval workflows materialize chunks
     fresh per run.
@@ -97,7 +97,7 @@ async def _main(
     # Embedded path-mode --force must clear the on-disk dir BEFORE the client
     # opens. `delete_collection` only drops in-session; qdrant-local leaves the
     # persisted segments on disk and a fresh client re-loads them, so a re-ingest
-    # would upsert onto stale chunks (e.g. pre-classifier figures). Server-mode
+    # would upsert onto stale chunks (pre-classifier figures, say). Server-mode
     # --force is handled by delete_collection below.
     if force and qdrant_url.startswith("path:"):
         print(f"--force: clearing embedded store at {qdrant_url}")
@@ -109,7 +109,7 @@ async def _main(
     existing = await vectorstore.count()
     if existing > 0 and not force and not append:
         print(
-            f"Collection {collection!r} already has {existing} points — "
+            f"Collection {collection!r} already has {existing} points, "
             f"skipping ingestion (pass --force to re-ingest, or --append to add)."
         )
         log.info("bootstrap.skip", collection=collection, existing_points=existing, force=force)
@@ -120,7 +120,7 @@ async def _main(
         await vectorstore.delete_collection()
 
     await vectorstore.ensure_collection()
-    bm25 = Bm25Index()  # in-process, throwaway — see module docstring caveats
+    bm25 = Bm25Index()  # in-process, throwaway; see module docstring caveats
 
     vlm_captioner: _Captioner | None = None
     if extract_figures and vlm_caption_model:
@@ -226,8 +226,8 @@ if __name__ == "__main__":
         "--vlm-caption-model",
         default=None,
         help=(
-            "Ollama vision model for figure captions (e.g. `qwen3-vl:235b-cloud`, "
-            "`gemma3:4b`). Default: off. When enabled, ADR 0022 policy applies: "
+            "Ollama vision model for figure captions, such as `qwen3-vl:235b-cloud` "
+            "or `gemma3:4b`. Default: off. When enabled, ADR 0022 policy applies: "
             "VLM is only called on figures with no PDF caption and role != decoration."
         ),
     )

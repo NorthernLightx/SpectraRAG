@@ -32,7 +32,7 @@ def configure_otel() -> bool:
 
     Returns True when configured (either now or previously), False when no
     endpoint is set. Auto-instrumentation for FastAPI / httpx is wired in
-    `create_app()` — splitting it keeps this fn pure and testable.
+    `create_app()`; splitting it keeps this fn pure and testable.
     """
     global _configured
     if _configured:

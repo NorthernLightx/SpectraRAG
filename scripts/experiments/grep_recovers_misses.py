@@ -1,12 +1,12 @@
 """Does lexical grep recover the pages multimodal RAG missed? (DCI steelman)
 
 The claim under test: "agentic grep/bash retrieval is more precise than RAG."
-The honest place that could be true is the subset where the shipped fused
+The place it could be true is the subset where the shipped fused
 retriever (text dense + visual ColQwen2, RRF) FAILS to surface the gold page.
 If a plain exact-lexical retriever (BM25 over the document's own page text)
 ranks that missed gold page into the top-k, then grep-style retrieval has real
-headroom there. If it cannot — because the gold page is a captionless chart
-whose answer lives in pixels, not the text layer — then grep is dead on exactly
+headroom there. If it cannot (because the gold page is a captionless chart
+whose answer lives in pixels, not the text layer), then grep is dead on exactly
 the queries RAG already can't serve, and only the visual leg can.
 
 This is a fully local, no-GPU probe: committed depth-50 retrieval dump +
@@ -204,7 +204,7 @@ def main() -> None:
 
     n = len(rows)
     if n == 0:
-        print("No RAG-missed queries — nothing to recover.")
+        print("No RAG-missed queries; nothing to recover.")
         return
     rec5 = sum(r["lex_hit_at_5"] for r in rows) / n
     rec10 = sum(r["lex_hit_at_10"] for r in rows) / n

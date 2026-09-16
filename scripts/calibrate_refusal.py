@@ -2,7 +2,7 @@
 
 Runs every golden query through the *text* retriever (matching the committed
 baseline config: paper-id-filter + length-norm + region-number-boost) and
-records the top rerank score. Splits results by category — out_of_corpus
+records the top rerank score. Splits results by category: out_of_corpus
 queries should ideally have a lower top-score than answerable in-corpus
 queries, so the right threshold separates them.
 
@@ -52,8 +52,8 @@ async def _build_retriever(
 ) -> tuple[PipelineRetriever | RegionNumberBoostRetriever, int]:
     """Re-build the text retriever from an existing populated Qdrant collection.
 
-    Returns the retriever and the number of chunks it sees (sanity check —
-    if 0, the collection name is wrong or the schema is from an older run).
+    Returns the retriever and the number of chunks it sees. If that count is
+    0, the collection name is wrong or the schema is from an older run.
     """
     embedder = OllamaBgeEmbedder(base_url=ollama_url)
     vectorstore = QdrantVectorStore(url=qdrant_url, collection_name=collection, dim=embedder.dim)

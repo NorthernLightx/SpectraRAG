@@ -4,9 +4,9 @@ Runs the keyless deterministic core only: a latency bench plus a retrieval-only
 paired sweep (incumbent vs candidate cross-encoders) on golden v3 and
 MMLongBench, then a paired-bootstrap analysis. No LLM keys, no router, no
 ColQwen2 -- this isolates the reranker (the only variable) and avoids the
-8 GB-card OOM that an unattended ColQwen2 load risks. Judged metrics
-(context_precision etc.) are intentionally excluded: unbounded local-LLM
-latency is not safe to run blind; that is an attended Ollama follow-up.
+8 GB-card OOM that an unattended ColQwen2 load risks. Judged metrics such as
+context_precision are intentionally excluded: unbounded local-LLM latency is
+not safe to run blind; that is an attended Ollama follow-up.
 
 Retrieval metrics are deterministic (eval_run run_id is a content hash), so one
 run per (model, golden) is exact and pairing is by query position.
@@ -98,7 +98,7 @@ def macro(pq: list[dict], field: str) -> float | None:
 
 
 def analyse(runs: dict[tuple[str, str], Path]) -> str:
-    out = ["# Reranker-swap DoE — deterministic retrieval results\n"]
+    out = ["# Reranker-swap DoE: deterministic retrieval results\n"]
     out.append(
         "Premise note: the ~5.5 s reranker figure (results.md:39) is a stale "
         "v2-baseline/legacy-profiler number. Measured faithfully on this GPU the "
@@ -108,7 +108,7 @@ def analyse(runs: dict[tuple[str, str], Path]) -> str:
     for gname, _ in GOLDENS:
         cpath = runs.get((CONTROL, gname))
         if not cpath:
-            out.append(f"\n## {gname}: control run MISSING — skipped\n")
+            out.append(f"\n## {gname}: control run MISSING, skipped\n")
             continue
         cpq = per_query(cpath)
         out.append(f"\n## {gname} (n_total={len(cpq)})\n")
@@ -192,7 +192,7 @@ def main() -> None:
         timeout=1800,
     )
     if rc != 0 or newest_json(before) is None:
-        log("ABORT: precheck failed — stack not healthy; not burning the night.")
+        log("ABORT: precheck failed; stack not healthy, not burning the night.")
         return
     log("Precheck OK.")
 
@@ -223,7 +223,7 @@ def main() -> None:
                 runs[(model, gname)] = j
                 log(f"  saved {model}/{gname} -> {j.name}")
             else:
-                log(f"  FAILED {model}/{gname} (rc={rc}) — continuing")
+                log(f"  FAILED {model}/{gname} (rc={rc}), continuing")
 
     report = analyse(runs)
     (OUT / "REPORT.md").write_text(report, encoding="utf-8")

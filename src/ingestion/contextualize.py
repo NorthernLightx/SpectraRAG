@@ -4,7 +4,7 @@ For each chunk, an LLM produces a 50-100 token blurb situating the chunk inside
 the paper. The blurb is prepended to the chunk text *before* embedding/BM25
 indexing, so retrieval works regardless of whether section detection succeeded.
 
-Display/citation still uses the original chunk text — `Chunk.text` is unchanged;
+Display/citation still uses the original chunk text. `Chunk.text` is unchanged;
 the blurb lives in `Chunk.context` and is combined via `Chunk.indexed_text`.
 """
 

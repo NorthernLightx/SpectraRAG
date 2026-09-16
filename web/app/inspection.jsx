@@ -1,4 +1,4 @@
-/* INSPECTION VIEW — trace a real query through the retrieval pipeline.
+/* INSPECTION VIEW: trace a real query through the retrieval pipeline.
    Runs POST /query and shows the actual route decision, the ranked candidates
    with their real scores, and the assembled context. The pipeline strip labels
    each stage with real values; stages the backend doesn't expose internals for
@@ -32,7 +32,7 @@ function Stage({ icon, label, value, sub, last, selected, onClick }) {
 }
 
 function InspRow({ c, onOpen, scoreMin, scoreMax }) {
-  // Min-max scaled within the result set — logits carry any sign.
+  // Min-max scaled within the result set, since logits carry any sign.
   const rel = scoreMax === scoreMin ? 1 : ((c.score || 0) - scoreMin) / (scoreMax - scoreMin);
   return (
     <div className="insp-row row-clickable" onClick={() => onOpen(c)} title="View source region on page">
@@ -101,7 +101,7 @@ function InspectionView({ settings, papers, routingAvailable }) {
     query: { icon: "text", title: "Query", body: result ? `Normalized query: “${result.query}”` : "The turn, resolved against conversation history and classified by intent." },
     embed: { icon: "layers", title: "Embed", body: "Encoded with bge-m3 into a 1024-d dense vector (L2-normalized) for nearest-neighbour search. The raw vector isn't surfaced by the API." },
     route: { icon: "route", title: "Route gate", body: routingAvailable === false
-      ? "No router on this deployment — every query retrieves text-side. The gate runs where the GPU visual leg is built."
+      ? "No router on this deployment, so every query retrieves text-side. The gate runs where the GPU visual leg is built."
       : result ? `Routing mode: ${result.routing?.mode || settings.routingMode || "default"} · path: ${result.routing?.path || "text"}${result.routing?.forced ? " · forced" : ""}${result.routing?.category ? " · category: " + result.routing.category : ""}` : "A gate predicts which store(s) hold the answer." },
     retrieve: { icon: "search", title: "Retrieve", body: result ? `Top ${cands.length} after reranking the hybrid BM25 + dense (RRF-fused) candidate pool (${textCands.length} text, ${visCands.length} visual).` : "Pulls top-k candidates from each enabled store." },
     rerank: { icon: "filter", title: "Rerank", body: "A MiniLM cross-encoder re-scores the candidate pool; the score shown on each row is the post-rerank relevance." },
@@ -122,7 +122,7 @@ function InspectionView({ settings, papers, routingAvailable }) {
         </button>
         {result && routingAvailable !== false && <RoutePill route={routeLabel} />}
         {settings.paper &&
-        <span className="result-count mono" title="Force paper filter — set in the chat's Advanced retrieval settings; traces are scoped to this paper">
+        <span className="result-count mono" title="Force paper filter, set in the chat's Advanced retrieval settings; traces are scoped to this paper">
           filter: {settings.paper}
         </span>
         }
@@ -172,7 +172,7 @@ function InspectionView({ settings, papers, routingAvailable }) {
                 {visCands.length
               ? visCands.map((c, i) => <InspRow key={i} c={c} onOpen={setPageItem} scoreMin={scoreMin} scoreMax={scoreMax} />)
               : <div className="retr-empty">{routingAvailable === false
-                ? <span>Not built on this deployment — the visual leg needs a GPU. Offline it measures +35% recall@10 over text-only retrieval (<a href="https://github.com/NorthernLightx/SpectraRAG/blob/main/docs/results.md" target="_blank" rel="noopener">results</a>); here retrieval runs text-side and figure questions are answered from page images at generation time.</span>
+                ? <span>Not built on this deployment: the visual leg needs a GPU. Offline it measures +35% recall@10 over text-only retrieval (<a href="https://github.com/NorthernLightx/SpectraRAG/blob/main/docs/results.md" target="_blank" rel="noopener">results</a>); here retrieval runs text-side and figure questions are answered from page images at generation time.</span>
                 : "No visual candidates passed the gate for this query."}</div>}
               </div>
             </div>

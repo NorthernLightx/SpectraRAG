@@ -15,10 +15,10 @@ per-query delta is clean even though the absolute numbers are not.
 
 The offline extraction runs ONCE per page with a STRONG free model (qwen3-vl:235b
 via Ollama :cloud) using a structure-first prompt ("transcribe every table/chart as
-TSV") — this is the "move the hard perception offline where you can spend more and
+TSV"). This is the "move the hard perception offline where you can spend more and
 verify" thesis. The QA reader stays the cheap free gemma-4-31b so the A/B isolates
 the structured-text contribution, not a model swap. Both answers go through the
-official MMLongBench scorer (score_mmlb_qa) — same ruler as every other QA number.
+official MMLongBench scorer (score_mmlb_qa), same ruler as every other QA number.
 
 NOT authoring ground truth: gold is the human MMLongBench label; this only changes
 what evidence the reader sees. The extracted TSV is model-produced INPUT, clearly an
@@ -227,7 +227,7 @@ async def run(args: argparse.Namespace) -> int:
             )
             bs = await _score(extractor_text, args, cache, qid, "base", q, gold, fmt, base_ans)
             ss = await _score(extractor_text, args, cache, qid, "struct", q, gold, fmt, struct_ans)
-            # Fair (format-tolerant) judge on both arms — the smoke showed strict scoring
+            # Fair (format-tolerant) judge on both arms; the smoke showed strict scoring
             # masks real struct wins as format misses (0002 '0 - 375 miles' vs gold '0-375 miles').
             fb = await _fair(reader, args, cache, qid, "base", q, gold, base_ans)
             fs = await _fair(reader, args, cache, qid, "struct", q, gold, struct_ans)
@@ -249,7 +249,7 @@ async def run(args: argparse.Namespace) -> int:
     print(f"  baseline ACC (page only)      = {ba:.4f}")
     print(f"  struct ACC (page + extracted) = {sa:.4f}   (delta {sa - ba:+.4f}; won {won}, lost {lost})")
     print("  (paired: bad-gold/format cards score 0 in BOTH arms, so the delta is noise-robust.)")
-    # Fair (format-tolerant) — the smoke showed strict masks struct wins as format misses.
+    # Fair (format-tolerant): the smoke showed strict masks struct wins as format misses.
     fba = sum(1 for r in rows if r.get("fair_base")) / n if n else 0.0
     fsa = sum(1 for r in rows if r.get("fair_struct")) / n if n else 0.0
     fwon = sum(1 for r in rows if r.get("fair_flip") == "WON")
@@ -293,7 +293,8 @@ def main() -> None:
     ap.add_argument("--fair-model", default="openai/gpt-oss-120b:free",
                     help="format-tolerant judge (free OpenRouter); same one fair_judge.py uses")
     ap.add_argument("--restrict", type=Path, default=None,
-                    help="JSON list of qids (or objects with 'qid') to restrict to, e.g. the failure set")
+                    help="JSON list of qids (or objects with 'qid') to restrict to, "
+                         "such as the failure set")
     ap.add_argument("--ollama-url", default="http://localhost:11434")
     ap.add_argument("--cache", type=Path, default=Path("data/eval/runs/struct_extract_cache.json"))
     ap.add_argument("--out", type=Path, default=Path("data/eval/runs/struct_extract_probe.json"))

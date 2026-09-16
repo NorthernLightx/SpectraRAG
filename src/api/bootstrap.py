@@ -76,7 +76,7 @@ def _collect_pages_from_dir(pages_dir: Path) -> dict[str, list[tuple[int, Path]]
     """Scan a `pages_dir` populated by ingestion into the `pages_by_paper` shape
     that `build_visual_retriever` consumes. Layout: each paper id maps to a
     subdirectory containing `<paper_id>_p<N>.png`. Returns an empty dict when
-    the directory is missing or contains no matching PNGs (no exception — the
+    the directory is missing or contains no matching PNGs (no exception; the
     caller treats that as "skip the visual leg")."""
     pages: dict[str, list[tuple[int, Path]]] = {}
     if not pages_dir.exists() or not pages_dir.is_dir():
@@ -103,7 +103,7 @@ async def _build_visual_retriever_from_settings(
     """Build the visual leg from the persisted ColQwen2 page index (ADR 0028).
 
     Loads a ``QdrantVisualStore`` over ``settings.visual_collection`` and, when
-    it holds pages, a ``VisualRetriever`` that scores against it — encoding only
+    it holds pages, a ``VisualRetriever`` that scores against it, encoding only
     the query at serve time, with no startup page-encode. Returns None on any
     failure path: an empty or absent collection, GPU/CPU OOM, missing colpali
     deps. The caller logs and falls back to text-only routing (the strong
@@ -133,8 +133,8 @@ async def _build_visual_retriever_from_settings(
         return None
     if n_pages == 0:
         # Reaching here means enable_multimodal is on but the visual index is
-        # empty/absent (e.g. the index didn't ship in the image). Warn, don't
-        # whisper — the deploy silently degrades to text-only otherwise.
+        # empty/absent (the index didn't ship in the image, for example). Warn,
+        # don't whisper: the deploy silently degrades to text-only otherwise.
         log.warning(
             "api.multimodal.visual.skip_empty_collection",
             collection=settings.visual_collection,
@@ -175,7 +175,7 @@ def _build_classifier_from_settings(settings: Settings) -> LLMQueryClassifier | 
     path measured +10.8 % recall@10 over the regex router on MMLongBench
     (~80 % of the oracle ceiling), so a keyless deploy no longer degrades
     to the weak regex classifier. Falls back to None (regex) only on hard
-    failure — the regex stays the safe default. ADR 0008 §"Decision" §1:
+    failure, and the regex stays the safe default. ADR 0008 §"Decision" §1:
     misclassification is bounded.
     """
     log = get_logger(__name__)
@@ -240,7 +240,7 @@ async def _wire_retriever_from_settings(
                 # and the constructor's ~2 GB bge-m3 weight load are
                 # synchronous and slow. Run the whole thing off-thread so it
                 # can't stall the event loop while the lifespan background
-                # wiring task runs — otherwise /health and the static demo
+                # wiring task runs. Otherwise /health and the static demo
                 # would hang for the duration of import + load on cold start.
                 def _build_st_embedder() -> Embedder:
                     from src.embeddings.sentence_transformers_bge import (

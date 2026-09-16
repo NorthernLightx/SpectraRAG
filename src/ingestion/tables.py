@@ -5,7 +5,7 @@ PDF layout). Each detected `Table` is serialised to GitHub-flavoured markdown
 and paired with its `Table N:` caption text where one can be located on the
 page.
 
-Table detection is imperfect on ArXiv PDFs — multi-page tables, tightly-spaced
+Table detection is imperfect on ArXiv PDFs: multi-page tables, tightly-spaced
 columns, and embedded equations all confuse the layout heuristic. We accept
 that and let downstream eval tell us where it fails.
 """

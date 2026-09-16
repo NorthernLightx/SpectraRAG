@@ -66,7 +66,7 @@ class OllamaBgeEmbedder:
         )
         if response.status_code == 500:
             # Ollama bge-m3 occasionally emits NaN on edge-case inputs and
-            # responds 500. Don't poison the whole batch — log and substitute zeros.
+            # responds 500. Don't poison the whole batch; log and substitute zeros.
             _log.warning(
                 "embed.skip_500",
                 model=self._model,

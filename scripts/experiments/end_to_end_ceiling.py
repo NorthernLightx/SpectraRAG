@@ -3,13 +3,13 @@
 The strong-VLM end-to-end QA number is gated by retrieval page-recall: a query
 is answerable end-to-end only if its gold page is in the top-k fed to the VLM.
 This computes the EXACT real-retrieval page-recall@k of the shipped router (the
-fused leg of a depth-50 dump) against the human gold pages — zero GPU, zero
-cloud — and combines it with the measured oracle-page generation accuracy to
+fused leg of a depth-50 dump) against the human gold pages (zero GPU, zero
+cloud) and combines it with the measured oracle-page generation accuracy to
 bound the achievable end-to-end ACC.
 
 It is the grounded, no-cloud form of "finish the end-to-end run": when the cloud
 VLM is quota-walled, recall-ceiling x measured-oracle-generation is the tightest
-honest statement of where the system sits. The bound is
+statement of where the system sits. The bound is
 
     E[ACC | answerable] <= recall@k                    (no page -> no answer)
     E[ACC | answerable] ~= recall@k * P(correct | page) (a realistic estimate,

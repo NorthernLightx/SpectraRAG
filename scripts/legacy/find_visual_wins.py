@@ -5,7 +5,7 @@ against the golden's relevant_pages, and prints the queries where:
   text-only recall@10 == 0   (text leg missed entirely)
   router  recall@10 >= 0.5   (visual leg recovered)
 
-These are the cleanest "why multi-modal matters" cases — text retrieval
+These are the cleanest "why multi-modal matters" cases: text retrieval
 returned nothing relevant in its top-10, hybrid found it.
 """
 

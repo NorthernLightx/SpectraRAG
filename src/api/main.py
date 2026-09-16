@@ -33,11 +33,11 @@ from src.observability.sentry import configure_sentry
 class _NoCacheStatic(StaticFiles):
     """StaticFiles that forces revalidation of the no-build SPA's assets.
 
-    The frontend ships its source directly — index.html plus app/*.jsx
+    The frontend ships its source directly: index.html plus app/*.jsx
     transpiled in-browser and *.css, none content-hash-named. With only
     ETag / Last-Modified the browser applies heuristic caching (often
     hours) and after an edit or deploy serves a stale mix of old and new
-    files (e.g. a new figures.jsx against an old shared.jsx). Setting
+    files (for example a new figures.jsx against an old shared.jsx). Setting
     `Cache-Control: no-cache` forces a revalidation on every load; the
     server still returns a cheap 304 when the file is unchanged. Page
     images use the separate /pages mount and keep normal caching.
@@ -81,13 +81,13 @@ def create_app(*, log_file: Path | None = Path("logs/api.log")) -> FastAPI:
         # the container reports ready only once the corpus is wired.
         #
         # This must NOT be a fire-and-forget background task. Wiring loads the
-        # in-process ~2.3 GB bge-m3 weights and scrolls the index — CPU-heavy.
-        # On Cloud Run a deferred task is CPU-throttled to ~0 the instant the
-        # container reports ready, so it never finishes and /query, /answer,
-        # /figures 503 forever. Awaiting here keeps the work inside the
+        # in-process ~2.3 GB bge-m3 weights and scrolls the index, so it is
+        # CPU-heavy. On Cloud Run a deferred task is CPU-throttled to ~0 the
+        # instant the container reports ready, so it never finishes and /query,
+        # /answer, /figures 503 forever. Awaiting here keeps the work inside the
         # startup-cpu-boost window while the startup probe waits for the port.
         # `_wire_retriever_from_settings` swallows its own failures (returns
-        # False), so a missing/empty corpus still boots — those routes 503,
+        # False), so a missing/empty corpus still boots; those routes 503,
         # same contract as before. Tests using TestClient(app) without `with`
         # skip lifespan and inject a retriever via dependency_overrides.
         retriever_on = await _wire_retriever_from_settings(settings)
@@ -103,20 +103,20 @@ def create_app(*, log_file: Path | None = Path("logs/api.log")) -> FastAPI:
     # slowapi needs:
     #  1. limiter on app.state (read by the @limiter.limit decorator on routes)
     #  2. a handler for RateLimitExceeded so it returns 429 instead of 500
-    #  3. SlowAPIMiddleware — without it the rate check fires AFTER Depends
-    #     resolution, so endpoint-level guards (e.g. the unset-retriever 503)
-    #     short-circuit before the limiter counts the request and the bucket
-    #     never fills. Middleware moves the check above the Depends chain.
+    #  3. SlowAPIMiddleware. Without it the rate check fires AFTER Depends
+    #     resolution, so endpoint-level guards (the unset-retriever 503, for
+    #     example) short-circuit before the limiter counts the request and the
+    #     bucket never fills. Middleware moves the check above the Depends chain.
     # The type-ignore is the standard slowapi workaround: Starlette types the
-    # handler arg as Exception but slowapi narrows to RateLimitExceeded —
-    # covariant in practice, mypy strict can't see across the inheritance.
+    # handler arg as Exception but slowapi narrows to RateLimitExceeded. It is
+    # covariant in practice; mypy strict can't see across the inheritance.
     app.state.limiter = limiter
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
     app.add_middleware(SlowAPIMiddleware)
     app.middleware("http")(request_context_middleware)
     # Auth runs OUTERMOST so unauthenticated requests get short-circuited
     # before request_context allocates an X-Request-ID or downstream code does
-    # any work. Pass None when no key is configured — the middleware no-ops
+    # any work. Pass None when no key is configured, and the middleware no-ops
     # and the endpoint-level guards take over.
     api_key = settings.public_api_key.get_secret_value() if settings.public_api_key else None
     app.middleware("http")(make_api_key_middleware(api_key))
@@ -149,14 +149,14 @@ def create_app(*, log_file: Path | None = Path("logs/api.log")) -> FastAPI:
     # capable model (gpt-4o, claude, qwen3-vl) sees the pixels directly. This
     # is the deploy-side equivalent of `Generator._collect_image_paths`'s
     # server-side attachment: same data, different transport. Mounted from
-    # settings.pages_dir when set (defaults to None — no pages served).
+    # settings.pages_dir when set (defaults to None, so no pages are served).
     if settings.pages_dir is not None and settings.pages_dir.is_dir():
         app.mount("/pages", StaticFiles(directory=settings.pages_dir), name="pages")
 
-    # Static frontend mounted LAST at "/" so it doesn't shadow API routes —
+    # Static frontend mounted LAST at "/" so it doesn't shadow API routes;
     # FastAPI matches explicit routes before mounted apps. `html=True` makes
     # GET / serve index.html (instead of a directory listing). When the web/
-    # directory isn't present (e.g., a stripped runtime image) the mount
+    # directory isn't present (for example a stripped runtime image) the mount
     # silently skips so the API still boots.
     #
     # `Cache-Control: no-cache` is set on HTML responses so browsers

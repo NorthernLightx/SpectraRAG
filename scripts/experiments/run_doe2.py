@@ -114,10 +114,10 @@ def bootstrap(d: list[float], n: int = 5000) -> tuple[float, float, float]:
 
 
 def analyse(runs: dict[tuple[str, str], Path]) -> str:
-    o = ["# Reranker-swap DoE Phase 2 — judged metrics (gemma3:4b, golden v3)\n"]
+    o = ["# Reranker-swap DoE Phase 2: judged metrics (gemma3:4b, golden v3)\n"]
     base = runs.get((CONTROL, "rep1"))
     if not base:
-        return "\n".join(o + ["\nincumbent rep1 MISSING — no comparison possible.\n"])
+        return "\n".join(o + ["\nincumbent rep1 MISSING, no comparison possible.\n"])
     bpq = per_query(base)
 
     o.append("## Incumbent noise floor (v3-judged reps)\n")
@@ -188,7 +188,7 @@ def main() -> None:
     runs: dict[tuple[str, str], Path] = {}
     for model, tag in PLAN:
         if (time.time() - start) / 3600 > BUDGET_H:
-            log(f"BUDGET {BUDGET_H}h reached — skipping remaining; analysing partial.")
+            log(f"BUDGET {BUDGET_H}h reached; skipping remaining, analysing partial.")
             break
         slug = model.replace("/", "_").replace("-", "_").replace(".", "_")
         before = set(OUT.glob("run-*.json"))
@@ -205,7 +205,7 @@ def main() -> None:
             runs[(model, tag)] = j
             log(f"  saved {model}/{tag} -> {j.name}")
         else:
-            log(f"  FAILED {model}/{tag} (rc={rc}) — continuing")
+            log(f"  FAILED {model}/{tag} (rc={rc}), continuing")
 
     (OUT / "REPORT2.md").write_text(analyse(runs), encoding="utf-8")
     log("Phase 2 done. REPORT2.md written.")

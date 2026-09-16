@@ -1,4 +1,4 @@
-"""MultiQueryRetriever — Retriever decorator that fuses results from query
+"""MultiQueryRetriever: a Retriever decorator that fuses results from query
 variants (LLM rewrites + optional HyDE passage). Concrete second impl after
 `PipelineRetriever`; still under the rule-of-three threshold so no new
 abstraction.
@@ -24,7 +24,7 @@ class MultiQueryRetriever:
     """Wraps a base `Retriever`. Generates query variants via `QueryExpander`,
     retrieves for each in parallel, and fuses with reciprocal rank fusion.
 
-    The original query is always retrieved as one of the variants — even if
+    The original query is always retrieved as one of the variants. Even if
     the LLM expander returns nothing (empty list / empty string), retrieval
     still happens for the original.
     """
@@ -59,7 +59,7 @@ class MultiQueryRetriever:
             ctx["variants"] = variants
 
             # Retrieve for the original + each variant, with concurrency capped.
-            # Default is 2 — anything higher saturated Ollama embed + Qdrant
+            # Default is 2. Anything higher saturated Ollama embed + Qdrant
             # connection pools and one variant timed out per query, aborting
             # the whole asyncio.gather. We also tolerate per-variant failures
             # via return_exceptions, falling back to the variants that did work.

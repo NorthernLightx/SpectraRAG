@@ -61,7 +61,7 @@ class RankedChunk(BaseModel):
 class RoutingInfo(BaseModel):
     """Per-call routing decision surfaced to the API caller.
 
-    Captures what RoutingRetriever did for this query — which mode it ran in,
+    Captures what RoutingRetriever did for this query: which mode it ran in,
     which path it chose, and (for cascade) the confidence-based decision.
     The /query endpoint includes this so the demo UI can show "routed: ..."
     next to timings.
@@ -78,10 +78,10 @@ class RoutingInfo(BaseModel):
 
 
 class RetrievalResponse(BaseModel):
-    """Wrapper for /query — chunks plus the routing decision that produced them.
+    """Wrapper for /query: chunks plus the routing decision that produced them.
 
-    `routing` is None when the wired retriever doesn't expose a decision (e.g.
-    PipelineRetriever with no routing layer).
+    `routing` is None when the wired retriever doesn't expose a decision (a
+    PipelineRetriever with no routing layer, for example).
     """
 
     results: list[RetrievalResult]

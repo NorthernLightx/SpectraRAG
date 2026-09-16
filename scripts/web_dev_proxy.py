@@ -1,7 +1,7 @@
 """Local web/ with the PROD backend proxied behind it.
 
 Serves the working-tree frontend while forwarding /health /papers /figures
-/pages/* /query to the live deployment — full end-to-end testing
+/pages/* /query to the live deployment, for full end-to-end testing
 of uncommitted client code against the real model and corpus, no deploy.
 """
 

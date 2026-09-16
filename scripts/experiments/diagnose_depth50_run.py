@@ -1,4 +1,4 @@
-"""Depth-50 retrieval run on the MMLongBench corpus — per-leg, for the
+"""Depth-50 retrieval run on the MMLongBench corpus, per-leg, for the
 figure-miss decomposition.
 
 The committed baselines store only the fused top-10 per query, so
@@ -13,16 +13,16 @@ Why top_k=50 still reproduces the shipped recall@10 (verified analytically):
 RRF score of a page is 1/(k + rank), strictly decreasing in rank, so pages
 at per-leg ranks 11-50 can never displace pages at ranks 0-9 in the fused
 head. The fused top-10 is therefore identical whether each leg feeds in at
-depth 10 or 50 — top_k just truncates later. This run observes the same
+depth 10 or 50; top_k just truncates later. This run observes the same
 system deeper; it does not change it. (Sanity-checked at the end: the
 fused-top-10 recall here must match the committed router baseline.)
 
 Structure / corpus / sanity-gate are lifted from
-`scripts/experiments/study_routing.py` — same 20 docs, same ingest, same
+`scripts/experiments/study_routing.py`: same 20 docs, same ingest, same
 gate. The ONLY new behaviour: run text and visual legs directly (not via the
 opaque RoutingRetriever.retrieve) so each leg's pre-fusion ranking is
 observable, and fuse with the real `_fuse_page_level` for the router output.
-No `src/rag/` change — the legs are already separable objects here.
+No `src/rag/` change; the legs are already separable objects here.
 
 Output: data/eval/runs/depth50-<ts>/depth50.json  (+ driver.log)
   per_query[i] = {query_id, category, text_top50, visual_top50, fused_top50}
@@ -78,7 +78,7 @@ COLLECTION = "routing_study"
 DEPTH = 50
 
 # Exact 20 docs from data/eval/baseline-mmlongbench-router.json config.paper_ids
-# (identical to study_routing.py — keep in sync).
+# (identical to study_routing.py; keep in sync).
 DOC_IDS = [
     "05-03-18-political-release", "0b85477387a9d0cc33fca0f4becaa0e5",
     "0e94b4197b10096b1f4c699701570fbf", "11-21-16-Updated-Post-Election-Release",
@@ -162,7 +162,7 @@ async def main() -> None:
 
     # candidate_pool bumped to DEPTH so the text leg's dense+BM25 pool isn't
     # narrower than the depth we report (default 50 would equal DEPTH; set
-    # explicit so a future DEPTH>50 stays honest). rerank_input_size likewise.
+    # explicit so a future DEPTH>50 stays correct). rerank_input_size likewise.
     text = PipelineRetriever(
         embedder=embedder, vectorstore=vs, bm25=bm25,
         chunks_by_id=chunks_by_id, reranker=BgeReranker(length_norm=True),
@@ -190,11 +190,11 @@ async def main() -> None:
     n, r10 = _recall10_macro(rescore({"per_query": text_pq}, golden_doc), None)
     log(f"SANITY text-only@10: n={n} recall@10={r10:.4f} (committed text ref 0.5545)")
     if r10 < 0.45:
-        log("ABORT: text-only recall@10 < 0.45 — corpus/scoring wrong.")
+        log("ABORT: text-only recall@10 < 0.45; corpus/scoring wrong.")
         return
     log(f"PASS 1 (text) done, {len(text_results)} queries. Loading ColQwen2.")
 
-    # --- visual leg (ColQwen2) — GPU-heavy. Built AFTER the text pass so the
+    # --- visual leg (ColQwen2), GPU-heavy. Built AFTER the text pass so the
     # two large models are never resident together. ---
     await _evict_ollama()
     pages_by_paper = {}
@@ -216,7 +216,7 @@ async def main() -> None:
 
     # --- PASS 2: visual leg for ALL queries; fuse with the stored text results.
     # No text retrieval here, so the reranker never runs while ColQwen2 is
-    # resident — the contention that made the interleaved version 25x slower. ---
+    # resident, the contention that made the interleaved version 25x slower. ---
     per_query = []
     for i, q in enumerate(gs.queries):
         visual_res = await visual.retrieve(Query(text=q.text, top_k=DEPTH))
@@ -253,11 +253,11 @@ async def main() -> None:
     log(f"SELF-CHECK fused@10: figure n={n_fig} recall@10={r10_fig:.4f} "
         f"(committed router figure = 0.7578)")
     if abs(r10_all - 0.7461) > 0.02:
-        log("WARNING: fused@10 recall drifted >0.02 from committed router — "
+        log("WARNING: fused@10 recall drifted >0.02 from committed router. "
             "the depth-50 run is NOT observing the same system. Investigate "
             "before trusting the decomposition.")
     else:
-        log("SELF-CHECK OK — depth-50 fused@10 reproduces the shipped router.")
+        log("SELF-CHECK OK: depth-50 fused@10 reproduces the shipped router.")
 
     print(
         "\nNext: decompose the figure subset with\n"

@@ -9,7 +9,7 @@ extractor drops gold tokens buried in verbose answers.
 
 This arm isolates that lever: hold the reader's baseline ANSWER fixed, swap only
 the extractor, re-score. Any lift is pure "better extractor", no new generation,
-no perception change — the cleanest possible test of one tool. Sweeps several
+no perception change, the cleanest possible test of one tool. Sweeps several
 free OpenRouter extractors so the result is not one-model-specific.
 
 NOT authoring ground truth: gold answers/formats are the human MMLongBench labels;

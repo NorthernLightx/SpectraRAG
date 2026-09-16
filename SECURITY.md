@@ -2,8 +2,8 @@
 
 ## Reporting a vulnerability
 
-If you believe you've found a security issue in this project, **please do
-not open a public issue**. Use GitHub's private vulnerability reporting:
+If you believe you've found a security issue in this project, **do not open
+a public issue**. Use GitHub's private vulnerability reporting:
 
 1. Go to the [Security tab](https://github.com/NorthernLightx/spectrarag/security)
    of this repository.
@@ -11,7 +11,7 @@ not open a public issue**. Use GitHub's private vulnerability reporting:
 3. Describe the issue, including reproduction steps and impact assessment.
 
 You'll get an acknowledgement within ~7 days. Realistic timeline for a fix
-depends on complexity — this is a personal research project, not a 24/7
+depends on complexity. This is a personal research project, not a 24/7
 production service.
 
 ## Scope
@@ -37,11 +37,11 @@ typical production service:
 - `pyproject.toml` author info uses GitHub's no-reply email pattern so
   contributor identities aren't scraped from package metadata.
 - The deploy workflow (`.github/workflows/deploy.yml`) authenticates to
-  Google Cloud via Workload Identity Federation — short-lived OIDC
+  Google Cloud via Workload Identity Federation: short-lived OIDC
   tokens, no long-lived service-account JSON key stored in GitHub. The
   WIF provider's `attribute-condition` scopes the federation to this
   repo's owner so only its workflows can mint tokens for the deploy
-  service account. Application secrets (e.g. OpenRouter API keys for
-  the optional server-side classifier) are injected into Cloud Run via
+  service account. Application secrets (for example, OpenRouter API keys
+  for the optional server-side classifier) are injected into Cloud Run via
   `gcloud run services update --update-secrets`, sourced from Google
-  Secret Manager — not committed to the repo.
+  Secret Manager, not committed to the repo.

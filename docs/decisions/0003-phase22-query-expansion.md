@@ -1,4 +1,4 @@
-# ADR 0003 — Query expansion (LLM rewrite + HyDE + combo)
+# ADR 0003: Query expansion (LLM rewrite + HyDE + combo)
 
 **Status:** Rejected (default-off). Three configurations tested; none beat
 the GPU-rerank baseline on aggregate retrieval. Real per-query wins on
@@ -25,18 +25,18 @@ aggregates over 17 queries on 5 papers (golden v2, baseline run
 The remaining failures clustered into two patterns:
 - **multi-hop** (`q4_target_region` ndcg5=0.624, `q12_multibasin_vs_vopt` 0.613)
 - **term-mismatch** (`q11_budget_levels` ndcg5=0.000, `q20_exploration_hacking`
-  0.000) — the relevant chunks were in the candidate pool (recall@10 ≈ 0.94)
+  0.000): the relevant chunks were in the candidate pool (recall@10 ≈ 0.94)
   but ranked below the top-5
 
-Query expansion targets exactly this — feed the retriever multiple
+Query expansion targets exactly this: feed the retriever multiple
 phrasings or a hypothetical answer, then fuse.
 
 ## Implementation
 
-- `src/rag/query_expansion.py` — `QueryExpander` (LLM-backed) with two
+- `src/rag/query_expansion.py`: `QueryExpander` (LLM-backed) with two
   methods: `rewrite(query, n)` and `hyde(query)`. Robust line-parser strips
   numbered/bulleted prefixes and dedupes case-insensitively.
-- `src/rag/retrievers/multi_query.py` — `MultiQueryRetriever` decorator
+- `src/rag/retrievers/multi_query.py`: `MultiQueryRetriever` decorator
   wraps any `Retriever`. Fans out the original + N variants in parallel
   (Semaphore-capped), tolerates per-variant failures via
   `return_exceptions=True`, fuses results via reciprocal rank fusion.
@@ -63,7 +63,7 @@ Run IDs in `data/eval/runs/`:
 | faith | 0.8587 | 0.8174 (−4.8%) | 0.8457 (−1.5%) | 0.8261 (−3.8%) |
 | ar | 0.8261 | 0.8043 (−2.6%) | 0.7652 (−7.4%) | 0.8043 (−2.6%) |
 | cp | 0.6304 | 0.5696 (−9.7%) | 0.5957 (−5.5%) | 0.6174 (−2.1%) |
-| regression-gate fails | — | 4 | 5 | 2 |
+| regression-gate fails | n/a | 4 | 5 | 2 |
 
 **Per-query nDCG@5 on the targeted weak set (5 queries):**
 
@@ -77,15 +77,15 @@ Run IDs in `data/eval/runs/`:
 
 ## Findings
 
-1. **Rewrite mode** scores the targeted wins — q4 multi-hop **0.624 → 0.877**
-   (MRR 0.5 → 1.0) and q11 term-mismatch **0.000 → 0.431** — and these
+1. **Rewrite mode** scores the targeted wins: q4 multi-hop **0.624 → 0.877**
+   (MRR 0.5 → 1.0) and q11 term-mismatch **0.000 → 0.431**. Both
    reproduce in `combo`. The technique works on the queries we hoped it
    would work on. But **q9 / q12 also got worse** by similar magnitudes,
    and the aggregate dropped.
 
 2. **HyDE mode is harmful** with this LLM. The hypothetical answer
    passages from `qwen2.5:7b` use vocabulary that doesn't match the
-   actual paper passages closely enough — they pull *plausible-sounding*
+   actual paper passages closely enough. They pull *plausible-sounding*
    chunks into the top-K rather than the *actually-relevant* ones.
    nDCG@5 −31%, MRR −37.5% trips every adoption rule.
 
@@ -108,7 +108,7 @@ Run IDs in `data/eval/runs/`:
 1. **Per-query-category routing.** If we can detect at query time that
    a query is multi-hop or term-mismatch (a small classifier or LLM
    pre-flight), apply rewrite mode *only* on those. The
-   `MultiQueryRetriever` decorator pattern already supports this — wire
+   `MultiQueryRetriever` decorator pattern already supports this: wire
    a router that selects between `PipelineRetriever` and
    `MultiQueryRetriever` per query.
 2. **Stronger rewrite LLM.** `qwen2.5:7b`'s rewrites are sometimes
@@ -132,13 +132,14 @@ Default eval pipeline stays text-only with single-query retrieval.
   apply selectively.
 - The wins on q4 and q11 are real, large, and reproducible across
   rewrite and combo modes. Do not treat this ADR as "query expansion
-  doesn't work" — it works *for the queries it's designed to help* and
+  doesn't work". It works *for the queries it's designed to help* and
   the cost is concentrated on a different category.
 
 ## References
 
-- ADR 0001 (Contextual retrieval) — earlier "rejected with per-query wins" ADR; same pattern.
-- ADR 0002 (Multi-modal chunks) — opt-in default-off, similar verdict.
+- ADR 0001 (Contextual retrieval): earlier "rejected with per-query wins" ADR;
+  same pattern.
+- ADR 0002 (Multi-modal chunks): opt-in default-off, similar verdict.
 - `src/rag/query_expansion.py`, `src/rag/retrievers/multi_query.py`,
   `src/prompts/library/query_*.yaml`, `tests/unit/test_query_expansion.py`,
   `tests/unit/test_multi_query_retriever.py`.

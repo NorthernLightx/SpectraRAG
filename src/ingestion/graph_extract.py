@@ -1,10 +1,10 @@
-"""LLM entity/relation extraction over clean chunks — the GraphRAG indexing
+"""LLM entity/relation extraction over clean chunks: the GraphRAG indexing
 pass (ADR 0018) and the bibliography filter ADR 0017 deferred here.
 
 One `chat` call per chunk. Small local models are unreliable JSON emitters,
 so parsing is deliberately tolerant (strip fences, take the outer object,
 skip malformed entries individually) and a per-chunk failure degrades to an
-empty extraction rather than aborting a ~2000-call batch — same graceful
+empty extraction rather than aborting a ~2000-call batch, the same graceful
 posture as `captioner.py` / `contextualize.py`.
 """
 
@@ -141,7 +141,7 @@ async def extract_graph(
     """Extract entities/relations from every chunk. One LLM call per chunk.
 
     Reference-list / boilerplate chunks come back with `is_reference_list`
-    True and no entities — that is the bibliography filter ADR 0017 deferred
+    True and no entities. That is the bibliography filter ADR 0017 deferred
     to the LLM. Concurrency-bounded so a small-VRAM Ollama host is not
     thrashed; failures are per-chunk, never fatal.
     """

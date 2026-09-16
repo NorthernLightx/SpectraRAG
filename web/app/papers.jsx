@@ -1,9 +1,9 @@
-/* PAPERS VIEW — the real corpus from /papers, with per-paper figure counts
+/* PAPERS VIEW: the real corpus from /papers, with per-paper figure counts
    from the figures index and a detail drawer. Only fields the API actually
    serves are shown (no fabricated authors/venue/citations). */
 
 function PaperCard({ p, figCount, onOpen }) {
-  // The id chip duplicates the heading whenever there's no real title — the
+  // The id chip duplicates the heading whenever there's no real title: the
   // heading falls back to paper_id (data/paper_titles.json unpopulated). Show
   // the chip only when a distinct title exists, so the id appears once.
   const hasTitle = p.title && p.title.trim() && p.title.trim() !== p.paper_id;
@@ -24,7 +24,7 @@ function PaperCard({ p, figCount, onOpen }) {
   );
 }
 
-/* First caption line, with internal [chunk_id] placeholders hidden — the
+/* First caption line, with internal [chunk_id] placeholders hidden. The
    Figures gallery cleans these the same way. */
 function drawerCaption(raw) {
   const first = String(raw || "").split("\n")[0].trim();
@@ -135,7 +135,7 @@ function PapersView({ setTab, papers, figures, uploadAvailable, onUploaded }) {
     );
   }
 
-  // Only offer source filters when the corpus actually mixes sources — a
+  // Only offer source filters when the corpus actually mixes sources. A
   // permanently empty "other" chip reads as broken.
   const filters = papers.some((p) => !p.is_arxiv) ? ["all", "arxiv", "other"] : ["all"];
   const filtered = papers.filter((p) => {

@@ -18,12 +18,12 @@ _DEFAULT_MODEL = "BAAI/bge-reranker-v2-m3"
 # ADR 0009 follow-up: caption-stub figure chunks (~50-150 chars of PDF caption
 # text) and tiny table-only chunks empirically out-rank rich text chunks
 # (target ~1200 chars) at the cross-encoder. Run ad4fab3bb28d / q11 demonstrated
-# this — `p7::tab2` outranked `p6::c28` despite c28 carrying the answer. Length
+# this: `p7::tab2` outranked `p6::c28` despite c28 carrying the answer. Length
 # normalisation is a smooth penalty: 0 above the threshold, scales linearly to
 # `length_penalty` at len=0. Defaults are calibrated for bge-reranker-v2-m3
 # scores (typically [-5, 5] logits): a 0.5 penalty is enough to displace a
-# borderline stub but not destroy a legitimately short answer (e.g. q8's
-# "8 tasks and 65 instances" — ~250 chars, above threshold so untouched).
+# borderline stub but not destroy a legitimately short answer (q8's
+# "8 tasks and 65 instances" is ~250 chars, above threshold so untouched).
 _DEFAULT_LENGTH_THRESHOLD = 300
 _DEFAULT_LENGTH_PENALTY = 0.5
 
@@ -31,7 +31,7 @@ _DEFAULT_LENGTH_PENALTY = 0.5
 def _length_penalty_for(text_len: int, threshold: int, penalty_max: float) -> float:
     """Linear penalty: 0 at threshold (and above), `penalty_max` at len=0.
 
-    Smoothly punishes short docs at the cross-encoder layer — caption-stub
+    Smoothly punishes short docs at the cross-encoder layer: caption-stub
     figure chunks (~80 chars) get nearly the full penalty; legitimately short
     factual answers (~250 chars) get a small fraction; full text chunks
     (>= threshold) are untouched. ADR 0009 §"What this leaves open" #1.
@@ -47,7 +47,7 @@ def _autodetect_device() -> str:
     """Return 'cuda' if torch reports a CUDA device, else 'cpu'.
 
     Imported lazily because sentence-transformers (and torch) is a heavy dep that
-    we don't want to load when an injected scorer is in use (e.g. tests).
+    we don't want to load when an injected scorer is in use (in tests, say).
     """
     try:
         import torch

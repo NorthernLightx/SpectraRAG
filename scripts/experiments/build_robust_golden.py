@@ -1,8 +1,8 @@
-"""Build `data/golden/robust-v1.yaml` — a routing-fair evaluation set.
+"""Build `data/golden/robust-v1.yaml`, a routing-fair evaluation set.
 
 Why: v3 (arXiv) is text-heavy and saturated; MMLongBench is ~93 % visual so
-it rewards a degenerate "always-visual" policy (ADR 0013). Neither can judge
-a *router* honestly. A routing-fair set must be **balanced by true evidence
+it rewards a degenerate "always-visual" policy (ADR 0013). Neither set can
+measure a *router*. A routing-fair set must be **balanced by true evidence
 modality** so no lazy policy can win: "always-text" fails the visual half,
 "always-visual" fails the text half, only correct per-query routing scores
 high. Combined with the measured per-leg asymmetry (text leg ≈0 on visual
@@ -15,7 +15,7 @@ location); v3 supplies production-domain (arXiv) text questions. Scoring is
 unified to page level; v3 chunk-ids → pages via the `::pN` convention (same
 as scripts/rescore_mmlb_pages). The eval that consumes this must run
 **paper-filtered** retrieval (every query carries its paper_id) so the two
-corpora's page numbers can't collide — a deliberate, recorded choice.
+corpora's page numbers can't collide, a deliberate, recorded choice.
 
 Output: data/golden/robust-v1.yaml + a printed composition self-check.
 """

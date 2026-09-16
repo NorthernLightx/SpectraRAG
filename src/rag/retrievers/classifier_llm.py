@@ -1,15 +1,15 @@
-"""LLM-based query classifier — replaces ADR 0008's regex when MMLongBench-style
+"""LLM-based query classifier. Replaces ADR 0008's regex when MMLongBench-style
 queries don't carry their own modality cue.
 
 The MMLongBench eval (run cc45831697b6) found that the regex classifier dispatched
-only 26 of 149 queries to hybrid where 98 were figure/table-evidenced — a ~75 %
+only 26 of 149 queries to hybrid where 98 were figure/table-evidenced, a ~75 %
 miss rate caused by natural-language queries that don't say "Figure X" or
 "Table N" explicitly. This classifier reads the query through a small LLM
 (default `openai/gpt-4o-mini`, ~$0.0001 per call, ~0.5-1.5 s) and emits a
 Category. Falls back to "definitional" on any parse failure so the routing
 decision degrades to text-only (the safe baseline).
 
-Used optionally by `RoutingRetriever` — pass an instance via the `classifier`
+Used optionally by `RoutingRetriever`: pass an instance via the `classifier`
 constructor arg to override the default regex.
 """
 
@@ -48,7 +48,7 @@ class LLMQueryClassifier:
     async def classify(self, query: str) -> Category:
         """Map a query text to one of the five Categories. Defaults to
         'definitional' on any parse error or empty response so misclassification
-        degrades safely (text-only routing — the strong baseline)."""
+        degrades safely (text-only routing, the strong baseline)."""
         system, user = self._prompt.render(query=query)
         messages: list[Message] = []
         if system:

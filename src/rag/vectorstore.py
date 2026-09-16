@@ -4,7 +4,7 @@ The payload schema persists the full Chunk so the corpus can be re-materialised
 at API startup without a separate manifest file: `_wire_retriever_from_settings`
 (in `src/api/main.py`) calls `scroll_chunks()` to seed BM25 + chunks_by_id.
 Older collections written before this schema (payload only `{chunk_id, paper_id}`)
-won't round-trip — re-ingest with `scripts/bootstrap_corpus.py --force`.
+won't round-trip; re-ingest with `scripts/bootstrap_corpus.py --force`.
 """
 
 from __future__ import annotations
@@ -46,7 +46,7 @@ def _chunk_to_payload(chunk: Chunk) -> dict[str, object]:
 
 def _payload_to_chunk(payload: dict[str, object]) -> Chunk | None:
     """Reverse of `_chunk_to_payload`. Returns None on payloads written by an
-    older schema (before this column existed) — the caller logs and skips so a
+    older schema (before this column existed). The caller logs and skips so a
     stale collection degrades to "retriever not wired" rather than crashing."""
     required = ("chunk_id", "paper_id", "page_numbers", "text")
     if not all(key in payload for key in required):
@@ -84,14 +84,14 @@ class QdrantVectorStore:
         self._dim = dim
         self._distance = distance
         # Three url forms:
-        #   `:memory:`      — in-process, ephemeral. Tests + dev.
-        #   `path:/some/dir` — in-process, persistent file store. The deploy
-        #                      uses this with a snapshot baked into the
-        #                      Docker image so there's no external Qdrant
-        #                      service. qdrant-client's local mode supports
-        #                      the same hybrid query surface as the remote
-        #                      mode (sqlite-backed, sub-ms latency).
-        #   anything else   — treated as a remote http(s) URL.
+        #   `:memory:` is in-process and ephemeral. Tests + dev.
+        #   `path:/some/dir` is an in-process, persistent file store. The
+        #                    deploy uses this with a snapshot baked into the
+        #                    Docker image so there's no external Qdrant
+        #                    service. qdrant-client's local mode supports
+        #                    the same hybrid query surface as the remote
+        #                    mode (sqlite-backed, sub-ms latency).
+        #   anything else is treated as a remote http(s) URL.
         if url == ":memory:":
             self._client = AsyncQdrantClient(":memory:")
         elif url.startswith("path:"):
@@ -119,8 +119,8 @@ class QdrantVectorStore:
 
         `ensure_collection` is create-if-absent and will NOT clear an existing
         collection, so a ``--force`` re-ingest (scripts/bootstrap_corpus.py) must
-        delete first — otherwise it upserts the new corpus on top of the old one
-        and leaves stale chunks (e.g. pre-classifier figures) behind.
+        delete first. Otherwise it upserts the new corpus on top of the old one
+        and leaves stale chunks (pre-classifier figures, for example) behind.
         """
         existing = await self._client.get_collections()
         if any(c.name == self._collection for c in existing.collections):
@@ -146,7 +146,7 @@ class QdrantVectorStore:
     async def count(self) -> int:
         """Return the number of points in the collection; 0 if it doesn't exist.
 
-        Used by `scripts/bootstrap_corpus.py` for idempotent re-runs — a populated
+        Used by `scripts/bootstrap_corpus.py` for idempotent re-runs: a populated
         collection means ingestion already happened, skip unless --force.
         """
         existing = await self._client.get_collections()
@@ -163,7 +163,7 @@ class QdrantVectorStore:
         `paper_filter` issues a Qdrant payload filter on `paper_id`. Used by
         the eval-side paper-id-aware retrieval path; production callers pass
         `None`. Filtering at the Qdrant layer (rather than post-filtering
-        results) keeps the candidate pool size meaningful — without it,
+        results) keeps the candidate pool size meaningful. Without it,
         `top_k=50` returned across 20 papers leaves only ~2.5 same-paper hits
         for rerank on a paper-specific query.
         """
@@ -190,7 +190,7 @@ class QdrantVectorStore:
         ]
 
     async def scroll_chunks(self, *, batch_size: int = 256) -> list[Chunk]:
-        """Read every chunk back from the collection's payload — paginated scroll.
+        """Read every chunk back from the collection's payload by paginated scroll.
 
         Returns [] if the collection doesn't exist. Skips any payload missing
         required fields (older schema) so a stale collection produces a smaller

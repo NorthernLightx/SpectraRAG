@@ -5,7 +5,7 @@ over a small set of representative queries. Reports median + p95 per
 stage so the breakdown reads as `where does the time actually go`.
 
 Reranker (BGE-rerank-v2-m3) and generation (LLM call) latencies are NOT
-measured here — the reranker needs the GPU/CPU model load (~5 s) and
+measured here: the reranker needs the GPU/CPU model load (~5 s) and
 generation hits a paid LLM API. Their typical latencies are documented
 inline in `docs/results.md` from the v2 baseline measurements.
 
@@ -32,7 +32,7 @@ from src.rag.bm25 import Bm25Index
 from src.rag.hybrid import RankedItem, reciprocal_rank_fusion
 from src.rag.vectorstore import QdrantVectorStore
 
-# Six representative queries — mix of factual, definitional, methodological.
+# Six representative queries, mixing factual, definitional, methodological.
 # Kept short so the embedding cost reflects "real query" shape, not pathological
 # long-context inputs.
 SAMPLE_QUERIES = [
@@ -58,7 +58,7 @@ def _stats(name: str, values: list[float]) -> StageStats:
         return StageStats(name=name, median_ms=values[0], p95_ms=values[0], samples=len(values))
     sorted_vals = sorted(values)
     median = statistics.median(sorted_vals)
-    # Approximate p95 — for n=6 samples this is just the second-largest value.
+    # Approximate p95: for n=6 samples this is the second-largest value.
     idx = max(0, round(0.95 * len(sorted_vals)) - 1)
     p95 = sorted_vals[idx]
     return StageStats(name=name, median_ms=median, p95_ms=p95, samples=len(values))

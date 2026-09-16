@@ -8,15 +8,15 @@ finds the bottleneck is elsewhere.
 
 It separates three things that the single failing number conflates:
 
-  1. RETRIEVAL  — how many of the gold pages does the shipped router surface in
+  1. RETRIEVAL: how many of the gold pages does the shipped router surface in
      top-k? (from the depth-50 dump). Establishes the class is unservable by k.
-  2. NAVIGATION — given a STRUCTURAL INDEX of the document (the figure index the
+  2. NAVIGATION: given a STRUCTURAL INDEX of the document (the figure index the
      ingestion pipeline already builds at data/figures/<doc>/, parsed from the
      `<doc>__p<N>__fig<M>.png` filenames), can a cheap local LLM (gemma3:4b)
      count correctly? Tests the scout's navigator thesis with a perfect-ish
      index, no cloud, no Qdrant.
-  3. EXTRACTION — does the structural index itself match the human gold count?
-     The residual error after navigation works is index incompleteness — an
+  3. EXTRACTION: does the structural index itself match the human gold count?
+     The residual error after navigation works is index incompleteness, an
      INGESTION problem, not a retrieval or generation one.
 
 It also classifies every document-wide count query by the index modality it

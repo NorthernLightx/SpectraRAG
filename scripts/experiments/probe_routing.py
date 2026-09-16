@@ -40,7 +40,7 @@ def summarize(name: str, rows: list[tuple[str, str, str]]) -> str:
     n_in, n_nv = len(incorp), len(need_visual)
     out = [f"\n## {name}  (in-corpus: {n_in}, of which need-visual: {n_nv})"]
     if n_nv == 0:
-        out.append("  No figure/table/multi_hop queries — routing can't help here.")
+        out.append("  No figure/table/multi_hop queries, so routing can't help here.")
         return "\n".join(out)
     for label, idx in (("regex classify_query", 1), (f"LLM {LLM_MODEL}", 2)):
         misrouted = [r for r in need_visual if r[idx] == "text"]

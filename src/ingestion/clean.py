@@ -1,7 +1,7 @@
 """Page-text hygiene applied before chunking (ADR 0017).
 
 Evidence: ~1 in 5 chunks in the raw corpus is noise the retriever and the
-GraphRAG entity-extractor must never see — repeated running-page headers,
+GraphRAG entity-extractor must never see: repeated running-page headers,
 bare page-number lines, and figure/table interiors that leak into the PDF
 text layer as digit soup. PyMuPDF emits the header and page number as their
 *own lines* at the top of each page's text, which makes line-based stripping
@@ -35,7 +35,7 @@ def detect_running_header(page_texts: list[str], *, min_share: float = 0.6) -> s
     Academic PDFs print a fixed header ("Preprint. Under review.", a journal
     line) on most pages; PyMuPDF puts it on its own line at the top of every
     page's text. Page 1 (title page) often differs, so this is a share
-    threshold, not "all pages". Returns None when no line dominates — papers
+    threshold, not "all pages". Returns None when no line dominates, since papers
     with no running header (common) must be left untouched.
     """
     firsts = [ln for t in page_texts if (ln := _first_nonempty_line(t)) is not None]
@@ -51,7 +51,7 @@ def strip_page_furniture(text: str, header: str | None) -> str:
     """Drop the leading running-header / page-number lines and a trailing page no.
 
     Only the first few lines are inspected for furniture so a legitimate
-    numeric line deeper in the page (e.g. a real "2048" in body text) is never
+    numeric line deeper in the page (a real "2048" in body text, say) is never
     removed. A bare number as the last line is a footer page number.
     """
     lines = text.splitlines()
@@ -83,7 +83,7 @@ def is_soup(text: str) -> bool:
     """True when a chunk is a figure/table interior (axis ticks, a value grid).
 
     These leak from vector-drawn figures into the PDF text layer and are pure
-    retrieval noise — no entity or relation is extractable from
+    retrieval noise; no entity or relation is extractable from
     "2.127 2.126 2.134". Heuristic: very low alphabetic density AND few real
     words AND no prose function words. The prose-hint guard keeps
     equation-dense but meaningful passages (which still contain "the/where/…")

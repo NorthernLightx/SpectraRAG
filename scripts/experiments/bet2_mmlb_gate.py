@@ -19,7 +19,7 @@ one the baseline self-check graded. recall@k is computed directly (rescore() is
 fixed at k=10) so the A/B can report both @5 and @10.
 
 A/B is TEXT-vs-TEXT: baseline `text_top50` vs agentic `agentic_top50`. The
-agentic tier only touches text retrieval, so this is the honest comparison; the
+agentic tier only touches text retrieval, so this comparison isolates it; the
 visual leg and fusion are out of scope here.
 
 Noise band: per-query recall is fractional (mean ~1.6 relevant pages/query), so
@@ -163,7 +163,7 @@ def main() -> None:
 
     # In-corpus answerable subset, IDENTICAL to the baseline self-check's n=107:
     # category != out_of_corpus AND a non-empty relevance set. The category
-    # guard is load-bearing -- 4 out_of_corpus queries carry a stray
+    # guard matters: 4 out_of_corpus queries carry a stray
     # relevant_pages annotation (evidence_sources=[], labelled unanswerable), and
     # rescore_mmlb_pages drops them by CATEGORY, not by empty pages. Filtering on
     # relevant_pages alone would re-admit those 4 and inflate n to 111, breaking

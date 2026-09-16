@@ -3,7 +3,7 @@
 Runs the *actual* current pipeline (extract_pages -> chunk_pages) over every
 PDF in data/papers/ and classifies each chunk as: references/bibliography,
 numeric/symbol soup, running-header-led, or content. Heuristics here are for
-*measurement only* — the production filters are designed from what this prints.
+*measurement only*; the production filters are designed from what this prints.
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ from src.ingestion.chunking import chunk_pages
 from src.ingestion.pdf import extract_pages
 from src.types import Chunk
 
-sys.stdout.reconfigure(encoding="utf-8")  # corpus is full of − ± Σ etc.
+sys.stdout.reconfigure(encoding="utf-8")  # corpus is full of − ± Σ and the like
 
 _REF_START = re.compile(r"^\s*(references|bibliography)\b", re.IGNORECASE)
 _APPENDIX_START = re.compile(r"^\s*(appendix\b|[A-Z]\s+[A-Z][a-z])")

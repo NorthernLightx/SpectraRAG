@@ -75,7 +75,7 @@ async def ingest_paper(
     misses vector plots) and `extract_tables` (`find_tables()` heuristic,
     misses tight numeric tables). Halved the corpus-wide audit flag rate
     (25.4 % → 12.7 %) on the 20-paper ArXiv corpus and held cleanly on
-    heterogeneous formats — slide-deck PDFs (0 flags), HAL-style non-
+    heterogeneous formats: slide-deck PDFs (0 flags), HAL-style non-
     arXiv papers, and a 339-page scanned OCR'd NASA Apollo 17 report
     (89 figures + 27 tables recovered with bboxes). Set `use_docling=False`
     to fall back to PyMuPDF (preserved for repeatability of pre-ADR-0020
@@ -87,7 +87,7 @@ async def ingest_paper(
     with timed_event(
         _log, "ingest.done", paper_id=paper.paper_id, pdf_path=str(paper.pdf_path)
     ) as ctx:
-        # Single Docling conversion when enabled — shared by text chunking
+        # Single Docling conversion when enabled, shared by text chunking
         # (ADR 0021) and figure / table extraction (ADR 0020) so the
         # layout + OCR pipeline runs once per paper, not twice.
         docling_doc = None

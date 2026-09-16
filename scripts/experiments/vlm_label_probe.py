@@ -34,7 +34,7 @@ COLLECTION = "eval_docling_classified_probe"
 QDRANT = "http://localhost:6333"
 FIGURES_DIR = Path("data/figures")
 
-# Closed label set the VLM picks from — same vocabulary as Docling so the
+# Closed label set the VLM picks from, the same vocabulary as Docling so the
 # comparison is apples-to-apples. ``prose_callout`` and ``ascii_diagram``
 # are added because the probe paper has those (Filesystem Policy, Directory
 # Tree) and Docling doesn't have them; we want to see if the VLM volunteers
@@ -93,7 +93,7 @@ def pick_samples(pts: list[dict]) -> list[dict]:
             continue
         keep.append(p)
         seen_labels.add(lbl)
-    # the rescued small Figure 3 — small picture with paper-figure caption
+    # the rescued small Figure 3: small picture with paper-figure caption
     for p in pts:
         m = p["payload"].get("metadata", {})
         bb = m.get("bbox") or [0, 0, 0, 0]

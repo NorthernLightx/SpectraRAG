@@ -2,7 +2,7 @@
 chunks whose text starts with that exact label.
 
 ADR 0009 follow-up. The reranker (bge-reranker-v2-m3) doesn't reliably
-disambiguate among multiple Table/Figure chunks of the same paper — the
+disambiguate among multiple Table/Figure chunks of the same paper. The
 paper has a Table 1 and a Table 8, the query asks about Table 8, and the
 cross-encoder still picks Table 1 because the query/document keyword overlap
 is similar across both. Run ad4fab3bb28d / q29 demonstrated this.
@@ -10,10 +10,10 @@ is similar across both. Run ad4fab3bb28d / q29 demonstrated this.
 This wrapper is a deliberate, narrow heuristic: parse the query for explicit
 `Table N` / `Figure N` mentions, then reorder the underlying retriever's
 results so chunks whose `text` starts with `Table N:` / `Figure N:` come
-first. No score mutation — the wrapper only swaps positions, so downstream
+first. No score mutation: the wrapper only swaps positions, so downstream
 score-aware code (rerank score, RRF score) sees the original numbers.
 
-The match is on chunk *text* (the caption), not chunk *id* — the chunk id
+The match is on chunk *text* (the caption), not chunk *id*. The chunk id
 uses page-local sequential indexing (`::tab1`, `::tab2`, ...), which doesn't
 correspond to the paper's Table N numbering. Caption text is reliable
 because `figure_to_chunk` / `table_to_chunk` start the chunk text with
@@ -65,7 +65,7 @@ def _matches_label(text: str, kind: str, number: int) -> bool:
 
     Lenient on whitespace and the separator (colon, em-dash, period). Matches
     `figure_to_chunk` / `table_to_chunk` output: PDF caption text starts with
-    e.g. "Figure 3: ..." per the regex parsing in figures.py / tables.py.
+    a label like "Figure 3: ..." per the regex parsing in figures.py / tables.py.
     """
     head = text.lstrip()
     if not head:
@@ -77,7 +77,7 @@ def _matches_label(text: str, kind: str, number: int) -> bool:
 class RegionNumberBoostRetriever:
     """Wraps a Retriever; reorders results when query references Table N / Figure N.
 
-    Pure post-processor — calls the wrapped retriever, then bubbles matching
+    Pure post-processor: calls the wrapped retriever, then bubbles matching
     chunks to the top while preserving relative order among matched + among
     non-matched. Drop-in for `Retriever`. ADR 0009 follow-up.
     """
@@ -97,7 +97,7 @@ class RegionNumberBoostRetriever:
                     return True
             for n in figure_nums:
                 # 'figure' covers both "Figure N:" and "Fig. N:" in the chunk
-                # text — `figure_to_chunk` writes the verbatim PDF caption so
+                # text, and `figure_to_chunk` writes the verbatim PDF caption so
                 # whichever form the paper used is preserved.
                 if _matches_label(r.text, "figure", n) or _matches_label(r.text, "fig\\.?", n):
                     return True

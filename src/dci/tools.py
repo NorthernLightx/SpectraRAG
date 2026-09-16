@@ -1,13 +1,13 @@
 """Corpus tools for the DCI agent: in-memory lexical search/grep/read over raw text.
 
 The corpus is a directory of `<doc_id>.txt` files, loaded into memory once. These
-tools are the entire interface the agent has to the corpus — no embeddings, no
+tools are the entire interface the agent has to the corpus: no embeddings, no
 vector index. Faithful to the DCI thesis: the model supplies the intelligence
 (which terms to search, what to read, when to stop); the tools expose the raw
 text losslessly via lexical scan.
 
 Pure Python (no ripgrep subprocess) so it runs anywhere. Holding the raw lines in
-RAM is not a semantic index — it's the corpus itself, scanned linearly per query.
+RAM is not a semantic index; it's the corpus itself, scanned linearly per query.
 """
 
 from __future__ import annotations
@@ -23,10 +23,10 @@ _TERM_RE = re.compile(r"[A-Za-z0-9]+")
 _MAX_PATTERN_TERMS = 24  # cap alternation so a verbose query can't build a huge regex
 
 # Whitelisted builtins for the SCRIPT sandbox. No __import__, open, exec, eval,
-# input, etc. — the script can compute over the corpus but cannot touch the
-# filesystem, network, or import modules. Not hardened against a deliberate
+# input or others. The script can compute over the corpus but cannot touch
+# the filesystem, network, or import modules. Not hardened against a deliberate
 # sandbox escape (attribute-walking to os); adequate here because the agent is
-# cooperative, not adversarial — the realistic failure is a buggy/looping script,
+# cooperative, not adversarial; the realistic failure is a buggy/looping script,
 # which the thread timeout bounds.
 _SAFE_BUILTIN_NAMES = (
     "len sum sorted min max range enumerate list dict set tuple str int float bool "
@@ -133,7 +133,7 @@ class CorpusTools:
     def filter_all(self, terms: list[str], *, top_k: int = 10) -> list[DocHit]:
         """Conjunction (chained grep): rank docs that contain ALL given terms.
 
-        The precision counterpart to `search` — `grep t1 | grep t2 | ...`. Score
+        The precision counterpart to `search`, as in `grep t1 | grep t2 | ...`. Score
         is the total occurrence count across the required terms. Returns up to
         `top_k` DocHits, or [] if no doc satisfies every term."""
         norm = [t.lower() for t in terms if len(t) > 1]
@@ -155,7 +155,7 @@ class CorpusTools:
     def count(self, term: str) -> tuple[int, int]:
         """Selectivity of a term: (documents containing it, total occurrences).
 
-        Lets the agent pick discriminative terms — `grep -c` across the corpus."""
+        Lets the agent pick discriminative terms, a `grep -c` across the corpus."""
         t = term.lower()
         if len(t) < 2:
             return (0, 0)
@@ -171,8 +171,8 @@ class CorpusTools:
     def run_script(self, code: str, *, timeout: float = 5.0) -> str:
         """Execute a mini Python script over the corpus in a restricted sandbox.
 
-        The script gets helper functions — search(q,k), grep(p,k), count(t),
-        text(doc_id), and all_ids — plus `re`, and should assign `result`. No
+        The script gets helper functions (search(q,k), grep(p,k), count(t),
+        text(doc_id), all_ids) plus `re`, and should assign `result`. No
         imports / filesystem / network (see `_SAFE_BUILTINS`). Runs in a daemon
         thread with a wall-clock timeout to bound runaway loops."""
         api: dict[str, Any] = {
@@ -196,7 +196,7 @@ class CorpusTools:
         th.start()
         th.join(timeout)
         if th.is_alive():
-            return f"(script timed out after {timeout}s — simplify or bound your loops)"
+            return f"(script timed out after {timeout}s; simplify or bound your loops)"
         if "e" in err:
             return f"(script error: {err['e']})"
         if "result" not in ns:

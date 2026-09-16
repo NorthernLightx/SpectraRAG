@@ -1,6 +1,6 @@
 # Where SpectraRAG fits
 
-A short, honest read on what SpectraRAG does differently from other document-RAG
+A short read on what SpectraRAG does differently from other document-RAG
 tools, and what it deliberately doesn't do. The goal isn't to win a feature
 checklist; it's to be clear about the niche.
 
@@ -23,7 +23,7 @@ where a text-only index misses the page entirely.
   lift.** A small classifier sends each query to the text leg or to text+visual.
   The repo measured the ceiling: oracle routing equals the shipped router on the
   benchmark (ADR 0013). Peers that always run one path (always-ColPali, or
-  always-text) don't make — or measure — that decision.
+  always-text) don't make (or measure) that decision.
 - **An eval behind every change, including the negatives.** Committed golden
   sets, a >5% regression gate, and a wall of *measured* dead ends (GraphRAG lost
   to plain RAG, agentic decomposition hurt retrieval, rerankers were a wash) plus
@@ -43,7 +43,7 @@ the tools in parentheses are the better fit:
 - **Multi-user, accounts, shared collections** (kotaemon, Open WebUI, Onyx).
   SpectraRAG is single-corpus; runtime upload is local-only and flag-gated off on
   the demo (ADR 0029).
-- **Enterprise connectors** — Slack, Drive, Confluence ingestion (Onyx, Quivr).
+- **Enterprise connectors**: Slack, Drive, Confluence ingestion (Onyx, Quivr).
 - **Billion-document scale** with quantized late-interaction indexes (Vespa's
   binary-quantized ColPali, Weaviate MUVERA). SpectraRAG holds the page index in
   one embedded Qdrant; that's right for a demo corpus, not a warehouse.
@@ -61,6 +61,6 @@ of the alternatives above when you need multi-tenancy, connectors, or scale.
 
 The landscape read behind this page: RAGFlow, kotaemon, Morphik, the ColPali
 paper and the byaldi/ColQwen libraries, Vespa's and Weaviate's late-interaction
-work, Onyx, and PaperQA2. See each project's own docs for current capabilities —
-this page describes mechanics, not popularity, because stars and feature lists
+work, Onyx, and PaperQA2. See each project's own docs for current capabilities.
+This page describes mechanics, not popularity, because stars and feature lists
 move faster than a committed file should claim to track.

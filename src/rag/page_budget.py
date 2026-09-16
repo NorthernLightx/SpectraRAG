@@ -5,13 +5,13 @@ WHOLE document's page images beats a top-k RAG cut (+0.12 where it fits, on
 MMLongBench). The eval harness already implements this
 (`scripts/experiments/run_mmlb_qa.py:route_pages_by_fit`, behind `--page-budget`).
 This module is the production counterpart, deliberately scoped to PAPER-SCOPED
-queries only — i.e. when the caller has already named the document via
+queries only, meaning the caller has already named the document via
 `Query.filters['paper_id']` (ADR 0009). That is the exact single-doc regime the
 win was measured in; corpus-wide document identification stays out of scope
-(ADR 0024 §"What this leaves open" — feeding "the whole document" has no
+(ADR 0024 §"What this leaves open": feeding "the whole document" has no
 referent until you know which document).
 
-The whole-doc page count is the load-bearing input and MUST come from disk (the
+The whole-doc page count decides the feed and MUST come from disk (the
 rendered-pages directory), not from retrieval: retrieval surfaces only top-k, so
 deriving "all pages" from the retrieved set silently under-feeds the model and
 erases the win. `resolve_whole_doc_pages` returns None on any unresolvable doc or
@@ -34,7 +34,7 @@ _PAGE_FILE_RE = re.compile(r"^(?P<paper>.+)_p(?P<page>\d+)\.png$")
 # is used as a path component, so it must be validated before touching the
 # filesystem or a value like ".." / "../../etc" would let the whole-doc path
 # enumerate and feed page images from outside the corpus. Real ids are arXiv
-# (`2310.05634v2`), hashes, or slug names (`05-03-18-political-release`) — all
+# (`2310.05634v2`), hashes, or slug names (`05-03-18-political-release`), all
 # within this class. The character class already excludes `/` and `\`; the
 # explicit `..` / leading-dot checks close the gap that `[\w.-]+` leaves open
 # (it would match "..").
@@ -50,7 +50,7 @@ def _doc_page_numbers(paper_id: str, pages_dir: Path) -> list[int]:
 
     Empty when the paper directory is absent or holds no matching renders. The
     filename's paper segment must equal `paper_id` exactly so a prefix collision
-    (e.g. `2310.05` vs `2310.05634`) can't pull another doc's pages.
+    (`2310.05` against `2310.05634`, say) can't pull another doc's pages.
     """
     paper_dir = pages_dir / paper_id
     if not paper_dir.is_dir():
@@ -77,9 +77,9 @@ def resolve_whole_doc_pages(
     `visual.py:_PAGE_CHUNK_FMT` (`<paper>::p<N>::page`, source "visual"), so the
     Generator's existing image-attachment and citation logic treat these
     identically to real visual retrievals. `text` is empty: the page image is the
-    payload, and a vision model reads it directly. `score` is 1.0 — the operator
-    explicitly scoped the query to this document, so the whole-doc feed must not
-    trip the generator's low-confidence refusal gate.
+    payload, and a vision model reads it directly. `score` is 1.0 because the
+    operator explicitly scoped the query to this document, so the whole-doc feed
+    must not trip the generator's low-confidence refusal gate.
 
     Security: `paper_id` is untrusted request input used as a path component.
     Reject anything outside the safe-id allowlist, and verify the resolved paper

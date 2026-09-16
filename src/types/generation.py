@@ -37,7 +37,7 @@ class Answer(BaseModel):
     """A generated answer with citations, model identity, and cost/latency.
 
     `retrieved` is populated by the API route layer (not the Generator) so
-    callers can render "what the LLM saw" alongside the answer — used by the
+    callers can render "what the LLM saw" alongside the answer. Used by the
     bundled web UI to show retrieved chunks + their source ('pipeline' vs
     'visual'). Defaults to [] so eval / unit-test code paths that construct
     Answer directly stay backwards-compatible.

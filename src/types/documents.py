@@ -94,8 +94,8 @@ class Figure(BaseModel):
     """A figure extracted from a paper. `vlm_caption` is set after VLM captioning.
 
     `bbox` is the figure's location on the page in PDF points; absent (None)
-    when PyMuPDF can't locate the embedded image stream on the page (rare —
-    happens with vector-art figures and transparent overlays). ADR 0009.
+    when PyMuPDF can't locate the embedded image stream on the page (rare, and
+    seen with vector-art figures and transparent overlays). ADR 0009.
 
     `role` is a coarse intent classification (ADR 0022). Docling's layout
     model labels logos, inline icons, and decorative glyphs as "picture"
@@ -112,7 +112,7 @@ class Figure(BaseModel):
     vlm_caption: str | None = None
     bbox: Bbox | None = None
     role: FigureRole = "unlabeled"
-    # ADR 0022: raw output of Docling's DocumentFigureClassifier — one of
+    # ADR 0022: raw output of Docling's DocumentFigureClassifier, one of
     # 28 labels (`logo`, `bar_chart`, `flow_chart`, ...) or ``None`` when
     # picture classification was off at ingest. Preserved alongside
     # ``role`` so a richer UI filter or a downstream model can use the

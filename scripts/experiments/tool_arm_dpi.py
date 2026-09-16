@@ -3,12 +3,12 @@
 The committed page renders are 150 DPI (src/ingestion/visual.py:_DEFAULT_DPI), and
 some are lower (the DETR doc rendered at ~117 DPI / 863px long edge). If a "misread"
 is really "the text/colour was too small to resolve at 150 DPI", then re-rendering
-the SAME gold page at a higher DPI and re-asking the SAME reader should recover it —
+the SAME gold page at a higher DPI and re-asking the SAME reader should recover it:
 a pure resolution lever, no model change, no crop, no extra reasoning.
 
 This is the clean control for ADR 0025's "perception-bound" conclusion: that ADR
 showed the reader can't LOCALIZE (its self-chosen crop hurt). DPI tests the other
-half — whether the reader can't RESOLVE. If high-DPI recovers misreads, the ceiling
+half, whether the reader can't RESOLVE. If high-DPI recovers misreads, the ceiling
 is partly a render-quality bug, not the model's weights, and the fix is ingestion
 (raise DPI) not a tool.
 

@@ -1,7 +1,7 @@
 """Aggregate DCI run caches into a comparison vs the published BRIGHT bars.
 
 Reads the per-query rankings each dci_eval run cached, recomputes nDCG@10 against
-the gold set, and prints each method's macro mean — overall and on the subset of
+the gold set, and prints each method's macro mean, overall and on the subset of
 queries common to all runs (a fair head-to-head when a cloud run covers fewer
 queries than the local run). Published biology bars are shown for context.
 
@@ -73,7 +73,7 @@ def main() -> None:
     common = set.intersection(*(set(s) for s in per_run_scores.values())) if per_run_scores else set()
 
     print("=" * 64)
-    print("DCI on BRIGHT-Biology — nDCG@10 (higher is better)")
+    print("DCI on BRIGHT-Biology: nDCG@10 (higher is better)")
     print("=" * 64)
     print("\nOurs (agentic DCI, read+grep+rank over raw corpus):")
     for label, scored in per_run_scores.items():

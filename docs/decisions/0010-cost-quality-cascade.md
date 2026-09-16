@@ -1,4 +1,4 @@
-# ADR 0010 — Cost-quality cascade routing + eval methodology hardening
+# ADR 0010: Cost-quality cascade routing + eval methodology hardening
 
 **Status:** Accepted as opt-in features (2026-05-10). Cascade ships off by
 default; eval methodology improvements (B1 deterministic OOC scoring, B2
@@ -10,7 +10,7 @@ multi-seed judge averaging, B3 smoke pre-flight) ship on by default.
 Two threads converge in this ADR:
 
 1. **Cost-quality cascade** (Tier 2 #3 from the post-Tier-1 plan): the
-   committed router (ADR 0008) dispatches by query category — `figure`,
+   committed router (ADR 0008) dispatches by query category: `figure`,
    `table`, `multi_hop` always invoke the visual leg even when the text
    leg is overwhelmingly confident. ColQwen2 cuda inference is a
    meaningful per-query cost; if text alone could answer the query, we'd
@@ -18,7 +18,7 @@ Two threads converge in this ADR:
 
 2. **Eval methodology**: Tier 1's verification run (`196ac0f8786f`) showed
    ±1.3 % faithfulness swings driven entirely by the LLM judge scoring
-   q33 differently across runs (1.0/1.0/1.0 vs 0.0/0.5/0.0 — same generated
+   q33 differently across runs (1.0/1.0/1.0 vs 0.0/0.5/0.0, same generated
    answer, different judge call). That variance is bigger than any feature
    we've shipped moves the aggregate, so future small lifts are
    uninterpretable without methodology fixes.
@@ -62,7 +62,7 @@ in-corpus         0.0 / 0.0         LLM judge runs
 
 The new path: a non-refusal answer to an OOC query is wrong by
 construction (no correct content answer exists for an unanswerable
-query). The LLM judge is unreliable on these — q33's same generated
+query). The LLM judge is unreliable on these: q33's same generated
 answer scored 1.0 in one run and 0.0 in another. With the override, the
 score is a pure function of (category, refusal-or-not).
 
@@ -82,7 +82,7 @@ metrics, ≈ $0.04 per eval. Cheap.
 Wraps `scripts.eval_run` with golden v1 (5 queries, 1 paper) and the
 production stack flags. Targets ~5 min completion. Fails fast on infra
 issues (missing API key, Ollama hang, GPU OOM, schema drift) before
-launching a 60–90 min v3 run. Run with `python -m scripts.smoke_eval`.
+launching a 60 to 90 min v3 run. Run with `python -m scripts.smoke_eval`.
 
 ## Cascade calibration outcome
 
@@ -96,10 +96,10 @@ top-1 rerank scores. Per-category distribution:
 | figure | 11 | 0.824 | 0.948 | 0.999 |
 | table | 4 | 0.902 | 0.991 | 0.994 |
 | multi_hop | 2 | 0.804 | 0.950 | 0.950 |
-| equation | 1 | 0.852 | — | — |
+| equation | 1 | 0.852 | n/a | n/a |
 | out_of_corpus | 8 | 0.001 | 0.100 | 0.910 |
 
-**Honest finding:** the text reranker is uniformly confident across all
+**Finding:** the text reranker is uniformly confident across all
 in-corpus categories (factual, figure, table, multi_hop all cluster in
 ~[0.85, 1.00]). Top-1 score by itself doesn't separate "confident text"
 from "needs visual help." A clean per-category threshold doesn't exist.
@@ -131,13 +131,13 @@ the score-threshold gate with:
 The full v3 verification eval was attempted with all features on
 (`--cascade --cascade-threshold 0.85 --judge-n-samples 3` plus the
 existing committed-baseline stack). It failed early with HTTP 403 from
-OpenRouter: *"Key limit exceeded (total limit)"* — the API key hit its
+OpenRouter: *"Key limit exceeded (total limit)"*. The API key hit its
 spending cap during the cumulative session work. Not a code defect.
 
 A smaller end-to-end smoke verification (run `568fe7cfd4f9`) ran all
 Tier 2 code paths against golden v1 (5 queries, 1 paper) using local
 Ollama models (llama3.2:3b for gen + judge, n_samples=2) so it doesn't
-burn API credit. Validates the *plumbing*, not headline metrics — the
+burn API credit. Validates the *plumbing*, not headline metrics: the
 absolute scores are lower because llama3.2:3b is a weaker judge than
 gpt-4o-mini.
 
@@ -177,11 +177,11 @@ gpt-4o-mini's score range; the code paths themselves are verified.
 
 ## Caveats & open questions
 
-1. **Cascade threshold isn't load-bearing.** As the calibration data
+1. **The cascade threshold has little effect.** As the calibration data
    shows, the v3 corpus's text reranker is too confident across the
    board for a single-value threshold to cleanly separate categories.
-   This ADR ships the *infrastructure* — the cascade mode, the calibration
-   tool, the eval flag — but the actual cost savings on this corpus are
+   This ADR ships the *infrastructure* (the cascade mode, the calibration
+   tool, the eval flag), but the actual cost savings on this corpus are
    modest. Bigger payoff would require either a richer uncertainty
    signal (score margin, entropy) or a corpus where the reranker has
    genuinely uncertain regions.
@@ -203,7 +203,7 @@ gpt-4o-mini's score range; the code paths themselves are verified.
 3. **Deterministic OOC scoring might be too strict.** A non-refusal
    answer that happens to acknowledge "I'm not sure but here's related
    context…" loses the LLM judge's potential partial credit. We accept
-   this — the OOC test's purpose is verifying refusal, not measuring
+   this: the OOC test's purpose is verifying refusal, not measuring
    gradients of "how related is the model's wrong answer." Documented
    here in case future eval needs change the requirement.
 
@@ -214,9 +214,9 @@ gpt-4o-mini's score range; the code paths themselves are verified.
 
 ## References
 
-- ADR 0008 — Routing (the category-mode dispatch this ADR
+- ADR 0008: Routing (the category-mode dispatch this ADR
   augments).
-- ADR 0009 — Region-level evidence + 1st/2nd follow-ups.
-- `scripts/calibrate_cascade.py` — per-corpus threshold picker.
-- `scripts/calibrate_refusal.py` (Tier 1) — same shape, refusal version.
-- Run `568fe7cfd4f9` — Tier 2 smoke verification (Ollama, golden v1).
+- ADR 0009: Region-level evidence + 1st/2nd follow-ups.
+- `scripts/calibrate_cascade.py`: per-corpus threshold picker.
+- `scripts/calibrate_refusal.py` (Tier 1): same shape, refusal version.
+- Run `568fe7cfd4f9`: Tier 2 smoke verification (Ollama, golden v1).

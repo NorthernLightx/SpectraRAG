@@ -1,6 +1,6 @@
-# ADR 0002 — Multi-modal: PDF-extracted figure/table chunks
+# ADR 0002: Multi-modal: PDF-extracted figure/table chunks
 
-**Status:** Accepted with caveat — multi-modal chunks land in tree as opt-in
+**Status:** Accepted with caveat. Multi-modal chunks land in tree as opt-in
 (`--extract-figures`, `--extract-tables`, `--vlm-caption-model`); default
 eval pipeline stays text-only until a stronger judge or VLM resolves the
 context-precision regression.
@@ -13,7 +13,7 @@ extraction + VLM captioning, table extraction → markdown, and equation
 handling. The deliverable for this phase is a "pipeline multi-modal vs
 text-only ablation."
 
-This decision implements the *infrastructure* — figure and table extraction
+This decision implements the *infrastructure*: figure and table extraction
 from PDFs (PyMuPDF), conversion to first-class `Chunk`s with
 `metadata['kind']`, and integration into the existing embed + BM25 +
 Qdrant pipeline. VLM captioning is deliberately deferred
@@ -21,7 +21,7 @@ because it's a separate decision (which provider, what cost) and we
 wanted to first measure how far we get with PDF-extracted captions
 alone.
 
-## A/B run — text-only vs +figures+tables, both on golden v2 (5 papers)
+## A/B run: text-only vs +figures+tables, both on golden v2 (5 papers)
 
 Run IDs:
 - text-only: `463125adb740` (`data/eval/runs/run-20260501-131403.json`,
@@ -42,7 +42,7 @@ Multi-modal chunks *are* surfacing: 4/23 queries land a table chunk at
 top-1, 8/23 have a figure in top-10, 8/23 have a table in top-10. The
 retrieval pipeline mechanically works.
 
-The lift in **context_precision** (+9%) is real — the LLM judge sees
+The lift in **context_precision** (+9%) is real. The LLM judge sees
 more directly-useful chunks per query. That's the headline pro.
 
 The drop in **answer_relevance** (−7.1%) is the real con. q6
@@ -63,17 +63,17 @@ Reasons to keep multi-modal *in tree but off by default*:
 2. The `Figure.vlm_caption` slot is the seam VLM captioning plugs into;
    nothing here needs to be re-done.
 3. context_precision improvement (+9%) is genuine signal that even
-   weak (PDF-only) figure/table chunks add useful retrieval signal —
-   the regression in answer_relevance is a *generator* problem, not
-   a retrieval problem.
+   weak (PDF-only) figure/table chunks add useful retrieval signal. The
+   regression in answer_relevance is a *generator* problem, not a
+   retrieval problem.
 
 Reasons to *not* enable by default yet:
 1. answer_relevance trips the 5% regression gate in CI.
 2. Figures with PDF-extracted captions duplicate text already in
-   surrounding chunks (the caption is in the page text too) — they
+   surrounding chunks (the caption is in the page text too). They
    add no new semantic content for retrieval, only minor BM25-noise.
 3. Tables can confuse the generator when the markdown is included
-   in the LLM's context window — it tries to summarise the table
+   in the LLM's context window. It tries to summarise the table
    instead of using its data to answer.
 
 ## VLM captioning ablations (2026-05-01)
@@ -91,9 +91,9 @@ generate + judge stack:
 |---|---|---|---|---|---|---|
 | Text-only baseline | **0.7214** | 0.9412 | **0.7437** | 0.8261 | 0.7957 | 0.6261 |
 | PDF captions only | 0.7033 | 0.9412 | 0.7369 | 0.8174 | 0.7391 | **0.6826** |
-| **2.1a — gemma3:4b VLM-only** | 0.7173 | 0.9412 | 0.7377 | **0.8587** | 0.7609 | 0.6391 |
-| 2.1b — concat (PDF + VLM) | 0.6769 | 0.9412 | 0.6977 | 0.8261 | 0.7174 | 0.6261 |
-| **2.1c — minicpm-v:8b VLM-only** | 0.7173 | 0.9412 | 0.7377 | **0.8587** | **0.8043** | 0.6043 |
+| **2.1a, gemma3:4b VLM-only** | 0.7173 | 0.9412 | 0.7377 | **0.8587** | 0.7609 | 0.6391 |
+| 2.1b, concat (PDF + VLM) | 0.6769 | 0.9412 | 0.6977 | 0.8261 | 0.7174 | 0.6261 |
+| **2.1c, minicpm-v:8b VLM-only** | 0.7173 | 0.9412 | 0.7377 | **0.8587** | **0.8043** | 0.6043 |
 
 Run IDs (in `data/eval/runs/`):
 - 2.1a `2ae186e6333f` (`run-20260501-161949.json`)
@@ -104,7 +104,7 @@ Run IDs (in `data/eval/runs/`):
 
 1. **`figure_to_chunk` should pick the strongest single caption source,
    not concatenate both.** 2.1b tested PDF + VLM concatenation and
-   regressed −6.16% on nDCG@5, −9.84% on ar — the longer combined text
+   regressed −6.16% on nDCG@5, −9.84% on ar. The longer combined text
    surfaced weaker figure chunks over strong text-chunk competitors at
    the rerank step. Reverted in `chunking.py` after the run.
 
@@ -118,7 +118,7 @@ Run IDs (in `data/eval/runs/`):
 
 3. **Despite weak captions, minicpm-v:8b *did* improve answer quality.**
    2.1c lifted answer_relevance to 0.8043 (above the text-only baseline) and
-   faithfulness to 0.8587 (+3.95% vs baseline) — multi-hop q4 went from
+   faithfulness to 0.8587 (+3.95% vs baseline). Multi-hop q4 went from
    ar 0.5 → 1.0 and equation q14 went from 0.8 → 1.0. The captions
    apparently help the *generator* situate retrieved chunks even when
    they look generic to a human reader.
@@ -138,7 +138,7 @@ Keep multi-modal chunks **opt-in default-off**, but document that:
   ar bar and bumps faithfulness without trip­ping the regression gate.
 - The ADR adoption rule's `cp ≥ 0.6826` (PDF-captions-only level) condition is
   unmet but is now considered a **judge-calibration artifact** rather
-  than a real signal — the chunks that improve generated-answer quality
+  than a real signal. The chunks that improve generated-answer quality
   are simultaneously scored "less precise" by the same model that wrote
   the answer.
 - A cloud-judge re-run (gpt-4o-mini as judge) is the cleanest tiebreaker
@@ -157,4 +157,4 @@ Status `Accepted with caveat (opt-in default-off, recommended VLM
 
 - `src/ingestion/figures.py`, `src/ingestion/tables.py`,
   `src/ingestion/chunking.py::figure_to_chunk/table_to_chunk`.
-- ADR 0001 (Contextual retrieval — Rejected).
+- ADR 0001 (Contextual retrieval, Rejected).

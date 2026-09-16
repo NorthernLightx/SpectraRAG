@@ -19,7 +19,7 @@ from src.types import Answer, Citation, RetrievalResult
 _log = get_logger(__name__)
 
 # Match `[<id>]` and `[chunk_id <id>]` (some local models inline the literal "chunk_id"
-# despite the prompt). The id can contain dots — ArXiv paper ids like `2604.22753v1`
+# despite the prompt). The id can contain dots: ArXiv paper ids like `2604.22753v1`
 # have them, and chunk ids are `<paper_id>::p<n>::c<n>`. Without `.` the regex would
 # silently truncate `2604.22753v1::p5::c24` to `2604`.
 _CITATION_RE = re.compile(r"\[(?:chunk_id\s+)?([A-Za-z0-9.:_\-]+)\]")
@@ -28,7 +28,7 @@ _CITATION_RE = re.compile(r"\[(?:chunk_id\s+)?([A-Za-z0-9.:_\-]+)\]")
 # _build_context packs into the prompt. ~4 chars/token is the standard
 # English heuristic; OpenRouter fronts many tokenizers so an exact per-model
 # count would still only approximate here. This is a soft packing budget, not
-# a hard model-context guard — the provider enforces the real token limit;
+# a hard model-context guard. The provider enforces the real token limit;
 # this only decides how many chunks are worth sending.
 _CHARS_PER_TOKEN = 4
 # Visual chunk-id format (mirrors src/rag/retrievers/visual.py:_PAGE_CHUNK_FMT)
@@ -41,9 +41,9 @@ class Generator:
 
     When `pages_dir` is set and any retrieved result has `source == "visual"`, the
     corresponding page PNG is attached to the LLM call as a content-block image so
-    a vision-capable model (e.g. qwen3-vl, claude-sonnet-4.x vision) can read the
+    a vision-capable model (qwen3-vl or claude-sonnet-4.x vision, say) can read the
     image directly. Falls back to text-only when no visual results are present or
-    `pages_dir` is None — preserves the existing behaviour.
+    `pages_dir` is None, preserving the existing behaviour.
     """
 
     def __init__(

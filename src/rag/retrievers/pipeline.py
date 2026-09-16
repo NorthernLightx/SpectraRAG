@@ -42,7 +42,7 @@ class PipelineRetriever:
             # ADR 0009 follow-up: paper-id filter scopes retrieval to a single
             # paper when the caller provides a hint. Eval populates from
             # GoldenQuery.paper_id; production callers pass nothing. Filtering
-            # at the source (Qdrant + BM25) is required — post-filter on
+            # at the source (Qdrant + BM25) is required, because post-filter on
             # candidate_pool=50 across 20 papers leaves too few same-paper hits.
             paper_filter = query.paper_id_filter()
             ctx["paper_filter"] = paper_filter or ""
@@ -105,7 +105,7 @@ class PipelineRetriever:
 
         Resolves each id through `chunks_by_id` (the same source both legs are
         re-materialised from). A missing id or a chunk with no `role` (text
-        chunks) is kept — only an explicit "decoration" role is dropped.
+        chunks) is kept; only an explicit "decoration" role is dropped.
         """
         kept: list[RankedItem] = []
         for item in items:
@@ -119,7 +119,7 @@ class PipelineRetriever:
         # Carry the chunk's metadata (kind, bbox, image_path, has_vlm_caption)
         # through to the RetrievalResult so the citation surface (ADR 0009)
         # can copy bbox into Citation when a region-grounded chunk is cited.
-        # `section` is added on top — it's stored alongside metadata on the
+        # `section` is added on top because it's stored alongside metadata on the
         # Chunk model, not inside the metadata dict.
         meta: dict[str, object] = dict(chunk.metadata)
         if chunk.section:

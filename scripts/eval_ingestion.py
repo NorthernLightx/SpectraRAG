@@ -1,9 +1,9 @@
-"""Ingestion scorecard — cheap, transparent, trended structural quality of the
+"""Ingestion scorecard: cheap, transparent, trended structural quality of the
 chunked corpus.
 
 The eval harness scores *answers*; nothing scored ingestion until now (the
 gap the ADR 0018 review surfaced). This runs `extract_pages` + `chunk_pages`
-only — no LLM, no RAG pipeline — so it finishes in seconds and can steer
+only (no LLM, no RAG pipeline), so it finishes in seconds and can steer
 ingestion changes early. It writes a committed JSON snapshot + a Markdown
 report with per-category example chunks (the "why", not just a number), and
 diffs against a prior snapshot so every ingestion change shows its delta.
@@ -82,7 +82,7 @@ def _run(papers_dir: Path) -> dict[str, Any]:
 
 def _markdown(snap: dict[str, Any], tag: str) -> str:
     m = snap["metrics"]
-    lines = [f"# Ingestion scorecard — `{tag}`", "", f"_{snap['generated_at']}_", ""]
+    lines = [f"# Ingestion scorecard: `{tag}`", "", f"_{snap['generated_at']}_", ""]
     lines += [f"- **{k}**: {v}" for k, v in m.items()]
     for title, items in snap["examples"].items():
         lines += ["", f"## {title}", *[f"- {x}" for x in items]]
@@ -101,7 +101,7 @@ def _diff(cur: dict[str, Any], prev: dict[str, Any]) -> str:
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--papers", type=Path, default=Path("data/papers"))
-    ap.add_argument("--tag", required=True, help="snapshot name, e.g. 'main' or 'wip'")
+    ap.add_argument("--tag", required=True, help="snapshot name, such as 'main' or 'wip'")
     ap.add_argument("--out-dir", type=Path, default=Path("data/eval/ingestion"))
     ap.add_argument("--diff", default=None, help="tag of a committed snapshot to diff against")
     args = ap.parse_args()

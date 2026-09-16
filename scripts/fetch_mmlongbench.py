@@ -1,8 +1,8 @@
-"""Fetch MMLongBench-Doc — QA parquet + whatever PDFs are publicly hosted.
+"""Fetch MMLongBench-Doc: QA parquet + whatever PDFs are publicly hosted.
 
 The benchmark publishes 1091 QAs over 135 documents; only ~18 PDFs are bundled
 on HuggingFace (the rest are web-sourced reports the authors can't redistribute
-under their licences). For our purposes a partial corpus is fine — we run the
+under their licences). For our purposes a partial corpus is fine. We run the
 eval on the subset whose PDFs we successfully fetched, which still gives ~145
 questions across 18 docs.
 
@@ -10,9 +10,9 @@ Usage:
     .venv/Scripts/python.exe -m scripts.fetch_mmlongbench
 
 Outputs:
-    data/mmlongbench/qa.parquet             — full 1091-row QA table (~smallish)
-    data/mmlongbench/documents/*.pdf        — whatever HuggingFace has
-    data/mmlongbench/missing.txt            — doc_ids referenced by QAs but not
+    data/mmlongbench/qa.parquet             full 1091-row QA table (~smallish)
+    data/mmlongbench/documents/*.pdf        whatever HuggingFace has
+    data/mmlongbench/missing.txt            doc_ids referenced by QAs but not
                                               available locally; fetch manually
                                               if needed.
 """
@@ -41,7 +41,7 @@ def main() -> None:
     try:
         from datasets import load_dataset
     except ImportError:
-        raise SystemExit("datasets library not installed — run `uv add datasets` first.") from None
+        raise SystemExit("datasets library not installed; run `uv add datasets` first.") from None
 
     print(f"Loading QA pairs from HuggingFace ({HF_REPO_ID})...")
     ds = load_dataset(HF_REPO_ID, split="train")
@@ -49,7 +49,7 @@ def main() -> None:
     ds.to_parquet(str(qa_path))
     print(f"  Wrote {qa_path} ({len(ds)} rows)")
 
-    # 2. PDF documents — list the HF repo's `/documents/` folder and download
+    # 2. PDF documents: list the HF repo's `/documents/` folder and download
     #    whatever's there. Use huggingface_hub directly because the datasets
     #    API doesn't expose the raw documents/ subdirectory.
     try:

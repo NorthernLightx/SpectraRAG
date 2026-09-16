@@ -12,7 +12,7 @@ chunk before embedding/BM25), pick a provider:
       --contextualize-provider openrouter \
       --contextualize-model openai/gpt-4o-mini
 
-  # Local (Ollama, no API key — needs `ollama pull <model>` first):
+  # Local (Ollama, no API key; needs `ollama pull <model>` first):
   uv run python -m scripts.eval_run --pdf <pdf> --contextualize \
       --contextualize-provider ollama \
       --contextualize-model qwen2.5:7b
@@ -253,7 +253,7 @@ async def _main(
     retriever: Retriever = pipeline_retriever
     if query_expansion:
         # CLI's `choices=("rewrite","hyde","combo")` already validates the value;
-        # the cast is safe — Literal narrowing isn't supported on tuple choices.
+        # the cast is safe: Literal narrowing isn't supported on tuple choices.
         mode_typed: ExpansionMode = query_expansion_mode  # type: ignore[assignment]
         qe_llm = _build_llm(query_expansion_provider, ollama_url=ollama_url)
         expander = QueryExpander(llm=qe_llm, model=query_expansion_model)
@@ -271,7 +271,7 @@ async def _main(
     if agentic:
         # ADR 0019 agentic tier: LLM decomposes a multi-part query into atomic
         # sub-questions, retrieves each via the wrapped retriever in parallel,
-        # fuses with RRF. Distinct from query_expansion (paraphrase) — this
+        # fuses with RRF. Distinct from query_expansion (paraphrase): this
         # splits intent, not surface form.
         from src.rag.retrievers.agentic import AgenticRetriever
 
@@ -291,7 +291,7 @@ async def _main(
         # ADR 0008 router: wrap the text retriever (already query-expanded if
         # requested) with RoutingRetriever so figure/table/multi_hop queries
         # get RRF-fused with the visual leg at page granularity. Render PDF
-        # pages first (idempotent — render_pages caches), then build ColQwen2
+        # pages first (idempotent, render_pages caches), then build ColQwen2
         # page embeddings (slow, GPU-heavy).
         pages_by_paper: dict[str, list[tuple[int, Path]]] = {}
         for pdf_path in pdf_paths if not visual_collection else []:
@@ -303,11 +303,11 @@ async def _main(
             f"over {sum(len(v) for v in pages_by_paper.values())} pages..."
         )
         # On shared 8 GB GPUs anything loaded in Ollama (bge-m3 embedder ~1.2 GB,
-        # gemma3:4b VLM ~3.3 GB if --vlm-caption-model was active, etc.) competes
+        # gemma3:4b VLM ~3.3 GB if --vlm-caption-model was active, and so on) competes
         # with ColQwen2's bf16 load and segfaults rather than OOMs cleanly. Query
         # /api/ps for all currently-resident models, then evict each via the
         # appropriate endpoint (embeddings for embedders, generate for chat/VLM
-        # models — both honor keep_alive: 0). Only matters on cuda.
+        # models; both honor keep_alive: 0). Only matters on cuda.
         if visual_device.startswith("cuda"):
             import httpx as _httpx  # local import keeps module-level deps clean
 
@@ -344,7 +344,7 @@ async def _main(
             except _httpx.HTTPError as e:
                 print(f"Ollama eviction skipped ({e!r}); continuing.")
         if visual_collection:
-            # Score against a persisted page index (ADR 0028) — the serve path.
+            # Score against a persisted page index (ADR 0028), the serve path.
             # A benchmark-scale corpus does not fit in VRAM as in-memory tensors,
             # and re-encoding thousands of pages per eval run is unaffordable.
             from src.rag.retrievers.visual import VisualRetriever, load_visual_model
@@ -370,7 +370,7 @@ async def _main(
         # natural-language queries; the live API ships the LLM zero-shot
         # classifier instead. --router-classifier=llm builds that same
         # classifier here so the eval router arm matches production. Ollama
-        # only — never OpenRouter (the classifier object does no I/O at
+        # only, never OpenRouter (the classifier object does no I/O at
         # construction; gemma3:4b loads on first classify(), after ColQwen2 is
         # resident, so it competes with the visual leg on small GPUs).
         classifier_obj: LLMQueryClassifier | None = None
@@ -394,7 +394,7 @@ async def _main(
                 cascade_confidence_threshold=cascade_threshold,
             )
             print(
-                f"Routing enabled (cascade mode, threshold={cascade_threshold}) — text leg "
+                f"Routing enabled (cascade mode, threshold={cascade_threshold}); text leg "
                 "first; visual leg fires only when text confidence is below the threshold."
             )
         else:
@@ -638,7 +638,7 @@ if __name__ == "__main__":
             "Multi-seed judge averaging (B2). When >1, each metric is sampled "
             "N times in parallel at temperature=0.7 and the score is the mean; "
             "GenerationMetrics gain *_std fields with the sample stddev. "
-            "Eliminates single-call judge variance (e.g. q33 in run 196ac0f8786f). "
+            "Eliminates single-call judge variance, such as q33 in run 196ac0f8786f. "
             "Cost: Nx judge tokens. Default 1 = previous behavior."
         ),
     )
@@ -816,7 +816,7 @@ if __name__ == "__main__":
         help=(
             "Ollama model for --router-classifier=llm. Defaults to gemma3:4b "
             "(Settings.classifier_ollama_model, the shipped default). Point at "
-            "an Ollama ':cloud' tag (e.g. 'qwen3-vl:235b-cloud') for the cloud "
+            "an Ollama ':cloud' tag such as 'qwen3-vl:235b-cloud' for the cloud "
             "classifier arm. Runs via Ollama only — never OpenRouter."
         ),
     )
@@ -854,7 +854,7 @@ if __name__ == "__main__":
         "--pages-dir",
         type=Path,
         default=Path("data/pages"),
-        help="Where to cache rendered PDF page PNGs. Idempotent — re-runs reuse cached files.",
+        help="Where to cache rendered PDF page PNGs. Idempotent: re-runs reuse cached files.",
     )
     parser.add_argument(
         "--pages-dpi",

@@ -1,4 +1,4 @@
-# ADR 0009 — Region-level evidence (figures + tables as first-class chunks with bbox)
+# ADR 0009: Region-level evidence (figures + tables as first-class chunks with bbox)
 
 **Status:** Accepted (2026-05-09). Vanilla flag-on regressed retrieval
 -13.8 % nDCG@5; the 1st follow-up added (a) golden updates that credit
@@ -18,9 +18,9 @@ metrics PASS on the regression gate.
 Run `c92f3f1bee19` (committed as `data/eval/baseline.json`) shows the current
 v3 + router + visual stack delivers nDCG@5 = 0.794 on retrieval and clean
 generation metrics (faithfulness 0.83, answer relevance 0.91 on the
-patched-judge run that's about to land — see "Validation" below). Per-category
+patched-judge run that's about to land, see "Validation" below). Per-category
 analysis: figure queries already average **0.876 nDCG@5** and table queries
-**0.875** — the strongest categories, not the weakest. The bottom-tail
+**0.875**, the strongest categories, not the weakest. The bottom-tail
 failures (q11, q20, q35) live at *ranking* (right page in top-10 but not
 top-5) and at *cross-paper bleed* (q9, q12), not at granularity. Generation
 recovers from rank-6 chunks: every Pattern-A query scores 1.0/1.0 on judge
@@ -56,12 +56,12 @@ flags (every committed run has `extract_figures: false`,
 ## Decision
 
 1. **Region = first-class `Chunk` with bbox in `metadata`.** No new `Region`
-   type. Extending the existing path keeps the retrieval surface uniform —
-   one BM25 index, one Qdrant collection, one rerank pass — and avoids the
+   type. Extending the existing path keeps the retrieval surface uniform
+   (one BM25 index, one Qdrant collection, one rerank pass) and avoids the
    substrate proliferation that ADR 0009 (multimodal graph store)
    considered and rejected for similar reasons.
 2. **Bbox format:** `[x0, y0, x1, y1]` in PDF points (PyMuPDF's native unit).
-   Stored as `metadata['bbox'] = [x0, y0, x1, y1]` — plain list, not a typed
+   Stored as `metadata['bbox'] = [x0, y0, x1, y1]`, a plain list, not a typed
    model on the chunk, because `Chunk.metadata` is `dict[str, Any]` and the
    eval/regression-gate JSON serializer can't distinguish nested Pydantic
    models at this layer. Type safety lives one layer up: `Figure.bbox` and
@@ -87,7 +87,7 @@ flags (every committed run has `extract_figures: false`,
 
 - **Not bbox-level visual retrieval.** The visual leg (ColQwen2 over rendered
   page images) stays page-granular. Region-level visual late-interaction
-  (per-figure crop embeddings) is in the literature (e.g. ColPali patch
+  (per-figure crop embeddings) is in the literature (for example, ColPali patch
   scores can be aggregated by bbox) but the current routing layer doesn't
   consume sub-page visual scores; adding that is a separate ADR.
 - **Not a knowledge graph.** Cross-modal links between figures and the
@@ -139,17 +139,17 @@ flags (every committed run has `extract_figures: false`,
 
 ## File touches
 
-- `src/types/documents.py` — add `Bbox`; add `bbox: Bbox | None` to `Figure`
+- `src/types/documents.py`: add `Bbox`; add `bbox: Bbox | None` to `Figure`
   and `Table`.
-- `src/types/generation.py` — add `bbox: list[float] | None = None` to
+- `src/types/generation.py`: add `bbox: list[float] | None = None` to
   `Citation`.
-- `src/ingestion/figures.py` — capture `page.get_image_rects(xref)` per
+- `src/ingestion/figures.py`: capture `page.get_image_rects(xref)` per
   image, attach to `Figure.bbox`.
-- `src/ingestion/tables.py` — capture `found.bbox` per detected table,
+- `src/ingestion/tables.py`: capture `found.bbox` per detected table,
   attach to `Table.bbox`.
-- `src/ingestion/chunking.py` — `figure_to_chunk` / `table_to_chunk` pack
+- `src/ingestion/chunking.py`: `figure_to_chunk` / `table_to_chunk` pack
   `bbox` into `metadata['bbox']` as a 4-list when present.
-- `src/rag/generate.py` — citation extraction looks up the chunk's metadata
+- `src/rag/generate.py`: citation extraction looks up the chunk's metadata
   for `bbox` and copies it to the `Citation` if present.
 - Tests at every layer (see "Validation" below).
 
@@ -159,11 +159,11 @@ flags (every committed run has `extract_figures: false`,
    some embedded streams (vector art, transparent overlays). `Figure.bbox`
    stays `None`; `figure_to_chunk` doesn't add `metadata['bbox']`; the
    citation downstream has `bbox=None`. Demo UI renders a page-level
-   highlight (existing behavior) — graceful degrade.
+   highlight (existing behavior), a graceful degrade.
 2. **Multiple rects for one image.** A logo repeated across pages would
    show up as N rects from one xref. We dedupe by xref *before* fetching
    rects (existing logic), so this can't happen for the deduped figures.
-3. **Table bbox wrong.** PyMuPDF's table detector is heuristic — multi-page
+3. **Table bbox wrong.** PyMuPDF's table detector is heuristic: multi-page
    tables, dense column layouts, and embedded equations confuse it. When
    `find_tables` returns a wrong bbox, the citation will point to the
    wrong region. The text content of the chunk (caption + markdown) is
@@ -176,7 +176,7 @@ flags (every committed run has `extract_figures: false`,
 
 ## Validation
 
-The committed baseline is `c92f3f1bee19` — pre-figure/table-extraction. The
+The committed baseline is `c92f3f1bee19`, pre-figure/table-extraction. The
 patched judge (deterministic refusal handling per `docs/evals.md`) lifts
 faithfulness on OOC refusals; this ADR's eval run uses the patched judge so
 the comparison is clean.
@@ -186,12 +186,12 @@ A second run with `--extract-figures --extract-tables` on:
 - Should match or improve nDCG@5 on figure (currently 0.876) and table
   (currently 0.875) categories. Adding caption-stub chunks could *hurt*
   retrieval if the reranker prefers the (low-content) caption chunks over
-  the (high-content) text chunks that actually answer the query — this is
+  the (high-content) text chunks that actually answer the query. This is
   why `figure_to_chunk` already prefers VLM caption when set, and why we
   audit this in the regression gate.
 - Generation metrics may stay flat (the generator already had access to
   caption text via the surrounding text chunks). The qualitative win is
-  the citation surface — answers can cite `2604.22753v1::p2::fig1` with a
+  the citation surface: answers can cite `2604.22753v1::p2::fig1` with a
   bbox, instead of `2604.22753v1::p2::c10` (which is the page's text
   chunk that happens to mention Figure 1).
 - The regression gate must not fire. If aggregate metrics regress >5%, we
@@ -217,7 +217,7 @@ patched judge, same router + visual leg as the baseline. 64 min wall-clock
 | Metric | Baseline | Region | Δ abs | Δ rel | Note |
 |---|---|---|---|---|---|
 | faithfulness | 0.8269 | 0.9949 | +0.1679 | +20.31 % | mostly the patched-judge fix; recomputed patched-judge baseline ≈ 0.955, so the region-only lift is ~+4 % |
-| answer_relevance | 0.9103 | 0.9744 | +0.0641 | +7.04 % | same — patched-judge baseline ≈ 0.987, region-only Δ is **-1.3 %** (slight regression) |
+| answer_relevance | 0.9103 | 0.9744 | +0.0641 | +7.04 % | same: patched-judge baseline ≈ 0.987, region-only Δ is **-1.3 %** (slight regression) |
 | context_precision | 0.8051 | 0.7769 | -0.0282 | -3.50 % | judge fix doesn't touch this; net -3.5 % is the region effect |
 | citation grounding | 1.0000 | 1.0000 | 0 | 0 | unchanged |
 
@@ -241,15 +241,15 @@ out of top-5. Three of the four worst regressions are *table* queries (q25, q26,
 **Region-grounded citations did fire.** 5 of 58 generated citations cited a figure or
 table chunk directly: q9_baselines → `2604.28193v1::p7::tab2`, q11_budget_levels →
 `2604.22753v1::p7::tab2`, q25 → `2604.27742v1::p2::tab1`, q26 → `2604.28190v1::p10::tab4`,
-q31 → `2604.28196v1::p2::fig1`. Each of those citations carries `bbox` per the schema —
-demo UIs can render the precise region.
+q31 → `2604.28196v1::p2::fig1`. Each of those citations carries `bbox` per the schema.
+Demo UIs can render the precise region.
 
 **Conclusion (initial validation):** the infrastructure is right; the
 metric regression has explicit causes (golden mismatch + reranker stub
 preference + cross-paper bleed amplified + wrong-region picked). See
 "Follow-up" below for the algo changes that close those.
 
-## Follow-up — combined run `d9bcd13b880f` (2026-05-09)
+## Follow-up: combined run `d9bcd13b880f` (2026-05-09)
 
 Three orthogonal changes, all behind feature flags so the eval can ablate:
 
@@ -260,7 +260,7 @@ Three orthogonal changes, all behind feature flags so the eval can ablate:
    `Query.filters['paper_id']` is populated from `GoldenQuery.paper_id`
    and the dense + sparse retrievers scope to that paper. Closes
    cross-paper bleed (q9 was retrieving wrong-paper tables at rank 1).
-   Eval-only — production callers don't pass a paper hint.
+   Eval-only. Production callers don't pass a paper hint.
 3. **`--region-number-boost`** (new wrapper `RegionNumberBoostRetriever`
    in `src/rag/retrievers/region_boost.py`): post-processor over an
    underlying retriever; when query mentions `Table N` / `Figure N`,
@@ -270,7 +270,7 @@ Three orthogonal changes, all behind feature flags so the eval can ablate:
    not "Table 1 of paper").
 
 `scripts/rebaseline_offline.py` recomputes historical runs' retrieval
-metrics under updated goldens (deterministic — nDCG/recall/MRR are pure
+metrics under updated goldens (deterministic: nDCG/recall/MRR are pure
 functions of (retrieved, relevant)). Used to fairly compare runs from
 before the golden update without burning GPU on a re-run.
 
@@ -294,7 +294,7 @@ clearly because the judge fix lands and the demo gets region citations).
 `2604.27742v1::p2::tab1`, q26 → `2604.28190v1::p10::tab4`, q31 →
 `2604.28196v1::p2::fig1`, q33 → 3 figures of the AEGIS paper (q33 is
 OOC; the model leaked but the judge correctly scored faith=0). Each
-carries `Citation.bbox` per the schema — the demo UI can render exact
+carries `Citation.bbox` per the schema. The demo UI can render exact
 region overlays on the page image.
 
 ### What this leaves open (after the 1st follow-up)
@@ -305,17 +305,17 @@ region overlays on the page image.
   reranker scoring or chunk-type-aware penalties are the next layer.
 - q29_aegis_tab8_janus_rank: `Table 8` lives on page 23 but the table
   extractor labels it `p23::tab1` (sequential), and the chunk text
-  starts with "Table 8: …" so the boost should fire — but the boost
+  starts with "Table 8: …" so the boost should fire, but the boost
   only fires if the chunk is in the rerank result list, and the chunk
   didn't make top-50. That's a recall problem at the page level, not
   a boost-logic problem. Worth a separate look.
 - VLM captioning still off. Turning it on (`--vlm-caption-model`) is
   the obvious next experiment; should help bucket B (caption stubs
-  outranking text) for *figures*. Tables are harder — VLM-described
+  outranking text) for *figures*. Tables are harder: VLM-described
   tables exist as a research idea but aren't supported by
   `figure_to_chunk` today.
 
-## 2nd follow-up — combined run `f844619927e0` (2026-05-09)
+## 2nd follow-up: combined run `f844619927e0` (2026-05-09)
 
 Two more orthogonal changes; both behind feature flags.
 
@@ -370,7 +370,7 @@ legitimate short answers (q8-style facts).
 ### Region-grounded citations after length-norm
 
 The committed combined run had 6 region citations of 61. After
-length-norm, that drops to **2 of 63** (q25 → tab1, q26 → tab4) —
+length-norm, that drops to **2 of 63** (q25 → tab1, q26 → tab4):
 length-norm intentionally penalises stub-shaped chunks, so the
 generator sees more of the rich text chunks at the top. The two that
 remain are the genuine "table IS the answer" cases. The four that
@@ -399,7 +399,7 @@ remaining region citation is more defensible.
 
 1. **Caption-stub chunks vs reranker behavior.** When VLM captioning is
    off, figure chunks contain only the PDF-extracted caption text (often
-   1–3 sentences). On the reranker, those compete against the much richer
+   1 to 3 sentences). On the reranker, those compete against the much richer
    text chunks for the same page. Empirical question for the eval run.
 2. **Citation surface contract.** The Pydantic-Settings model evolves slowly
    and `Citation.bbox` is a real schema change. Existing API consumers (the
@@ -415,19 +415,19 @@ remaining region citation is more defensible.
 4. **Multi-page tables.** PyMuPDF's `find_tables` doesn't stitch a table
    that crosses page breaks. Each page's fragment becomes its own Table.
    That's fine for retrieval (BM25 will surface either fragment) but
-   confusing for the citation surface — the answer might cite the
+   confusing for the citation surface: the answer might cite the
    second-page fragment but the user expects the whole table. Out of
    scope for this ADR; flag for future work.
 
 ## References
 
-- ADR 0002 — Multimodal chunks (introduced `figure_to_chunk` /
+- ADR 0002: Multimodal chunks (introduced `figure_to_chunk` /
   `table_to_chunk` and the `extract_figures` / `extract_tables` ingest
   flags; this ADR adds bbox + bbox-aware citations on top).
-- ADR 0004 — Visual retrieval (page-level ColQwen2; not changed).
-- ADR 0007 — Corpus expansion + offline hybrid re-evaluation.
-- ADR 0008 — Routing (text vs hybrid by query category; not
+- ADR 0004: Visual retrieval (page-level ColQwen2; not changed).
+- ADR 0007: Corpus expansion + offline hybrid re-evaluation.
+- ADR 0008: Routing (text vs hybrid by query category; not
   changed).
-- `data/eval/baseline.json` — current baseline `c92f3f1bee19`.
-- `docs/evals.md` — eval framework reference, including OOC scoring
+- `data/eval/baseline.json`: current baseline `c92f3f1bee19`.
+- `docs/evals.md`: eval framework reference, including OOC scoring
   convention now enforced deterministically by `runner._run_one`.

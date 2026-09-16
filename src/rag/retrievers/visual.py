@@ -1,9 +1,9 @@
-"""VisualRetriever — ColQwen2 multi-vector page retrieval.
+"""VisualRetriever: ColQwen2 multi-vector page retrieval.
 
 Each page of each paper is embedded once into a multi-vector tensor
 (`[n_patches, dim]`). At query time the user query is also multi-vector
 embedded and scored against every page via late interaction
-(MaxSim — for each query token, max similarity over page patches; sum
+(MaxSim: for each query token, max similarity over page patches, summed
 across query tokens).
 
 Storage is in-memory (a list of tensors keyed by chunk_id). For a small
@@ -71,7 +71,7 @@ class VisualRetriever:
 
         Two scoring backends: a persisted Qdrant multivector collection
         (``self._store``, the deploy path) or the in-memory ``page_embeds``
-        (offline/eval). Either way only the query is embedded here — page
+        (offline/eval). Either way only the query is embedded here; page
         vectors were embedded ahead of time. ADR 0009 follow-up: the paper-id
         filter from ``query.filters['paper_id']`` is honored on both backends.
         """
@@ -134,7 +134,7 @@ class VisualRetriever:
         batching all pages into a single `score_multi_vector` invocation drops
         per-query latency by ~5x with no semantic change (MaxSim is stateless).
         Pages have variable patch counts so we pad to the max length and rely
-        on the score function's masking — colpali-engine handles ragged inputs
+        on the score function's masking, and colpali-engine handles ragged inputs
         when given a list of tensors.
         """
         query_embed = self._encode_query(query)
@@ -150,7 +150,7 @@ class VisualRetriever:
 
     def _embed_query(self, query: str) -> list[list[float]]:
         """Embed a query to its ``[n_q_tokens, dim]`` multivector as a list of
-        rows — the 2D query the Qdrant MAX_SIM comparator expects."""
+        rows, the 2D query the Qdrant MAX_SIM comparator expects."""
         squeezed: torch.Tensor = self._encode_query(query).squeeze(0).float().cpu()
         rows: list[list[float]] = squeezed.tolist()
         return rows
@@ -189,7 +189,7 @@ def _select_col_classes(model_name: str) -> tuple[Any, Any]:
     if "colpali" in name:
         return ColPali, ColPaliProcessor
     raise ValueError(
-        f"unsupported visual model {model_name!r} — expected a vidore/colqwen2*, "
+        f"unsupported visual model {model_name!r}; expected a vidore/colqwen2*, "
         "vidore/colqwen2.5*, vidore/colqwen3*, or vidore/colpali* checkpoint"
     )
 
@@ -197,8 +197,8 @@ def _select_col_classes(model_name: str) -> tuple[Any, Any]:
 async def load_visual_model(model_name: str, device: str) -> tuple[Any, Any]:
     """Load a Col* model + processor (no page embedding).
 
-    Shared by the serve path — which encodes only the query against a persisted
-    Qdrant page index (ADR 0028) — and by ``build_visual_retriever``, which then
+    Shared by the serve path (which encodes only the query against a persisted
+    Qdrant page index, ADR 0028) and by ``build_visual_retriever``, which then
     embeds pages in-process. bf16 on GPU; fp32 on CPU (bf16 matmuls are not
     uniformly supported there).
     """

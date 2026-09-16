@@ -1,7 +1,7 @@
-"""LLM community reports — what GraphRAG global search reads instead of raw
+"""LLM community reports: what GraphRAG global search reads instead of raw
 passages (ADR 0018, spike-scope).
 
-One report per community: flat, no hierarchical roll-up — that depth is
+One report per community: flat, no hierarchical roll-up. That depth is
 deferred until the kill-spike says GraphRAG is worth continuing. Same
 posture as `graph_extract.py`: concurrency-bounded, per-community failure
 degrades to "no report" rather than aborting the batch.
@@ -91,8 +91,8 @@ async def summarize_communities(
     max_tokens: int = 400,
 ) -> list[CommunityReport]:
     """One report per community. Communities with no usable context or whose
-    LLM call fails are dropped (not emitted empty — global search must not
-    read blank reports)."""
+    LLM call fails are dropped (not emitted empty, because global search must
+    not read blank reports)."""
     if not communities:
         return []
     prompt = load_prompt_by_name("graph_community_summary")

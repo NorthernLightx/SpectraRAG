@@ -1,7 +1,7 @@
 """Re-score an MMLongBench run JSON at PAGE granularity, paper-aware.
 
 The eval runner scores retrieval against `relevant_chunk_ids`, but
-MMLongBench-Doc labels are page-level — every per-query `relevant_chunk_ids`
+MMLongBench-Doc labels are page-level, and every per-query `relevant_chunk_ids`
 is empty in the golden YAML, so eval_run.py records 0.0 for nDCG/recall/MRR
 on every query. This script reads the run JSON, maps each retrieved chunk-id
 to its (paper, page) key (`paper::pN::cM` -> `(paper, N)`), scores against
@@ -13,7 +13,7 @@ any corpus paper) and a same-numbered page in the wrong paper is not relevant.
 
 That copy is what `data/eval/baseline-mmlongbench.json` is built from, and
 what `scripts/check_regression.py --baseline` consumes for the multi-modal
-regression gate. The original run JSON is left untouched — it remains the
+regression gate. The original run JSON is left untouched; it remains the
 faithful eval_run.py output (for audit) and this script the canonical
 post-process.
 
@@ -111,8 +111,8 @@ def rescore(run: dict[str, Any], golden: dict[str, Any]) -> dict[str, Any]:
     drop-in for `check_regression.py`.
 
     Queries whose golden entry has no `relevant_pages` (label-gap or OOC)
-    receive `retrieval` values of None — `check_regression._macro_mean` skips
-    those queries, keeping the macro means honest. We explicitly do NOT
+    receive `retrieval` values of None, which `check_regression._macro_mean`
+    skips, so the macro means cover only scored queries. We explicitly do NOT
     mutate the `category` field, since the eval runner's category labels are
     a separate concern from page-level scoring fidelity.
     """
@@ -147,7 +147,7 @@ def rescore(run: dict[str, Any], golden: dict[str, Any]) -> dict[str, Any]:
 
 def _print_summary(rescored: dict[str, Any]) -> None:
     """Prints the same macro means `check_regression.py` will compute on the
-    output file — useful sanity check that the gate agrees with the rescore."""
+    output file, a sanity check that the gate agrees with the rescore."""
     scored = [
         pq
         for pq in rescored["per_query"]

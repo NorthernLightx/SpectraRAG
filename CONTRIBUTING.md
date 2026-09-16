@@ -1,8 +1,8 @@
 # Contributing
 
-Thanks for your interest. This is a personal research project — drive-by
-PRs are welcome, but please open an issue first for anything beyond a typo
-or single-line fix so we can align on scope.
+Thanks for your interest. This is a personal research project. Drive-by
+PRs are welcome, but open an issue first for anything beyond a typo or
+single-line fix so we can align on scope.
 
 ## Local setup
 
@@ -37,15 +37,15 @@ uv run python -m scripts.check_regression \
 
 `scripts/` is three tiers by stability:
 
-- **top level** — maintained entrypoints + the data-reproduction pipeline
+- **top level**: maintained entrypoints + the data-reproduction pipeline
   (`eval_run`, `check_regression`, `ingest`, `render_pages`,
   `bootstrap_corpus`, `eval_visual`, `fetch_*`, …). CI, the root README, and
   `docs/evals.md` invoke these as `python -m scripts.<name>`; their import
-  paths are an API contract — relocating one is a cross-repo change (CI +
+  paths are an API contract. Relocating one is a cross-repo change (CI +
   docs + ADRs in the same commit), not a move.
-- **`scripts/experiments/`** — the ADR-linked DoE / study / probe drivers
-  from the retrieval investigation (ADRs 0012–0016).
-- **`scripts/legacy/`** — superseded one-off and earlier-phase scripts kept
+- **`scripts/experiments/`**: the ADR-linked DoE / study / probe drivers
+  from the retrieval investigation (ADRs 0012 to 0016).
+- **`scripts/legacy/`**: superseded one-off and earlier-phase scripts kept
   for the historical record (referenced by older ADRs / `docs/results.md`).
 
 `experiments/` and `legacy/` are intentionally exempt from the CI
@@ -54,7 +54,7 @@ ruff / format / mypy-strict gates (`pyproject.toml` `extend-exclude` + mypy
 New exploratory scripts start in `experiments/`; nothing graduates out of
 `legacy/`. A script stays top-tier (gated) if it is a documented
 entrypoint, has a maintained test, **or** is referenced by maintained
-code/CLI — even if its approach was superseded. `legacy/` is for
+code/CLI, even if its approach was superseded. `legacy/` is for
 *untested, unreferenced*, frozen spikes.
 
 ## Commit conventions
@@ -62,14 +62,14 @@ code/CLI — even if its approach was superseded. `legacy/` is for
 We use [Conventional Commits](https://www.conventionalcommits.org/). The
 pattern is `type(scope): subject`, lowercase, imperative mood. Common types:
 
-- `feat(<scope>):` — new behavior
-- `fix(<scope>):` — bug fix
-- `docs(<scope>):` — README / ADR / docstring changes
-- `test(<scope>):` — test-only changes
-- `refactor(<scope>):` — no behavior change
-- `chore:` — repo housekeeping
-- `ci:` / `build:` — workflow / build config
-- `perf(<scope>):` — perf-only changes
+- `feat(<scope>):` new behavior
+- `fix(<scope>):` bug fix
+- `docs(<scope>):` README / ADR / docstring changes
+- `test(<scope>):` test-only changes
+- `refactor(<scope>):` no behavior change
+- `chore:` repo housekeeping
+- `ci:` / `build:` workflow / build config
+- `perf(<scope>):` perf-only changes
 
 Examples from this repo:
 
@@ -80,7 +80,7 @@ docs(adr): 0006 — OOC refusal gate (accepted opt-in; judge artifact noted)
 chore(deploy): tighten az containerapp create args; default min-replicas=0
 ```
 
-Keep commits **atomic** — each commit should pass `pytest -m "not integration"`
+Keep commits **atomic**: each commit should pass `pytest -m "not integration"`
 on its own. If a refactor and a feature ride together, split them.
 
 ## Architecture decisions
@@ -94,29 +94,29 @@ in an area covered by an ADR should reference or supersede it.
 
 This repo is open-source by design. Be defensive about leakage:
 
-- ❌ **Secrets** — API keys, tokens, DSNs, private keys, OAuth secrets.
+- ❌ **Secrets**: API keys, tokens, DSNs, private keys, OAuth secrets.
   `.env` is gitignored; `.env.example` is the only sanctioned secrets-ish
   file (with placeholder values only). Pre-commit `gitleaks` hook is the
   safety net, not a substitute for care.
-- ❌ **Personal info** — your home directory paths (`/c/Users/<you>/...`,
+- ❌ **Personal info**: your home directory paths (`/c/Users/<you>/...`,
   `/home/<you>/...`, `C:\Users\<you>\...`), your real-name email if you
   prefer pseudonymity, internal hostnames, customer data, anything you
   wouldn't paste into a public Gist. Use `~` or env vars in pasted shell
   commands.
-- ❌ **Large binary blobs** — `data/papers/`, `data/pages/`, model weights,
+- ❌ **Large binary blobs**: `data/papers/`, `data/pages/`, model weights,
   `.parquet`, anything > 1 MB unless it's a versioned artifact like
   `data/eval/baseline.json`. Use the fetch scripts to reproduce locally.
-- ❌ **Ephemeral local state** — `.venv/`, `logs/`, `.coverage*`,
+- ❌ **Ephemeral local state**: `.venv/`, `logs/`, `.coverage*`,
   `__pycache__/`, `qdrant_storage/`, `postgres_data/`, IDE configs.
   These are covered by `.gitignore`; if you introduce a new tool whose
   state isn't already gitignored, add it to `.gitignore` in the same PR.
-- ❌ **Work-in-progress notes** — `STATUS.md`-style running logs,
+- ❌ **Work-in-progress notes**: `STATUS.md`-style running logs,
   scratchpad plans, one-off task lists, anything intended as a personal
   thinking aid. What belongs in the repo is the ADR *after* the decision
   is made, not the deliberation that led to it.
 
 If you accidentally commit something sensitive, **do not just delete it in a
-follow-up commit** — the data stays in history. Use `git filter-repo` to
+follow-up commit**. The data stays in history. Use `git filter-repo` to
 purge the file from every commit, then force-push and rotate the secret.
 See [GitHub's removing sensitive data guide](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository).
 
@@ -134,5 +134,5 @@ locally. CI runs the same set on push.
 
 ## Reporting security issues
 
-See [SECURITY.md](./SECURITY.md). Please do not file public issues for
-security-impacting bugs — use GitHub's private vulnerability reporting.
+See [SECURITY.md](./SECURITY.md). Do not file public issues for
+security-impacting bugs. Use GitHub's private vulnerability reporting.

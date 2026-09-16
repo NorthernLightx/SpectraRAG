@@ -1,4 +1,4 @@
-/* Shared primitives — exported to window for the other babel scripts. */
+/* Shared primitives, exported to window for the other babel scripts. */
 const { useState, useEffect, useRef, useMemo, useCallback } = React;
 
 /* Collapse whitespace and truncate to n chars with an ellipsis. */
@@ -59,7 +59,7 @@ function RoutePill({ route }) {
 function ScoreBar({ score, kind = "text", dropped = false }) {
   const cls = ["scorebar", kind === "visual" ? "visual" : "", dropped ? "dropped" : ""].join(" ");
   // Clamp both ends: a negative width is invalid CSS, gets dropped, and the
-  // display:block fill then defaults to width:auto — a FULL bar on the worst
+  // display:block fill then defaults to width:auto, a FULL bar on the worst
   // scores. Callers normalize logits; this is the backstop.
   const w = Math.round(Math.max(0, Math.min(1, score || 0)) * 100);
   return <div className={cls}><i style={{ width: w + "%" }}></i></div>;
@@ -79,13 +79,14 @@ function inlineNodes(text, onCite, maxCite) {
       const tag = m[2];
       const isFig = tag[0] === "F";
       // Drop dangling citations: the model sometimes echoes a paper's own
-      // bibliography ref (e.g. [26]) that isn't one of our renumbered sources
-      // ([1..maxCite]). Render those as plain text, not a chip with no target.
+      // bibliography ref (for example [26]) that isn't one of our renumbered
+      // sources ([1..maxCite]). Render those as plain text, not a chip with
+      // no target.
       if (!isFig && maxCite != null && (+tag < 1 || +tag > maxCite)) {
         out.push("[" + tag + "]");
       } else {
-        // F-tags have no click target in chat (the handler drops them) — render
-        // them as plain markers, not a dead "Jump to evidence" affordance.
+        // F-tags have no click target in chat (the handler drops them), so
+        // render them as plain markers, not a dead "Jump to evidence" affordance.
         out.push(isFig
           ? <sup key={"c" + k++} className="cite-ref fig">{tag}</sup>
           : <sup key={"c" + k++} className="cite-ref"
@@ -188,7 +189,7 @@ function PageRegionModal({ item, onClose, paperTitle }) {
   const title = paperTitle ? paperTitle(item.paper) : item.paper;
   const hasBbox = Array.isArray(item.bbox) && item.bbox.length === 4;
   // Visual-store page chunks carry a "[Page image …]" placeholder as their
-  // text — the page render above IS the content, so show no quote for those.
+  // text. The page render above IS the content, so show no quote for those.
   const rawQuote = String(item.quote || item.text || "").replace(/\s+/g, " ").trim();
   const placeholder = /^\[Page image /i.test(rawQuote);
   const quote = placeholder ? "" : rawQuote.length > 320 ? rawQuote.slice(0, 320).trim() + "…" : rawQuote;
@@ -234,7 +235,7 @@ function PageRegionModal({ item, onClose, paperTitle }) {
           {typeof item.score === "number" && (
             <div className="pm-score">
               <div className="pm-score-row"><span className="isk">{isVis ? "patch sim" : "relevance"}</span><span className="isv mono">{item.score.toFixed(3)}</span></div>
-              {/* Rerank scores are logits — a 0..1 bar only makes sense for
+              {/* Rerank scores are logits, so a 0..1 bar only makes sense for
                   similarity-scaled values; otherwise the number stands alone. */}
               {item.score >= 0 && item.score <= 1 && <ScoreBar score={item.score} kind={item.kind} />}
             </div>

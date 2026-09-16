@@ -4,7 +4,7 @@ CPU-only validation for the visual-favoring fusion weight: feeds the existing
 `text_top50` / `visual_top50` legs of a depth-50 run JSON through the *actual*
 `RoutingRetriever._fuse_page_level` at a sweep of visual weights, then scores the
 re-fused ranking with the canonical page-level helpers from
-`scripts.rescore_mmlb_pages`. No model inference — it only re-orders chunk ids
+`scripts.rescore_mmlb_pages`. No model inference; it only re-orders chunk ids
 that were already retrieved.
 
 Expected anchors (figure subset, n=75):
@@ -46,7 +46,7 @@ def _legs_to_results(chunk_ids: list[str], source: str) -> list[RetrievalResult]
     """Wrap a rank-ordered chunk-id list as RetrievalResults.
 
     Score descends with rank so `_fuse_page_level`'s best-text-per-page pick
-    lands on the first-appearing chunk of each page — the same page identity the
+    lands on the first-appearing chunk of each page, the same page identity the
     rescorer keys on. The paper_id/page_numbers are parsed from the id; their
     exact values don't matter to fusion (it keys on the `paper::pN` prefix) but
     keep the RetrievalResult well-formed.

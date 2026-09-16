@@ -38,7 +38,7 @@ _log = get_logger(__name__)
 # title) is either page furniture or owned by a separate chunk type.
 _BODY_LABELS = frozenset({"text", "list_item", "formula", "footnote", "code", "paragraph"})
 
-# Minimum block char length to include — drops one-character axis-tick
+# Minimum block char length to include. Drops one-character axis-tick
 # leakage that wasn't fully caught by the figure-bbox containment check.
 _MIN_BLOCK_CHARS = 2
 
@@ -58,7 +58,7 @@ class _Block(NamedTuple):
 def _bbox_inside_any(inner: Bbox, outers: list[Bbox]) -> bool:
     """True when ``inner`` is mostly (>=80% of its area) contained by one
     of ``outers``. Used to drop text blocks that Docling identifies as
-    sitting *inside* a figure / table region — those are figure-interior
+    sitting *inside* a figure / table region; those are figure-interior
     leak text we don't want in body chunks."""
     inner_area = (inner.x1 - inner.x0) * (inner.y1 - inner.y0)
     if inner_area <= 0:

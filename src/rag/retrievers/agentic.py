@@ -2,13 +2,13 @@
 fuses with RRF (ADR 0019).
 
 Distinct from `MultiQueryRetriever`: that decorator *paraphrases* one query
-(rewrite / HyDE) — same intent, multiple surface forms. This one *decomposes*
+(rewrite / HyDE) into the same intent in multiple surface forms. This one *decomposes*
 a complex multi-part query into atomic sub-questions and retrieves each one
 separately, so a multi-hop question like "compare X and Y on Z" splits into
 "what is X on Z?" + "what is Y on Z?" and each leg pulls its own evidence.
 
 Per-query cost (1 decomposition call + up to N base retrievals); no
-per-corpus indexing cost — unlike GraphRAG (ADR 0018), this does not rely
+per-corpus indexing cost. Unlike GraphRAG (ADR 0018), this does not rely
 on a corpus-wide graph that the spike showed does not pay off on this set.
 """
 
@@ -52,7 +52,7 @@ class AgenticRetriever:
 
     Graceful: on any LLM / parse failure, falls back to a single base
     retrieval on the original query. A query whose decomposition reduces to
-    [original] is *identical* to plain base retrieval — there is no cost
+    [original] is *identical* to plain base retrieval, so there is no cost
     penalty for atomic queries beyond the one decomposition LLM call (which
     can be skipped entirely by passing `decompose=False`).
     """

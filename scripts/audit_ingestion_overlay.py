@@ -7,7 +7,7 @@ sensible bbox. This tool does:
 - Renders each page, draws orange boxes for extracted figures (figure_id +
   caption snippet) and blue boxes for extracted tables (table_id + caption).
 - Scans every page's text for `Figure N:` / `Table N:` captions and reports
-  the labels that the *captions say exist* per page — then flags pages
+  the labels that the *captions say exist* per page, then flags pages
   where the extractor produced nothing despite a caption mention. That is
   the most likely silent-miss class.
 
@@ -51,7 +51,7 @@ _TAB_COLOR = (0.0, 0.4, 1.0)  # blue
 def _labels_in_text(text: str) -> tuple[set[str], set[str]]:
     """`(figure_labels, table_labels)` extracted from a page's raw text.
 
-    Returns the labels (e.g., `"1"`, `"E.1"`, `"3"`) the captions on this
+    Returns the labels (for example `"1"`, `"E.1"`, `"3"`) the captions on this
     page *claim* exist, so the audit can compare against what
     `extract_figures` / `extract_tables` actually produced.
     """
@@ -183,10 +183,10 @@ def _audit_paper(paper_id: str, out_root: Path, *, use_docling: bool = False) ->
     miss_lines = (
         [f"- {m}" for m in misses]
         if misses
-        else ["- _(none — every captioned label was matched by an extracted artifact with a bbox)_"]
+        else ["- _(none: every captioned label was matched by an extracted artifact with a bbox)_"]
     )
     audit_md = [
-        f"# Ingestion overlay audit — `{paper_id}`",
+        f"# Ingestion overlay audit: `{paper_id}`",
         "",
         f"- pages: **{pages_total}**",
         f"- figures extracted: **{len(figures)}**  (with bbox: "
@@ -217,7 +217,7 @@ def _audit_paper(paper_id: str, out_root: Path, *, use_docling: bool = False) ->
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     g = ap.add_mutually_exclusive_group(required=True)
-    g.add_argument("--paper", help="one paper_id, e.g. 2604.22753v1")
+    g.add_argument("--paper", help="one paper_id, for example 2604.22753v1")
     g.add_argument("--all", action="store_true", help="audit every PDF under data/papers/")
     ap.add_argument(
         "--out-dir",

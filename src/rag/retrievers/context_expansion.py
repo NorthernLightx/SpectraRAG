@@ -1,6 +1,6 @@
 """Context-neighbourhood expansion: a retrieved chunk rarely answers alone.
 
-A human reading a paper doesn't fixate on one sentence — they read around
+A human reading a paper doesn't fixate on one sentence. They read around
 it (the prior paragraph that sets up a definition, the next one that states
 the result) and they look at the figure/table the text points to. The base
 retrievers return single best chunks in isolation and the generator
@@ -8,7 +8,7 @@ concatenates exactly those (`generate.py:_build_context` does no expansion).
 This decorator adds the *neighbourhood* before generation:
 
   - **window**: the ±k sequential chunks on the same page of the same paper
-    (chunk ids are page-local sequential — `<paper>::p<page>::c<idx>`), so
+    (chunk ids are page-local sequential, `<paper>::p<page>::c<idx>`), so
     a matched sentence arrives with the prose around it.
   - **linked artifacts**: if an anchor's text says "Figure 3" / "Table 7",
     pull that figure/table chunk (whose text starts "Figure 3: …" per
@@ -19,7 +19,7 @@ Pure decorator over the `Retriever` Protocol (mirrors RegionNumberBoost /
 MultiQuery). Anchors keep their order and score; expansions are appended
 with a decayed score so downstream stays anchor-first. Total is capped so
 the generator's char budget isn't blown. With `window=0` and
-`link_artifacts=False` it is an exact passthrough — the eval's baseline arm.
+`link_artifacts=False` it is an exact passthrough, the eval's baseline arm.
 """
 
 from __future__ import annotations
@@ -119,7 +119,7 @@ class ContextExpansionRetriever:
     async def retrieve(self, query: Query) -> list[RetrievalResult]:
         anchors = await self._base.retrieve(query)
         if self._window <= 0 and not self._link:
-            return anchors  # exact passthrough — the eval baseline arm
+            return anchors  # exact passthrough, the eval baseline arm
 
         seen = {r.chunk_id for r in anchors}
         expansions: list[RetrievalResult] = []

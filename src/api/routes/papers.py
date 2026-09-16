@@ -2,7 +2,7 @@
 
 Derives the catalogue from the on-disk `pages_dir` layout
 (`<pages_dir>/<paper_id>/<paper_id>_p<N>.png`) so the result tracks
-whatever's actually been baked into the deployed image — no separate
+whatever's actually been baked into the deployed image, with no separate
 manifest to drift out of sync.
 
 Titles are read from `data/paper_titles.json` (mapping paper_id → title)

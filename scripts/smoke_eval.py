@@ -7,7 +7,7 @@ those failure modes in ~5 minutes by exercising the same code path on a
 tiny golden set: 1 paper, 5 queries, all the production flags on.
 
 Run before any v3 / mmlongbench eval. If smoke fails, the bigger eval
-will also fail — diagnose now, save the GPU time.
+will also fail. Diagnose now, save the GPU time.
 
 Usage:
     .venv/Scripts/python.exe -m scripts.smoke_eval
@@ -49,7 +49,7 @@ def _check_prereqs() -> list[str]:
 
 def _build_eval_command(*, pdf: Path) -> list[str]:
     """Production stack on a tiny golden. All Tier 1 features on. Args are
-    a fixed list — no user-supplied shell strings, so no injection surface."""
+    a fixed list, so no user-supplied shell strings and no injection surface."""
     return [
         sys.executable,
         "-m",
@@ -58,7 +58,7 @@ def _build_eval_command(*, pdf: Path) -> list[str]:
         str(pdf),
         "--golden",
         _SMOKE_GOLDEN,
-        # Production stack — match committed baseline f844619927e0.
+        # Production stack: match committed baseline f844619927e0.
         "--rerank",
         "--rerank-length-norm",
         "--router",
@@ -77,7 +77,7 @@ def _build_eval_command(*, pdf: Path) -> list[str]:
         "openrouter",
         "--judge-model",
         "openai/gpt-4o-mini",
-        # Skip Postgres persistence — smoke shouldn't touch shared infra.
+        # Skip Postgres persistence; smoke shouldn't touch shared infra.
         "--postgres-dsn",
         "",
         # Dedicated collection so smoke doesn't pollute the real eval state.
@@ -133,7 +133,7 @@ def main() -> int:
     elapsed = time.monotonic() - started
 
     if code == 0:
-        print(f"\n[smoke_eval] OK in {elapsed:.1f}s — full v3 eval is green-lit.")
+        print(f"\n[smoke_eval] OK in {elapsed:.1f}s. Full v3 eval is green-lit.")
     else:
         print(
             f"\n[smoke_eval] FAILED with exit code {code} after {elapsed:.1f}s. "

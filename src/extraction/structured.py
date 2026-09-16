@@ -9,21 +9,21 @@ per-query one: extraction is slow and runs once per page at ingest. Two
 backends are offered, mirroring the eval bench (`scripts/experiments/
 extract_bench.py`):
 
-- ``qwen-cloud``   — page images through Ollama to a vision model. Accurate,
+- ``qwen-cloud``: page images through Ollama to a vision model. Accurate,
   remote, the prior extractor. Routed via Ollama (incl. its ``:cloud``
   passthrough), never a third-party API.
-- ``mineru-local`` — page images POSTed to a local MinerU2.5 API server that
+- ``mineru-local``: page images POSTed to a local MinerU2.5 API server that
   fits the 8 GB GPU. Free, private, matches the cloud on recall (ADR 0025),
   but ~1-3 min/page.
 
 ``build_extractor(settings)`` returns the configured backend, or ``None`` when
-``extractor_backend == "none"`` (the default — pipeline unchanged). The
+``extractor_backend == "none"`` (the default, pipeline unchanged). The
 ingest-time consumer that calls ``extract`` is gated on the lever clearing
 significance (ADR 0025 "Decision" §3); this module is the selector seam.
 
 A per-page failure yields a ``__extract_failed__`` marker in that page's slot
-rather than raising, so one unreadable page can't abort a whole document — the
-same convention the recall scorer understands.
+rather than raising, so one unreadable page can't abort a whole document. That
+is the same convention the recall scorer understands.
 """
 
 from __future__ import annotations
@@ -46,7 +46,7 @@ if TYPE_CHECKING:
     from src.config.settings import Settings
 
 # Slow per page (local VLM ~1-3 min/page; cloud model seconds), so the read
-# timeout is generous — extraction is an offline ingest step, not a hot path.
+# timeout is generous: extraction is an offline ingest step, not a hot path.
 _DEFAULT_TIMEOUT_SECONDS = 300.0
 
 # Joins the per-page transcriptions of a multi-page extraction.
@@ -147,7 +147,7 @@ class MinerULocalExtractor:
     """Transcribe via a local MinerU2.5 API server (model preloaded once).
 
     POSTs each page image to ``/file_parse`` and reads back the markdown. The
-    preloaded server is the efficient form — the per-page CLI reloads the 1.2B
+    preloaded server is the efficient form, because the per-page CLI reloads the 1.2B
     model every page (ADR 0025 "Decision" §2). ``client`` is injectable for tests.
     """
 

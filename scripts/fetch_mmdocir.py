@@ -1,4 +1,4 @@
-"""Fetch MMDocIR — annotations plus the page images for a size-capped doc subset.
+"""Fetch MMDocIR: annotations plus the page images for a size-capped doc subset.
 
 MMDocIR (arXiv 2501.08828) publishes 1,658 questions over 313 documents with
 *both* page-level and layout-level (bbox) evidence labels. The layout labels are
@@ -12,7 +12,7 @@ questions, which is an order of magnitude more queries than the committed
 MMLongBench subset (n=107) at ~1.2 GB of index.
 
 Page images ship inside `MMDocIR_pages.parquet` as JPEG bytes, so no PDF render
-pass is needed — pages are written straight out in the layout
+pass is needed. Pages are written straight out in the layout
 `src.ingestion.visual.render_pages` uses (`<pages-dir>/<paper_id>/<paper_id>_p<N>`),
 1-based page numbers, so `scripts.build_visual_index --pages-only` can index them.
 
@@ -23,9 +23,9 @@ Usage:
         [--limit-docs 5]      # cap to N docs (alphabetical) for smoke testing
 
 Outputs:
-    data/mmdocir/annotations.jsonl      — the 313-doc annotation file, verbatim
-    data/mmdocir/manifest.json          — the selected docs and their page counts
-    data/mmdocir/pages/<paper_id>/...   — page JPEGs for the selected docs
+    data/mmdocir/annotations.jsonl      the 313-doc annotation file, verbatim
+    data/mmdocir/manifest.json          the selected docs and their page counts
+    data/mmdocir/pages/<paper_id>/...   page JPEGs for the selected docs
 """
 
 from __future__ import annotations
@@ -61,7 +61,7 @@ def _paper_id(doc_name: str) -> str:
     the page chunk-ids and the visual index all key on.
 
     MMDocIR ships some doc names near 100 characters, and pages land at
-    ``<pages-dir>/<paper_id>/<paper_id>_p<N>.jpg`` — the id appears twice, which
+    ``<pages-dir>/<paper_id>/<paper_id>_p<N>.jpg``, so the id appears twice, which
     overruns the 260-character Windows path limit. Long stems are therefore
     truncated and disambiguated with a digest of the full name.
     """
@@ -93,7 +93,7 @@ def main() -> None:
     try:
         from huggingface_hub import hf_hub_download
     except ImportError:
-        raise SystemExit("huggingface_hub not installed — run `uv sync` first.") from None
+        raise SystemExit("huggingface_hub not installed; run `uv sync` first.") from None
 
     args.out.mkdir(parents=True, exist_ok=True)
     pages_dir = args.out / "pages"
@@ -115,7 +115,7 @@ def main() -> None:
     )
 
     # `page_indices` is a half-open range of *row positions* in the pages
-    # parquet, explicitly NOT passage_ids (dataset README) — passage_id is a
+    # parquet, explicitly NOT passage_ids (dataset README). passage_id is a
     # string identifier and must not be used to join. So the scan below counts
     # rows. Map every wanted row position to its (paper_id, 1-based page number).
     wanted: dict[int, tuple[str, int]] = {}

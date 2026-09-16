@@ -1,6 +1,6 @@
 """Retrieval metrics: pure functions over (relevant_ids, ranked_ids).
 
-Binary relevance only — extend to graded later if golden labels grow nuance.
+Binary relevance only; extend to graded later if golden labels grow nuance.
 """
 
 from __future__ import annotations

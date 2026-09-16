@@ -192,12 +192,12 @@ async def main() -> None:
     log(f"SANITY text-only: n={t_all['n']} recall@10={t_all['recall_at_10']:.4f} "
         f"ndcg@5={t_all['ndcg_at_5']:.4f} (results.md ref: ~0.685 / ~0.590)")
     if t_all["recall_at_10"] < 0.45:
-        log("ABORT: text-only recall@10 < 0.45 — corpus/scoring still wrong, "
+        log("ABORT: text-only recall@10 < 0.45, corpus/scoring still wrong, "
             "not burning the night (this is the gate that catches the earlier bug).")
         return
-    log("SANITY OK — corpus + page-scoring correct. Proceeding.")
+    log("SANITY OK: corpus + page-scoring correct. Proceeding.")
 
-    # --- visual leg (ColQwen2) — the GPU-heavy part ---
+    # --- visual leg (ColQwen2), the GPU-heavy part ---
     await _evict_ollama()
     pages_by_paper = {}
     for did, pdf in pdfs:
@@ -223,7 +223,7 @@ async def main() -> None:
             log(f"FAILED {policy}: {type(e).__name__}: {e}")
 
     # --- report (plain) ---
-    lines = ["# MMLongBench routing study — page-level retrieval\n",
+    lines = ["# MMLongBench routing study: page-level retrieval\n",
              "Correct 20-doc corpus. Higher = better. Decisive metric: recall@10.\n",
              "| policy | n | recall@10 | nDCG@5 | MRR | figure recall@10 | table recall@10 | clf s/query |",
              "|---|---|---|---|---|---|---|---|"]

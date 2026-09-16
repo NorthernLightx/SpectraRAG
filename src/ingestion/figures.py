@@ -1,16 +1,17 @@
 """Figure extraction from PDFs.
 
 PyMuPDF gives us two views of figures:
-- Embedded image streams (via `page.get_images()`) — the bytes that the PDF
+- Embedded image streams (via `page.get_images()`), the bytes that the PDF
   embeds. Unique-by-XREF, so the same logo across pages is one figure not N.
-- Rendered drawings (vector art) — not exported here; covered later if needed.
+- Rendered drawings (vector art), not exported here; covered later if needed.
 
 The logical retrieval unit is one `Figure N:` caption span, not one XREF.
-Many PDFs encode a single composite figure (e.g., a 5x2 grid of class-panels,
-each panel a 4x4 grid of model-output thumbnails) as 100+ separate XREFs.
-Indexing each XREF as its own chunk produces noise; the information lives at
-the aggregate level (one logical figure with one caption). ADR 0011 covers
-this — extraction now anchors on captions and bundles co-located XREFs.
+Many PDFs encode a single composite figure (for example, a 5x2 grid of
+class-panels, each panel a 4x4 grid of model-output thumbnails) as 100+
+separate XREFs. Indexing each XREF as its own chunk produces noise; the
+information lives at the aggregate level (one logical figure with one
+caption). Extraction anchors on captions and bundles co-located XREFs
+(ADR 0011).
 
 Caption association: we parse `Figure N:` / `Fig. N:` labels from page text
 (with block-level bbox detection so we know *where* each caption sits), then
@@ -37,9 +38,10 @@ from src.types import Bbox, Figure
 
 _log = get_logger(__name__)
 
-# Match `Figure 12:`, `Fig. 3 —`, `Figure E.1:`, `Figure S1:`, `Fig. 4.2:`.
+# Match `Figure 12:`, `Figure E.1:`, `Figure S1:`, `Fig. 4.2:`. The separator
+# after the number may be a colon, a period, a hyphen or an em dash.
 # Appendix and supplementary figures use letter prefixes (`E.1`, `S1`, `A.3`)
-# that the prior `\d+`-only pattern missed — paper 2604.28190v1 had ~900
+# that the prior `\d+`-only pattern missed. Paper 2604.28190v1 had ~900
 # appendix figure XREFs whose `Figure E.1:` caption never bound to an anchor,
 # so the aggregation pass fell through to per-XREF emission. The body runs
 # until the next blank line (paragraph break) or another Figure/Table label,
@@ -54,7 +56,7 @@ _FIG_LABEL_RE = re.compile(
 
 # Lighter-weight regex used only to detect *which block* a caption label lives
 # in (for bbox attachment). The label itself anchors at the start of the match;
-# we don't care about the body here — that comes from `_extract_captions`.
+# the body comes from `_extract_captions`.
 _FIG_LABEL_ANCHOR_RE = re.compile(
     rf"(?:Figure|Fig\.?)\s+({_FIG_NUMBER_PATTERN})\s*[:.\-—]", re.IGNORECASE
 )
@@ -82,9 +84,9 @@ def _safe_filename(figure_id: str) -> str:
 def _extract_captions(page_text: str) -> dict[str, str]:
     """Return `{figure_label: caption_body}` parsed from page text.
 
-    `figure_label` is the raw identifier as written in the PDF — `"1"`,
-    `"12"`, `"E.1"`, `"S1"`, etc. Keys are strings (not ints) because
-    appendix and supplementary figures use letter-prefixed labels.
+    `figure_label` is the raw identifier as written in the PDF, such as `"1"`,
+    `"12"`, `"E.1"` or `"S1"`. Keys are strings (not ints) because appendix
+    and supplementary figures use letter-prefixed labels.
     """
     captions: dict[str, str] = {}
     for match in _FIG_LABEL_RE.finditer(page_text):
@@ -92,7 +94,7 @@ def _extract_captions(page_text: str) -> dict[str, str]:
         if not label:
             continue
         body = " ".join(match.group(2).split())
-        # Truncate at the first paragraph break (blank line) — long captions
+        # Truncate at the first paragraph break (blank line). Long captions
         # are often followed by body text we don't want to swallow.
         if "\n\n" in body:
             body = body.split("\n\n", 1)[0].strip()
@@ -105,15 +107,15 @@ def _captions_with_bboxes(page: fitz.Page) -> dict[str, tuple[str, Bbox | None]]
 
     The text body comes from `_extract_captions` (full-text regex, so multi-line
     bodies survive). The bbox is taken from the PyMuPDF text *block* that
-    contains the `Figure N:` label — that block's rectangle is what we'll use
+    contains the `Figure N:` label. That block's rectangle is what we'll use
     to assign nearby XREFs in `_assign_xrefs_to_captions`. Multi-block captions
     keep only the label block's bbox; that's fine because we only need it as a
     spatial anchor for nearest-neighbour assignment.
 
-    If `get_text("blocks")` doesn't expose a block matching the label (rare —
-    PyMuPDF returns malformed block tuples on some encrypted PDFs), the
-    caption's bbox is None and its XREFs fall through to the per-XREF
-    fallback path in `extract_figures`.
+    If `get_text("blocks")` doesn't expose a block matching the label (rare,
+    and caused by the malformed block tuples PyMuPDF returns on some encrypted
+    PDFs), the caption's bbox is None and its XREFs fall through to the
+    per-XREF fallback path in `extract_figures`.
     """
     page_text = page.get_text("text") or ""
     captions = _extract_captions(page_text)
@@ -160,8 +162,8 @@ def _figure_bbox(page: fitz.Page, xref: int) -> Bbox | None:
 
     PyMuPDF's `get_image_rects(xref)` returns the page-local rects where the
     image is referenced (one xref can be placed multiple times on a single
-    page — e.g. a logo header on a wide layout). We take the first rect; for
-    figure-style images with one placement that's the right answer, and for
+    page, for example a logo header on a wide layout). We take the first rect;
+    for figure-style images with one placement that's the right answer, and for
     multi-placed images the first is good enough for citation purposes.
 
     Returns None when the rect list is empty (vector-art "images" that
@@ -193,7 +195,7 @@ def _union_bbox(bboxes: list[Bbox]) -> Bbox | None:
 
     Used to compute one Figure's bbox from N member XREFs that share a caption
     (composite figure). A composite's union rect is the natural citation
-    target — clicking it highlights the whole grid, not one panel.
+    target. Clicking it highlights the whole grid, not one panel.
     """
     if not bboxes:
         return None
@@ -265,7 +267,7 @@ def extract_figures(
     of member bboxes as `bbox`. Pages without parseable captions fall back to
     per-XREF extraction (one Figure per XREF).
 
-    Skips XREFs smaller than `min_dim x min_dim` px before aggregation —
+    Skips XREFs smaller than `min_dim x min_dim` px before aggregation.
     PyMuPDF sometimes lists vector-art outlines and 1-px separators as
     "images"; the floor strips that noise without dropping legitimate small
     panels (most composite cells are 100+ px on at least one axis).
@@ -354,8 +356,8 @@ def extract_figures(
 
             # Fallback: XREFs not paired with any caption (no captions on the
             # page, or no caption had a bbox to anchor against). Emit one
-            # Figure per XREF as before — this path is what handles title-page
-            # logos, header graphics, and pages where caption detection failed.
+            # Figure per XREF as before. This path handles title-page logos,
+            # header graphics, and pages where caption detection failed.
             for record in unassigned:
                 page_figure_idx += 1
                 figure_id = _safe_index(paper_id, page_no, page_figure_idx)

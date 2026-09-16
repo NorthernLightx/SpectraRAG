@@ -6,8 +6,8 @@ page, embeds each page with ColQwen2, and upserts the page multivectors into
 The deploy then loads these vectors at startup instead of re-encoding pages,
 which is what makes the visual leg viable on a CPU-only Cloud Run box.
 
-Encoding reuses ``build_visual_retriever`` — the exact path the offline eval
-scores — so the persisted vectors are identical to the eval's in-memory ones.
+Encoding reuses ``build_visual_retriever``, the exact path the offline eval
+scores, so the persisted vectors are identical to the eval's in-memory ones.
 That is what lets the deployed router reproduce the eval's recall number.
 
 Memory: this loads every page embedding into memory at once (same profile as
@@ -98,7 +98,7 @@ async def _main(
     # Scope to the served text corpus: the visual index must cover exactly the
     # papers `corpus_collection` holds. Globbing data/papers otherwise pulls in
     # the ingestion-robustness fixtures (het-apollo17's 339 pages, het-*-slides,
-    # het-hal-fr) that are not served — they would bloat the baked index and
+    # het-hal-fr) that are not served. They would bloat the baked index and
     # surface visual pages with no text counterpart. Read + close before the
     # encode so the embedded path-mode lock is free for the upsert step (local
     # mode rejects two live clients on one path).
@@ -117,7 +117,7 @@ async def _main(
                 f"Skipping {len(skipped)} PDFs not in {corpus_collection!r}: {', '.join(skipped)}"
             )
     else:
-        print(f"WARNING: {corpus_collection!r} is empty — encoding all globbed PDFs unscoped")
+        print(f"WARNING: {corpus_collection!r} is empty; encoding all globbed PDFs unscoped")
     if not pdf_paths:
         raise SystemExit(f"No PDFs left after scoping to {corpus_collection!r}.")
     print(f"Encoding {len(pdf_paths)} papers (scoped to {corpus_collection!r})")
@@ -159,7 +159,7 @@ async def _prepare_collection(
         existing = await store.count()
         if existing > 0 and not force:
             print(
-                f"Collection {collection!r} already has {existing} pages — skipping (--force to rebuild)."
+                f"Collection {collection!r} already has {existing} pages; skipping (--force to rebuild)."
             )
             log.info("build_visual.skip", collection=collection, existing=existing)
             return False
@@ -181,7 +181,7 @@ async def _main_pages_only(
     force: bool,
     log: BoundLogger,
 ) -> None:
-    """Index an already-rendered page tree — no PDFs, no text-corpus scoping.
+    """Index an already-rendered page tree: no PDFs, no text-corpus scoping.
 
     The benchmark corpora ship page images rather than renderable PDFs
     (``scripts.fetch_mmdocir``), and a visual-leg recall run does not need the
@@ -221,7 +221,7 @@ async def _embed_and_persist(
     page_embeds = retriever._page_embeds  # chunk_id -> [n_patches, dim] tensor
     page_meta = retriever._page_meta  # chunk_id -> (paper_id, page_no)
     if not page_embeds:
-        raise SystemExit("No pages embedded — nothing to persist.")
+        raise SystemExit("No pages embedded; nothing to persist.")
 
     dim = int(next(iter(page_embeds.values())).shape[-1])
     chunk_ids = list(page_embeds)

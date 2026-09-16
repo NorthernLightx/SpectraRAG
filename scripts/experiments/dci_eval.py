@@ -1,7 +1,7 @@
 """Evaluate DCI agentic retrieval on a BRIGHT domain vs a BM25 floor.
 
 Two methods, same corpus + metric (nDCG@10, excluded_ids removed):
-  --method bm25  : rank_bm25 over the corpus. Calibration — should land near the
+  --method bm25  : rank_bm25 over the corpus. Calibration: should land near the
                    paper's published BM25 (biology 18.9); if it does, the corpus
                    and scorer are correct and the DCI number is trustworthy.
   --method dci   : the DciAgent (SEARCH/GREP/READ -> RANK) driving an Ollama model.
@@ -47,8 +47,8 @@ _TOK = re.compile(r"[A-Za-z0-9]+")
 
 def _tokens(text: str) -> list[str]:
     # Naive tokenisation: this BM25 is a weak floor (~8-9 nDCG@10) vs the paper's
-    # Lucene-class BM25 (18.9). Stopword/stem preprocessing barely moved it — the
-    # gap is the BM25 implementation, not tokenisation — so the published 18.9 is
+    # Lucene-class BM25 (18.9). Stopword/stem preprocessing barely moved it (the
+    # gap is the BM25 implementation, not tokenisation), so the published 18.9 is
     # the floor to cite; the DCI agent (which never uses this) is scored on the
     # same corpus/gold/metric, so its number is comparable to the published bars.
     return [t for t in _TOK.findall(text.lower()) if len(t) > 1]
@@ -136,8 +136,8 @@ async def _run_dci(corpus: dict[str, str], queries: list[dict[str, Any]], args: 
         else:
             try:
                 res = await agent.run(q["query"], mode="retrieval", top_k=10)
-            except Exception as exc:  # cloud quota 429 / transport — save progress, skip
-                print(f"[{i}/{len(qs)}] {qid}: ERROR {type(exc).__name__}: {str(exc)[:80]} — skipping")
+            except Exception as exc:  # cloud quota 429 / transport: save progress, skip
+                print(f"[{i}/{len(qs)}] {qid}: ERROR {type(exc).__name__}: {str(exc)[:80]}; skipping")
                 break
             rec = {"ranked": res.ranked_doc_ids, "n_steps": len(res.steps),
                    "stopped": res.stopped, "tokens_in": res.tokens_in, "tokens_out": res.tokens_out}

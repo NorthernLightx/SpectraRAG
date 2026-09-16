@@ -23,7 +23,7 @@ from docling.document_converter import DocumentConverter, PdfFormatOption
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("paper_id", help="e.g. 2604.28181v1 (Microsoft-logo-everywhere paper)")
+    ap.add_argument("paper_id", help="for example 2604.28181v1 (Microsoft-logo-everywhere paper)")
     ap.add_argument("--papers-dir", type=Path, default=Path("data/papers"))
     args = ap.parse_args()
 
@@ -31,7 +31,7 @@ def main() -> None:
     if not pdf.exists():
         sys.exit(f"missing: {pdf}")
 
-    # Try transformers engine with torch.compile/dynamo disabled — avoids
+    # Try transformers engine with torch.compile/dynamo disabled; avoids
     # the Triton requirement that bit us on Windows.
     import os
     os.environ["TORCHDYNAMO_DISABLE"] = "1"

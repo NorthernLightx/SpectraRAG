@@ -3,7 +3,7 @@ structured-object set (Goal 2026-06-01: efficient + near/above SOTA extraction).
 
 Scores each backend's cached extractions with the same recall matcher, on the same
 cards, and prints a side-by-side table + the per-card win/loss vs qwen-cloud (the
-cloud-VLM accuracy ceiling). Run any time — scores whatever each cache has so far,
+cloud-VLM accuracy ceiling). Run any time; it scores whatever each cache has so far,
 so it gives a live partial comparison while a slow local bench is still running.
 """
 

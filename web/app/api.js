@@ -15,7 +15,7 @@
   const API = window.SPECTRARAG_API_BASE || ORIGIN;
   const OPENROUTER_URL = "https://openrouter.ai/api/v1";
   // The UI is local-first (served by `spectrarag serve`), so the browser can
-  // reach a sibling Ollama directly — its default CORS allows localhost origins.
+  // reach a sibling Ollama directly. Its default CORS allows localhost origins.
   const OLLAMA_URL = "http://localhost:11434";
 
   // Curated OpenRouter shortlist, pinned above the fetched list in the model
@@ -31,7 +31,7 @@
   ];
 
   // Full OpenRouter catalog, vision-capable only. Public endpoint, no key
-  // needed. One in-flight/settled promise per page load — the list is large
+  // needed. One in-flight/settled promise per page load: the list is large
   // and model churn within a session doesn't matter. Resolves null on failure
   // (the menu then shows just the pins).
   let _orModels = null;
@@ -112,7 +112,7 @@
 
   // Local Ollama vision models. /api/tags reports per-model `capabilities`
   // (Ollama ≥0.4), so one request tells us which models can read page images.
-  // Models with a `remote_host` are ollama.com cloud passthroughs — they can
+  // Models with a `remote_host` are ollama.com cloud passthroughs. They can
   // be retired upstream while still listed locally, so each gets an /api/show
   // probe (returns the retirement error without spending cloud quota) and
   // retired ones are dropped from the list. Truly local models sort first.
@@ -147,7 +147,7 @@
             });
             const d = await r.json();
             if (d && d.error) m.dead = true;
-          } catch { /* probe failure is not proof of retirement — leave usable */ }
+          } catch { /* probe failure is not proof of retirement, leave usable */ }
         }));
         return { ok: true, models: models.filter((m) => !m.dead) };
       })
@@ -171,7 +171,7 @@
 
   // Pre-rendered figure/table thumbnail (scripts/render_figure_thumbs.py). The
   // file is keyed by chunk_id with ":" → "_" (mirrors the Docling crop name).
-  // Small WebP, served same-origin — bundled with the frontend on the split
+  // Small WebP, served same-origin: bundled with the frontend on the split
   // deploy (Firebase), or from the backend /pages mount on the combined deploy.
   // Callers fall back to a full-page CSS-crop when a thumb is absent.
   function figThumbUrl(paperId, chunkId) {
@@ -249,8 +249,8 @@
     if (routingMode) body.routing_mode = routingMode;
     if (paperId) body.filters = { paper_id: paperId };
 
-    // Agentic search (DCI) runs the agent server-side: the key goes in a header
-    // (not the body — bodies are logged). No warm-up retry; a 503 here means
+    // Agentic search (DCI) runs the agent server-side: the key goes in a header,
+    // not the body (bodies are logged). No warm-up retry; a 503 here means
     // "no key", not "warming up".
     if (dci) {
       if (!apiKey) {
@@ -270,7 +270,7 @@
 
     // The server wires the retriever during lifespan startup, so a /query 503
     // is either Cloud Run still routing to a starting instance (transient) or
-    // "Retriever not configured" — a corpus that failed to load, which no
+    // "Retriever not configured", a corpus that failed to load, which no
     // amount of waiting fixes. Retry both briefly (transient 503s are real),
     // but say which one is happening; give the permanent case a short budget.
     const start = performance.now();
@@ -321,7 +321,7 @@
     ];
   }
 
-  // gen = { provider: "openrouter" | "ollama", model, apiKey } — the one
+  // gen = { provider: "openrouter" | "ollama", model, apiKey } is the one
   // object the chat flow threads into every generation call.
   //
   // Ollama goes through its NATIVE /api/chat, not the OpenAI-compat /v1
@@ -378,7 +378,7 @@
   }
 
   // Native Ollama error bodies are {"error": "..."} (a string) or
-  // {"error": {"message": "..."}} depending on the path — unwrap either.
+  // {"error": {"message": "..."}} depending on the path. Unwrap either.
   function ollamaErrorText(raw) {
     try {
       const e = JSON.parse(raw).error;
@@ -422,10 +422,10 @@
   // Fetch a page image (same-origin) and inline it as a base64 data URL.
   // Passing a link (localhost or even the public domain) makes the model's
   // provider fetch it server-side, which fails for localhost and is flaky for
-  // public URLs — so we send the bytes inline instead. Returns null on failure.
+  // public URLs, so we send the bytes inline instead. Returns null on failure.
   async function imageToDataUrl(url) {
     try {
-      // cache: "no-store" — the retrieval panel's <img> tags fetch these same
+      // cache: "no-store". The retrieval panel's <img> tags fetch these same
       // URLs without an Origin header, and the server only emits
       // Access-Control-Allow-Origin (and Vary: Origin) when Origin is present.
       // Chrome then serves that headerless cached response to this cors-mode
@@ -447,7 +447,7 @@
 
   // When the question names "Figure N" / "Table N", find that element's real
   // page via the figure index (/figures). Retrieval often returns body text
-  // that only references the figure from another page — without this, the
+  // that only references the figure from another page. Without this, the
   // page that actually shows it never reaches the model. Scoped to papers in
   // the top retrieved chunks; at most two extra pages.
   function referencedFigurePages(question, chunks, figureIndex) {
@@ -470,7 +470,7 @@
         const f = figureIndex.find((g) => g.paper_id === paperId && re.test(String(g.caption || "").trim()));
         if (f && typeof f.page_number === "number") {
           out.push({ paperId, page: f.page_number, chunkId: f.chunk_id, caption: String(f.caption || ""), bbox: f.bbox || null });
-          // One page per reference — matching the same "Figure 2" in a second
+          // One page per reference. Matching the same "Figure 2" in a second
           // paper would crowd out the question's other references.
           break;
         }
@@ -483,14 +483,14 @@
     const system = [
       "You are a careful research assistant answering questions from the supplied documents.",
       '- Use only the provided context for factual claims. If the user asks a factual question the context cannot answer, say exactly "Not stated in the provided context." — do not speculate.',
-      "- Out-of-domain questions (e.g. about a topic completely unrelated to the chunks) must be refused with the exact phrase above. Do not produce a generic summary of the chunks instead.",
+      "- Out-of-domain questions (for example, about a topic completely unrelated to the chunks) must be refused with the exact phrase above. Do not produce a generic summary of the chunks instead.",
       "- Not every message is a question. If the user is reacting to your previous answer — challenging it, asking what you checked, or making conversation — reply naturally using the prior turns: explain what evidence you used (the chunks and page images you cited) and offer to check something specific. Never use the refusal phrase for such messages.",
       "- Questions about the corpus as a whole (how many papers, which papers cover a topic) cannot be answered from the few retrieved excerpts you see. Say that plainly and point to the Papers and Figures tabs for corpus-wide browsing — do not use the refusal phrase and do not guess a count.",
       "- Analysis questions (implications, comparisons, how an idea could transfer or be useful elsewhere) call for reasoning, not lookup. Reason from the provided context, label that reasoning as your own interpretation, and cite the chunks that anchor it. The refusal phrase is for missing facts only — never for questions that ask you to think.",
       "- When one answer mentions figures from more than one paper, say which paper each figure belongs to.",
       "- If the user asks to see a figure, plot, or graph and the retrieved chunks don't contain one matching the question, say so plainly — do not claim you cannot display images.",
       "- Cite specific chunk IDs when making factual claims by wrapping the literal id in square brackets. Example: if a chunk header is [2604.22753v1::p5::c24], cite it as [2604.22753v1::p5::c24] — NOT [chunk_id 2604.22753v1::p5::c24] and NOT [chunk 24]. Use only ids that appear in the provided context.",
-      "- Attached page images are labeled with their own id, e.g. [page image 2604.22753v1::p5::page]. When you describe what a figure, plot, table, or diagram shows based on looking at a page image, cite that page id (e.g. [2604.22753v1::p5::page]) — not a text chunk. Cite text chunk ids only for claims supported by the chunk text itself.",
+      "- Attached page images are labeled with their own id, for example [page image 2604.22753v1::p5::page]. When you describe what a figure, plot, table, or diagram shows based on looking at a page image, cite that page id (for example [2604.22753v1::p5::page]) — not a text chunk. Cite text chunk ids only for claims supported by the chunk text itself.",
       "- Several pages may be attached. Cite the id of the page that actually contains the figure you are describing — check the label immediately before the image you read; a page that merely mentions the figure in its text is the wrong citation.",
       "- Watch figure numbers. If a retrieved chunk discusses a different figure than the one the user asked about (it says \"Fig. 2\" but the question asks about Figure 1), do not transfer its claims to the asked figure. Describe the asked figure only from its own caption chunk or its page image.",
       "- Prior turns are included for reference. If the user follows up about something from your own previous answer (a term you used, a claim you made) and the current chunks don't cover it, explain it from the previous turn's evidence — without bracket citations — instead of refusing.",
@@ -532,10 +532,11 @@
       }
     }
     // When the question names a figure/table, inject its caption as a citable
-    // chunk and attach its page. Retrieval often misses the caption chunk —
-    // captions rarely share words with the question ("Fig. 1: (a) Previous
-    // driving world models…" vs "What does Figure 1 illustrate?") — and the
-    // model then transplants text about a DIFFERENT figure onto the asked one.
+    // chunk and attach its page. Retrieval often misses the caption chunk,
+    // because captions rarely share words with the question ("Fig. 1: (a)
+    // Previous driving world models…" vs "What does Figure 1 illustrate?"),
+    // and the model then transplants text about a DIFFERENT figure onto the
+    // asked one.
     const injected = referencedFigurePages(latestUserText, chunks, figureIndex);
     for (const ref of injected) {
       if (ref.chunkId && ref.caption) {
@@ -561,11 +562,11 @@
       type: "text",
       text:
         `\nQuestion: ${latestUserText}` +
-        "\n(Reminder: every factual claim taken from the context must cite its supporting chunk id in square brackets, e.g. [2604.22753v1::p5::c24] — an answer that states facts without bracket citations is rejected.)",
+        "\n(Reminder: every factual claim taken from the context must cite its supporting chunk id in square brackets, for example [2604.22753v1::p5::c24] — an answer that states facts without bracket citations is rejected.)",
     });
     messages.push({ role: "user", content });
-    // `injected` rides along so the UI can show this evidence in the panel —
-    // it is context the model saw, but it is not a retrieval result.
+    // `injected` rides along so the UI can show this evidence in the panel.
+    // It is context the model saw, but it is not a retrieval result.
     return { messages, injected };
   }
 
@@ -592,7 +593,7 @@
         try {
           obj = JSON.parse(payload);
         } catch {
-          continue; // heartbeat / partial — skip
+          continue; // heartbeat / partial, skip
         }
         // OpenRouter delivers mid-stream failures as an error frame on an
         // HTTP-200 stream (common on free-tier endpoints under load).
@@ -610,7 +611,7 @@
         if (obj.usage) usage = obj.usage;
       }
     }
-    // Flush a final line that arrived without a trailing newline — the
+    // Flush a final line that arrived without a trailing newline. The
     // usage-bearing frame is often the last thing in the stream.
     const tail = buf.trim();
     if (tail.startsWith("data:")) {
@@ -624,7 +625,7 @@
             acc += delta;
             onDelta(delta);
           }
-        } catch { /* partial frame — drop */ }
+        } catch { /* partial frame, drop */ }
       }
     }
     return { text: acc, usage };
@@ -645,7 +646,7 @@
       try {
         obj = JSON.parse(line);
       } catch {
-        return; // partial line — skip
+        return; // partial line, skip
       }
       if (obj.error) {
         const err = new Error(ollamaErrorText(line));
@@ -688,7 +689,7 @@
           body: JSON.stringify(ollamaBody(gen, messages, opts)),
         });
       } catch {
-        const err = new Error("Can't reach Ollama at localhost:11434 — is it running?");
+        const err = new Error("Can't reach Ollama at localhost:11434. Is it running?");
         err.code = "ollama_down";
         throw err;
       }

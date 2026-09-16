@@ -5,7 +5,7 @@ into a small open-weight model. Full fine-tuning is out of budget/scope; this is
 the cheap, runnable version: capture a few worked read+grep traces from the strong
 model (qwen3-235b), inject them as few-shot exemplars, and run the free local
 gemma3:4b with them. If the student lifts above its ~28 baseline, the strong
-model's strategy transfers in-context — a fast/cheap path toward the big-model band.
+model's strategy transfers in-context, a fast/cheap path toward the big-model band.
 
 Held out: the teacher queries are excluded from the student eval set, so the
 exemplars can't leak answers.
@@ -41,7 +41,7 @@ _STUDENT_MODEL = "gemma3:4b"
 
 def _format_exemplar(question: str, res: DciResult) -> str:
     """One worked example: the action sequence the strong model used, ending in
-    RANK. Observations are dropped — the strategy (what to search, when to rank)
+    RANK. Observations are dropped: the strategy (what to search, when to rank)
     is what transfers, and full tool output would bloat every student prompt."""
     lines = [f'Worked example. Question: "{question[:180]}"']
     for s in res.steps:
@@ -74,7 +74,7 @@ async def run(args: argparse.Namespace) -> int:
         if nd >= 0.4:
             exemplars.append(_format_exemplar(q["query"], res))
     if not exemplars:
-        print("No usable teacher traces — aborting.")
+        print("No usable teacher traces; aborting.")
         return 1
     block = "Here are worked examples of the strategy on similar questions:\n\n" + "\n\n".join(exemplars) + "\n\n"
 

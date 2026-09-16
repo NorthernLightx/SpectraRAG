@@ -1,10 +1,10 @@
-# ADR 0001 — Contextual retrieval as the parser-robustness layer
+# ADR 0001: Contextual retrieval as the parser-robustness layer
 
 **Status:** Rejected (2026-05-01). Without rerank: 3 local A/Bs all regress on
-recall@10 (-14.3%). With rerank: contextual is *neutralized* — identical metrics
-to rerank-only baseline. Production will use rerank, so contextual provides no
+recall@10 (-14.3%). With rerank: contextual is *neutralized* (identical metrics
+to rerank-only baseline). Production will use rerank, so contextual provides no
 marginal value while costing an LLM call per chunk at ingest time.
-**Date:** 2026-04-28 (initial); 2026-04-30 (runs #1–#3); 2026-05-01 (run #4 + verdict).
+**Date:** 2026-04-28 (initial); 2026-04-30 (runs #1-#3); 2026-05-01 (run #4 + verdict).
 
 ## Context
 
@@ -29,13 +29,13 @@ present in the candidate pool but not ranked at the top.
 
 We considered three families of fix:
 
-1. **Swap parser** (docling, Marker, OpenDataLoader) — adds a heavy dependency
+1. **Swap parser** (docling, Marker, OpenDataLoader): adds a heavy dependency
    and is only as good as the new parser. Still has failure modes on
    adversarial PDFs.
-2. **PyMuPDF font-size heuristic + `get_toc()` fallback** — cheap (no new
+2. **PyMuPDF font-size heuristic + `get_toc()` fallback**: cheap (no new
    deps), but no published evidence of magnitude of improvement on retrieval
    metrics; band-aid for one specific failure mode.
-3. **Contextual retrieval** ([Anthropic, Sept 2024][1]) — for each chunk, an
+3. **Contextual retrieval** ([Anthropic, Sept 2024][1]): for each chunk, an
    LLM produces a 50-100 token blurb situating the chunk inside the paper.
    The blurb is prepended to the chunk text *before* embedding/BM25 indexing.
    Display text and citations are unchanged.
@@ -60,9 +60,9 @@ Adopt **contextual retrieval** (option 3) as the primary robustness layer.
 **Trade-offs accepted:**
 
 - Adds an LLM call per chunk at ingest. For ArXiv-sized papers (~90 chunks)
-  with `gpt-4o-mini` on OpenRouter, est. cost ≈ $0.05–0.15/paper.
+  with `gpt-4o-mini` on OpenRouter, est. cost ≈ $0.05 to 0.15/paper.
 - Ingest latency dominated by LLM round-trips (mitigated with concurrency=4).
-- Display text and citations remain the original chunk text — only embedding
+- Display text and citations remain the original chunk text. Only embedding
   + BM25 see the situating blurb. (Designed this way intentionally: we never
   want to cite an LLM-generated sentence.)
 
@@ -71,22 +71,22 @@ Adopt **contextual retrieval** (option 3) as the primary robustness layer.
 - `src/types/documents.py` → `Chunk` gained `context: str | None`. New
   `Chunk.indexed_text` property returns `f"{context}\n\n{text}"` when context
   is set, else `text`.
-- `src/ingestion/contextualize.py` — new module:
+- New module `src/ingestion/contextualize.py`:
   `contextualize_chunks(chunks, paper_text, llm, model, ...)` returns new
   chunks with `context` populated (uses `model_copy`, originals are not
   mutated).
-- `src/ingestion/pipeline.py` — `ingest_paper` accepts optional
+- `src/ingestion/pipeline.py`: `ingest_paper` accepts optional
   `contextualizer_llm` + `contextualizer_model`. When both are set, runs
   contextualize between chunking and embedding. Both BM25 and the embedder
   now index `chunk.indexed_text` (no behavior change when context is None).
-- `src/rag/bm25.py` — tokenizes `chunk.indexed_text` instead of `chunk.text`.
-- `scripts/eval_run.py` — new flags `--contextualize`,
+- `src/rag/bm25.py`: tokenizes `chunk.indexed_text` instead of `chunk.text`.
+- `scripts/eval_run.py`: new flags `--contextualize`,
   `--contextualize-provider {openrouter,ollama}` (default `openrouter`),
   `--contextualize-model` (default per-provider:
   `openai/gpt-4o-mini` for openrouter, `qwen2.5:7b` for ollama),
   `--contextualize-concurrency`.
-- `src/llm/ollama_chat.py` — `OllamaChatClient` duck-types `LLMClient` against
-  Ollama's `/api/chat`. No new protocol, no new dep — same `httpx` + `tenacity`
+- `src/llm/ollama_chat.py`: `OllamaChatClient` duck-types `LLMClient` against
+  Ollama's `/api/chat`. No new protocol, no new dep, same `httpx` + `tenacity`
   stack as `OpenRouterClient`. Provides a zero-spend path for the live A/B.
 
 Read paths (retrieval, generation, citations) are unchanged: queries are
@@ -97,7 +97,7 @@ embedded as-is; results expose `chunk.text` to the LLM and to citations.
 - 137/137 unit tests pass; 6 new tests cover the contextualizer + indexed_text.
 - mypy strict + ruff clean.
 - Re-ran baseline eval through the new code path with no contextualize:
-  nDCG@5=0.5283, recall@10=0.8750, MRR=0.5000 — **identical** to the
+  nDCG@5=0.5283, recall@10=0.8750, MRR=0.5000, **identical** to the
   pre-refactor baseline. The refactor is provably non-regressive when
   `context is None`.
 
@@ -106,13 +106,13 @@ embedded as-is; results expose `chunk.text` to the LLM and to citations.
 Run on the same PDF + same 5 golden queries. Adopt contextual retrieval as
 the default if **either**:
 
-1. Macro nDCG@5 improves ≥ 5% (i.e., ≥ 0.555), **or**
-2. Macro MRR improves ≥ 10% (i.e., ≥ 0.55).
+1. Macro nDCG@5 improves ≥ 5% (that is, ≥ 0.555), **or**
+2. Macro MRR improves ≥ 10% (that is, ≥ 0.55).
 
 Reject if recall@10 *drops* by more than 5% (would be a sign the blurb is
 introducing noise that hurts BM25).
 
-## A/B run #1 — local Ollama, llama3.2:3b on RTX 3070 (2026-04-30)
+## A/B run #1: local Ollama, llama3.2:3b on RTX 3070 (2026-04-30)
 
 Run ID `b156ef45369b` (`data/eval/runs/run-20260430-191600.{json,md}`).
 91 chunks contextualized in 327s; all 91 got blurbs. Same paper, same
@@ -128,7 +128,7 @@ Per-query: q1/q2 unchanged, q3 lost a relevant chunk from the top-10
 (recall 1.0 → 0.5), q4 dropped on both nDCG and MRR.
 
 Decision rule literal reading: recall@10 dropped >5% → **reject**. Per the
-local-path caveat below, this is **not** a reject of the technique — it's
+local-path caveat below, this is **not** a reject of the technique. It's
 strong evidence that a 3B-class local model produces blurbs noisy enough to
 hurt retrieval at the BM25 layer (added tokens dilute term frequency without
 improving topicality). Anthropic's published 35% lift used Claude Haiku /
@@ -136,7 +136,7 @@ Sonnet-class models, not a 3B.
 
 **Status remains Proposed**, blocked on a second A/B with a stronger LLM.
 
-## A/B run #2 — local Ollama, qwen2.5:7b on RTX 3070 (2026-04-30)
+## A/B run #2: local Ollama, qwen2.5:7b on RTX 3070 (2026-04-30)
 
 Run ID `b2101a28f9d7` (`data/eval/runs/run-20260430-193713.{json,md}`).
 91 chunks contextualized in 972s; all 91 got blurbs. Same paper, same
@@ -152,8 +152,8 @@ Per-query: q1/q2 unchanged. q3 *gained* on ranking (nDCG 0.307→0.387,
 MRR 0.333→0.500) but *lost* a relevant chunk from the top-10
 (recall 1.0→0.5). q4 dropped on nDCG and MRR. The pattern is consistent
 with blurbs adding signal that helps surface *some* relevant chunks higher
-while displacing *other* relevant chunks below the top-10 cutoff — i.e.,
-ranking-metric improvements paid for with coverage loss.
+while displacing *other* relevant chunks below the top-10 cutoff: ranking-metric
+improvements paid for with coverage loss.
 
 Decision rule literal reading: nDCG@5 +1.8% (below +5%) and MRR +4.2%
 (below +10%) so neither adoption clause triggers; recall@10 −14.3% (above
@@ -164,7 +164,7 @@ regression escalates to cloud before flipping `Status:`.
 the input prompt from ~22k tokens to 4096 on every call (the system prompt
 + chunk are kept; the paper text is *severely* truncated, with only the
 tail surviving). The local-blurb regression is therefore not clean signal
-on the technique — it's "Anthropic-style contextual retrieval, but the LLM
+on the technique. It's "Anthropic-style contextual retrieval, but the LLM
 saw at most ~10 KB of the paper instead of 60 KB." A cloud A/B with
 gpt-4o-mini (128k context) would feed the model the full truncated paper
 text and produce a cleaner read. A future local A/B with `num_ctx=16384`
@@ -174,14 +174,14 @@ work but isn't wired through `OllamaChatClient` yet.
 **Status remains Proposed**, blocked on either (a) a cloud A/B or (b) a
 local A/B with bumped `num_ctx`.
 
-## A/B run #3 — local Ollama, qwen2.5:7b @ num_ctx=8192 (2026-04-30)
+## A/B run #3: local Ollama, qwen2.5:7b @ num_ctx=8192 (2026-04-30)
 
 Run ID `12ae544fb1d0` (`data/eval/runs/run-20260430-202105.{json,md}`).
 Doubled the context window vs runs #1/#2 to test whether 4096-token
 truncation was the real cause of the regression. 91 chunks contextualized
 in 1829s (≈30 min, ~2.4× slower per call than 4k).
 
-Ollama logs confirm `limit=8192` — `num_ctx` wiring works — but prompts
+Ollama logs confirm `limit=8192` (`num_ctx` wiring works), but prompts
 are still ~22k tokens, so we still truncate (now keeping the *last* 8k
 instead of the last 4k of paper text + chunk).
 
@@ -196,7 +196,7 @@ and q3 (`nDCG@5: 0.307 → 0.000`). The relevant chunks for those queries
 fell out of the top-5 entirely.
 
 Counter-intuitive: more context made it *worse*, not better. Likely
-mechanism — at 4k truncation the model sees mostly the *chunk* + a sliver
+mechanism: at 4k truncation the model sees mostly the *chunk* + a sliver
 of paper tail and writes tightly chunk-focused blurbs. At 8k it sees
 ~half the paper (skewed to the *end*: discussion, conclusion, references)
 plus the chunk, and writes globally-flavoured blurbs that pull in
@@ -211,10 +211,10 @@ at 8k context apparently doesn't.
 **Pattern across all 3 local runs:** recall@10 dropped by exactly 14.3%
 in every run, and ranking metrics moved unpredictably with model + ctx.
 Together this suggests *some* relevant-chunk displacement is intrinsic to
-*any* blurb prepending we tried — the chunk's specific terms get diluted
+*any* blurb prepending we tried. The chunk's specific terms get diluted
 by general-purpose situating sentences, regardless of who wrote them.
 
-## A/B run #4 — local Ollama qwen2.5:7b @ num_ctx=4096 + cross-encoder rerank (2026-05-01)
+## A/B run #4: local Ollama qwen2.5:7b @ num_ctx=4096 + cross-encoder rerank (2026-05-01)
 
 Run ID `4afe3afe28ff` (`data/eval/runs/run-20260501-111934.{json,md}`).
 Same paper, same golden set, same retriever wiring, but with the BGE
@@ -231,7 +231,7 @@ on top of hybrid (BM25+dense+RRF). Compared against rerank-only baseline
 Per-query results identical to rerank-only across all 5 queries.
 
 **Mechanism:** `BgeReranker.rerank(query, chunk.text)` scores the original
-chunk text — not `chunk.indexed_text` — so the situating blurb is invisible
+chunk text (not `chunk.indexed_text`), so the situating blurb is invisible
 to the cross-encoder. Whatever the blurb does to the RRF candidate-pool
 ordering, the reranker's top-50→top-10 selection is dominant and identical.
 
@@ -244,21 +244,21 @@ LLM call per chunk at ingest time.
 Three regressing runs without rerank + one neutralized run with rerank =
 the technique provides either negative or zero value on this corpus
 across the full grid we tested. Production deployment will include the
-reranker (it provides +54.5% nDCG@5 and +75% MRR over hybrid alone — see
+reranker (it provides +54.5% nDCG@5 and +75% MRR over hybrid alone; see
 `docs/decisions/0002-rerank.md` if/when it lands), so the "with rerank"
 cell is the one that matters. Contextual retrieval is therefore rejected.
 
 **Caveats / what could still flip this:**
 
-1. **Larger golden set** (`data/golden/v1.1.yaml`, 15 queries — later
+1. **Larger golden set** (`data/golden/v1.1.yaml`, 15 queries, later
    folded into v2). All current numbers are macro-averaged over 4 in-corpus
-   queries — variance is high. If the rerank+contextual delta on a larger
+   queries. Variance is high. If the rerank+contextual delta on a larger
    set is non-zero in either direction, the verdict can be revisited.
 2. **Cloud A/B with `gpt-4o-mini` + 128k context** to test whether
    cloud-quality blurbs change the candidate-pool composition enough that
    rerank picks materially different chunks. Only worth running if we get
    a strong reason to believe the candidate pool is a bottleneck for
-   recall@10 — currently it isn't (recall@10 = 0.875 already, capped by
+   recall@10. Currently it isn't (recall@10 = 0.875 already, capped by
    the 4-query golden set).
 3. **Reranker-of-`indexed_text`**: an alternative wiring that scores
    `(query, indexed_text)` instead of `(query, text)`. Might let blurbs
@@ -267,7 +267,7 @@ cell is the one that matters. Contextual retrieval is therefore rejected.
 
 ## Pending
 
-Two live A/B paths — pick whichever is more convenient.
+Two live A/B paths. Pick whichever is more convenient.
 
 **Cloud (highest signal-to-noise):** requires `RAG_OPENROUTER_API_KEY`.
 
@@ -282,7 +282,7 @@ uv run python -m scripts.eval_run \
 ```
 
 **Local 7B+ (zero spend, fits in RTX 3070's 8 GB):** pull a 7B-class model
-first — e.g. `docker exec rag-ollama ollama pull qwen2.5:7b` (~4.7 GB).
+first, for example `docker exec rag-ollama ollama pull qwen2.5:7b` (~4.7 GB).
 Requires GPU passthrough (already wired in `docker-compose.yml`).
 
 ```bash

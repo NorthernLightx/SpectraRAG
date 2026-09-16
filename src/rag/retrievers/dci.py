@@ -5,9 +5,9 @@ the in-memory chunk index into a grep-able text corpus and lets an LLM agent sea
 it with SEARCH/GREP/READ, returning the chunks it ranks.
 
 Deliberately NOT the default and NOT wired into routing. It is:
-- **text-only** — blind to the visual leg's pixel content (a third of the answers);
-- **slow** — a multi-step LLM loop vs sub-second vector retrieval;
-- **LLM-bound** — the agent runs server-side, so the route must supply an OpenRouter
+- **text-only**, blind to the visual leg's pixel content (a third of the answers);
+- **slow**, a multi-step LLM loop vs sub-second vector retrieval;
+- **LLM-bound**: the agent runs server-side, so the route must supply an OpenRouter
   key (the server's own, or the user's for this request).
 
 Measured on BRIGHT it reaches the agentic-text-IR tier; on this multimodal corpus

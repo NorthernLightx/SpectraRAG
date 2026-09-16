@@ -1,22 +1,22 @@
-# ADR 0019 — Agentic retrieval tier: within noise, kept opt-in
+# ADR 0019: Agentic retrieval tier (within noise, kept opt-in)
 
 **Status:** **Not shipped as the default tier.** Measured against the new
 text-only hybrid baseline on v3, agentic-decomposition is **−0.2% on
-answer_correctness overall** — within judge noise, not the +5% needed to
+answer_correctness overall**, within judge noise, not the +5% needed to
 ship. Stays in tree opt-in (`--agentic` in `eval_run`), since the
 per-category split is real and useful as a future routing input:
-**figure +9.2pp**, **factual −5.0pp**, **table −10.0pp**. Fifth honest-
-negative ADR in this repo (0012, 0013/0015, 0016, 0018, 0019).
+**figure +9.2pp**, **factual −5.0pp**, **table −10.0pp**. Fifth negative
+result recorded in this repo (0012, 0013/0015, 0016, 0018, 0019).
 **Amended 2026-05-29:** the selective-gate follow-up this ADR left open was tested
-on MMLongBench and **refuted** — agentic decomposition degrades page-recall there
+on MMLongBench and **refuted**. Agentic decomposition degrades page-recall there
 (−0.08) and the gate has nothing to switch on. See "Amendment" below.
 **Date:** 2026-05-20
 
 ## Context
 
 ADR 0018 rejected GraphRAG on this corpus after a measured kill-spike
-(BM25-with-the-same-LLM beat it 5–1 on global synthesis). The remaining
-SOTA-flavoured direction the original revamp named is **agentic** — but
+(BM25-with-the-same-LLM beat it 5 to 1 on global synthesis). The remaining
+SOTA-flavoured direction the original revamp named is **agentic**, but
 agentic-retrieval works differently from graph-retrieval. It's a *per-query*
 LLM-driven step on top of any base retriever; it does not depend on
 cross-document graph structure (the precondition the spike showed this
@@ -24,7 +24,7 @@ small, sparse corpus does not satisfy). So it is the natural next thing to
 measure here.
 
 Two missing prerequisites were also fixed before any retrieval-quality
-claim could be made honestly:
+claim could be made:
 
 1. **`answer_correctness` metric did not exist** in `src/eval` (the
    skeptical-review B1 finding behind ADR 0018, and the metric ADR 0017
@@ -40,14 +40,14 @@ claim could be made honestly:
 
 `AgenticRetriever` in `src/rag/retrievers/agentic.py`:
 
-- One LLM call **decomposes** the user's query into 1–N atomic
+- One LLM call **decomposes** the user's query into 1 to N atomic
   sub-questions (`src/prompts/library/decompose_query.yaml`). Distinct
   from `MultiQueryRetriever`, which *paraphrases* one query (rewrite /
   HyDE).
 - Each sub-question is retrieved via the wrapped base retriever in
   parallel; the lists fuse with RRF (same as `MultiQueryRetriever`, so
   the fusion mechanic is not the experimental variable here).
-- Atomic decomposition (one line back) bypasses the fan-out entirely —
+- Atomic decomposition (one line back) bypasses the fan-out entirely,
   identical to plain base retrieval, no cost penalty.
 - LLM or parse failure falls back gracefully to a single base call on the
   original query.
@@ -64,8 +64,8 @@ Configuration both arms (text-only, clean attribution):
 - 20 papers, post-ADR-0017 corpus (1,973 chunks).
 - Golden v3 (33 queries) with `answer_correctness` vs `expected_facts`.
 - `bge-m3` embedder, hybrid BM25 + dense + RRF.
-- No rerank / router / figures / VLM / contextualisation — isolates the
-  retriever change.
+- No rerank / router / figures / VLM / contextualisation, which isolates
+  the retriever change.
 - Same `gemma3:4b` for generation and judge, `num_ctx=16384` so the
   prompt is never truncated (ADR 0016 artefact avoided).
 - `--paper-id-filter` matches the committed baseline's eval convention.
@@ -93,7 +93,7 @@ v3 (31 in-corpus with `expected_facts`).
 | total tokens out | 16 733 | 10 932 | −34.7% |
 
 Retrieval nDCG/recall/MRR are not reported here: chunk-ids changed in
-ADR 0017 and v3's `relevant_chunk_ids` are not re-anchored — both arms
+ADR 0017 and v3's `relevant_chunk_ids` are not re-anchored, so both arms
 score near 0 by construction. `answer_correctness` is the chunk-id-robust
 scoreboard the ADR exists to produce; that is the metric the verdict
 rests on.
@@ -110,8 +110,8 @@ rests on.
 
 The overall flat number hides two real effects pointing in opposite
 directions. **Decomposition helps where the question has multiple parts**
-(figure: "what does Fig N show + how does X compare to Y" — 11 queries,
-+9.2 pp). **Decomposition hurts where the question is atomic** — a
+(figure: "what does Fig N show + how does X compare to Y", 11 queries,
++9.2 pp). **Decomposition hurts where the question is atomic**: a
 factoid lookup that the LLM fragments into noisier sub-questions whose
 top retrievals are off-target (factual −5 pp, table −10 pp). `multi_hop`
 is too small (n=2) to read, and the decomposition prompt may have
@@ -125,8 +125,8 @@ broken). On-brand outcome: **not shipped as the default**, kept opt-in
 behind `--agentic`. The per-category split is itself useful evidence for
 a future *router-style* selective agentic (decompose only when a
 classifier says the query is multi-part), but building and measuring that
-is the next ADR's job, not this one's — exactly the discipline ADR
-0013/0015 punished violating.
+is the next ADR's job, not this one's. That is exactly the discipline
+ADR 0013/0015 punished violating.
 
 ## What this leaves open
 
@@ -139,15 +139,15 @@ is the next ADR's job, not this one's — exactly the discipline ADR
   agentic configuration. Adding a grade-and-re-issue loop is more LLM
   cost; the current data does not justify it.
 - Multimodal (figures/tables/visual routing) and contextual retrieval
-  are unchanged — this ADR isolates the retrieval-decomposition variable
+  are unchanged. This ADR isolates the retrieval-decomposition variable
   exactly because ADR 0013→0015 punished conflated attribution.
 - The judge (`gemma3:4b`) has known variance at this corpus size
   (ADR 0016: ±0.07 at n=40). A stronger judge (cloud Sonnet/Opus) would
   tighten the band; the −0.0013 overall delta might survive or might
-  invert. Either outcome is honest; the current data says "not better"
-  with the available judge.
+  invert. Either way, the current data says "not better" with the
+  available judge.
 
-## Amendment (2026-05-29) — the selective gate, tested on MMLongBench, is refuted
+## Amendment (2026-05-29): the selective gate, tested on MMLongBench, is refuted
 
 This ADR left the **selective / router-style agentic** gate (decompose only where it
 helps) as the obvious next experiment. It was run on 2026-05-29 and **does not work
@@ -155,7 +155,7 @@ on MMLongBench**.
 
 The shipped `AgenticRetriever` (gemma3:4b decompose → per-subquery `PipelineRetriever`
 → RRF) ran over the same `routing_study` collection the committed depth-50 baseline
-uses, all 149 queries, scored at **page-recall** against the gold pages — MMLongBench
+uses, all 149 queries, scored at **page-recall** against the gold pages. MMLongBench
 gold is pages, so no judge is needed, which sidesteps the v3 judge-noise band that
 made this ADR's verdict inconclusive. `scripts/experiments/bet2_agentic_mmlb_run.py`
 + `bet2_mmlb_gate.py`.
@@ -182,10 +182,10 @@ leg only; a stronger decomposer is untested, but the shipped tier hurts. Full re
 
 ## Related
 
-- ADR 0018 — GraphRAG rejected on this corpus (sparse-graph precondition
+- ADR 0018: GraphRAG rejected on this corpus (sparse-graph precondition
   not met). Agentic does not share that precondition.
-- ADR 0017 — corpus clean, the ingestion this measurement assumes.
-- ADR 0016 — honest-metric requirement (`answer_correctness` vs
+- ADR 0017: corpus clean, the ingestion this measurement assumes.
+- ADR 0016: the metric requirement (`answer_correctness` vs
   `expected_facts`) finally implemented in `src/eval` for this ADR.
-- ADR 0013 / 0015 — attribution discipline: isolate the retrieval
+- ADR 0013 / 0015: attribution discipline. Isolate the retrieval
   variable, don't conflate with rerank/router/VLM.

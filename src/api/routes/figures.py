@@ -1,8 +1,8 @@
 """Document-element gallery endpoint.
 
 Sits next to /query (search-by-question) to handle the *browse* class of
-intent — "show me figures", "what plots does this paper have", "list
-the tables" — which retrieval was never designed for. Reads from the
+intent ("show me figures", "what plots does this paper have", "list
+the tables"), which retrieval was never designed for. Reads from the
 chunk index populated at lifespan startup; no Qdrant round trip per
 request.
 
@@ -26,7 +26,7 @@ from src.types import Chunk
 
 router = APIRouter()
 
-# Same regex + threshold as src/ingestion/docling_parser.py — duplicated
+# Same regex + threshold as src/ingestion/docling_parser.py, duplicated
 # here so the API can derive a `role` for legacy chunks ingested before
 # ADR 0022 landed (no `role` in their metadata). New ingests carry the
 # field; this branch is the migration cushion.
@@ -42,8 +42,8 @@ _FIGURE_CAPTION_RE = re.compile(
 )
 _MIN_FIGURE_AREA_PT2 = 5000.0
 # Gallery floor (ADR 0022 amendment): decoration-role detections below this
-# displayed area are glyph-sized page noise — 12-pt inline table emoji / icons
-# (e.g. 2604.28177v1 p2 had 6 detections at 146 pt²). Hidden from the gallery
+# displayed area are glyph-sized page noise: 12-pt inline table emoji / icons
+# (2604.28177v1 p2 had 6 detections at 146 pt²). Hidden from the gallery
 # even in the opt-in Decorative bucket. Decoration-only, so it can't drop a
 # real figure: the smallest in-corpus figure is a 514-pt² caption-rescued one,
 # and real figures are never role=decoration.
@@ -59,7 +59,7 @@ def _derive_role(caption: str, bbox: list[float] | None) -> Role:
 
     The caption seen here is the chunk's emitted text (VLM caption ?
     PDF caption ? `[figure_id]` placeholder), so a placeholder string
-    counts as "no real caption" — strip it before the Fig-N test.
+    counts as "no real caption", so strip it before the Fig-N test.
     """
     real_caption = "" if _PLACEHOLDER_CAPTION_RE.match(caption) else caption
     if real_caption and _FIGURE_CAPTION_RE.match(real_caption):
@@ -78,7 +78,7 @@ class FigureBrowseItem(BaseModel):
     """One row in the gallery catalogue.
 
     `caption` carries whatever text the ingestion pipeline picked as the
-    item's primary label — VLM caption when available, else the extracted
+    item's primary label: VLM caption when available, else the extracted
     caption, else a placeholder of `[chunk_id]`. `bbox` is the item's
     location on the page in PDF points (1/72 inch), set when extraction
     captured one (ADR 0009); demos use it to highlight the region.
@@ -106,7 +106,7 @@ def _to_browse_item(chunk: Chunk) -> FigureBrowseItem | None:
     """Convert a figure- or table-kind chunk to its browse representation.
 
     Returns ``None`` when the chunk doesn't have the expected shape
-    (defensive — keeps the endpoint resilient to mid-migration corpora).
+    (defensive, and keeps the endpoint resilient to mid-migration corpora).
     """
     if not chunk.page_numbers:
         return None
@@ -142,7 +142,7 @@ def _to_browse_item(chunk: Chunk) -> FigureBrowseItem | None:
 
     # The gallery surfaces two buckets: real content (figure) and page furniture
     # (decoration). "unlabeled" is an ingestion-internal role for a large picture
-    # the paper didn't formally caption — or that Docling captioned too weakly to
+    # the paper didn't formally caption, or that Docling captioned too weakly to
     # trust (a real figure whose "Figure N" caption the layout model failed to
     # associate). It is still a real figure, so show it as one. decoration stays
     # the only hidden bucket; the stored role keeps the 3-way split for retrieval.

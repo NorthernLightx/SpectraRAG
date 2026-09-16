@@ -1,4 +1,4 @@
-# ADR 0013 — Routing is the accuracy lever; LLM-classifier router shipped
+# ADR 0013: Routing is the accuracy lever; LLM-classifier router shipped
 
 **Status:** Superseded by [ADR 0032](./0032-routing-is-a-cost-lever.md)
 (2026-07-30). The router still beats text-only, but at n=1,029 on MMDocIR
@@ -17,8 +17,8 @@ MMLongBench documents the committed `baseline-mmlongbench.json` uses
 `scripts/rescore_mmlb_pages.rescore` (MMLongBench labels are page-level).
 
 A hard sanity gate guarded the earlier mistake class: text-only had to
-reproduce the committed text-only baseline or abort. It did — recall@10
-**0.6721** vs committed **0.685**, nDCG@5 0.5770 vs 0.590. Corpus and
+reproduce the committed text-only baseline or abort. It did (recall@10
+**0.6721** vs committed **0.685**, nDCG@5 0.5770 vs 0.590). Corpus and
 scoring verified correct; the rest is trustworthy.
 
 ## Findings (measured, page-level, n=107 in-corpus)
@@ -44,7 +44,7 @@ scoring verified correct; the rest is trustworthy.
    +10.8 % vs the regex router that was shipped**, landing at 0.821 of
    the 0.841 oracle ceiling (regex 0.741 → llm 0.821 → oracle 0.841).
    nDCG@5 gains more: 0.608 → 0.743 (near the 0.761 ceiling). This was
-   run with a local `gemma3:4b` classifier — no OpenRouter — so it is
+   run with a local `gemma3:4b` classifier (no OpenRouter), so it is
    directly deployable under the project's Ollama-only constraint. It
    confirms the keyless probe (`scripts/experiments/probe_routing.py`: gemma3:4b
    misroutes ~20 % of need-visual queries vs the regex classifier's
@@ -56,24 +56,24 @@ scoring verified correct; the rest is trustworthy.
 keyless (Ollama-only) deploys.** `src/api/bootstrap.py`
 `_build_classifier_from_settings` previously built the LLM classifier
 *only* when an OpenRouter key was set and otherwise degraded to the regex
-classifier — so under the Ollama-only constraint the API was running the
+classifier, so under the Ollama-only constraint the API was running the
 weak 0.741 regex router. It now falls back to a local Ollama classifier
 (`Settings.classifier_ollama_model`, default `gemma3:4b`) instead of the
 regex. OpenRouter behaviour is unchanged when a key is present. Change is
 two files, mypy-strict + ruff clean, reversible.
 
 Speed cost is bounded and small: routing adds one classify call (~1 s);
-the visual MaxSim itself measured **~0.16 s/query** — cheap. Cascade
-(ADR 0010) can skip the visual leg on confident-text queries to protect
-latency further.
+the visual MaxSim itself measured **~0.16 s/query**, which is cheap.
+Cascade (ADR 0010) can skip the visual leg on confident-text queries to
+protect latency further.
 
 ## What this leaves open
 
 - **API text leg has no reranker (separate, pre-existing).**
   `bootstrap.py` builds `PipelineRetriever` without a `reranker=`, while
   the study (and `eval_run`) rerank. The routing improvement is
-  orthogonal to reranking — it changes *which leg* fires, and the visual
-  leg is the figure/table win regardless — so the *direction* holds, but
+  orthogonal to reranking (it changes *which leg* fires, and the visual
+  leg is the figure/table win regardless), so the *direction* holds, but
   the API's absolute numbers will differ from the study's reranked-text
   measurement. This discrepancy is flagged, **not** silently changed here
   (out of scope; deserves its own ADR).
@@ -85,30 +85,30 @@ latency further.
   sampled MMLongBench query vs ~1 s on short arXiv chunks, ADR 0012). A
   separate "good speed" concern (chunk length / `rerank_input_size` on
   long docs), independent of routing.
-- **A bigger classifier does NOT close the last ~0.02 to oracle — tested
+- **A bigger classifier does NOT close the last ~0.02 to oracle. Tested
   and falsified.** The strongest available Ollama model
   (`qwen3-vl:235b-cloud`) scored **0.8107**, *below* `gemma3:4b`'s
   0.8209. Mechanism (evidence: cached decisions): `gemma3:4b` routes
   104/149 to the visual leg (it over-calls `multi_hop`), the cloud model
-  only 93/149 (more literal — more `factual`→text). On MMLongBench ~93 %
+  only 93/149 (more literal, more `factual`→text). On MMLongBench ~93 %
   of answerable queries are figure/table, and a query sent to the text
   leg is usually a miss, so the cost is asymmetric: **aggressive
   bias-to-visual beats accurate classification.** `gemma3:4b` wins by
   being trigger-happy, not smart. The shipped `gemma3:4b` default is
   therefore validated against the cloud alternative. The remaining ~20 %
   routing headroom is a *policy* lever (explicitly bias routing toward
-  visual / tune the prompt), **not** a model-size lever — confirmed by
+  visual / tune the prompt), **not** a model-size lever, confirmed by
   measurement, not assumed.
 - **The v2 "evidence-location" prompt revealed the routing lever is
   really the *visual leg*, and that the best MMLongBench number is a
   benchmark artifact.** `classify_query_v2` (route by where the answer
   lives, bias-visual-on-ambiguity) drove `gemma3:4b` to **0.846**
-  recall@10 — best of all, *above* the 0.841 category-oracle. But the
+  recall@10 (best of all, *above* the 0.841 category-oracle). But the
   cached decisions show why: it routes **107/109 in-corpus queries to
-  visual** — it has degenerated to "always-visual", not smart routing.
+  visual**. It has degenerated to "always-visual", not smart routing.
   It beats the category-oracle only because the oracle trusts golden
   *labels* (some `factual`-labelled queries have visual answers).
-  `cloud`+v2 stayed discriminating (93/109 visual) and scored 0.818 —
+  `cloud`+v2 stayed discriminating (93/109 visual) and scored 0.818,
   *lower here precisely because this benchmark rewards the lazy
   strategy*. MMLongBench is ~93 % visual; the production arXiv corpus is
   text-heavy, where ADR 0007 / `results.md` document the visual leg
@@ -125,5 +125,5 @@ latency further.
 
 - ADR 0012: rejected the reranker swap, pointed here.
 - ADR 0008 / 0007: the routing + hybrid-fusion machinery this exploits.
-- ADR 0010: cascade — the lever to keep routing speed-neutral.
+- ADR 0010: cascade, the lever to keep routing speed-neutral.
 - ADR 0004: the visual leg whose value this quantifies (+25 % ceiling).

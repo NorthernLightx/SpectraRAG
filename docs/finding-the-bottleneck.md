@@ -9,7 +9,7 @@ this is the reasoning.
 
 The headline result here is a retrieval win: routing figure and table queries
 to a visual retriever lifts page recall by 35 %. The natural next step was more
-of the same — better fusion, better reranking, better routing. For months the
+of the same: better fusion, better reranking, better routing. For months the
 working theory was that the system was *retrieval-bound*: find the right page
 more often and the answers follow.
 
@@ -20,13 +20,13 @@ gap, apparently all retrieval's fault.
 ## The confound
 
 That 0.31 was wrong. The two arms used different models, different page
-counts, and different serving paths — three variables changed at once. Rerun
+counts, and different serving paths. Three variables changed at once. Rerun
 with everything held fixed (same 31B model, same prompt, same path, all 149
 benchmark queries), the oracle-to-real gap is **0.07**. Retrieval was costing
 seven points, not thirty-one.
 
 The decomposition made it concrete. On the answerable set, retrieval puts a
-gold page in front of the model **72 % of the time** — and the model converts
+gold page in front of the model **72 % of the time**, and the model converts
 only **46-48 %** of those into a correct answer. Of all end-to-end failures,
 61-66 % happen *after* the right page was already in context. The system was
 generation-bound, and had been the whole time.
@@ -36,14 +36,14 @@ generation-bound, and had been the whole time.
 Each candidate fix got a measured test before any code shipped. Most died.
 
 **A bigger model.** A 235B model converted retrieved pages no better than the
-31B (and on real retrieval — gold page plus four distractors — it was *worse*
+31B (and on real retrieval, gold page plus four distractors, it was *worse*
 in every category; bigger models proved more sensitive to retrieval noise).
 A frontier model matched them: three very different readers converged at
 ~0.46 on oracle pages. Model capacity is not the constraint.
 
 **Fewer pages.** If the model loses answers in a 5-page context, feed fewer
-pages? Refuted: accuracy is monotonic in page count — k=1 scores 0.16, k=5
-scores 0.36. Distraction cost is negligible; coverage dominates.
+pages? Refuted: accuracy is monotonic in page count (k=1 scores 0.16, k=5
+scores 0.36). Distraction cost is negligible; coverage dominates.
 
 **Prompt engineering.** A strict terse-answer, anti-refusal prompt recovered a
 couple of formatting artifacts and lost as much elsewhere. Net zero.
@@ -64,7 +64,7 @@ specificity that finds the gold page. Also not built.
 Three levers held up under measurement, and they set the roadmap:
 
 - **Feed more when it fits.** On documents small enough for the context
-  window, feeding the whole document beats top-5 retrieval by +0.12 — and
+  window, feeding the whole document beats top-5 retrieval by +0.12, and
   fails or loses beyond the window, where retrieval is required. That
   measured crossover became the route-by-fit design
   ([ADR 0024](./decisions/0024-route-by-fit-page-selector.md)): whole
@@ -73,15 +73,15 @@ Three levers held up under measurement, and they set the roadmap:
   pipeline is entirely about the gold page being present, worth ~0.06.
 - **A better answer extractor.** The benchmark's extract-then-match scoring
   step mis-marks terse correct answers; a stronger extractor is worth ~0.04,
-  and auditing the scorer showed the honest oracle ceiling is ~0.52-0.56,
+  and auditing the scorer showed the corrected oracle ceiling is ~0.52-0.56,
   about 0.11 above the strict reading.
 
 ## What it cost and what it bought
 
 The campaign was a few days of compute on free-tier models with controlled
 arms, plus a failure taxonomy over every post-retrieval miss. It produced no
-new feature. It killed four attractive projects — bigger generator, context
-trimming, generation router, agentic decomposition — each of which would have
+new feature. It killed four attractive projects (bigger generator, context
+trimming, generation router, agentic decomposition), each of which would have
 consumed weeks and moved nothing, and it re-ranked the roadmap around the
 levers that measured real.
 

@@ -1,11 +1,11 @@
-"""Persisted ColQwen2 page index — a Qdrant multivector collection.
+"""Persisted ColQwen2 page index in a Qdrant multivector collection.
 
 The in-memory ``VisualRetriever`` (``src/rag/retrievers/visual.py``) embeds every
 page at startup, which needs a GPU; on CPU that startup encode runs for tens of
 minutes and blows the Cloud Run startup timeout. This store persists the page
 multivectors once, offline, on a GPU (``scripts/build_visual_index.py``) into a
 Qdrant multivector collection, so the deploy loads them instead of re-encoding.
-At serve time only the query is encoded — Qdrant computes the MaxSim late-
+At serve time only the query is encoded, and Qdrant computes the MaxSim late-
 interaction score natively (qdrant-client 1.10+ multivector, MAX_SIM comparator;
 embedded ``path:`` mode supports it as of 1.17).
 
@@ -62,7 +62,7 @@ class QdrantVisualStore:
         # Embedded path-mode allows one client per on-disk path per process, and
         # the serve path already holds one open for the text store. So the serve
         # wiring passes that shared client in; only an owned client (the offline
-        # build, which has the path to itself) is created — and closed — here.
+        # build, which has the path to itself) is created, and closed, here.
         self._owns_client = client is None
         if client is not None:
             self._client = client
@@ -79,7 +79,7 @@ class QdrantVisualStore:
         MAX_SIM is the ColBERT/ColPali late-interaction comparator: for each
         query token, take the max similarity over the page's patch vectors, then
         sum across query tokens. The base distance is DOT, not COSINE, to match
-        colpali's ``score_multi_vector`` exactly — it scores raw dot products
+        colpali's ``score_multi_vector`` exactly, which scores raw dot products
         (``einsum(...).max().sum()``) with no per-vector normalization, so COSINE
         would diverge from the offline eval's ranking on non-unit vectors.
         """
@@ -104,7 +104,7 @@ class QdrantVisualStore:
     async def close(self) -> None:
         """Release the client and, in embedded ``path:`` mode, its on-disk lock,
         so the same store can be reopened sequentially. The build script reads
-        the text corpus, encodes, then reopens to upsert — local mode rejects two
+        the text corpus, encodes, then reopens to upsert, and local mode rejects two
         live clients on one path. No-op for a shared client passed in by the
         serve wiring; the text store owns that one."""
         if self._owns_client:

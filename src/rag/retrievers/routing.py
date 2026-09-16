@@ -1,10 +1,10 @@
-"""Per-query routing — classify queries to text-only or hybrid (text+visual).
+"""Per-query routing: classify queries to text-only or hybrid (text+visual).
 
 ADR 0008 pins the original design: regex/keyword classifier emits one of five
 categories; {figure, table, multi_hop} route to hybrid (RRF over text + visual
 at page granularity), {factual, definitional} route to text-only.
 
-ADR 0010 adds a second mode — **cascade** — that dispatches by *retrieval
+ADR 0010 adds a second mode, **cascade**, that dispatches by *retrieval
 confidence* instead of query category. Always runs the text leg first; only
 invokes the visual leg if the top-1 rerank score falls below
 `cascade_confidence_threshold`. This is a cost-quality knob: when text is
@@ -39,8 +39,8 @@ _routing_info_var: ContextVar[RoutingInfo | None] = ContextVar("routing_info", d
 
 def get_last_routing_info() -> RoutingInfo | None:
     """Public reader for the per-task routing decision. None when the
-    current task didn't go through a RoutingRetriever (e.g. PipelineRetriever
-    wired directly with no routing layer)."""
+    current task didn't go through a RoutingRetriever (for example a
+    PipelineRetriever wired directly with no routing layer)."""
     return _routing_info_var.get()
 
 
@@ -75,7 +75,7 @@ _FIGURE_RE = re.compile(
 _MULTIHOP_RE = re.compile(
     r"\bcompare\b|\bvs\.?\b|\bversus\b|\bdifferences?\b|\bbetween\b", re.IGNORECASE
 )
-# Factual = numeric span OR ≥2-char uppercase acronym. NO IGNORECASE — the
+# Factual = numeric span OR ≥2-char uppercase acronym. NO IGNORECASE: the
 # acronym half needs case sensitivity (otherwise every word would match).
 _FACTUAL_RE = re.compile(r"\b\d+(?:\.\d+)?\b|\b[A-Z]{2,}\b")
 
@@ -83,7 +83,7 @@ _FACTUAL_RE = re.compile(r"\b\d+(?:\.\d+)?\b|\b[A-Z]{2,}\b")
 def classify_query(text: str) -> Category:
     """Map a query string to one of the five categories per ADR 0008.
 
-    Pure function — no I/O, no side effects, deterministic. Patterns are
+    Pure function: no I/O, no side effects, deterministic. Patterns are
     intentionally small; ADR 0008 §"Caveats" covers the trade-offs.
     """
     if _TABLE_RE.search(text):
@@ -109,7 +109,7 @@ def _to_page_id(chunk_id: str) -> str:
 
     Text chunks are formatted 'paper::pN::cM'; visual page chunks are
     'paper::pN::page' (per src/rag/retrievers/visual.py). Both collapse to
-    'paper::pN' so RRF can merge text + visual hits on the same page —
+    'paper::pN' so RRF can merge text + visual hits on the same page,
     page-level fusion per ADR 0008 §"Decision" §5.
     """
     parts = chunk_id.split("::")
@@ -125,7 +125,7 @@ class RoutingRetriever:
     Hybrid path runs both legs concurrently via asyncio.gather, fuses their
     rankings at page granularity with a weighted RRF (ADR 0023; equal-weight
     per ADR 0008 by default), and maps each fused page back to a single
-    RetrievalResult — the highest-scoring text chunk on that page when text
+    RetrievalResult, the highest-scoring text chunk on that page when text
     contributed, else the visual page result.
 
     Visual-leg failures (GPU OOM, model-load errors) fall back to text-only;
@@ -135,7 +135,7 @@ class RoutingRetriever:
     Classifier upgrade: pass an `LLMQueryClassifier` via `classifier=` to
     replace the regex with an LLM-based zero-shot classifier. This is the fix
     for corpora where natural-language queries don't carry "Figure X" / "Table N"
-    keywords (MMLongBench-style) — the regex under-fired by ~75 % on that
+    keywords (MMLongBench-style), where the regex under-fired by ~75 % on that
     corpus per the run-cc45831697b6 diagnostic. Default classifier is the
     regex (fast, deterministic, free).
     """
@@ -187,7 +187,7 @@ class RoutingRetriever:
                 # retrieval. The keyless wiring path builds an Ollama-backed
                 # classifier (ADR 0013); on a deploy with no Ollama (Cloud Run)
                 # classify() would raise and 500 every /query. Fall back to the
-                # regex classifier — the dependency-free default (ADR 0008).
+                # regex classifier, the dependency-free default (ADR 0008).
                 _log.warning(
                     "routing.classifier_failed",
                     error=str(exc),
@@ -303,8 +303,8 @@ class RoutingRetriever:
     async def _retrieve_visual_only(
         self, query: Query, *, mode: RoutingMode = "category"
     ) -> list[RetrievalResult]:
-        """Forced visual-only route: run the visual leg alone — no text leg, no
-        fusion. On a visual-leg failure, degrade to text-only like the other
+        """Forced visual-only route: run the visual leg alone, with no text leg
+        and no fusion. On a visual-leg failure, degrade to text-only like the other
         paths so a GPU hiccup doesn't kill the demo (ADR 0008 §"Failure modes")."""
         span = trace.get_current_span()
         span.set_attribute("routing.mode", mode)
@@ -458,7 +458,7 @@ class RoutingRetriever:
         visual_failed: bool = False,
     ) -> None:
         """Set the per-task RoutingInfo and emit routing.dispatched for the
-        category and always-hybrid paths. Symmetric to _log_cascade — every
+        category and always-hybrid paths. Symmetric to _log_cascade: every
         path goes through one emitter so the response decision and the log
         can't drift apart."""
         _routing_info_var.set(
@@ -559,7 +559,7 @@ class RoutingRetriever:
         1/(k+rank_text) + w/(k+rank_visual). At the default w=1.0 this is the
         plain equal-weight RRF `src.rag.hybrid.reciprocal_rank_fusion` computes
         (same k, same first-appearance dedup, same stable text-before-visual
-        tie order) — so default routing is byte-identical to ADR 0008.
+        tie order), so default routing is byte-identical to ADR 0008.
         """
         # Best text RetrievalResult per page (highest score among chunks on that page).
         # Used to pick the "preferred" RetrievalResult to return for each fused page.

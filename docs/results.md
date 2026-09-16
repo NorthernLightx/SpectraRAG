@@ -34,20 +34,20 @@ stack (Ryzen 5800X / RTX 3070 / 16 GB; Ollama on CPU; Qdrant in Docker).
 |---|---|---|---|---|
 | **Embed query** | Ollama `bge-m3`, CPU | 151 ms | 170 ms | Stable after warmup; first call ~3 s |
 | **Dense search** | Qdrant top-50 | 14 ms | 46 ms | HNSW; effectively constant in N |
-| **BM25 search** | `rank_bm25`, in-process | <5 ms | — | Bag-of-words; not measured (legacy schema, ingest fresh to measure) |
-| **RRF fusion** | pure Python | <1 ms | — | Rank-list math |
-| **Reranker** | BGE-rerank-v2-m3, GPU | ~5,500 ms | — | From v2 baseline (short chunks); dominates whole-query latency. On long MMLongBench docs it is far slower — ADR 0013 measured ~33 s on a sampled query, and whole-query latency in the router run ran to minutes |
-| **Generation** | `gpt-4o-mini` via OpenRouter | ~2,000 ms | — | Network + remote |
-| **Generation (alt)** | `qwen2.5:7b` via Ollama GPU | ~60 s | — | From v2 baseline |
+| **BM25 search** | `rank_bm25`, in-process | <5 ms | n/a | Bag-of-words; not measured (legacy schema, ingest fresh to measure) |
+| **RRF fusion** | pure Python | <1 ms | n/a | Rank-list math |
+| **Reranker** | BGE-rerank-v2-m3, GPU | ~5,500 ms | n/a | From v2 baseline (short chunks); dominates whole-query latency. On long MMLongBench docs it is far slower. ADR 0013 measured ~33 s on a sampled query, and whole-query latency in the router run ran to minutes |
+| **Generation** | `gpt-4o-mini` via OpenRouter | ~2,000 ms | n/a | Network + remote |
+| **Generation (alt)** | `qwen2.5:7b` via Ollama GPU | ~60 s | n/a | From v2 baseline |
 
 The retrieval-only path (embed + dense + BM25 + RRF) is sub-200 ms on
-this hardware. Reranker is the dominant whole-query cost at ~5.5 s — the
+this hardware. Reranker is the dominant whole-query cost at ~5.5 s, the
 right next thing to optimise (smaller cross-encoder, batching, or skip
 the rerank for queries the classifier knows are cheap). Generation
 latency is mostly network + provider; the BYOK browser-direct path adds
 no hops on our side.
 
-## Why multi-modal? — one concrete example
+## Why multi-modal? One concrete example
 
 `mmlb_0002` from MMLongBench-Doc, paper `0e94b4197b10096b1f4c699701570fbf`,
 gold page 10:
@@ -62,24 +62,24 @@ gold page 10:
 | LLM router (`76c164307b05`) | `[24, 10, 19, 9, 27, 5, 26, 55, 6, 46]` | **1.00** |
 
 This is the kind of question that's fundamentally unanswerable from
-extracted text — the answer lives in the chart's colour-coding. The text
+extracted text. The answer lives in the chart's colour-coding. The text
 retriever never surfaces page 10 (none of its hits are even from the gold
 paper); the visual leg (ColQwen2 multi-vector + late-interaction MaxSim on
 the rendered page image) puts `…::p10::page` at rank 2. Across the 107
 scored queries, 17 went from a 0.00 text-only recall@10 to a positive
-router recall@10 — all figure/table, all recoverable from the committed
+router recall@10, all figure/table, all recoverable from the committed
 `baseline-mmlongbench-{text,router}.json` per-query records.
 
-A note on page-level scoring: `rescore_mmlb_pages.py` scores paper-aware — a
+A note on page-level scoring: `rescore_mmlb_pages.py` scores paper-aware. A
 retrieved page counts only when it is the gold paper's page, not any
 document's page of the same number.
 
-**The honest tradeoff.** Multi-modal retrieval helps when figures encode
-information as pixels — chart colours, layout geometry, screenshot content,
-image-only diagrams. It helps less when figures encode information as a
-text layer the PDF parser can extract — most modern arXiv preprints
-serialise even figure-internal labels and captions as selectable text,
-which is why golden v3's per-query router showed only +1.9 % on figure
+**Where multi-modal helps and where it doesn't.** Multi-modal retrieval helps
+when figures encode information as pixels: chart colours, layout geometry,
+screenshot content, image-only diagrams. It helps less when figures encode
+information as a text layer the PDF parser can extract. Most modern arXiv
+preprints serialise even figure-internal labels and captions as selectable
+text, which is why golden v3's per-query router showed only +1.9 % on figure
 subsets while MMLongBench shows +48.3 % on the same category. ADR 0007 +
 [`docs/decisions/0008`](./decisions/0008-phase32-routing.md) explain the
 mechanism.
@@ -87,11 +87,11 @@ mechanism.
 ## The generation gap (closed)
 
 When the visual leg surfaces the right page, a text-only generator still
-cannot read the page image — it answers *"Not stated in the provided
+cannot read the page image. It answers *"Not stated in the provided
 context."* on `mmlb_0008` and friends.
 [`scripts/legacy/experiment_mmlb_gen.py`](../scripts/legacy/experiment_mmlb_gen.py) runs
 106 in-corpus MMLongBench queries through `gpt-4o-mini` (text-only) vs
-`qwen/qwen3-vl-32b-instruct` (vision) with **identical context** —
+`qwen/qwen3-vl-32b-instruct` (vision) with **identical context**:
 gold-evidence page text fed to both, plus the rendered page PNGs as
 additional content blocks for the vision model.
 
@@ -113,7 +113,7 @@ Per-category, vision lift scales with how visual the category is:
 context. When vision answers *"the line is red"* (correct, gold-matched)
 and "red" isn't in the page text, the judge flags the claim unsupported.
 Programmatic gold-answer match bypasses this judge bias and is the channel
-to trust — it's a deterministic substring check against MMLongBench's
+to trust. It's a deterministic substring check against MMLongBench's
 expert-annotated gold answers.
 
 Run JSONs at `data/eval/runs/exp_mmlb_gen_full.json` (full) and
@@ -123,8 +123,8 @@ Run JSONs at `data/eval/runs/exp_mmlb_gen_full.json` (full) and
 ## The dispatch gap (closed)
 
 The retrieval section flagged that the regex classifier dispatched only
-26 / 149 MMLongBench queries to hybrid where 98 were figure/table-evidenced
-— a 75 % under-fire on a corpus where natural-language questions don't say
+26 / 149 MMLongBench queries to hybrid where 98 were figure/table-evidenced,
+a 75 % under-fire on a corpus where natural-language questions don't say
 "Figure X" / "Table N". `src/rag/retrievers/classifier_llm.py` adds an LLM
 zero-shot classifier as an alternative to the regex.
 [`scripts/legacy/exp_classifier_dispatch.py`](../scripts/legacy/exp_classifier_dispatch.py)
@@ -140,10 +140,10 @@ The LLM over-dispatches some factual queries (0 % → 56 %) but the fail-safe
 is bounded: hybrid retrieval on a text-only-needed query just costs more
 compute, the answer is still correct. This experiment classified with
 `gpt-4o-mini`; the shipped router runs the keyless `gemma3:4b` classifier
-(ADR 0013), which over-dispatches more aggressively still — on this
+(ADR 0013), which over-dispatches more aggressively still. On this
 benchmark that helps, since ~93 % of answerable queries are visual.
 
-## Composed pipeline — end-to-end win
+## Composed pipeline: end-to-end win
 
 Three lifts compose into a single deployed answer:
 
@@ -159,7 +159,7 @@ Three lifts compose into a single deployed answer:
 Each layer's lift was measured in isolation; the dispatch upgrade closes
 the bottleneck that was previously suppressing the composed product.
 
-## Production baseline — golden v2
+## Production baseline: golden v2
 
 5 papers, 23 queries (17 in-corpus). Stack: BM25 + dense + RRF →
 BGE-v2-m3 cross-encoder rerank → qwen2.5:7b generate + judge.
@@ -181,7 +181,7 @@ CI gates the CPU page-level retrieval slice (nDCG@5 / recall@10 / MRR) against
 full-stack metrics above are verified by the manual or scheduled eval; see
 `docs/evals.md`.
 
-## Corpus-expansion follow-up — golden v3
+## Corpus-expansion follow-up: golden v3
 
 39 queries, 20 papers, retrieval-only:
 
@@ -196,7 +196,7 @@ queries (q24–q39 in-corpus), hybrid edges text @ page (+1.9 % nDCG@5); on
 the 17 definitional v2 queries, hybrid loses (−10.6 %). Full analysis in
 [`docs/decisions/0007-phase31-corpus-expansion-and-hybrid-fusion.md`](./decisions/0007-phase31-corpus-expansion-and-hybrid-fusion.md).
 
-### Per-query router — golden v3
+### Per-query router: golden v3
 
 Retrieval-only with `--rerank --router` (run `6447247ef8e7`, ADR 0008):
 
@@ -207,7 +207,7 @@ Retrieval-only with `--rerank --router` (run `6447247ef8e7`, ADR 0008):
 | **figure** | **11** | **0.876** | **hybrid (RRF page-level)** |
 | **table** | **4** | **0.875** | **hybrid (RRF page-level)** |
 | multi_hop | 2 | 0.619 | hybrid |
-| out_of_corpus | 8 | 0.000 | (correct — no relevant chunks) |
+| out_of_corpus | 8 | 0.000 | (correct, no relevant chunks) |
 | **Aggregate (in-corpus n=31)** | | **0.7942** | mixed |
 
 The router fires hybrid for `figure`/`table`/`multi_hop` and stays
@@ -216,12 +216,12 @@ text-only for `factual`/`definitional`/`equation`, exactly per the ADR
 
 ## Stress test on MMLongBench-Doc
 
-Golden v3 is too easy to differentiate text vs hybrid generation —
+Golden v3 is too easy to differentiate text vs hybrid generation:
 PyMuPDF's text-layer extraction captures even figure-internal labels on
 modern arXiv PDFs, so caption text is nearly always sufficient.
 [MMLongBench-Doc](https://arxiv.org/abs/2407.01523) is the harder regime:
 47-page PDFs with 22.5 % unanswerable queries (refusal-gate friendly),
-GPT-4o tops out at 44.9 % F1 — a non-saturated benchmark.
+GPT-4o tops out at 44.9 % F1, a non-saturated benchmark.
 
 20 docs / 149 queries (76 figure + 24 table + 9 factual + 40 OOC). The
 golden labels relevant *pages*, not chunks, so retrieval is page-scored via
@@ -253,7 +253,7 @@ sit ~0.10–0.12 higher than these; the routing lever it identified is the
 same and grows under paper-aware scoring, since the cross-paper false hits
 it counted had helped the text arm more.
 
-The generation arm below is a **separate, earlier experiment** — the
+The generation arm below is a **separate, earlier experiment**: the
 regex-era runs `589f7269d617` (text) / `cc45831697b6` (router), which had
 `gpt-4o-mini` generation + judge enabled. It is not part of the
 retrieval-only measurement above and its run-ids differ deliberately.
@@ -294,10 +294,10 @@ retrieval gain converts only where routing changes what is retrieved (n=18: 0.33
 against 0.000, p=0.016). Of the queries whose gold evidence did reach the reader,
 46 % were refused and 11 % answered wrongly, and rendering pages at 150 DPI
 instead of the 72 DPI MMDocIR ships moved that +0.023. Prompting the reader to
-treat page images as context lifts the metric but turns honest refusals into
+treat page images as context lifts the metric but turns correct refusals into
 wrong answers, so no prompt change shipped.
 
-## End-to-end — a RAG↔long-context spectrum, not a fixed ceiling
+## End-to-end: a RAG↔long-context spectrum, not a fixed ceiling
 
 The retrieval lift and the strong oracle-page generation are both real, but they
 do not multiply into a SOTA end-to-end QA number. Measuring the real path (cached
@@ -308,11 +308,11 @@ gemma3:4b extractor) showed the loss is mostly *not* where we assumed:
   / F1 0.518** (n=106). This is the official metric on our 106-query in-corpus
   subset with a local extractor (a conservative lower bound), not the 1082-query
   leaderboard number; read it as competitive with GPT-4o's 0.436 (the 2024
-  baseline, now the leaderboard floor — current SOTA is ~0.62), not a leaderboard
+  baseline, now the leaderboard floor; current SOTA is ~0.62), not a leaderboard
   win.
-- **Real retrieval — the gold page is usually there, generation loses it.** On
+- **Real retrieval: the gold page is usually there, generation loses it.** On
   the full answerable set (n=110), the gold page is in the real top-5 **72 %** of
-  the time, yet generation converts only **~46-48 %** of those — it loses about
+  the time, yet generation converts only **~46-48 %** of those. It loses about
   half *with the page in hand*. Holding the model fixed (gemma-4-31b on both arms), the
   clean oracle→real retrieval tax is just **0.07** (0.42→0.35); the larger
   cross-model drop is a confound. And a bigger generator showed no
@@ -320,37 +320,37 @@ gemma3:4b extractor) showed the loss is mostly *not* where we assumed:
   end-to-end loss is **post-retrieval**, not retrieval recall.
 - **The recall ceiling** (recall@5 0.66, @10 0.75 over the full n=111) is a real
   upper bound on what retrieval can deliver, but it is not the binding constraint
-  on the measured queries — generation is.
+  on the measured queries. Generation is.
 
-The honest headline: the retrieval win above is real, but the end-to-end number
+The headline: the retrieval win above is real, but the end-to-end number
 sits on a spectrum, not below a fixed bar. Two corrections matter. **First, GPT-4o
-(0.427) is the 2024 paper baseline — the leaderboard *floor*, not the bar.** Current
+(0.427) is the 2024 paper baseline, the leaderboard *floor*, not the bar.** Current
 MMLongBench-Doc SOTA is ~0.62 (Qwen3.6 Plus, published), and our number is
 comparable to neither floor nor SOTA: the leaderboard feeds the *whole document*
 over the full 1082-question set with its own GPT-4o-graded harness, while we score
 top-5 RAG (or oracle pages) on a strict in-corpus subset with a local extractor. We
-did not reproduce the leaderboard config — our own whole-doc arm (gemma-4-31b)
-reached only ~0.38 strict on the docs where it ran — so the gap to 0.62 is task,
+did not reproduce the leaderboard config; our own whole-doc arm (gemma-4-31b)
+reached only ~0.38 strict on the docs where it ran. So the gap to 0.62 is task,
 harness, and model entangled, not attributable to any one of them. **Second, the lever is how much we feed.** The model-side levers are
 measured-closed (fewer pages refuted; prompt net-neutral; a stronger VLM up to
-frontier gemini-2.5-pro gives no lift — three readers converge ~0.42 oracle). But on
+frontier gemini-2.5-pro gives no lift; three readers converge ~0.42 oracle). But on
 docs that fit context, **whole-doc beats top-5 RAG by +0.12** (figures +0.12, tables
-+0.18) — top-5 was an over-aggressive cut, and retrieval-loss, not distraction,
++0.18). Top-5 was an over-aggressive cut, and retrieval-loss, not distraction,
 dominated. Whole-doc fails or loses *beyond* context (it errored on 30 % of queries
 here and lost on the >50-page docs), where RAG is required. So the real picture is
 the RAG↔long-context **spectrum**: long-context when the content fits, RAG when it
-doesn't — and the repo's per-query router is the natural place to choose ("route
+doesn't. The repo's per-query router is the natural place to choose ("route
 before retrieve").
 
 **The strict scorer understates the oracle read by ~0.11 (verified).** Auditing the
 oracle failures showed the official extract-then-match step mis-marks terse-but-correct
-answers as "Not answerable" — even GPT-4o does this, because it is built to pull a
+answers as "Not answerable". Even GPT-4o does this, because it is built to pull a
 short answer out of *verbose* reasoning, and a one-word correct answer reads to it as
 no-analysis. A direct correctness judge that still respects the gold (it rejects wrong
 values, refusals, and even a truncated answer, and does not credit a suspected-wrong
 gold) lifts the oracle read by **+0.08 to +0.13 across three models**: gemini
 0.45→0.52, gemma-4-31b 0.45→0.56, qwen3-vl-235b 0.43→0.56 (~+0.11 average; gemini
-recovers least because it genuinely refuses more). So the honest oracle ceiling is
+recovers least because it genuinely refuses more). So the corrected oracle ceiling is
 **~0.52–0.56**, and the residual below the 0.62 frontier is genuine hard figure/table
 reading plus the whole-doc/full-set harness gap, not bad gold.
 
@@ -360,11 +360,11 @@ and the whole-doc comparison are in
 
 ## Multi-modal regression gate
 
-The two MMLongBench retrieval runs are committed as a pair —
+The two MMLongBench retrieval runs are committed as a pair:
 [`data/eval/baseline-mmlongbench-text.json`](../data/eval/baseline-mmlongbench-text.json)
 (text-only, `3de944c0d03d`) and
 [`data/eval/baseline-mmlongbench-router.json`](../data/eval/baseline-mmlongbench-router.json)
-(LLM router, `76c164307b05`) — so future changes can't silently lose the
+(LLM router, `76c164307b05`), so future changes can't silently lose the
 +34.6 % recall@10 win. The earlier
 [`baseline-mmlongbench.json`](../data/eval/baseline-mmlongbench.json)
 (regex-era router `cc45831697b6`, recall@10 0.7469) is superseded by this
@@ -390,17 +390,17 @@ To check a candidate run against the gate:
 The gate fails if any retrieval metric regresses > 5 %. Verified locally:
 running it with the **text-only** baseline as candidate against the router
 baseline fails with `recall_at_10 -25.68 %` (nDCG@5 -19.11 %, MRR
--19.29 %, exit 1) — exactly the regression we'd see if a future change
+-19.29 %, exit 1), exactly the regression we'd see if a future change
 disabled the visual leg. CI doesn't run MMLongBench (it needs Qdrant +
 Ollama + 15 min of compute); this is a manual gate, run before merging any
 change that touches retrieval.
 
-## Failure modes — when this gets it wrong
+## Failure modes: when this gets it wrong
 
-A repo without honest failure cases is a tutorial. Five curated examples
-from `data/eval/runs/exp_mmlb_gen_*.json` and `exp_classifier_dispatch.json`.
+The failure cases are part of the record. Five curated examples from
+`data/eval/runs/exp_mmlb_gen_*.json` and `exp_classifier_dispatch.json`.
 
-### 1. Generation failure — text can't read chart numerics
+### 1. Generation failure: text can't read chart numerics
 
 > **Q:** *"According to the chart on page 14 how much time was spent with
 > family and friends in 2010?"*
@@ -421,11 +421,11 @@ directly. Closed by the vision-generator path.
 > **Gold:** 0–375 miles
 
 - **Text-only:** *"Not stated in the provided context."* (no citations)
-- **Vision:** *"0 to 375 miles"* — looks correct, **faithfulness = 0.0** per judge
+- **Vision:** *"0 to 375 miles"* (looks correct, **faithfulness = 0.0** per judge)
 
 The vision model produces the right answer but the judge rates
 faithfulness 0.0 because the retrieved page text doesn't support the
-claim. Color-legend semantics live in the image only — the claim is
+claim. Color-legend semantics live in the image only. The claim is
 grounded in pixels, not the retrieved text, and the faithfulness signal
 correctly flags that.
 
@@ -441,7 +441,7 @@ OOC handling works: zero retrieval signal, system declines rather than
 confabulating. The OOC refusal gate (ADR 0006) is what makes this score
 correctly on the LLM judge.
 
-### 4. Classifier mis-dispatch — LLM over-routes a factual query
+### 4. Classifier mis-dispatch: LLM over-routes a factual query
 
 > **Q:** *"For dataset construction, which step takes the most word to
 > describe than the others?"*
@@ -451,11 +451,11 @@ correctly on the LLM judge.
 - **LLM classifier (`gpt-4o-mini`):** routes hybrid ✗
 
 LLM gets confused by "step-wise" wording and routes to vision
-unnecessarily. The fail-safe is bounded — costs extra compute, doesn't
-break the answer — but it's the cost of the dispatch lift documented
+unnecessarily. The fail-safe is bounded (costs extra compute, doesn't
+break the answer), but it's the cost of the dispatch lift documented
 above.
 
-### 5. Comparative chart reading — vision wins clean
+### 5. Comparative chart reading: vision wins clean
 
 > **Q:** *"Which category has the most increase from 2005 to 2010 for time
 > spent on weekends?"*

@@ -1,4 +1,4 @@
-# ADR 0022 — Figure role classification at ingestion
+# ADR 0022: Figure role classification at ingestion
 
 **Status:** Accepted. Code-only change; no eval movement expected on the
 text baseline (`eval_docling_text` has no figure chunks). The new field
@@ -10,7 +10,7 @@ exists for the figures gallery and for any future role-aware retriever.
 Spot-checking the figures gallery on `eval_docling_mm` (Docling +
 `--extract-figures` ingest) surfaced an over-recall problem: of 304
 "picture" chunks Docling emits across the 20-paper arXiv-2604 corpus,
-**42 are below 1000 pt²** — affiliation email/social icons, the
+**42 are below 1000 pt²**: affiliation email/social icons, the
 Microsoft logo recurring on every page of `2604.28181v1`, CC-BY
 license badges, and inline red-✗ status markers from `2604.28177v1`.
 None of them is a publication figure in any meaningful sense, but
@@ -22,11 +22,11 @@ Two failure modes follow:
    of real figures, undermining the "browse the figures" use case.
 2. When multi-modal chunks were enabled in retrieval (ADR 0020), these
    junk chunks contributed to the −6.7 % `answer_correctness`
-   regression — a chunk whose text is the placeholder
+   regression. A chunk whose text is the placeholder
    `[2604.28181v1::p1::fig1]` and image is the Microsoft logo doesn't
    help retrieve anything except the user typing "Microsoft".
 
-The naive fix — drop everything below a size threshold at ingestion —
+The naive fix (drop everything below a size threshold at ingestion)
 loses information the user might legitimately ask about ("what
 license is this paper under?", "whose affiliation appears here?").
 The right shape is to **characterise, then filter by context**: keep
@@ -41,13 +41,13 @@ three values: `figure`, `decoration`, `unlabeled`. The classifier in
 deterministic:
 
 1. **Caption-first.** If the paper itself captioned the picture with
-   `^(Figure|Fig\.?)\s*\d`, it's a `figure` — regardless of how small
+   `^(Figure|Fig\.?)\s*\d`, it's a `figure`, regardless of how small
    the crop is. This rescues the lone 906-pt² real figure in this
    corpus ("Figure 3: Screenshots of the artifacts ...") that an
    area-only cut would have dropped.
 2. **Sub-threshold uncaptioned pictures are `decoration`.** The cut at
    **5000 pt²** is data-derived from the corpus characterisation, not
-   guessed — see the table below.
+   guessed. See the table below.
 3. **Above-threshold uncaptioned pictures are `unlabeled`.** Real
    pictures the paper didn't formally caption (an inset diagram inside
    an equation block, a captionless schematic). Kept in the index,
@@ -60,8 +60,8 @@ field; `figures.html`'s default view filters to `role=figure`, with a
 
 A migration cushion in `src/api/routes/figures.py::_derive_role` mirrors
 the classifier and runs against the chunk's emitted caption + stored
-bbox when the metadata `role` is absent — so the gallery works against
-existing collections (e.g. `eval_docling_mm`) without a re-ingest.
+bbox when the metadata `role` is absent, so the gallery works against
+existing collections (for example `eval_docling_mm`) without a re-ingest.
 
 ## Data behind the 5000 pt² cut
 
@@ -71,10 +71,10 @@ chunks total.
 | area bucket (pt²) | n | what's in there |
 |---|---:|---|
 | <1 000 | 42 | email/social icons (✉, 😀), CC-BY logo, Microsoft logo × 23 across `2604.28181v1`, red ✗ status markers |
-| 1 000 – 5 000 | 1 | another red ✗ icon at 1130 pt² |
-| 3 000 – 8 000 | 0 | clean valley |
-| 5 000 – 20 000 | 32 | real figures; smallest sampled was the 8 789-pt² SWAP-test quantum circuit |
-| 20 000 – 100 000 | 169 | mostly real figures |
+| 1 000 to 5 000 | 1 | another red ✗ icon at 1130 pt² |
+| 3 000 to 8 000 | 0 | clean valley |
+| 5 000 to 20 000 | 32 | real figures; smallest sampled was the 8 789-pt² SWAP-test quantum circuit |
+| 20 000 to 100 000 | 169 | mostly real figures |
 | ≥ 100 000 | 60 | full-page figures |
 
 The bimodal distribution with a zero-density valley between ~1 k and
@@ -92,7 +92,7 @@ pattern; the remainder are uncaptioned real pictures, which the
   retrieval-side filter would be a separate ADR with its own
   measurement.
 - **Drop-at-ingestion.** No picture-detection is dropped. The user's
-  guidance — "junk is fine, the user can ask about it" — is preserved.
+  guidance ("junk is fine, the user can ask about it") is preserved.
 
 ## What it costs
 
@@ -101,21 +101,21 @@ pattern; the remainder are uncaptioned real pictures, which the
 - One UI dropdown on `/figures.html` and a per-role breakdown in the
   status text.
 - Tests: 9 cases pinning the classifier (caption rescue, small icons,
-  logo-sized decorations, missing bbox, etc.).
+  logo-sized decorations, missing bbox, and others).
 
 No measured cost on retrieval. Gallery default view on `eval_docling_mm`
 becomes **209 / 304** items (started at 304, dropped 42 decorations and
-53 unlabeled — see below).
+53 unlabeled; see below).
 
-## Amendment, same day — use Docling's built-in figure classifier
+## Amendment, same day: use Docling's built-in figure classifier
 
 User pushback: "isn't Docling supposed to label all this correctly?
-Docling uses models." Correct — and we weren't using them. Docling 2.94
+Docling uses models." Correct, and we weren't using them. Docling 2.94
 ships `DocumentFigureClassifier-v2.5` (an EfficientNet trained on 28
 document-picture classes: `logo`, `icon`, `bar_chart`, `box_plot`,
 `flow_chart`, `line_chart`, `pie_chart`, `scatter_plot`, `photograph`,
 `engineering_drawing`, `chemistry_structure`, `screenshot_from_*`,
-`signature`, `stamp`, etc.) but it ships **off** in the default
+`signature`, `stamp`, and others) but it ships **off** in the default
 `PdfPipelineOptions`. The first-pass implementation didn't enable it.
 
 ### Setup costs
@@ -126,10 +126,10 @@ document-picture classes: `logo`, `icon`, `bar_chart`, `box_plot`,
   / dynamo, which needs Triton, unavailable on Windows-CPU. Setting
   `TORCHDYNAMO_DISABLE=1` at import time in `docling_parser.py`
   sidesteps the compile path and lets the model run on plain PyTorch.
-  Tried the ONNX engine first — Docling 2.94 currently returns
+  Tried the ONNX engine first. Docling 2.94 currently returns
   near-uniform predictions (~0.09 for every class) through that path,
   which we suspect is a preprocessing bug we didn't track down.
-- Per-paper ingest cost: classifier adds ~5–10 s to a paper-conversion
+- Per-paper ingest cost: classifier adds ~5 to 10 s to a paper-conversion
   that was already ~45 s. Negligible at the 20-paper corpus scale.
 
 ### Priority order
@@ -180,7 +180,7 @@ stays `unlabeled`, unknown future label falls through. Plus the
 paper-caption-beats-Docling-mislabel case. 20/20 classifier tests
 pass, 581/581 full unit suite passes.
 
-## Amendment — caption regex tightened
+## Amendment: caption regex tightened
 
 First-pass regex `^Figure\s*\d` was too narrow against the live corpus.
 Recharacterising the initial `unlabeled` bucket (86 chunks) found 38
@@ -192,7 +192,7 @@ real figures with non-standard prefixes:
   `"Figure C.1: Screenshot..."`, `"Figure F. Samples of AMD"`,
   `"1 Figure 9: The trade-off..."` (the leading `1` is a column-merge
   artifact from PDF text extraction)
-- 2 with table-style captions on picture-side detections of tables —
+- 2 with table-style captions on picture-side detections of tables,
   intentionally left as `unlabeled` since Docling's separate tables
   loop already emits a proper `Table N` chunk
 
@@ -204,11 +204,11 @@ Extended pattern:
 
 This rescues all 36 captioned cases. After tightening: **209 figure /
 53 unlabeled / 42 decoration**. The remaining 53 unlabeled all carry
-the `[paper::p::fig]` placeholder — i.e. zero caption text — so a
+the `[paper::p::fig]` placeholder (that is, zero caption text), so a
 caption-only classifier can't push further. A VLM-based labeller
 could, at the usual cost; left as out-of-scope here.
 
-## Amendment — role-aware retrieval filter + gallery floor for tiny decorations
+## Amendment: role-aware retrieval filter + gallery floor for tiny decorations
 
 **Date:** 2026-05-21
 
@@ -217,7 +217,7 @@ change" ("a role-aware retrieval-side filter would be a separate ADR with its
 own measurement"), and adds a gallery floor for the glyph-sized decorations
 that prompted it.
 
-### Retrieval-side filter — measured recall-neutral
+### Retrieval-side filter: measured recall-neutral
 
 `PipelineRetriever` now drops candidates whose `metadata["role"] ==
 "decoration"` from **both** legs before rerank/return, behind
@@ -228,18 +228,18 @@ for A/B.
 Filtered vs unfiltered on the only decoration-bearing collection
 (`eval_docling_classified_tables`): nDCG@5, recall@10, MRR all **+0.00 %**,
 retrieved IDs **byte-identical** for every query, every subset flat.
-baseline.json unchanged — nothing to rebaseline.
+baseline.json unchanged, nothing to rebaseline.
 
 Mechanism: a decoration chunk's only indexed text is its id-stub
 `[paper::p::figN]` (no caption; the VLM captioner skips decorations), which
 scores near-zero on both BM25 and dense, so decorations never enter the top-50
-candidate pool — confirmed by pool probes and the retriever's own "nothing
+candidate pool, confirmed by pool probes and the retriever's own "nothing
 dropped" logs. The −6.7 % `answer_correctness` harm in the original Context was
 a **generation-side** effect (decorations reaching the answer context), not a
-retrieval-metric one. So this lands as an **explicit default-on guardrail** —
-making role-awareness intentional rather than relying on the accident that
-id-stubs score below the cut — not a retrieval win; the gate passes because it
-cannot worsen retrieval.
+retrieval-metric one. So this lands as an **explicit default-on guardrail**
+that makes role-awareness intentional rather than relying on the accident that
+id-stubs score below the cut. It is not a retrieval win; the gate passes
+because it cannot worsen retrieval.
 
 Caveat: no Qdrant collection has *both* a `role=decoration` population *and*
 golden-v3 chunk-id alignment (the role field postdates the golden-aligned
@@ -250,19 +250,19 @@ where anchor drift cancels in the delta.
 
 The role + default-off Decorative bucket keep glyphs out of the gallery's
 default view, but the *opt-in* Decorative view still showed 12-pt table-emoji
-detections (e.g. `2604.28177v1` p2, 6 chunks at 146 pt²). `/figures` now also
-drops `role=="decoration"` items below `_MIN_DECORATION_AREA_PT2` (500 pt²).
-Decoration-only, so it cannot touch a real figure — the smallest in-corpus
-figure is a 514-pt² *caption-rescued* `figure`, and real figures are never
-`role=decoration`.
+detections (for example `2604.28177v1` p2, 6 chunks at 146 pt²). `/figures`
+now also drops `role=="decoration"` items below `_MIN_DECORATION_AREA_PT2`
+(500 pt²). Decoration-only, so it cannot touch a real figure. The smallest
+in-corpus figure is a 514-pt² *caption-rescued* `figure`, and real figures are
+never `role=decoration`.
 
-## Amendment — bbox-less pictures default to `unlabeled`, not `decoration`
+## Amendment: bbox-less pictures default to `unlabeled`, not `decoration`
 
 **Date:** 2026-05-21
 
 A figures-gallery report that *looked* like real figures misclassified as
 `decoration` turned out to be a **stale corpus**: the deployed `rag_corpus`
-predates this classifier (built by the old PyMuPDF extractor — 0 docling
+predates this classifier (built by the old PyMuPDF extractor, 0 docling
 labels), so the gallery's `_derive_role` cushion was re-deriving roles at view
 time. The current Docling pipeline classifies those papers' figures correctly
 (verified on `2604.28196v1`/`2604.28197v1`: 5/5 and 7/7 real figures detected,
@@ -271,7 +271,7 @@ all `figure`).
 The investigation did surface a genuine latent defect in the fallback ladder,
 fixed here: the terminal `bbox is None` branch returned `decoration`.
 `decoration` is the one role removed from the gallery content view, excluded by
-the role-aware retrieval filter, *and* skipped by the VLM captioner — so a real
+the role-aware retrieval filter, *and* skipped by the VLM captioner, so a real
 figure whose bbox is ever absent would be caption-starved and dropped from both
 surfaces, invisibly. The fallback now returns `unlabeled` (kept in retrieval,
 hidden only from the gallery's default view) in both `_classify_figure_role`
@@ -279,12 +279,12 @@ and the `_derive_role` migration cushion, which stay in sync. A picture is
 `decoration` only on positive evidence now: a confident logo/icon-class label
 or a measured sub-5000-pt² area.
 
-Defensive — no bbox-less figure was observed in the current pipeline on the
+Defensive: no bbox-less figure was observed in the current pipeline on the
 sampled papers; the change removes a silent figure-loss path before a corpus
 rebuild. (Also hardened: `parse_with_docling` now clears the per-paper crop dir
 each run, so re-ingests don't accumulate a palimpsest of stale crops.)
 
-## Amendment — Docling `table` label maps to `figure`, not `unlabeled`
+## Amendment: Docling `table` label maps to `figure`, not `unlabeled`
 
 **Date:** 2026-06-09
 
@@ -295,57 +295,57 @@ that premise:
 
 - Of **16** picture-side detections Docling classifies as `table`, only **5**
   sit on a page that also has a real extracted-table chunk. The other **11**
-  are the *only* representation of that table — Docling's separate table model
-  missed them, the picture detector caught them — and `unlabeled` buried them.
+  are the *only* representation of that table. Docling's separate table model
+  missed them, the picture detector caught them, and `unlabeled` buried them.
 - For the 5 that *do* have a table sibling, the two chunks are
   **complementary, not redundant**: the picture chunk carries the paper's
   caption ("Table B.2: Configurations …"), while the extracted-table chunk's
   text starts with the markdown grid and renders with no caption. Dropping
   either loses information.
 
-So a confident `table` picture is real content. It now maps to `figure` — the
+So a confident `table` picture is real content. It now maps to `figure`, the
 same role real table chunks already receive at the gallery layer
-(`figures.py`, `kind == "table"` → `role = "figure"`) — instead of
+(`figures.py`, `kind == "table"` → `role = "figure"`), instead of
 `unlabeled`. On the arXiv-2604 corpus this empties the `unlabeled` bucket from
 8 items to 1 (a `photograph`-labelled anatomical illustration at 0.24
-confidence, below the trust threshold — genuinely uncertain, correctly left
+confidence, below the trust threshold; genuinely uncertain, correctly left
 `unlabeled`).
 
 Applied in two mirrored places, matching the existing `_derive_role` cushion:
 
-- `docling_parser._DOCLING_LABEL_TO_ROLE["table"] = "figure"` — correct at the
+- `docling_parser._DOCLING_LABEL_TO_ROLE["table"] = "figure"`, correct at the
   source for the next ingest.
 - `figures._to_browse_item` overrides a baked `role == "unlabeled"` to
-  `figure` when `docling_label == "table"` at ≥ 0.30 confidence — so the
+  `figure` when `docling_label == "table"` at ≥ 0.30 confidence, so the
   **deployed** corpus (role baked before this change) reflects it on redeploy,
   no re-ingest.
 
 Caption-only `Table N` text with no classifier label is unchanged: it still
 falls to the area heuristic (`unlabeled`), because `^Table N` is an unreliable
-signal on its own — 3 of 5 picture detections whose caption starts `Table N`
-are Docling-classified `photograph`/`line_chart`/`flow_chart`, i.e. real
+signal on its own: 3 of 5 picture detections whose caption starts `Table N`
+are Docling-classified `photograph`/`line_chart`/`flow_chart`, that is, real
 figures with caption-bleed from an adjacent table.
 
-## Amendment — gallery collapses `unlabeled` to `figure`
+## Amendment: gallery collapses `unlabeled` to `figure`
 
 **Date:** 2026-06-09
 
 The `table → figure` change above fixed table-pictures but left the broader
 problem: a real figure can land in `unlabeled` for *any* reason the
-caption-first and confident-label signals both miss. Live example —
+caption-first and confident-label signals both miss. Live example:
 `2604.28177v1` p13, a captioned anatomical illustration Docling labelled
 `photograph` at 0.24 (below the 0.30 trust threshold) and whose on-page
 "Figure 8:" caption the layout model failed to associate, so caption-first
 never saw it. It rendered as `unlabeled` despite being an obvious figure.
 
-`unlabeled` only ever holds *real* pictures — the area heuristic floors
+`unlabeled` only ever holds *real* pictures: the area heuristic floors
 sub-5000-pt² uncaptioned detections to `decoration`, and everything above is
 kept. So for the gallery there are two meaningful buckets: real content and
 page furniture. `figures._to_browse_item` now maps `role == "unlabeled"` to
 `figure` at the view layer; `decoration` stays the only hidden bucket. On
 arXiv-2604 this empties the gallery's `unlabeled` bucket entirely.
 
-The **stored** role keeps the 3-way split — the retrieval-side filter still
+The **stored** role keeps the 3-way split: the retrieval-side filter still
 distinguishes `decoration`, and `unlabeled` stays a meaningful "kept but
 uncaptioned" marker in the index. This is a gallery presentation choice only.
 The deeper caption-association miss (recovering "Figure 8:" from the page text
@@ -354,9 +354,8 @@ improvement, left out of scope.
 
 ## Related
 
-- ADR 0009 — region-precise bboxes; this ADR rides on the same bbox
+- ADR 0009: region-precise bboxes; this ADR rides on the same bbox
   the figure chunk already carries.
-- ADR 0020 — Docling for figure/table extraction; this ADR addresses
+- ADR 0020: Docling for figure/table extraction; this ADR addresses
   the over-recall the layout model produces.
-- ADR 0021 — Docling text chunker. Unaffected — text chunks have no
-  role.
+- ADR 0021: Docling text chunker. Unaffected, text chunks have no role.

@@ -92,7 +92,7 @@ async def _run_one(
     `paper_id_filter` is the eval-side fairness knob added in the ADR 0009
     follow-up: when True, populate `Query.filters['paper_id']` from the
     golden's `paper_id`. This scopes retrieval to one paper for queries
-    whose origin is known — closes the cross-paper bleed pattern observed
+    whose origin is known, closing the cross-paper bleed pattern observed
     in run ad4fab3bb28d (q9_baselines top-1 was a table from the wrong
     paper). Off by default so non-router eval paths are unchanged.
     """
@@ -137,17 +137,17 @@ async def _run_one(
             # Deterministic generation scoring for (category, refusal) (B1):
             #
             #   answer is refusal:
-            #     OOC      → 1/1  (correct refusal — docs/evals.md convention)
-            #     in-corpus → 0/0 (wrong refusal — model gave up on a real query)
+            #     OOC      → 1/1  (correct refusal, docs/evals.md convention)
+            #     in-corpus → 0/0 (wrong refusal, model gave up on a real query)
             #
             #   answer is NOT a refusal:
             #     OOC      → 0/0 (the model leaked content for an unanswerable
-            #                     query — wrong by construction; no LLM judge
+            #                     query, wrong by construction; no LLM judge
             #                     needed. Eliminates the q33-style judge-call
             #                     variance observed in run 196ac0f8786f.)
             #     in-corpus → LLM judge runs (real content evaluation)
             #
-            # context_precision still goes through the LLM judge — it scores
+            # context_precision still goes through the LLM judge, which scores
             # retrieved chunks, which is orthogonal to whether the answer
             # was a refusal or a leak.
             is_ooc = query.category == "out_of_corpus"
@@ -176,7 +176,7 @@ async def _run_one(
                 # construction".
                 faithfulness_std = faith_out.score_std
                 answer_relevance_std = ans_out.score_std
-                # answer_correctness vs expected_facts — ADR 0019's
+                # answer_correctness vs expected_facts: ADR 0019's
                 # chunk-id-robust scoreboard. Skipped when the judge wasn't
                 # configured with the prompt (older callers / cheap-eval
                 # paths) or the query has no ground-truth facts.

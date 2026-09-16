@@ -2,7 +2,7 @@
 drops more than the threshold (default 5%).
 
 CI fails if any metric drops more than 5% vs. the last main-branch baseline.
-This script is the gate. It is deliberately offline — it doesn't run the
+This script is the gate. It is deliberately offline: it doesn't run the
 eval, only compares two JSON snapshots.
 
 Run:
@@ -11,9 +11,9 @@ Run:
       --candidate data/eval/runs/run-20260501-112706.json \
       --threshold 0.05
 
-Exit 0  — all gated metrics within threshold; prints a summary diff.
-Exit 1  — at least one metric regressed beyond threshold; prints which.
-Exit 2  — input file invalid or missing required fields.
+Exit 0: all gated metrics within threshold; prints a summary diff.
+Exit 1: at least one metric regressed beyond threshold; prints which.
+Exit 2: input file invalid or missing required fields.
 """
 
 from __future__ import annotations
@@ -50,7 +50,7 @@ class MetricDelta:
 
 # Retrieval metrics are macro-averaged over in-corpus queries only (OOC has no
 # relevant chunks, so nDCG/recall/MRR are 0 by construction). Generation metrics
-# are averaged over ALL queries with a non-None value — RAGAS-style: faithfulness
+# are averaged over ALL queries with a non-None value, RAGAS-style: faithfulness
 # of an OOC refusal is meaningful (1.0 = no hallucinated claim). Mirrors report.py.
 _RETRIEVAL_FIELDS = frozenset({"ndcg_at_5", "recall_at_10", "mrr"})
 

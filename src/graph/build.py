@@ -2,7 +2,7 @@
 
 Entities merge by normalised name (case- and whitespace-insensitive) so the
 same concept written two ways becomes one node; every node and edge keeps the
-set of `chunk_ids` it came from — that provenance is what `GraphRetriever`
+set of `chunk_ids` it came from, and that provenance is what `GraphRetriever`
 (S1.5) walks back to fetch source passages. Communities use networkx-native
 Louvain (recursive for a 2-level hierarchy) rather than the hierarchical
 Leiden of Microsoft GraphRAG: Leiden needs a heavy igraph/graspologic
@@ -25,7 +25,7 @@ _log = get_logger(__name__)
 def _norm(name: str) -> str:
     """Dedupe key: case- and whitespace-insensitive.
 
-    Known lossy case: a case-only-distinct acronym pair (e.g. `mAP` the
+    Known lossy case: a case-only-distinct acronym pair (`mAP` the
     metric vs `MAP` the method) collapses into one node with an
     arbitrarily-tie-broken `type`. Accepted for the demo corpus pending the
     S1 spike measuring how often it actually occurs here; ADR 0018 records
@@ -54,7 +54,7 @@ def build_graph(extractions: list[ChunkExtraction]) -> nx.Graph:
     graph: nx.Graph = nx.Graph()
     for ex in extractions:
         if ex.is_reference_list:
-            continue  # bibliography / boilerplate — no graph signal (ADR 0017)
+            continue  # bibliography / boilerplate, no graph signal (ADR 0017)
         for ent in ex.entities:
             _touch_node(
                 graph, ent.name, type_=ent.type, description=ent.description, chunk_id=ex.chunk_id

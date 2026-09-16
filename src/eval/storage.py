@@ -5,7 +5,7 @@ schema doesn't need to evolve every time a new metric is added; aggregates that
 matter for trend queries (mean nDCG@5 / recall@10 / MRR over in-corpus queries)
 are denormalised into typed columns.
 
-Sync SQLAlchemy 2.0 — the eval CLI is a one-shot script that calls this once
+Sync SQLAlchemy 2.0: the eval CLI is a one-shot script that calls this once
 on exit, so sync is fine and avoids dragging in `aiosqlite` for tests.
 """
 
@@ -58,7 +58,7 @@ def _aggregates(run: EvalRun) -> tuple[int, float | None, float | None, float | 
 
 
 def to_row(run: EvalRun) -> EvalRunRow:
-    """Convert an EvalRun (Pydantic) into a SQLAlchemy row. Pure function, easily testable."""
+    """Convert an EvalRun (Pydantic) into a SQLAlchemy row. Pure function."""
     n_in_corpus, mean_ndcg5, mean_recall10, mean_mrr = _aggregates(run)
     return EvalRunRow(
         run_id=run.run_id,
@@ -79,7 +79,7 @@ def to_row(run: EvalRun) -> EvalRunRow:
 def write_eval_run(run: EvalRun, *, engine: Engine) -> None:
     """Idempotently create the table and upsert this run.
 
-    Re-runs with the same `run_id` overwrite — useful when re-judging.
+    Re-runs with the same `run_id` overwrite, which is useful when re-judging.
     """
     _Base.metadata.create_all(engine)
     with Session(engine) as session:

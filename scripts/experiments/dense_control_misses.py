@@ -4,7 +4,7 @@ The probe (grep_recovers_misses.py) showed BM25 recovers 19/24 RAG-missed gold
 pages, but its attribution used a depth-50-capped proxy for "dense". This closes
 that gap: run a true within-document bge-m3 dense ranking over the SAME per-page
 text corpus BM25 used, all pages, no depth cap. That isolates the one variable
-the proxy couldn't — lexical vs dense — on identical input.
+the proxy couldn't (lexical vs dense) on identical input.
 
 The decisive question: of the queries BM25 recovered but the proxy attributed to
 "lexical only", does real within-doc dense ALSO recover them? If yes, grep is
@@ -99,7 +99,7 @@ async def run(args: argparse.Namespace) -> int:
     print(f"  dense recovers where BM25 fails  : {len(dense_only)}")
     print(f"  neither finds it (pixel-only/hard): {len(both_miss)}")
     if lexical_only:
-        print("\n  genuine lexical-only (BM25 hit, dense miss) — the real DCI edge:")
+        print("\n  genuine lexical-only (BM25 hit, dense miss), the real DCI edge:")
         for r in lexical_only:
             ng = len(r["gold_pages"])
             tag = " [multi-gold: recall@10 inflated]" if ng > 1 else ""

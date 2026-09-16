@@ -1,4 +1,4 @@
-# ADR 0029 — Runtime document upload (flag-gated, text-leg, incremental)
+# ADR 0029: Runtime document upload (flag-gated, text-leg, incremental)
 
 **Status:** Accepted. A `POST /ingest` route lets a local operator add a PDF to
 the live corpus at runtime, behind `RAG_ENABLE_UPLOAD` (off by default, so the

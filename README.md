@@ -54,8 +54,8 @@ text-routed (factual) queries scored identically across both runs.
 MMLongBench-Doc answers are ~93 % visual, which rewards routing
 aggressively to the visual leg. On a text-heavy corpus the lift is smaller. Full methodology and failure modes are in
 [`docs/results.md`](./docs/results.md). For how measuring the end-to-end path
-overturned this project's own assumptions — and which fixes died under
-measurement — see [`docs/finding-the-bottleneck.md`](./docs/finding-the-bottleneck.md).
+overturned this project's own assumptions (and which fixes died under
+measurement), see [`docs/finding-the-bottleneck.md`](./docs/finding-the-bottleneck.md).
 
 ## How it works
 
@@ -154,9 +154,9 @@ all. Models receive the retrieved page PNGs as image blocks when
 
 API surface:
 
-- `/health` — component-wiring check (status, version, env, `pages_available`)
-- `/query` — retrieval only, no generation
-- `/answer` — full server-side generation with a configured key
+- `/health`: component-wiring check (status, version, env, `pages_available`)
+- `/query`: retrieval only, no generation
+- `/answer`: full server-side generation with a configured key
 
 ## Bring your own PDFs
 
@@ -177,7 +177,7 @@ against any collection; write a golden set at `data/golden/<name>.yaml`.
 For a single document, set `RAG_ENABLE_UPLOAD=true` and use the Papers tab's
 **Add PDF** button (or `POST /ingest`): the PDF is ingested into the live corpus
 and text-retrievable on the next query, no restart. Keep the flag off on any
-shared deploy — the route carries no auth or rate limit of its own.
+shared deploy. The route carries no auth or rate limit of its own.
 
 The visual leg needs a CUDA GPU to *build* the page index (ColQwen2-v1.0 fits
 an 8 GB card); serving it then runs on CPU. Build the persisted index and point
@@ -224,7 +224,7 @@ the model.
 - **The strict scorer understated accuracy by ~0.11, and we caught it.** The
   standard extract-then-match step marks terse-but-correct answers as "Not
   answerable" (even GPT-4o does this). A strictness-checked re-grade lifts the
-  oracle read from ~0.45 to ~0.55. The honest ceiling is ~0.55; the published SOTA
+  oracle read from ~0.45 to ~0.55. The measured ceiling is ~0.55; the published SOTA
   is ~0.62 (whole document, full 1082-query set).
 - **Scaling the model doesn't move the reading.** A 31B, a 235B, and frontier
   gemini-2.5-pro read the gold pages within a point of each other; the bottleneck
@@ -240,7 +240,7 @@ the model.
   would feed it to the reader waits until the result holds up
   (ADR [0025](./docs/decisions/)).
 - **Negatives are measured, not assumed.** GraphRAG lost to plain RAG (ADR
-  [0018](./docs/decisions/), 5–1 on global synthesis); agentic query-decomposition
+  [0018](./docs/decisions/), 5-1 on global synthesis); agentic query-decomposition
   did not transfer and hurt retrieval on this corpus (ADR
   [0019](./docs/decisions/)); text rerankers were a wash (ADR
   [0012](./docs/decisions/)); and direct-corpus-interaction (a grep-tool agent) is
@@ -260,9 +260,9 @@ compares to other document-RAG tools, see
 - **Generation needs a provider.** Chat answers require an OpenRouter key or
   a local Ollama vision model; retrieval works with neither.
 - **The LLM judge under-rates pixel answers.** When the answer is in the
-  image (e.g. *"the line is red"*) and the judge sees only text, faithfulness
-  is scored low. For generation quality, trust gold-answer match, not the
-  judge.
+  image (for example *"the line is red"*) and the judge sees only text,
+  faithfulness is scored low. For generation quality, trust gold-answer
+  match, not the judge.
 
 ## Development
 
@@ -354,7 +354,7 @@ OCR recovers figure-internal text and captions, which PyMuPDF often already
 extracts from modern PDFs. It cannot recover what isn't text: chart colours,
 geometric layout, screenshot contents, axis positions relative to data. Visual
 retrieval over rendered pages keeps all of that. The canonical example is
-`mmlb_0008` — *"what colour is the line with no intersections?"*, gold answer
+`mmlb_0008`: *"what colour is the line with no intersections?"*, gold answer
 `red`, a fact that exists only in the pixels.
 
 **Why MMLongBench-Doc?**

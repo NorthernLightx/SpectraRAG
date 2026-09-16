@@ -64,7 +64,7 @@ async def answer(
     trace_query(tracer, query=payload, retrieved=retrieved, answer=result)
     # The Generator doesn't know about the retrieval results it was handed
     # (it only consumes them to build context). The bundled web UI wants to
-    # show "what the LLM saw" — the route layer attaches the list here so
+    # show "what the LLM saw", so the route layer attaches the list here and
     # downstream eval / unit-test paths that construct Answer directly stay
     # backwards-compatible (default `[]`).
     return result.model_copy(update={"retrieved": retrieved})

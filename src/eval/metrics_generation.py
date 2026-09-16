@@ -5,9 +5,9 @@ from __future__ import annotations
 from collections.abc import Iterable
 
 # Refusal sentinels:
-#   - "Not stated in the provided context." — produced by the answer prompt
+#   - "Not stated in the provided context.", produced by the answer prompt
 #     (src/prompts/library/answer.yaml) when the model refuses.
-#   - "I cannot answer this question from the provided corpus." — produced by
+#   - "I cannot answer this question from the provided corpus.", produced by
 #     Generator's refusal gate (src/rag/generate.py) when rerank scores are
 #     below the configured threshold.
 # Both must be detected so the eval scoring is consistent across paths.

@@ -98,7 +98,7 @@ def main() -> None:
         all_rows.append({"qid": q["query_id"], "category": q.get("category", ""), "answer_in_text": in_text})
     a_n = len(all_rows)
     a_text = sum(r["answer_in_text"] for r in all_rows)
-    print(f"(A) ALL answerable in-corpus (n={a_n}) — is the gold answer in the page TEXT?")
+    print(f"(A) ALL answerable in-corpus (n={a_n}): is the gold answer in the page TEXT?")
     print(f"    answer in text  : {a_text}/{a_n} ({a_text / a_n:.0%})  <- a text tool/agent could in principle serve")
     print(f"    answer pixels-only: {a_n - a_text}/{a_n} ({(a_n - a_text) / a_n:.0%})  <- only vision can; grep/dense both blind")
     bycat: dict[str, list[bool]] = {}
@@ -127,10 +127,10 @@ def main() -> None:
         })
     m_n = len(miss_rows)
     m_text = sum(r["answer_in_text"] for r in miss_rows)
-    print(f"\n(B) RAG-missed set (n={m_n}) — why text retrieval missed:")
+    print(f"\n(B) RAG-missed set (n={m_n}), why text retrieval missed:")
     print(f"    answer IN page text (agent/retriever has room): {m_text}/{m_n}")
     print(f"    answer ONLY in pixels (no text tool can ever)  : {m_n - m_text}/{m_n}")
-    print("\n    pixels-only missed queries (claim 2 — needs vision, not a smarter grep):")
+    print("\n    pixels-only missed queries (claim 2: needs vision, not a smarter grep):")
     for r in miss_rows:
         if not r["answer_in_text"]:
             print(f"      {r['qid'].split('_')[1]:5} [{r['category']:<7}] chars={r['gold_page_chars']:<5}"

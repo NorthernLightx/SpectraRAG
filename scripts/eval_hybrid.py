@@ -8,18 +8,18 @@ or re-eval.
 
 This script consumes two existing run JSONs (no model calls, no GPU): a text
 run from `scripts/eval_run.py` and a visual run from `scripts/eval_visual.py`.
-Granularity is reconciled at *page level* — text chunk ids `paper::pN::cM`
+Granularity is reconciled at *page level*: text chunk ids `paper::pN::cM`
 are normalised to page ids `paper::pN::page` (matching visual's existing
 format) and then fused via reciprocal rank fusion.
 
 Two outputs are written so the comparison is apples-to-apples:
 
-  * `run-text-page-<ts>.json/.md` — the *text* run re-scored at page level.
+  * `run-text-page-<ts>.json/.md`: the *text* run re-scored at page level.
     This is the fair baseline the hybrid is compared against (the original
     text run scores at chunk level, which doesn't share an ID space with
     visual).
-  * `run-hybrid-<ts>.json/.md` — the RRF-fused page rankings + metrics.
-  * `run-hybrid-<ts>.compare.md` — side-by-side aggregate + per-query Δ.
+  * `run-hybrid-<ts>.json/.md`: the RRF-fused page rankings + metrics.
+  * `run-hybrid-<ts>.compare.md`: side-by-side aggregate + per-query Δ.
 
 Run:
   uv run python -m scripts.eval_hybrid \\
@@ -262,7 +262,7 @@ def _comparison_markdown(
         return f"{(new - old) / old * 100:+.1f}%"
 
     lines = [
-        "# Hybrid (text + visual) — offline RRF fusion at page granularity",
+        "# Hybrid (text + visual): offline RRF fusion at page granularity",
         "",
         f"- **Text source run:** `{text_run_id}` (re-scored at page level)",
         f"- **Visual source run:** `{visual_run_id}`",

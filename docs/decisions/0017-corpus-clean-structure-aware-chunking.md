@@ -1,4 +1,4 @@
-# ADR 0017 — Corpus clean: document-level structure-aware chunking
+# ADR 0017: Corpus clean (document-level structure-aware chunking)
 
 **Status:** Accepted. Header stripping, soup filtering, and document-level
 structure-aware chunking shipped (−19% corpus, zero content loss).
@@ -8,7 +8,7 @@ Bibliography removal and the answer-quality delta are deferred to Step 1
 
 **Amendment 2026-05-19:** the "answer-quality delta measured in Step 1"
 language below assumed an `answer_correctness` vs `expected_facts` metric
-exists. It does not — it was never implemented in `src/eval` (ADR 0016 used a
+exists. It does not. It was never implemented in `src/eval` (ADR 0016 used a
 throwaway `scripts/experiments` harness). Building that metric + a committed
 baseline is now a tracked prerequisite; see ADR 0018 "Measurement". The
 structural wins (−19%, zero loss) stand and are unaffected; only the
@@ -24,16 +24,16 @@ text mentions `Figure N:` / `Table N:` captions the extractor produced
 nothing for. Run on 4 diverse papers (87 pages) it flags **~14 % of
 pages with at least one figure/table miss**, dominated by two mechanisms:
 
-- **vector-drawn figures invisible to `page.get_images()`** —
+- **vector-drawn figures invisible to `page.get_images()`**:
   `figures.py` enumerates embedded raster XREFs, not stroked vector
   paths, so matplotlib-style line plots saved without rasterisation are
   silently dropped (clearest on `2604.22753v1` p07 Figure 2);
-- **`page.find_tables()` heuristic failures** — tight numeric tables
+- **`page.find_tables()` heuristic failures**: tight numeric tables
   (`2604.22753v1` p06 Table 1) get missed, while some non-table grids
   produce false-positive Table chunks.
 
-This does not invalidate the text-chunking improvements — those are
-unaffected. It does scope the "zero content loss" claim honestly to
+This does not invalidate the text-chunking improvements. Those are
+unaffected. It does narrow the "zero content loss" claim to
 *text* content; the figure/table path inherits PyMuPDF's known limits
 (ADR 0002's caveat section, now visible). The audit tool's `audit.md`
 files committed under `data/eval/ingestion/overlays/<paper_id>/` are
@@ -55,7 +55,7 @@ pre-change `chunk_pages` over all 20 papers, 2,436 chunks):
 - **Numeric/symbol soup ~8.5%** (207 chunks). Vector-drawn figures and
   tables leak into the PDF text layer as axis ticks and value grids
   ("2.127 2.126 2.134"); the raster figure path never sees them.
-- **Bibliography ~10–12% of text** (measured floor 8.8%; the three largest
+- **Bibliography ~10 to 12% of text** (measured floor 8.8%; the three largest
   papers' "References" headings are glued to body text by PyMuPDF's
   two-column extraction and went uncounted).
 - Per-page character chunking also split a section at every page break,
@@ -74,7 +74,7 @@ pre-change `chunk_pages` over all 20 papers, 2,436 chunks):
 
 Chunk-ids renumber by design. 14 new unit tests; full suite 517 green;
 mypy strict and ruff clean. Result: **2,436 → 1,973 chunks (−19%) with no
-real content lost** — appendices survive through the last page, verified
+real content lost**. Appendices survive through the last page, verified
 by chunk-dump eyeball and tests.
 
 ## What did not ship, and why
@@ -100,7 +100,7 @@ ground truth, which `scripts/promote_candidates.py` exists to forbid.
 Chunk-id retrieval metrics are being retired for the graph/agentic tiers
 (ADR 0016 line of reasoning), so Step 0 is measured on the
 chunk-id-robust generation metrics instead, and that old-vs-new delta is
-folded into Step 1's eval — the corpus is re-ingested and run through the
+folded into Step 1's eval. The corpus is re-ingested and run through the
 LLM pipeline there regardless, so measuring it there is not redundant.
 
 ## Decision
@@ -109,12 +109,12 @@ Ship the three structural wins now. They stand on their own: coherent
 cross-page chunks and 19% less noise into every downstream consumer,
 independent of anything graph/agentic. Defer bibliography removal to the
 Step-1 LLM filter and the answer-quality verification to Step-1's eval.
-Status is honest: an enabling change, structurally verified, answer
-quality pending Step 1.
+Status: an enabling change, structurally verified, answer quality
+pending Step 1.
 
 ## What this leaves open
 
-- The bibliography (~10–12%) is still in the corpus until the Step-1 LLM
+- The bibliography (~10 to 12%) is still in the corpus until the Step-1 LLM
   filter removes it.
 - The old-vs-new answer-quality delta (faithfulness, answer relevance,
   answer-correctness vs `expected_facts`) is measured in Step 1.
@@ -123,9 +123,9 @@ quality pending Step 1.
 
 ## Related
 
-- ADR 0016 — the honest-metric requirement (answer-correctness vs
+- ADR 0016: the answer-correctness metric requirement (vs
   `expected_facts`) and the case for retiring chunk-id retrieval metrics.
-- ADR 0002 — text-only attribution methodology; figure/table chunks come
+- ADR 0002: text-only attribution methodology; figure/table chunks come
   from a separate converter and are unaffected by this change.
-- `scripts/experiments/quantify_corpus_junk.py` — reproducible
+- `scripts/experiments/quantify_corpus_junk.py`: reproducible
   before/after corpus measurement.

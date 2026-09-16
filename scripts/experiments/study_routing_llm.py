@@ -1,13 +1,13 @@
-"""Routing study — llm-router cell, parameterized by classifier model.
+"""Routing study: llm-router cell, parameterized by classifier model.
 
 Recovers/extends the llm-router policy the main study lost to an Ollama 500
 (gemma3:4b /api/chat under VRAM contention with ColQwen2). Fix: decouple
-classification from the GPU — classify all 149 queries with NO ColQwen2
+classification from the GPU. Classify all 149 queries with NO ColQwen2
 loaded (+ retries + safe fallback), cache decisions, only then build
 ColQwen2 and route by the cached decisions. Reuses the already-ingested
 `routing_study` Qdrant collection and cached page renders.
 
-`--model` selects the Ollama classifier (incl. `:cloud` tags, e.g.
+`--model` selects the Ollama classifier (incl. `:cloud` tags such as
 `qwen3-vl:235b-cloud`). Outputs are per-model; the report globs every
 `llm-router*.json` so classifier variants sit side by side with the
 text-only / regex / oracle baselines from the main study.
@@ -127,7 +127,7 @@ async def main(model: str, prompt_name: str) -> None:
     vs = QdrantVectorStore(url=QDRANT, collection_name="routing_study", dim=embedder.dim)
     chunks = await vs.scroll_chunks()
     if not chunks:
-        log("ABORT: routing_study collection empty/missing — would need full re-ingest")
+        log("ABORT: routing_study collection empty/missing; would need full re-ingest")
         return
     bm25 = Bm25Index()
     bm25.add(chunks)
@@ -253,12 +253,12 @@ if __name__ == "__main__":
     ap.add_argument(
         "--model",
         default=DEFAULT_MODEL,
-        help="Ollama classifier tag, incl. :cloud (e.g. qwen3-vl:235b-cloud)",
+        help="Ollama classifier tag, incl. :cloud (such as qwen3-vl:235b-cloud)",
     )
     ap.add_argument(
         "--prompt",
         default="classify_query",
-        help="Classifier prompt name (e.g. classify_query_v2 — evidence-location)",
+        help="Classifier prompt name, such as classify_query_v2 for evidence-location",
     )
     args = ap.parse_args()
     asyncio.run(main(args.model, args.prompt))

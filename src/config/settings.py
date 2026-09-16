@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     default_embed_model: str = "bge-m3"
     # ADR 0008: ColPali-family checkpoint for the visual leg of routing.
     # Default fits an 8 GB GPU; the 3 B+ tier (ColQwen2.5-v0.2,
-    # ColQwen3, etc.) needs ≥7 GB free GPU and is opt-in via this knob.
+    # ColQwen3 and others) needs ≥7 GB free GPU and is opt-in via this knob.
     visual_model: str = "vidore/colqwen2-v1.0"
 
     openrouter_api_key: SecretStr | None = None
@@ -66,7 +66,7 @@ class Settings(BaseSettings):
     exclude_decoration_chunks: bool = True
     # ADR 0008: when True (default) and a visual retriever is wired,
     # /answer dispatches via RoutingRetriever (text-only vs RRF-fused
-    # text+visual per query category). False forces text-only — useful for
+    # text+visual per query category). False forces text-only, useful for
     # baseline comparisons or when the visual model is unavailable.
     enable_routing: bool = True
     # When True, `_wire_retriever_from_settings` attempts to build the visual
@@ -74,11 +74,11 @@ class Settings(BaseSettings):
     # serves the full multi-modal stack. Default False because the visual
     # leg requires GPU + pre-rendered page PNGs (`pages_dir`) and 5-30 min
     # of startup time for embedding. When prerequisites aren't met, wiring
-    # silently falls back to text-only — same behaviour as today's default
+    # silently falls back to text-only, the same behaviour as today's default
     # production deploy. Local dev with a populated `pages_dir` flips this
     # on to exercise the end-to-end multi-modal path.
     enable_multimodal: bool = False
-    # Experimental opt-in: agentic DCI retrieval at /query/dci. Off by default —
+    # Experimental opt-in: agentic DCI retrieval at /query/dci. Off by default:
     # text-only, slow (a multi-step LLM loop), and the agent runs server-side, so
     # the route needs an OpenRouter key (the server's, or the caller's per-request).
     enable_dci: bool = False
@@ -124,14 +124,14 @@ class Settings(BaseSettings):
     # ADR 0023: visual-leg weight for page-level RRF on the hybrid path. The
     # fused per-page score becomes 1/(k+rank_text) + w/(k+rank_visual), so w>1
     # biases fusion toward the visual leg. Default 1.0 reproduces the
-    # equal-weight fusion ADR 0008 shipped exactly — no silent baseline change.
+    # equal-weight fusion ADR 0008 shipped exactly, with no silent baseline change.
     # On MMLongBench (~93 % visual) w=5 lifts figure recall@10 0.729 -> 0.807
     # (beats both equal-weight and visual-only). But the cross-corpus eval
     # (ADR 0023, v3 arXiv) showed w>1 REGRESSES text-heavy corpora, so this is
     # per-corpus: visual-heavy set ~5, text-heavy keep 1.0. w>1 is validated on
     # figure/table only (multi_hop and cascade fall-back fusion inherit it
-    # unmeasured). Note w=0 still surfaces visual-only pages at RRF score 0 — it
-    # is NOT a text-only switch. Only affects hybrid-routed queries; text-routed
+    # unmeasured). w=0 still surfaces visual-only pages at RRF score 0; it is NOT
+    # a text-only switch. Only affects hybrid-routed queries; text-routed
     # queries are unaffected.
     visual_fusion_weight: float = Field(default=1.0, ge=0.0)
 
@@ -139,32 +139,32 @@ class Settings(BaseSettings):
     # (`<pages_dir>/<paper>/<paper>_pN.png`) for any visual RetrievalResult to
     # the LLM call as an OpenAI-compat content-block. Pair with a vision-capable
     # `default_chat_model` (gpt-4o-mini, gpt-4o, claude-sonnet-4.x, qwen3-vl,
-    # …) — non-vision models will return 400 when sent images. Unset = text-only
+    # …). Non-vision models will return 400 when sent images. Unset = text-only
     # behaviour (the previous default).
     pages_dir: Path | None = None
 
     # ADR 0024: route-by-fit page budget for the production /answer path. When set
     # AND the query is paper-scoped (Query.filters['paper_id'], ADR 0009) AND the
     # named document's page count <= this budget, /answer feeds the WHOLE
-    # document's page images instead of the top-k RAG cut — the measured +0.12
+    # document's page images instead of the top-k RAG cut, the measured +0.12
     # lever on docs that fit (ADR 0024). Larger docs, and any corpus query that
     # doesn't name a paper, fall back to RAG. Default None keeps the top-k path
     # unchanged. Requires `pages_dir` + a vision `default_chat_model`. The
     # generator's per-call vision-image cap is raised to this budget so a fitting
     # document isn't silently truncated. Sizing caveat: feeding many page images
-    # is a large payload — ADR 0024 measured whole-doc choking the free tier on
+    # is a large payload. ADR 0024 measured whole-doc choking the free tier on
     # big docs, so set the budget to your model's context + cost envelope.
     page_budget: int | None = Field(default=None, ge=1)
 
     # ADR 0025: structured-extraction backend (operator/deploy choice, not a
     # per-query one). When not "none" the operator opts a structured extractor
-    # into the pipeline — it transcribes a page's tables/charts to text offline
+    # into the pipeline. It transcribes a page's tables/charts to text offline
     # so the reader gets the data alongside the pixels (the +0.12 lever). The
     # backends mirror the eval bench: "qwen-cloud" routes page images through
     # Ollama to a vision model (`extractor_model`); "mineru-local" POSTs them to
     # a local MinerU2.5 API server (`mineru_url`) that fits the 8 GB GPU and
     # matches the cloud on recall. Extraction is slow (~1-3 min/page for
-    # mineru-local), so it belongs at ingest, not the query path — this selector
+    # mineru-local), so it belongs at ingest, not the query path. This selector
     # names the backend; the ingest-time consumer is gated on the lever clearing
     # significance. Default "none" leaves the pipeline unchanged.
     extractor_backend: Literal["none", "qwen-cloud", "mineru-local"] = "none"
@@ -177,7 +177,7 @@ class Settings(BaseSettings):
 
     # Embedder backend for the FastAPI app's retrieval path. `ollama` is the
     # local-dev default (uses the docker-compose ollama sidecar).
-    # `sentence_transformers` is the deploy default — in-process torch
+    # `sentence_transformers` is the deploy default: in-process torch
     # inference of the same BAAI/bge-m3 model, no external service. Both
     # produce 1024-dim vectors, so the same qdrant snapshot is readable by
     # either path.
@@ -187,7 +187,7 @@ class Settings(BaseSettings):
     # Collection wired into the FastAPI retriever at startup. Must match the
     # collection populated by `scripts/bootstrap_corpus.py` (its --collection
     # default is the same string). When the collection is missing or empty,
-    # the API still boots — the retriever stays unwired and /answer returns
+    # the API still boots, the retriever stays unwired, and /answer returns
     # 503 until a corpus is ingested.
     corpus_collection: str = "rag_corpus"
     # ADR 0028: multivector collection holding the persisted ColQwen2 page index
@@ -215,7 +215,7 @@ def load_settings(config_path: Path | None = None) -> Settings:
 
     Pydantic Settings normally treats constructor kwargs as highest priority,
     which would invert the precedence we want. So we strip any YAML key whose
-    matching `RAG_*` env var is already set — letting env vars win.
+    matching `RAG_*` env var is already set, letting env vars win.
     """
     yaml_values = _read_yaml(config_path or DEFAULT_CONFIG_PATH)
     overrides = {

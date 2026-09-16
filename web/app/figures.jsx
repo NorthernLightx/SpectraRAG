@@ -1,4 +1,4 @@
-/* FIGURES VIEW — multimodal figure gallery over the real /figures index.
+/* FIGURES VIEW: multimodal figure gallery over the real /figures index.
    Each card crops the source page image to the figure's bbox; the lightbox
    shows the full page with the bbox overlaid. */
 
@@ -28,8 +28,8 @@ function MathText({ text, className, style }) {
   return <p ref={ref} className={className} style={style}>{cleaned}</p>;
 }
 
-// Drop repeated paragraphs. Table chunks store the caption twice — once as the
-// extracted caption, once embedded in Docling's table markdown — and after the
+// Drop repeated paragraphs. Table chunks store the caption twice (once as the
+// extracted caption, once embedded in Docling's table markdown), and after the
 // relatex pass one copy carries LaTeX ($\Delta V$) while the other is still flat
 // (∆ V). Normalise to bare alphanumerics so the two collapse to one key, and
 // keep the LaTeX copy. Plain duplicate paragraphs (identical) dedupe too.
@@ -69,8 +69,8 @@ function splitCaptionData(text) {
 // transform from the image's natural size on load; falls back to the full page
 // width until then (and when a chunk has no bbox).
 // Session flag: once a thumb 404s (thumbnails not baked into this deploy), every
-// FigCrop skips the thumb and renders the full-page crop directly — avoids a
-// storm of failed thumb requests across the gallery.
+// FigCrop skips the thumb and renders the full-page crop directly, which
+// avoids a storm of failed thumb requests across the gallery.
 let thumbsAbsent = false;
 function FigCrop({ url, bbox, fallbackH = 150, eager = false, thumb = null }) {
   const [s, setS] = useState(null);
@@ -90,9 +90,9 @@ function FigCrop({ url, bbox, fallbackH = 150, eager = false, thumb = null }) {
       aspect: (fw * nW) / (fh * nH),
     });
   };
-  // Prefer the pre-rendered thumbnail (a small WebP of the crop) — a plain
+  // Prefer the pre-rendered thumbnail (a small WebP of the crop): a plain
   // <img>, no full-page download. Fall back to the page CSS-crop if it 404s
-  // (e.g. a freshly uploaded paper whose thumb hasn't been rendered).
+  // (for example, a freshly uploaded paper whose thumb hasn't been rendered).
   if (thumb && !thumbFailed) {
     return (
       <div className="fig-crop" style={{ position: "relative", width: "100%", overflow: "hidden", background: "var(--panel-2)" }}>
@@ -115,7 +115,7 @@ function FigCrop({ url, bbox, fallbackH = 150, eager = false, thumb = null }) {
 }
 
 /* Display category: docling table chunks carry kind="table" while their role
-   stays "figure" — surface them as tables so the filter can separate them. */
+   stays "figure". Surface them as tables so the filter can separate them. */
 function figCategory(f) {
   return f.kind === "table" ? "table" : (f.role || "figure");
 }
@@ -152,7 +152,7 @@ function FigureLightbox({ f, onClose }) {
   // Place the bbox overlay in pixels relative to .lb-img, derived from the
   // image's own offset + rendered size. .lb-img has padding:22px and is a grid
   // cell that stretches to the (taller) side column, so a %-based overlay
-  // measured the padded/stretched box, not the image — pixels off the image
+  // measured the padded/stretched box, not the image. Pixels off the image
   // geometry are robust to both.
   const place = useCallback(() => {
     const img = imgRef.current;

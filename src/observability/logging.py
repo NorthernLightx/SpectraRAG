@@ -18,7 +18,7 @@ import structlog
 from structlog.stdlib import BoundLogger
 
 DEFAULT_MAX_STRING_LEN = 500
-"""Cap on a single string field's length before logging. Coarse PII guard —
+"""Cap on a single string field's length before logging. A coarse PII guard,
 not a substitute for real PII redaction."""
 
 ProcessorFn = Callable[[Any, str, dict[str, Any]], dict[str, Any]]
@@ -27,7 +27,7 @@ ProcessorFn = Callable[[Any, str, dict[str, Any]], dict[str, Any]]
 def truncate_long_strings(max_len: int = DEFAULT_MAX_STRING_LEN) -> ProcessorFn:
     """structlog processor: shorten any string value > max_len with a count suffix.
 
-    This is intentionally blunt — it caps the size of the worst offenders
+    This is intentionally blunt: it caps the size of the worst offenders
     (full chunk text, full answers, raw paper bodies) before they hit disk
     or stdout.
     """
@@ -137,8 +137,8 @@ def configure_logging(
     # The OTLP metrics exporter retries on a background thread and logs a
     # "Failed to export metrics" ERROR every interval when no collector is
     # reachable (the default in tests/local). Left at ERROR it propagates to
-    # the root file handler and pollutes the JSON app log — a stray record that
-    # breaks readers expecting only their own output. The SDK's self-reported
+    # the root file handler and pollutes the JSON app log with a stray record
+    # that breaks readers expecting only their own output. The SDK's self-reported
     # export failures are infrastructure noise, not app logs; drop them.
     logging.getLogger("opentelemetry").setLevel(logging.CRITICAL)
 

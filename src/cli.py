@@ -41,7 +41,7 @@ def _serve(ns: argparse.Namespace) -> int:
     if os.path.isdir("data/pages"):
         os.environ.setdefault("RAG_PAGES_DIR", "data/pages")
 
-    print("Starting SpectraRAG — the first run loads the embedding + reranker models (~30-60s).")
+    print("Starting SpectraRAG. The first run loads the embedding + reranker models (~30-60s).")
 
     import uvicorn
 

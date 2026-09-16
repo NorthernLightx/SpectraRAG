@@ -1,6 +1,6 @@
-# ADR 0008 — Per-query routing (text-only vs hybrid)
+# ADR 0008: Per-query routing (text-only vs hybrid)
 
-**Status:** Accepted (2026-05-03 design; implementation closed against this design — see run `6447247ef8e7` referenced in the README).
+**Status:** Accepted (2026-05-03 design; implementation closed against this design, see run `6447247ef8e7` referenced in the README).
 **Date:** 2026-05-03.
 
 ## Context
@@ -18,16 +18,16 @@ classifier signals figure / table / multi-hop."
 This ADR pins the design before code lands so the router's behaviour is
 reviewable against the empirical case in one place. The headline of the
 project (pipeline-vs-visual on the same corpus) only becomes user-visible
-in the deployed app once routing is wired into `/answer` — so this ADR
+in the deployed app once routing is wired into `/answer`, so this ADR
 also unblocks ADR 0005 caveat #1 ("the deploy serves text-only").
 
 ## Decision
 
 1. **Binary dispatch.** Two destinations: text-only or RRF-fused
-   text+visual. Visual-only is not a destination — the v3 numbers don't
+   text+visual. Visual-only is not a destination: the v3 numbers don't
    justify it (visual alone scored 0.768 nDCG@5 on the v3-only subset
    vs 0.924 for hybrid; visual never wins a subset on its own).
-2. **Regex/keyword classifier — no LLM, no embedding similarity.** ADR 0007
+2. **Regex/keyword classifier (no LLM, no embedding similarity).** ADR 0007
    pre-committed to "simplest viable." A misclassification routes to
    text-only, which is the strong baseline; the worst case loses some
    recall on a figure query but never produces wrong answers (citations
@@ -43,7 +43,7 @@ also unblocks ADR 0005 caveat #1 ("the deploy serves text-only").
    Bypasses the classifier when set. Used by the eval harness (run every
    query through hybrid for comparison), A/B testing, and debugging.
 5. **Reuse the existing RRF in `src/rag/hybrid.py`.** No new fusion code.
-   Page-level keys to match ADR 0007's offline methodology — text chunks
+   Page-level keys to match ADR 0007's offline methodology: text chunks
    are mapped to their page id before fusion; without this normalisation,
    text-and-visual hits on the same page never merge and double-count.
 
@@ -82,11 +82,11 @@ also unblocks ADR 0005 caveat #1 ("the deploy serves text-only").
 
 **File layout:**
 
-- `src/rag/retrievers/routing.py` (new) — `RoutingRetriever`, `classify_query`, `Category` literal, page-id normalisation helper.
-- `src/rag/retrievers/__init__.py` — re-export `RoutingRetriever` and `classify_query`.
-- `src/types/retrieval.py` — add `force_route: Literal["text", "hybrid"] | None = None` to `Query`.
-- `src/api/main.py` — `_wire_retriever_from_settings` builds either `PipelineRetriever` or `RoutingRetriever(text=..., visual=...)` based on `Settings.enable_routing` (new field, default True). Replaces the deferred-retriever-wiring stub from ADR 0005.
-- `src/config/settings.py` — add `enable_routing: bool = True` and `visual_model: str = "vidore/colqwen2-v1.0"`.
+- `src/rag/retrievers/routing.py` (new): `RoutingRetriever`, `classify_query`, `Category` literal, page-id normalisation helper.
+- `src/rag/retrievers/__init__.py`: re-export `RoutingRetriever` and `classify_query`.
+- `src/types/retrieval.py`: add `force_route: Literal["text", "hybrid"] | None = None` to `Query`.
+- `src/api/main.py`: `_wire_retriever_from_settings` builds either `PipelineRetriever` or `RoutingRetriever(text=..., visual=...)` based on `Settings.enable_routing` (new field, default True). Replaces the deferred-retriever-wiring stub from ADR 0005.
+- `src/config/settings.py`: add `enable_routing: bool = True` and `visual_model: str = "vidore/colqwen2-v1.0"`.
 
 ## Classifier (precedence-ordered)
 
@@ -98,7 +98,7 @@ also unblocks ADR 0005 caveat #1 ("the deploy serves text-only").
 | 2 | `figure` | `\bfigure\s+\d+\|\bfig\.\s*\d+\|\bplot\b\|\bdiagram\b\|\bchart\b` | hybrid |
 | 3 | `multi_hop` | `\bcompare\b\|\bvs\.?\b\|\bversus\b\|\bdifferences?\b\|\bbetween\b` | hybrid |
 | 4 | `factual` | `\b\d+(?:\.\d+)?\b\|\b[A-Z]{2,}\b` (numeric span or ≥2-char acronym) | text-only |
-| 5 | `definitional` | default — no match above | text-only |
+| 5 | `definitional` | default (no match above) | text-only |
 
 Precedence is intentional: a query like *"compare Figure 3 vs Figure 4"*
 classifies as `figure` and not `multi_hop`. Both route to hybrid, so the
@@ -111,10 +111,10 @@ choice only affects observability labels.
   logged at warning, treated as if the query had routed text-only.
   `routing.visual_failed=true` set on the current OTel span. Demos do not
   die from GPU hiccups.
-- **Both legs return empty**: standard upstream behaviour — `/answer`'s
+- **Both legs return empty**: standard upstream behaviour. `/answer`'s
   refusal gate (ADR 0006) handles it; no special routing logic.
 - **`force_route="hybrid"` but visual retriever is None** (visual leg
-  disabled by toggle): error 400 from the API layer. Don't silently degrade — the caller
+  disabled by toggle): error 400 from the API layer. Don't silently degrade: the caller
   asked for hybrid explicitly.
 
 ## Observability
@@ -127,7 +127,7 @@ choice only affects observability labels.
   `POST /answer` per `src/api/routes/answer.py:25`) gains attrs:
   `routing.category`, `routing.path`, `routing.forced`,
   `routing.visual_failed` (only set when true).
-- `Langfuse` trace metadata: `category`, `path` — captured on the
+- `Langfuse` trace metadata: `category` and `path`, captured on the
   existing `rag.query` trace. Wire-up details belong to the
   implementation plan, not this ADR.
 
@@ -141,19 +141,19 @@ choice only affects observability labels.
    and revisits if the rate exceeds an as-yet-unset threshold.
 2. **Factual heuristic is heuristic.** Year mentions ("after 2024") match
    the numeric pattern and label as `factual` rather than `definitional`.
-   Same dispatch destination, so this is observability-only noise — the
-   ADR 0007 cross-reference loses fidelity for 5–10 % of queries that
+   Same dispatch destination, so this is observability-only noise: the
+   ADR 0007 cross-reference loses fidelity for 5 to 10 % of queries that
    look factual-by-numerics but are conceptually definitional. Acceptable.
 3. **RRF k=60 is the literature default, not tuned.** ADR 0007's offline
    eval used the same default. Tuning k against the v3 hybrid subset is
-   a later candidate — could be worth ±0.5 % nDCG, not enough to
-   block production routing.
+   a later candidate (could be worth ±0.5 % nDCG, not enough to
+   block production routing).
 4. **Page-level fusion changes the production result granularity.**
    Pre-routing `/answer` returned chunk-level results. Routed-hybrid
    returns page-level (text-leg chunks collapsed to their page; visual
    pages as-is). Implication for the generator: the LLM gets fewer
    candidate items but each spans a full page. We did not rerun the
-   end-to-end generation eval at page granularity in 3.1 — only the
+   end-to-end generation eval at page granularity in 3.1, only the
    retrieval-only metrics. Post-implementation we should re-score
    end-to-end faithfulness/precision on golden v3 with the router on
    and confirm there's no regression vs the 5-paper baseline.
@@ -165,7 +165,7 @@ choice only affects observability labels.
    *Update 2026-05-12:* the demo UI (`web/chat.html` and `web/index.html`)
    now exposes `force_route` via an "Advanced retrieval settings" panel
    so visitors can A/B compare text-only vs hybrid dispatch on the same
-   query. The field remains absent from `/docs` — the demo UI is a
+   query. The field remains absent from `/docs`: the demo UI is a
    first-party consumer, not a public API contract.
 6. **Follow-up scope.** The router lands here with regex
    classification + production wiring. Open follow-up candidates:
@@ -175,25 +175,25 @@ choice only affects observability labels.
    tuning RRF k.
 7. **Visual retriever build is one-shot at startup**, currently the
    slowest part of the boot sequence (ADR 0004 caveat). The router
-   doesn't change this — it just adds a wiring path. A later change can
+   doesn't change this. It just adds a wiring path. A later change can
    revisit lazy-load if cold-start latency becomes a Container Apps
    concern.
 
 ## References
 
-- ADR 0004 — Visual retrieval (visual accepted as complementary,
+- ADR 0004: Visual retrieval (visual accepted as complementary,
   hybrid deferred).
-- ADR 0006 — OOC refusal gate (interaction with empty-both-legs case).
-- ADR 0007 — Corpus expansion + offline hybrid re-evaluation
-  (the empirical case for routing — read this for the +1.9 % subset
+- ADR 0006: OOC refusal gate (interaction with empty-both-legs case).
+- ADR 0007: Corpus expansion + offline hybrid re-evaluation
+  (the empirical case for routing: read this for the +1.9 % subset
   number and the visual-vs-hybrid per-query analysis).
-- `src/rag/hybrid.py:reciprocal_rank_fusion` — existing RRF, reused as-is.
-- `src/rag/retrievers/protocol.py` — `Retriever` Protocol; `RoutingRetriever` is a drop-in.
-- `src/rag/retrievers/visual.py:33` — visual page-id format
+- `src/rag/hybrid.py:reciprocal_rank_fusion`: existing RRF, reused as-is.
+- `src/rag/retrievers/protocol.py`: `Retriever` Protocol; `RoutingRetriever` is a drop-in.
+- `src/rag/retrievers/visual.py:33`: visual page-id format
   `<paper>::p<n>::page` (page granularity, not chunk).
-- `src/types/retrieval.py:14` — `Query` model gains the `force_route`
+- `src/types/retrieval.py:14`: `Query` model gains the `force_route`
   field per Decision §4.
-- `data/golden/v3.yaml` — the corpus the router was re-evaluated on
+- `data/golden/v3.yaml`: the corpus the router was re-evaluated on
   after wiring (router-on retrieval-only run; per the README, the run
   matched the v3 oracle bound from ADR 0007 §"Implications"). Promoting
   v3 to the regression baseline is a separate decision, not part of this

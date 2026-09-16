@@ -1,7 +1,7 @@
 """Knowledge-graph types for the GraphRAG tier (ADR 0018).
 
 One `ChunkExtraction` per clean chunk: the entities and relations an LLM
-read out of it, plus `is_reference_list` — the bibliography filter ADR 0017
+read out of it, plus `is_reference_list`, the bibliography filter ADR 0017
 deferred to this pass (a reference-list chunk yields no real entities and is
 flagged here instead of by a lexical heuristic that provably cannot do it).
 """
@@ -61,7 +61,7 @@ class Community(BaseModel):
 
 
 class CommunityReport(BaseModel):
-    """An LLM summary of one community — what GraphRAG global search reads
+    """An LLM summary of one community: what GraphRAG global search reads
     instead of raw passages. Spike-scoped: title + summary only."""
 
     model_config = ConfigDict(frozen=True)

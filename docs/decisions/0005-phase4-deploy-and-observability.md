@@ -1,4 +1,4 @@
-# ADR 0005 — Deploy + observability scaffold
+# ADR 0005: Deploy + observability scaffold
 
 **Status:** Accepted (scaffold). **Decision §5 (Terraform/azurerm) superseded
 in a later PR**: the deploy workflow now targets Google Cloud Run via
@@ -24,7 +24,7 @@ explicitly deferred.
 ### 1. SDKs follow the Langfuse no-op-when-unconfigured pattern
 `configure_otel()` and `configure_sentry()` mirror `make_langfuse_client`:
 read SDK-native env vars (`OTEL_EXPORTER_OTLP_ENDPOINT`, `SENTRY_DSN`),
-return early when unset. They are NOT in `Settings` — by convention, only
+return early when unset. They are NOT in `Settings`. By convention, only
 project-prefixed `RAG_*` env vars go through `Settings`; third-party SDK
 env vars stay outside. Tests can run without an
 OTLP collector or Sentry project. Idempotent so duplicate calls (test
@@ -64,14 +64,14 @@ common "first deploy breaks everything and main is now broken" failure.
 ### 7. Span hierarchy seeded only on `/answer`
 `/answer` is wrapped: parent `POST /answer` → child `retrieve` → child
 `generate`. `/query` is left to the FastAPI auto-instrumentation default
-(one span per request). New spans for visual retrieval, eval runner, etc.
-ship in their own commits.
+(one span per request). New spans for visual retrieval, eval runner and
+others ship in their own commits.
 
 ## Caveats
 
 - ColPali / ColQwen2 path is in-tree but not wired into the deployed app
   (visual is `scripts/eval_visual.py`, separate CLI). The deploy serves
-  text-path only — same as `data/eval/baseline.json`.
+  text-path only, the same as `data/eval/baseline.json`.
 - Container Apps' minimum scale is 0; expect cold-start of ~5 s on first
   request. Acceptable for a low-traffic demo; revisit with `min_replicas=1`
   if latency under cold conditions matters.
@@ -82,6 +82,6 @@ ship in their own commits.
 
 ## References
 
-- `src/observability/langfuse.py` — pattern reference for no-op SDKs.
-- `src/observability/logging.py` — `truncate_long_strings()` placeholder.
-- ADR 0004 — Visual retrieval (closed prerequisite).
+- `src/observability/langfuse.py`: pattern reference for no-op SDKs.
+- `src/observability/logging.py`: `truncate_long_strings()` placeholder.
+- ADR 0004: Visual retrieval (closed prerequisite).

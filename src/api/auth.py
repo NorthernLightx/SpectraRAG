@@ -2,7 +2,7 @@
 
 Compares the inbound `X-API-Key` header against the configured shared secret
 in constant time (hmac.compare_digest). When `RAG_PUBLIC_API_KEY` is unset,
-the middleware is a no-op — preserves the dev/single-user default where
+the middleware is a no-op, preserving the dev/single-user default where
 auth gets in the way of curl-and-iterate.
 """
 

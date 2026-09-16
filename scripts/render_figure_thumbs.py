@@ -3,13 +3,13 @@
 The web UI's figure thumbnails were CSS-crops of the *full* page PNG (~0.5 MB
 each), so opening a paper with many figures pulled megabytes before anything
 showed. This renders a small thumbnail per gallery item once, served statically
-from the existing ``/pages`` mount — the thumbnail becomes a plain ``<img>``.
+from the existing ``/pages`` mount, so the thumbnail becomes a plain ``<img>``.
 
 Source per item:
   - figure: downscale the Docling crop already on disk (``data/figures/<paper>/
     <id>.png``; ``id`` is the chunk_id with ``:`` → ``_``).
   - table (no crop) or a figure whose crop is missing: crop the bbox region out
-    of the page render (``data/pages/<paper>/<paper>_p<N>.png``) — pages render
+    of the page render (``data/pages/<paper>/<paper>_p<N>.png``). Pages render
     at 150 DPI, bbox is in PDF points (1/72"), so px = pt * 150/72.
 
 Output: ``<pages_dir>/<paper>/thumbs/<id>.webp`` (committed with the page PNGs so

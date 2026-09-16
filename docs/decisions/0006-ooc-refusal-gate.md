@@ -1,4 +1,4 @@
-# ADR 0006 — OOC refusal gate (rerank-score threshold)
+# ADR 0006: OOC refusal gate (rerank-score threshold)
 
 **Status:** Accepted as opt-in (default off). Gate is in-tree; production enables it
 via `RAG_REFUSAL_SCORE_THRESHOLD` or CLI `--refusal-score-threshold`. Baseline
@@ -16,29 +16,29 @@ A pre-existing open question carried into this work:
 The text-path baseline (`7b5242df5b38`) contains 6 OOC queries in golden v2 (q5,
 q15, q17, q19, q21, q23).  In that baseline:
 
-- q5 (`Will it rain on Mars?`) — retriever returns near-zero-score chunks; the
+- q5 (`Will it rain on Mars?`): retriever returns near-zero-score chunks; the
   LLM *hallucinated* a response ("regret bound for no-regret learners…") rather
   than refusing.
-- q23 (`What is the eurozone inflation target?`) — prompt-based refusal fired but
+- q23 (`What is the eurozone inflation target?`): prompt-based refusal fired but
   produced "Not stated in the provided context" (prompt text), not the clean gate
   text.
-- q15, q19, q21 — prompt-based refusal worked, but judge scored `answer_relevance
+- q15, q19, q21: prompt-based refusal worked, but judge scored `answer_relevance
   = 0.0` on all of them (a known qwen2.5:7b judge artefact).
-- q17 — leaked through entirely (top-1 rerank score 0.58; query mentions the
+- q17: leaked through entirely (top-1 rerank score 0.58; query mentions the
   paper's exact entity name, fooling the cross-encoder).
 
-The experiment tested whether a deterministic pre-generation gate — checking the
-top-1 rerank score against a calibrated threshold τ — could catch the leaks
+The experiment tested whether a deterministic pre-generation gate (checking the
+top-1 rerank score against a calibrated threshold τ) could catch the leaks
 without harming in-corpus quality.
 
 **Experimental flow:**
 
-- **Task 1** — gate implementation added to `src/rag/generate.py` with unit tests.
-- **Task 3** — threshold τ = 0.11 calibrated empirically from the rerank-score
+- **Task 1**: gate implementation added to `src/rag/generate.py` with unit tests.
+- **Task 3**: threshold τ = 0.11 calibrated empirically from the rerank-score
   distribution (see Calibration section below).
-- **Task 4** — full eval run `47a9c3eaca0e` (`run-20260502-211555.json`) executed
+- **Task 4**: full eval run `47a9c3eaca0e` (`run-20260502-211555.json`) executed
   against all 23 queries; aggregate metrics compared to baseline.
-- **Task 5** (this ADR) — experimental result documented; acceptance decision recorded.
+- **Task 5** (this ADR): experimental result documented; acceptance decision recorded.
 
 ## Implementation
 
@@ -46,9 +46,9 @@ without harming in-corpus quality.
 
 - `Generator.__init__` accepts an optional `refusal_score_threshold: float | None`
   parameter (default `None`, meaning the gate is off).
-- `Generator._should_refuse(results: list[RetrievalResult]) -> bool` — returns
+- `Generator._should_refuse(results: list[RetrievalResult]) -> bool`: returns
   `True` when `threshold` is set and the top-1 rerank score is below it.
-- `Generator._refusal() -> Answer` — returns an `Answer` with
+- `Generator._refusal() -> Answer`: returns an `Answer` with
   `model="refusal-gate"`, empty `citations`, `input_tokens=0`, `output_tokens=0`,
   and text `"I cannot answer this question from the provided corpus."`.
 - On refusal, logs a `generate.refused` structured event with `top1_score` and
@@ -62,7 +62,7 @@ The gate fires before any LLM call, so there is zero token cost for refused quer
 ## Calibration (τ = 0.11)
 
 Top-1 rerank-score distribution over the 23 golden v2 queries (re-derived by
-re-running the cross-encoder over re-extracted chunks — per-chunk scores are not
+re-running the cross-encoder over re-extracted chunks; per-chunk scores are not
 persisted in run JSON):
 
 **OOC queries (n=6):**
@@ -76,7 +76,7 @@ persisted in run JSON):
 | q15_oc_gpt4 | 0.1133 |
 | q17_oc_pinn_rl | 0.5813 |
 
-**In-corpus minimum:** 0.1106 (q6_basin_definition — math-heavy definition chunk
+**In-corpus minimum:** 0.1106 (q6_basin_definition: math-heavy definition chunk
 with low lexical overlap).
 
 Gap between q23 (0.1008) and q15 (0.1133) is 0.0125; the in-corpus minimum
@@ -84,10 +84,10 @@ Gap between q23 (0.1008) and q15 (0.1133) is 0.0125; the in-corpus minimum
 **0.11**.
 
 At τ = 0.11:
-- Gate fires on q5, q19, q21, q23 (top-1 < 0.11) — exactly the 4 OOC queries
+- Gate fires on q5, q19, q21, q23 (top-1 < 0.11), exactly the 4 OOC queries
   where retrieval returned near-zero or low-confidence results.
 - Gate does NOT fire on q15 (0.1133 > τ) or q17 (0.5813 ≫ τ).
-- Gate does NOT fire on any in-corpus query (all above τ) — 0 false refusals.
+- Gate does NOT fire on any in-corpus query (all above τ): 0 false refusals.
 
 **Caveat:** τ is empirical for the current 5-paper ArXiv ML corpus + golden v2.
 Different corpora need independent calibration. The in-corpus minimum (0.1106) is
@@ -96,12 +96,12 @@ a different distribution.
 
 ## Result
 
-**Run id:** `47a9c3eaca0e` — `data/eval/runs/run-20260502-211555.json`
-**Baseline run id:** `7b5242df5b38` — `data/eval/baseline.json`
+**Run id:** `47a9c3eaca0e` (`data/eval/runs/run-20260502-211555.json`)
+**Baseline run id:** `7b5242df5b38` (`data/eval/baseline.json`)
 **Total queries:** 23 (17 in-corpus, 6 OOC). Wall time: ~36 minutes (CPU rerank,
 GPU generate via ollama qwen2.5:7b).
 
-### Retrieval metrics — perfect parity
+### Retrieval metrics: perfect parity
 
 | Metric | Baseline | Gate-run | Δ |
 |---|---|---|---|
@@ -132,7 +132,7 @@ All changes are within noise; no in-corpus quality degradation.
 These regressions are a **judge artefact**, not a quality regression. See the
 per-query table and the "Judge artefact" section below.
 
-### Aggregate metrics (all 23 queries — what `check_regression` sees)
+### Aggregate metrics (all 23 queries, what `check_regression` sees)
 
 | Metric | Baseline | Gate-run | Δ | CI gate |
 |---|---|---|---|---|
@@ -141,22 +141,22 @@ per-query table and the "Judge artefact" section below.
 | context_precision | 0.6304 | 0.6696 | +6.21% | pass |
 
 CI fails because the OOC judge regressions pull the aggregate down. This is why
-`data/eval/baseline.json` is **not updated** — see Decision section.
+`data/eval/baseline.json` is **not updated**. See the Decision section.
 
 ### Per-query OOC analysis
 
 | qid | top-1 score | baseline (f/ar/cp) | gate-run (f/ar/cp) | refused by | What changed |
 |---|---|---|---|---|---|
-| q5_oc_weather | 0.0006 | 1.0/0.0/0.8 | 1.0/0.0/0.8 | **gate** | Baseline *hallucinated* a regret-bound answer for "Will it rain on Mars?". Gate refused. Judge gave identical scores to both — it couldn't tell hallucination from refusal. Gate output is genuinely correct; baseline was not. |
+| q5_oc_weather | 0.0006 | 1.0/0.0/0.8 | 1.0/0.0/0.8 | **gate** | Baseline *hallucinated* a regret-bound answer for "Will it rain on Mars?". Gate refused. Judge gave identical scores to both. It couldn't tell hallucination from refusal. Gate output is genuinely correct; baseline was not. |
 | q15_oc_gpt4 | 0.1133 | 0.0/1.0/0.1 | 0.0/1.0/0.1 | prompt | Above τ; gate did not fire. Prompt-based refusal identical to baseline. |
 | q17_oc_pinn_rl | 0.5813 | 0.75/0.5/0.4 | 0.0/0.5/0.4 | **NONE (leaked)** | Well above τ; both layers failed to refuse. faithfulness regressed 0.75→0.0 due to judge non-determinism on the same generation pattern (not a gate effect). |
 | q19_oc_synth_energy | 0.0635 | 0.0/1.0/0.1 | 0.0/0.0/0.1 | **gate** | Baseline text: "Not stated"; gate text: "I cannot answer". answer_relevance dropped 1.0→0.0 on different wording of the same correct refusal. |
-| q21_oc_llama_finetune | 0.1004 | 0.0/1.0/0.2 | 0.0/0.0/0.2 | **gate** | Same pattern as q19 — judge scored baseline's prompt-refusal wording higher than gate's wording for identical correctness. |
+| q21_oc_llama_finetune | 0.1004 | 0.0/1.0/0.2 | 0.0/0.0/0.2 | **gate** | Same pattern as q19: judge scored baseline's prompt-refusal wording higher than gate's wording for identical correctness. |
 | q23_oc_eurozone | 0.1008 | 1.0/0.0/0.1 | 0.0/0.0/0.8 | **gate** | Baseline: "Not stated in the provided context." faithfulness=1.0. Gate: "I cannot answer this question from the provided corpus." faithfulness=0.0. context_precision rose 0.1→0.8. Same correctness; judge inconsistent on refusal phrasing. |
 
-**Gate fired on:** q5, q19, q21, q23 (4/6 OOC, all where top-1 < τ = 0.11) —
+**Gate fired on:** q5, q19, q21, q23 (4/6 OOC, all where top-1 < τ = 0.11),
 exactly as predicted in Task 3.
-**False refusals on in-corpus:** **0/17** — no regression on answerable queries.
+**False refusals on in-corpus:** **0/17**, no regression on answerable queries.
 
 **Sample answers confirming gate correctness:**
 
@@ -179,28 +179,28 @@ different refusal wordings differently for identical semantic content.**
 
 Concrete evidence:
 
-1. q19, q21 — baseline prompt-refusal "Not stated in the provided context" scores
+1. q19, q21: baseline prompt-refusal "Not stated in the provided context" scores
    `answer_relevance = 1.0`. Gate refusal "I cannot answer this question from the
    provided corpus" scores `answer_relevance = 0.0`. The underlying correctness is
    identical.
 
-2. q23 — baseline "Not stated…" gets `faithfulness = 1.0`; gate "I cannot answer…"
+2. q23: baseline "Not stated…" gets `faithfulness = 1.0`; gate "I cannot answer…"
    gets `faithfulness = 0.0`. Same query, same corpus absence, different wording
    only.
 
-3. q5 — baseline *hallucinated* a regret-bound passage for a weather query; judge
+3. q5: baseline *hallucinated* a regret-bound passage for a weather query; judge
    gave it `faithfulness = 1.0`, `answer_relevance = 0.0`. Gate refused correctly;
    judge gave the same `faithfulness = 1.0`, `answer_relevance = 0.0`. The judge
-   cannot distinguish a hallucinated response from a correct one here — it's
+   cannot distinguish a hallucinated response from a correct one here. It's
    anchored entirely to citation style.
 
-4. q17 — `faithfulness` was 0.75 in the baseline run and 0.0 in this run for the
+4. q17: `faithfulness` was 0.75 in the baseline run and 0.0 in this run for the
    same generation pattern. Pure non-determinism in the judge.
 
 This matches the standing cloud-judge-calibration open question. The qwen2.5:7b
 judge is unreliable for evaluating refusals. When the cloud judge (gpt-4o-mini or
 similar) lands, a re-run with τ = 0.11 should score the gate's refusal text at
-`answer_relevance = 1.0` and `faithfulness = 1.0` on OOC queries — at which point
+`answer_relevance = 1.0` and `faithfulness = 1.0` on OOC queries, at which point
 the aggregate regression gate should pass cleanly.
 
 ## Decision
@@ -246,7 +246,7 @@ feature ships in-tree as an opt-in with the upgrade path documented.
 
 4. **Judge non-determinism.** q17's faithfulness was 0.75 in the baseline and 0.0
    in this run with the same generation. Any aggregate comparison between runs that
-   differ by fewer than 2–3 points should be treated with scepticism until the
+   differ by fewer than 2 to 3 points should be treated with scepticism until the
    cloud judge replaces qwen2.5:7b.
 
 5. **Wording of the refusal message is not tuned.** "I cannot answer this question
@@ -256,13 +256,13 @@ feature ships in-tree as an opt-in with the upgrade path documented.
 
 ## References
 
-- ADR 0001 (`docs/decisions/0001-contextual-retrieval.md`) — Rejected; established
+- ADR 0001 (`docs/decisions/0001-contextual-retrieval.md`): Rejected; established
   the pattern of "real wins exist, ships in-tree as opt-in."
-- ADR 0003 (`docs/decisions/0003-phase22-query-expansion.md`) — Rejected; same
+- ADR 0003 (`docs/decisions/0003-phase22-query-expansion.md`): Rejected; same
   aggregate-vs-per-query tension.
-- `src/rag/generate.py` — gate implementation (`_should_refuse`, `_refusal`,
+- `src/rag/generate.py`: gate implementation (`_should_refuse`, `_refusal`,
   `refusal_score_threshold` param).
-- `tests/unit/test_generate_refusal.py` — unit tests covering gate on/off, boundary
+- `tests/unit/test_generate_refusal.py`: unit tests covering gate on/off, boundary
   conditions, false-refusal guard.
-- `data/eval/runs/run-20260502-211555.json` — gate-run data (run id `47a9c3eaca0e`).
-- `data/eval/baseline.json` — baseline (run id `7b5242df5b38`).
+- `data/eval/runs/run-20260502-211555.json`: gate-run data (run id `47a9c3eaca0e`).
+- `data/eval/baseline.json`: baseline (run id `7b5242df5b38`).

@@ -1,9 +1,9 @@
-# ADR 0018 — GraphRAG tier: rejected on measured kill-spike
+# ADR 0018: GraphRAG tier (rejected on measured kill-spike)
 
 **Status:** **Rejected** on a cheap kill-spike (M2). The construction core
 (S1.1 extraction + S1.2 graph build / communities + S1.3 minimal community
 summaries) stays in tree as an opt-in artifact since the LLM `is_reference_list`
-filter has standalone value (ADR 0017 deferred bib removal here). S1.4–S1.6
+filter has standalone value (ADR 0017 deferred bib removal here). S1.4 to S1.6
 (persistence, GraphRetriever, full 20-paper build) are *not* built. The
 hybrid baseline + agentic tier (ADR 0019, Step 2) is the direction.
 **Date:** 2026-05-19
@@ -13,7 +13,7 @@ hybrid baseline + agentic tier (ADR 0019, Step 2) is the direction.
 Step 1 of the agentic + graph revamp: a GraphRAG retrieval tier alongside the
 untouched hybrid pipeline (tier, not replacement). This ADR is opened *before*
 the verdict on purpose: the repo's prior is that plausible techniques come
-back within noise on this corpus — reranker rejected (0012), routing a
+back within noise on this corpus: reranker rejected (0012), routing a
 measurement artifact (0013 → 0015, +0.0066 vs a +0.05 gate), context
 expansion inconclusive (0016, +0.0375 within ±0.07 noise at n=40). Full
 Microsoft-style GraphRAG is a strictly larger and more expensive bet than any
@@ -26,7 +26,7 @@ section is deliberately empty, and the build is gated on a cheap signal.
   (`src/ingestion/graph_extract.py`). `is_reference_list` is the bibliography
   filter ADR 0017 deferred: moved from a lexical heuristic that provably
   cannot separate a reference list from citation-dense prose (ADR 0017's
-  intro-vs-bib calibration) to an LLM judgment. **This is unmeasured** — that
+  intro-vs-bib calibration) to an LLM judgment. **This is unmeasured.** That
   the LLM actually separates them on this corpus is an assumption the spike
   must check, not a result.
 - **Entity merge by lowercased name.** Known loss: a case-only-distinct
@@ -35,13 +35,13 @@ section is deliberately empty, and the build is gated on a cheap signal.
   a measured occurrence count on this corpus; pinned by
   `test_case_only_distinct_acronyms_collapse_known_loss` so any change is
   deliberate.
-- **Communities: networkx Louvain, recursive for 2 levels** — *not*
+- **Communities: networkx Louvain, recursive for 2 levels**, *not*
   Microsoft GraphRAG's hierarchical Leiden + map-reduce community answering.
   Leiden needs an igraph/graspologic dependency not justified on a demo
   corpus. This is **"GraphRAG-style", not "Full GraphRAG"**; earlier plan
   language overclaimed and is corrected here.
 
-## Measurement — kill-spike (M2), 2026-05-19
+## Measurement: kill-spike (M2), 2026-05-19
 
 3 diverse papers (2604.22753v1 scaling-laws / 2604.28173v1 S-JEPA
 skeletal-action / 2604.28192v1 LaST-R1 VLA), 250 clean chunks, gemma3:4b
@@ -66,7 +66,7 @@ arm: in-process BM25 over the same chunks. 34 min total LLM time:
 | singleton communities | **19.2%** |
 
 A graph that fragmented (degree ~1.7, 1/5 singleton communities) means
-community summaries are paper-localised and thin — and that is the precise
+community summaries are paper-localised and thin. That is the precise
 structural precondition under which "global" search over reports cannot
 beat passage retrieval. The structural signal predicted the verdict before
 the side-by-side ran.
@@ -78,15 +78,15 @@ BM25-RAG with the same LLM **wins 5 of 8 queries**, GraphRAG-global wins
 (cross-paper synthesis), BM25 gives the LLM more cross-paper material to
 work with and produces *richer, more accurate, more cross-document*
 answers most of the time. The one GraphRAG win (Q6 "contributions") is
-real — it is the only answer in the spike that genuinely spans all 3
-papers — but it is outweighed by:
+real (it is the only answer in the spike that genuinely spans all 3
+papers), but it is outweighed by:
 
 - **Hallucination on Q1** ("shared problem domains"): GraphRAG asserted a
   fake shared theme ("mental health: schizophrenia and bipolar disorder")
   that none of these papers is about. A confident wrong cross-paper claim
   is a worse failure mode than BM25's narrowness.
 - **Entity-typing errors on Q5** ("datasets"): GraphRAG listed MPJPE (a
-  metric), "All Data" (a method name), SMPL (a model) as datasets — the
+  metric), "All Data" (a method name), SMPL (a model) as datasets. The
   closed-vocabulary extractor mislabels under gemma3:4b.
 - **Narrower coverage** on Q2/Q3/Q5/Q7/Q8: GraphRAG fixated on one paper's
   community summaries while BM25's 6 top chunks span the corpus.
@@ -99,19 +99,19 @@ summarisation and global answering. The cheap spike saved that spend.
 
 ## Decision
 
-Reject GraphRAG-as-built on this corpus, on the same honest-measurement
+Reject GraphRAG-as-built on this corpus, on the same measurement
 grounds as ADR 0013 (routing artefact) and ADR 0016 (context expansion
 within noise). The construction core stays in tree opt-in because:
 
 - the LLM `is_reference_list` filter has standalone value (ADR 0017
   deferred bibliography removal here; the spike confirmed it fires at
-  21.2% — precision still needs a human-labelled check),
+  21.2%, though precision still needs a human-labelled check),
 - the extraction + graph code is mypy-strict, ruff-clean, 21 unit tests,
   no maintenance cost while dormant.
 
 S1.4 (Qdrant entity embeddings), S1.5 (GraphRetriever), S1.6 (20-paper
-build + measurement) are **not built**. Pivot to Step 2 (agentic retrieval
-over the existing hybrid) — ADR 0019.
+build + measurement) are **not built**. Pivot to Step 2, agentic
+retrieval over the existing hybrid (ADR 0019).
 
 ## What this teaches
 
@@ -128,8 +128,8 @@ over the existing hybrid) — ADR 0019.
 
 ## Related
 
-- ADR 0016 — honest-metric requirement and the within-noise pattern this ADR
-  refuses to repeat blindly.
-- ADR 0017 — corpus clean; its "answer-quality delta measured in Step 1"
+- ADR 0016: the answer-correctness metric requirement, and the
+  within-noise pattern this ADR refuses to repeat blindly.
+- ADR 0017: corpus clean; its "answer-quality delta measured in Step 1"
   line is corrected (the metric did not exist).
-- ADR 0013 / 0015 — the look-promising-then-evaporate precedent.
+- ADR 0013 / 0015: the look-promising-then-evaporate precedent.

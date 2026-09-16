@@ -2,10 +2,10 @@
 
 Two modes:
 
-* Default (query-driven) — search a category by submitted-date, fetch the top
+* Default (query-driven): search a category by submitted-date, fetch the top
   N. Useful for one-off corpus builds; non-reproducible (results change as
   arXiv adds papers).
-* `--manifest <file>` — read a list of arXiv IDs (one per line, # comments
+* `--manifest <file>`: read a list of arXiv IDs (one per line, # comments
   allowed) and fetch each. Reproducible, used by the CI deploy bake to build
   a deterministic image from a committed manifest at
   `data/curated_demo/papers.txt`.
@@ -117,7 +117,7 @@ def _read_manifest(manifest_path: Path) -> list[str]:
 async def fetch_by_manifest(*, manifest_path: Path, out_dir: Path) -> None:
     """Fetch each arXiv ID listed in the manifest.
 
-    Idempotent — skips IDs whose PDF already exists in `out_dir`. CI restores
+    Idempotent: skips IDs whose PDF already exists in `out_dir`. CI restores
     `data/curated_demo/` from the actions/cache keyed on the manifest hash, so
     a cache hit means this loop just verifies presence and exits.
     """
@@ -129,8 +129,8 @@ async def fetch_by_manifest(*, manifest_path: Path, out_dir: Path) -> None:
         if out_path.exists():
             print(f"Have {arxiv_id}")
             continue
-        # arXiv exposes PDFs at https://arxiv.org/pdf/<id>.pdf — versioned IDs
-        # (e.g. 2604.22753v1) are addressable directly.
+        # arXiv exposes PDFs at https://arxiv.org/pdf/<id>.pdf, and versioned
+        # IDs such as 2604.22753v1 are addressable directly.
         pdf_url = f"https://arxiv.org/pdf/{arxiv_id}.pdf"
         await download_pdf(pdf_url, arxiv_id, out_dir)
         print(f"Saved {arxiv_id}: {out_path}")

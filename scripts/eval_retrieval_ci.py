@@ -11,7 +11,7 @@ Metrics are scored at PAGE granularity: both the golden `relevant_chunk_ids`
 and the retrieved chunk ids are projected to their `paper::pN` page before
 scoring. `rag_corpus` is the shipped demo corpus and is periodically re-baked
 by the docling chunker (ADR 0017 / 0021), which renumbers the `::cN` chunk
-suffix — so the v3 golden's chunk-level labels drift out of sync with it while
+suffix, so the v3 golden's chunk-level labels drift out of sync with it while
 the page they point at does not. Page projection coarsens the *existing* human
 labels (it authors no new ground truth) and is re-chunk-robust, the same reason
 ADR 0019's answer_correctness judges answer text rather than chunk ids.
@@ -64,7 +64,7 @@ async def _main(
     chunks = await vectorstore.scroll_chunks()
     if not chunks:
         raise SystemExit(
-            f"snapshot {snapshot}/{collection!r} has no chunks — wrong path, or a "
+            f"snapshot {snapshot}/{collection!r} has no chunks: wrong path, or a "
             "pre-payload-schema collection. Re-bake with scripts/bootstrap_corpus.py."
         )
     chunks_by_id = {c.chunk_id: c for c in chunks}

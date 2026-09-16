@@ -1,11 +1,11 @@
 """Page-image rendering for the visual retrieval path.
 
-ColPali-style retrievers (ColQwen2, ColPali, etc.) embed *whole pages* as
+ColPali-style retrievers (ColQwen2, ColPali and kin) embed *whole pages* as
 images rather than working from extracted text. This module renders each
 PDF page to a PNG at a configurable DPI and returns the path list, leaving
 embedding to the visual retriever.
 
-We render at 150 DPI by default — a balance between fidelity (text legible
+We render at 150 DPI by default, a balance between fidelity (text legible
 to the VLM) and ColQwen2's input pixel budget (it resizes to a fixed grid
 regardless, but we want the source crisp enough that resampling preserves
 small text).
@@ -48,7 +48,7 @@ def render_pages(
 ) -> list[RenderedPage]:
     """Render each page of `pdf_path` to a PNG under `out_dir/<paper_id>/`.
 
-    Idempotent — if the target file already exists with non-zero size, it's
+    Idempotent: if the target file already exists with non-zero size, it's
     treated as already rendered and skipped (useful for re-runs of the same
     paper).
     """

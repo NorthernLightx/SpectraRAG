@@ -1,10 +1,10 @@
-"""GraphRAG kill-spike (ADR 0018 M2) — decisive, cheap, fully local.
+"""GraphRAG kill-spike (ADR 0018 M2): decisive, cheap, fully local.
 
-Does GraphRAG-global beat plain BM25-RAG on *global synthesis* questions —
+Does GraphRAG-global beat plain BM25-RAG on *global synthesis* questions,
 the only class it should win, since hybrid already saturates factoid lookup
 (ADR 0015/0016)? On 2-3 papers, ~hundreds of local LLM calls, no Qdrant, no
 Docker. Control arm is the in-process BM25 retriever (same chunks, same
-model, same answer prompt — only retrieval differs). Throwaway: experiments
+model, same answer prompt; only retrieval differs). Throwaway: experiments
 tier, exempt from gates. Read the side-by-side, decide continue/kill.
 
 Doubles as the graph-axis of the ingestion scorecard: writes graph-quality
@@ -32,11 +32,11 @@ from src.llm.protocol import Message
 from src.rag.bm25 import Bm25Index
 from src.types import Chunk, ChunkExtraction, CommunityReport
 
-# The corpus is full of ∥ ∑ θ etc.; the Windows cp1252 console crashed the
+# The corpus is full of ∥ ∑ θ and the like; the Windows cp1252 console crashed the
 # *previous* run on a print AFTER the 34-min LLM work. Never again.
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-# Genuinely cross-cutting — the class single-passage retrieval should struggle
+# Genuinely cross-cutting: the class single-passage retrieval should struggle
 # on and graph community summaries should help. No paper-specific assumptions.
 _GLOBAL_QUERIES = [
     "What problem domains do these papers address, and what do they share?",
@@ -109,7 +109,7 @@ async def main() -> None:
     ap.add_argument("--refresh", action="store_true", help="ignore cache, redo the LLM passes")
     args = ap.parse_args()
 
-    # num_ctx bumped: gemma3:4b's 4096 default truncated prompts in ADR 0016 —
+    # num_ctx bumped: gemma3:4b's 4096 default truncated prompts in ADR 0016;
     # do not repeat that artifact in the experiment meant to avoid it.
     llm = OllamaChatClient(num_ctx=16384)
 
@@ -159,7 +159,7 @@ async def main() -> None:
     by_id = {c.chunk_id: c for c in chunks}
     report_blob = "\n".join(f"{r.title}: {r.summary}" for r in reports)
 
-    md = ["# GraphRAG kill-spike — side-by-side", "", json.dumps(metrics), ""]
+    md = ["# GraphRAG kill-spike: side-by-side", "", json.dumps(metrics), ""]
     for q in _GLOBAL_QUERIES:
         qw = {w for w in q.lower().split() if len(w) > 3}
         ranked = sorted(
@@ -183,7 +183,7 @@ async def main() -> None:
         print(f"\n=== {q}\n[GRAPH] {graph_ans[:280]}\n[BM25 ] {bm25_ans[:280]}")
 
     args.out.write_text("\n".join(md), encoding="utf-8")
-    print(f"\nWrote {args.out} — read the side-by-side, decide continue/kill.")
+    print(f"\nWrote {args.out}. Read the side-by-side, decide continue/kill.")
     lens = [len(c.text) for c in chunks]
     print(f"(corpus: {len(chunks)} chunks, mean {statistics.fmean(lens):.0f} chars)")
 

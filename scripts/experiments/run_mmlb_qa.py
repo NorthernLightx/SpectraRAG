@@ -31,7 +31,7 @@ embedder, or ColQwen2 is loaded here, so it triggers zero local GPU/VRAM work
   `images` arg (it never bridged Ollama's per-message base64 image field). This
   harness needs vision, so it POSTs /api/chat itself with the documented Ollama
   contract: each message carries `images: [<base64-png>, ...]` (NOT the
-  OpenAI-compat `image_url` content blocks that src/llm/openrouter.py builds —
+  OpenAI-compat `image_url` content blocks that src/llm/openrouter.py builds;
   that schema is OpenRouter-only). Verified against qwen3-vl:235b-cloud
   2026-05-25: a real page PNG returned the correct gold answer in ~12s.
 
@@ -44,7 +44,7 @@ embedder, or ColQwen2 is loaded here, so it triggers zero local GPU/VRAM work
   reimplemented, so a page identity here is the same tuple retrieval is scored
   on). A chunk-id with no `::pN::` segment is skipped.
 
-  GOLD lives in data/golden/mmlongbench-v1.yaml — all 149 queries INCLUDING the
+  GOLD lives in data/golden/mmlongbench-v1.yaml: all 149 queries INCLUDING the
   36 unanswerable ones; they are needed for the official F1 (the negative
   class). The MACHINE NEVER AUTHORS GROUND TRUTH: this harness only reads the
   human gold short answer (expected_facts[0]) into the run for convenience and
@@ -158,7 +158,7 @@ def _png_path(paper: str, page: int) -> Path:
 
 def _encode_png(path: Path) -> str:
     """PNG path -> bare base64 (Ollama /api/chat `images` wants raw base64, NOT
-    a data: URL — that is the OpenRouter/OpenAI content-block convention)."""
+    a data: URL, which is the OpenRouter/OpenAI content-block convention)."""
     return base64.standard_b64encode(path.read_bytes()).decode()
 
 
@@ -182,8 +182,8 @@ def select_pages(fused_top50: list[str], top_k: int) -> list[Page]:
 # fall back to the top-k RAG cut. The fit test is a CLOSED interval
 # (page_count <= budget routes whole-doc). page_count is taken as a plain int so
 # this helper is source-agnostic and pure; the caller resolves the document's
-# TRUE page count + full page list (the load-bearing input: retrieval surfaces
-# only top-50, so the count must come from outside the retrieved set).
+# TRUE page count + full page list (retrieval surfaces only top-50, so the
+# count must come from outside the retrieved set).
 def route_pages_by_fit(
     page_count: int,
     budget: int,
@@ -244,7 +244,7 @@ async def _chat_vision(
     """One vision /api/chat call. Returns (answer_text, tokens_in, tokens_out).
 
     The page images ride on the user message's `images` field (Ollama's
-    contract). Bounded backoff on transport errors and HTTP 5xx — the cloud
+    contract). Bounded backoff on transport errors and HTTP 5xx; the cloud
     backend can 429/5xx under load over a 149-query run; we retry rather than
     abort the whole run on one transient failure. A persistent failure raises
     so the caller leaves the query UNcached for a later resume.
@@ -286,7 +286,7 @@ async def _chat_vision(
                 int(data.get("eval_count", 0) or 0),
             )
         except httpx.HTTPStatusError as exc:
-            # 4xx other than 429 (e.g. bad request) is not transient — fail fast.
+            # 4xx other than 429, such as a bad request, is not transient: fail fast.
             if exc.response.status_code not in (429,) and exc.response.status_code < 500:
                 raise
             last_exc = exc
@@ -313,7 +313,7 @@ async def _chat_vision_openrouter(
 
     OpenRouterClient.chat() attaches `images` to the LAST user message as
     OpenAI-compat `image_url` content blocks (data:image/png;base64,...) and
-    encodes the PNG paths itself — the opposite convention to Ollama's raw
+    encodes the PNG paths itself, the opposite convention to Ollama's raw
     base64 `images` field, which is why generation can't share one helper.
     Retry/backoff for transport errors + HTTP 429 lives inside the client
     (tenacity, 6 attempts to 60s); a persistent failure raises here and the
@@ -402,8 +402,8 @@ async def run(args: argparse.Namespace) -> int:
                     missing_png.add(str(p))
 
             # The cache key must include anything that changes the fed pages or
-            # the prompt, or a reused --cache silently serves stale answers (e.g.
-            # top-5 answers against a whole-doc page set). Default page_budget /
+            # the prompt, or a reused --cache silently serves stale answers, such
+            # as top-5 answers against a whole-doc page set. Default page_budget /
             # prompt_variant add no suffix, so pre-existing caches still match. (ADR 0024)
             _key_extra = (f"::pb{args.page_budget}" if args.page_budget is not None else "") + (
                 f"::pv{args.prompt_variant}" if args.prompt_variant != "default" else ""
@@ -545,13 +545,13 @@ async def run(args: argparse.Namespace) -> int:
         f"  generated={len(out_records)}  with-answer={answered}  skipped(no gold)={skipped_no_gold}"
     )
     if missing_png:
-        print(f"  WARNING: {len(missing_png)} page PNG(s) referenced but missing on disk, e.g.:")
+        print(f"  WARNING: {len(missing_png)} page PNG(s) referenced but missing on disk, for example:")
         for missing in sorted(missing_png)[:5]:
             print(f"    {missing}")
     if missing_pages_dir:
         print(
             f"  WARNING: {len(missing_pages_dir)} doc(s) skipped (pages dir unresolved "
-            "for route-by-fit), e.g.:"
+            "for route-by-fit), for example:"
         )
         for missing in sorted(missing_pages_dir)[:5]:
             print(f"    {missing}")
@@ -590,7 +590,7 @@ def main() -> None:
         default="qwen3-vl:235b-cloud",
         help="vision model id. For --provider ollama: an Ollama model "
         "(default qwen3-vl:235b-cloud, a cloud model => zero local VRAM). For "
-        "--provider openrouter: an OpenRouter vision id, e.g. "
+        "--provider openrouter: an OpenRouter vision id, such as "
         "google/gemma-4-31b-it:free.",
     )
     parser.add_argument("--ollama-url", default="http://localhost:11434")
@@ -623,7 +623,7 @@ def main() -> None:
         type=int,
         default=None,
         help="Ollama options.num_gpu: number of model layers to force onto the GPU "
-        "(e.g. 99 = all layers). Omitted from the payload when unset. Use to stop a "
+        "(99 means all layers). Omitted from the payload when unset. Use to stop a "
         "LOCAL vision model (qwen2.5vl:7b) from auto-offloading to CPU under image load; "
         "a cloud model ignores it.",
     )

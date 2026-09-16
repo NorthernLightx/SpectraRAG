@@ -5,12 +5,12 @@ this arm separates the two: the vision reader sees the gold page and must emit
 (a) the operands it reads off the page and (b) a Python arithmetic expression
 over them; then PYTHON evaluates the expression deterministically and we score
 the computed result. Any lift over the baseline answer is the calculator doing
-the math the model got wrong — but ONLY when the model read the operands right.
+the math the model got wrong, but ONLY when the model read the operands right.
 If the model misreads an operand, the calculator faithfully computes a wrong
-answer, which is the honest ceiling: a calculator cannot fix a misread.
+answer, which is the ceiling here: a calculator cannot fix a misread.
 
 Scope: the arithmetic subset of the 43 post-retrieval failures (questions whose
-answer is a computed number — gap/difference/average/count-then-subtract). The
+answer is a computed number: gap/difference/average/count-then-subtract). The
 subset is passed in (--qids) so the choice is explicit and auditable, not
 inferred. For each, we also keep the model's own one-shot answer for contrast.
 

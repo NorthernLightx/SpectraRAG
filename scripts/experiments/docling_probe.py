@@ -1,8 +1,8 @@
-"""ADR 0020 Docling probe — deterministic fast-path candidate.
+"""ADR 0020 Docling probe: deterministic fast-path candidate.
 
 Same kill-spike discipline as ADR 0018/0020: does a heavyweight ML
 document parser (Docling) recover the audit-flagged miss class on
-2604.22753v1 (Figures 2/3, Tables 1/3/4) *deterministically* —
+2604.22753v1 (Figures 2/3, Tables 1/3/4) *deterministically*,
 without needing the VLM fallback at all on the easy 86 % of pages?
 
 Continue / kill:
@@ -70,7 +70,7 @@ def main() -> None:
             print(f"  TAB {line}")
         print()
 
-    # Sniff caption labels (e.g., "Figure 2:") from captions to compare to
+    # Sniff caption labels such as "Figure 2:" from captions to compare to
     # the known ground truth labels.
     import re
 

@@ -2,8 +2,8 @@
 the 29 structured-object cards across the FULL golden, so any extractor can be scored
 against the same target set and compared to the 2026 SOTA bars (table TEDS ~88-94).
 
-Distinct from struct_extract_probe.py (which measures QA-lift on the 43 FAILURE cards
-— wrong population for extraction). This extracts each structured-object gold page once
+Distinct from struct_extract_probe.py (which measures QA-lift on the 43 FAILURE cards,
+the wrong population for extraction). This extracts each structured-object gold page once
 and scores whether the gold value is present (recall proxy for TEDS, no external HTML
 labels). Pluggable extractor via --backend so qwen-cloud vs a local specialist
 (mineru/docling) are measured identically.
@@ -74,7 +74,7 @@ def _mineru_extract(imgs: list[Path], mineru_bin: str, out_root: Path, backend: 
     out: list[str] = []
     env = {**os.environ, "MINERU_MODEL_SOURCE": "huggingface"}
     sub = "vlm" if backend.startswith("vlm") else "auto"
-    # Windows CreateProcess needs an ABSOLUTE, native-separator path with .exe — a
+    # Windows CreateProcess needs an ABSOLUTE, native-separator path with .exe. A
     # relative forward-slash path that pathlib reports as existing still raises WinError 2.
     bp = Path(mineru_bin)
     if os.name == "nt" and bp.suffix != ".exe" and bp.with_suffix(".exe").exists():

@@ -1,11 +1,11 @@
 """Recompute retrieval metrics for an existing EvalRun under updated goldens.
 
-When goldens get updated (e.g. ADR 0009 follow-up adding region chunks to
-`relevant_chunk_ids`), historical runs become unfair-comparison baselines —
-their nDCG was computed against the *old* relevant set. Re-running the eval
-on the updated goldens is GPU-expensive (~60 min for v3 + router + visual);
-nDCG / recall / MRR are deterministic functions of (retrieved_ranks,
-relevant_set), so we can recompute them offline in seconds.
+When goldens get updated (say, the ADR 0009 follow-up adding region chunks
+to `relevant_chunk_ids`), historical runs become unfair-comparison
+baselines: their nDCG was computed against the *old* relevant set.
+Re-running the eval on the updated goldens is GPU-expensive (~60 min for
+v3 + router + visual); nDCG / recall / MRR are deterministic functions of
+(retrieved_ranks, relevant_set), so we can recompute them offline in seconds.
 
 Usage:
     uv run python -m scripts.rebaseline_offline \\
@@ -14,7 +14,7 @@ Usage:
         --out data/eval/runs/run-20260509-002218.rebaselined.json
 
 Generation metrics (faithfulness, answer_relevance, context_precision) are
-copied through unchanged — they're a function of (answer, retrieved_chunks),
+copied through unchanged; they're a function of (answer, retrieved_chunks),
 neither of which changes. citation_grounding likewise.
 
 Out: a new EvalRun JSON with the same per_query / config but recomputed
@@ -73,7 +73,7 @@ def rebaseline(run_path: Path, golden_path: Path, out_path: Path) -> dict[str, A
         qid = pq["query_id"]
         relevant = relevant_by_q.get(qid)
         if relevant is None:
-            # Query no longer in goldens — keep retrieval metrics as-is and flag.
+            # Query no longer in goldens: keep retrieval metrics as-is and flag.
             pq.setdefault("rebaseline_note", "query absent in updated goldens; metrics unchanged")
             continue
         retrieved = pq.get("retrieved_chunk_ids") or []

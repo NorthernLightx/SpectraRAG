@@ -29,7 +29,7 @@ class ChatResponse(BaseModel):
 
 @runtime_checkable
 class LLMClient(Protocol):
-    """Minimal chat protocol. Embedding is the Embedder's job — kept separate by design.
+    """Minimal chat protocol. Embedding is the Embedder's job, kept separate by design.
 
     `images` is an optional list of PNG paths attached to the LAST user message
     when the underlying provider supports vision (currently OpenRouter via the

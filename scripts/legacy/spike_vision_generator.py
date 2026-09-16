@@ -1,13 +1,13 @@
 """Spike: can a vision-capable OpenRouter model answer figure-grounded queries
 when given the page image, where our text-only generator currently fails?
 
-Bypasses OpenRouterClient on purpose — that client's Message.content is a
+Bypasses OpenRouterClient on purpose: that client's Message.content is a
 string, but vision in the OpenAI-compat schema needs a list of content blocks
 ({"type": "text"}, {"type": "image_url"}). If this spike works we promote the
 content-block path into OpenRouterClient + Generator; if not we kill the idea.
 
 Test fixture: three figure-grounded queries on paper 2604.28182v1
-(q37/q38/q39 from data/golden/v3.yaml) — exactly the kind of question where
+(q37/q38/q39 from data/golden/v3.yaml), exactly the kind of question where
 text-only retrieval scored weakly per ADR 0007 §"Per-subset" and where the
 visual leg is supposed to add value.
 
@@ -35,7 +35,7 @@ import httpx
 import src  # noqa: F401
 
 # Match configure_logging's Windows cp1252 fix so model responses containing
-# Unicode (π, ≥, etc.) don't crash the printer mid-stream.
+# Unicode such as π or ≥ don't crash the printer mid-stream.
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(errors="replace")
 
@@ -51,7 +51,7 @@ class TestQuery:
     expected: list[str]
 
 
-# Directly quoting q37/q38/q39 from data/golden/v3.yaml — figure-grounded
+# Directly quoting q37/q38/q39 from data/golden/v3.yaml: figure-grounded
 # queries where text-only retrieval scored weakly in ADR 0007's per-subset cut.
 QUERIES = [
     TestQuery(

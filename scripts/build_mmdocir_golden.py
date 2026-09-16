@@ -17,7 +17,7 @@ Two things need care:
   are read as table/figure evidence; the raw type is preserved in each query's
   `note` so that reading stays falsifiable against `MMDocIR_layouts.parquet`.
 
-The layout (bbox) labels have no home in GoldenQuery — the schema is page-level —
+The layout (bbox) labels have no home in GoldenQuery (the schema is page-level),
 so they are written to a sidecar JSON keyed by query_id rather than widening a
 model the whole eval gate depends on.
 
@@ -64,7 +64,7 @@ def _categorize(raw_type: str) -> str:
 
 
 def _query_id(index: int, paper_id: str) -> str:
-    """`mmdocir_0042_<paper>` — index-prefixed so ids are stable under re-runs
+    """`mmdocir_0042_<paper>`, index-prefixed so ids are stable under re-runs
     of the same annotation file and sort in corpus order."""
     return f"mmdocir_{index:04d}_{paper_id[:30]}"
 
@@ -80,9 +80,9 @@ def main() -> None:
     args = parser.parse_args()
 
     if not args.annotations.exists():
-        raise SystemExit(f"Annotations not found: {args.annotations} — run scripts.fetch_mmdocir")
+        raise SystemExit(f"Annotations not found: {args.annotations}; run scripts.fetch_mmdocir")
     if not args.manifest.exists():
-        raise SystemExit(f"Manifest not found: {args.manifest} — run scripts.fetch_mmdocir")
+        raise SystemExit(f"Manifest not found: {args.manifest}; run scripts.fetch_mmdocir")
 
     manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
     # The golden set covers exactly the docs whose pages were fetched, so the

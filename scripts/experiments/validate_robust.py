@@ -2,15 +2,15 @@
 
 Fair ⇔ a lazy policy cannot win: always-text must fail the visual buckets,
 always-visual must fail the text bucket, and bucket-oracle (route by the
-TRUE evidence label) must beat BOTH by a clear margin. No LLM classifier —
+TRUE evidence label) must beat BOTH by a clear margin. No LLM classifier:
 the oracle uses the golden's own bucket label, so this run is keyless.
 
 Spans two corpora, so retrieval is **paper-filtered** (each query carries
 paper_id) and results are post-filtered to the query's own document before
-page-scoring — raw page numbers collide across docs otherwise (ADR 0015).
+page-scoring, since raw page numbers collide across docs otherwise (ADR 0015).
 
 Sanity gate: after ingest, always-text on the text bucket must score
-clearly non-zero, else ABORT (ingest/filter broken) — don't burn the night.
+clearly non-zero, else ABORT (ingest/filter broken); don't burn the night.
 
 Output: data/eval/runs/robust-validate-<ts>/REPORT.md + verdict.
 """
@@ -147,9 +147,9 @@ async def main() -> None:
     sane, n = macro(s, None, buckets)
     log(f"SANITY always-text on text bucket (n={n}): recall@10={sane:.4f}")
     if sane < 0.30:
-        log("ABORT: text-leg ~0 on text bucket — ingest/paper-filter broken.")
+        log("ABORT: text-leg ~0 on text bucket; ingest/paper-filter broken.")
         return
-    log("SANITY OK — proceeding to ColQwen2 + full run.")
+    log("SANITY OK: proceeding to ColQwen2 + full run.")
 
     # visual leg over BOTH corpora's pages
     try:
@@ -181,7 +181,7 @@ async def main() -> None:
         log(f"done {policy}")
 
     bset = ["text", "figure", "table", "mixed"]
-    lines = ["# robust-v1 fairness validation — recall@10 (page-level, paper-filtered)\n",
+    lines = ["# robust-v1 fairness validation: recall@10 (page-level, paper-filtered)\n",
              "| policy | overall | " + " | ".join(bset) + " |",
              "|---|---|" + "---|" * len(bset)]
     ov = {}
@@ -192,10 +192,10 @@ async def main() -> None:
         lines.append(f"| {p} | **{o:.4f}** | {cells} |")
     margin = ov["oracle"] - max(ov["always-text"], ov["always-visual"])
     verdict = (
-        "PASS — routing-fair: oracle beats both lazy policies by "
+        "PASS, routing-fair: oracle beats both lazy policies by "
         f"{margin:+.4f} recall@10"
         if margin >= 0.05
-        else f"FAIL — set NOT routing-fair (oracle margin only {margin:+.4f}); "
+        else f"FAIL, set NOT routing-fair (oracle margin only {margin:+.4f}); "
         "a lazy policy ~matches oracle, rebalance needed"
     )
     lines += ["", verdict,

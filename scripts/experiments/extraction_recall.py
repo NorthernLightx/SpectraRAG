@@ -2,12 +2,12 @@
 CAPTURE the gold answer? (Goal 2026-06-01: SOTA-level structured-object extraction.)
 
 The QA-lift probe (struct_extract_probe.py) measures whether feeding extracted text
-HELPS the reader. This measures the upstream thing: extraction RECALL — for each
+HELPS the reader. This measures the upstream thing, extraction RECALL: for each
 card whose answer is a structured-object value (table cell, chart data point), is
 that value present in the extracted structured text the model produced offline?
 
-This is a proxy for table/chart-to-text SOTA (e.g. OmniDocBench TEDS, chart RMS-F1)
-that needs no external HTML ground truth — it uses the MMLongBench gold value as the
+This is a proxy for table/chart-to-text SOTA (such as OmniDocBench TEDS, chart RMS-F1)
+that needs no external HTML ground truth: it uses the MMLongBench gold value as the
 target token and asks "did our extraction surface it". High recall = the structured
 object was extracted well; low recall = the extractor missed it (iterate the extractor).
 
@@ -46,7 +46,7 @@ def _gold_tokens(gold: str) -> list[str]:
     """Split a gold answer into the value tokens we look for in the extraction.
 
     List golds arrive as Python/JSON-ish strings with mixed quotes and embedded
-    apostrophes (e.g. ["Singapore-Cambridge GCE 'A' Level", ...]) that defeat a
+    apostrophes, such as ["Singapore-Cambridge GCE 'A' Level", ...], that defeat a
     naive json.loads. Try ast.literal_eval first, then a quoted-substring fallback,
     so each list element becomes its own token rather than one unmatchable blob."""
     import ast
@@ -91,16 +91,16 @@ def _present(token: str, text: str) -> bool:
 
 def gold_reliability(gold: str) -> str:
     """How trustworthy is a presence-match on this gold value as an extraction signal?
-    'low' = a single digit/char (matches incidentally inside other tokens — the matcher
-    is unreliable, exclude from headline recall); 'ok' otherwise. Surfaced so recall
+    'low' = a single digit/char (matches incidentally inside other tokens, so the
+    matcher is unreliable, exclude from headline recall); 'ok' otherwise. Surfaced so recall
     numbers can be reported on the reliable subset, per the 2026-06-02 review."""
     stripped = re.sub(r"[^A-Za-z0-9]", "", gold)
     return "low" if len(stripped) <= 1 else "ok"
 
 
 # Golds that are DERIVED (a count, a computed gap/average) rather than a value printed
-# verbatim on the page. These belong to the QA/reasoning stage, not extraction recall —
-# the extractor surfacing the raw cells is success even if the derived answer isn't a token.
+# verbatim on the page. These belong to the QA/reasoning stage, not extraction recall.
+# The extractor surfacing the raw cells is success even if the derived answer isn't a token.
 def _is_derived(f: dict[str, Any]) -> bool:
     q = f.get("query", "").lower()
     derived_cues = ["how many", "average", "gap between", "difference", "more ", "percentage of",
@@ -110,7 +110,7 @@ def _is_derived(f: dict[str, Any]) -> bool:
 
 # A gold is a STRUCTURED-OBJECT target only if its answer lives in a table/chart value.
 # Text-passage answers (definitions, prose) and photo/figure-semantic answers (which
-# photo has no person, what colour) are NOT transcription targets — extraction recall
+# photo has no person, what colour) are NOT transcription targets; extraction recall
 # over them measures the wrong thing. Restrict to table/chart numeric+label golds.
 def _is_structured_target(f: dict[str, Any]) -> bool:
     if _is_derived(f):
@@ -186,7 +186,7 @@ def main() -> None:
 
     # The misses: where a TRANSCRIBABLE gold value is NOT in the extraction (real fail).
     misses = [r for r in transcribable if not r["full_hit"]]
-    print(f"\n  MISSES ({len(misses)}) — extractor did not surface the gold value:")
+    print(f"\n  MISSES ({len(misses)}): extractor did not surface the gold value:")
     for r in sorted(misses, key=lambda x: x["category"]):
         tag = "NONE/empty" if r["is_none"] else "value-absent"
         print(f"    {r['qid'].split('_')[1]:5} {r['category']:7} gold={r['gold'][:24]!r:26} [{tag}]")

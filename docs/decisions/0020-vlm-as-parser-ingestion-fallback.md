@@ -1,11 +1,11 @@
-# ADR 0020 — Docling as primary parser; VLM-as-parser kept as residual fallback
+# ADR 0020: Docling as primary parser; VLM-as-parser kept as residual fallback
 
 **Status:** **Accepted** for Docling as the deterministic primary parser
 behind `--use-docling`; the VLM-as-parser kill-spike that *originally*
 motivated this ADR is preserved as the residual-fallback option, wired
 when Docling itself proves insufficient on heterogeneous formats (OCR'd
 scans, slide-deck PDFs, weird non-PDF inputs). One ADR, both layers
-documented — the cost-quality cascade pattern of ADR 0010 applied to
+documented: the cost-quality cascade pattern of ADR 0010 applied to
 ingestion rather than retrieval.
 **Date:** 2026-05-20
 
@@ -13,7 +13,7 @@ ingestion rather than retrieval.
 
 ADR 0017's 2026-05-20 amendment surfaced the real ingestion gap: across
 4 diverse papers (87 pages) **~14 % of pages have a figure or table the
-extractor silently missed**, dominated by two mechanisms — vector-drawn
+extractor silently missed**, dominated by two mechanisms: vector-drawn
 figures invisible to PyMuPDF's `page.get_images()` and tight numeric
 tables missed by `page.find_tables()`. Cross-format the rate is
 expected to be higher (IEEE Roman-numeral table labels, slide-deck PDFs,
@@ -23,7 +23,7 @@ structurally brittle.
 Two parsers were spike-tested on the audit-flagged ground-truth set
 from `2604.22753v1` (Figures 1/2/3 expected, Tables 1/2/3/4 expected):
 
-## Spike 1 — VLM-as-parser (`qwen3-vl:235b-cloud` via Ollama)
+## Spike 1: VLM-as-parser (`qwen3-vl:235b-cloud` via Ollama)
 
 `scripts/experiments/vlm_layout_spike.py`. 6 pages (5 misses + 1
 control), one cloud call each, strict-JSON prompt. Result:
@@ -31,13 +31,13 @@ control), one cloud call each, strict-JSON prompt. Result:
 - **5 / 5 misses recovered** with plausible bboxes and faithful captions
 - **0 hallucinations** on the control page
 - 6 / 6 JSON parses clean
-- ~1–2 min total LLM time for 6 pages
+- ~1 to 2 min total LLM time for 6 pages
 
 A real continue signal, but per-page generative LLM cost in the hot
 path of ingestion. The fallback design assumed PyMuPDF as the fast
 path and audit-gated VLM invocation on the residual ~14 %.
 
-## Spike 2 — Docling (DocLayNet + TableFormer + RapidOCR)
+## Spike 2: Docling (DocLayNet + TableFormer + RapidOCR)
 
 `scripts/experiments/docling_probe.py`. Whole 25-page paper, one
 deterministic conversion. Result:
@@ -46,8 +46,8 @@ deterministic conversion. Result:
   `Figure 2` p07, `Figure 3` p08)
 - **4 / 4 expected tables** with bboxes + captions + markdown cell
   structure (`Table 1` p06, `Table 2` p07, `Table 3` p09, `Table 4` p13)
-- 3 extra continuation-table fragments on p14–p16 (Table 4's multi-page
-  body) — not false positives, just multi-page continuation
+- 3 extra continuation-table fragments on p14 to p16 (Table 4's
+  multi-page body), not false positives, just multi-page continuation
 - 55 s first run on warm GPU (model download), 32 s subsequent
 - No LLM call in the path
 - Caption-to-artifact link is deterministic via Docling's document tree,
@@ -55,8 +55,9 @@ deterministic conversion. Result:
 
 Docling **subsumes** what the VLM spike fixed and adds: native DOCX /
 PPTX / HTML / image / OCR support, internal table cell structure,
-section hierarchy, equation handling — the actual *format-agnostic*
-primitive the project needs for "feed whatever documents possible."
+section hierarchy, equation handling. That is the actual
+*format-agnostic* primitive the project needs for "feed whatever
+documents possible."
 
 ## Decision
 
@@ -114,14 +115,14 @@ extracted artifact with a valid bbox.
 ### Per-paper deltas
 
 15 papers improved, 4 papers regressed on the strict label-match audit,
-1 unchanged. Worst PyMuPDF cases — `2604.28182v1` (81 p, 31 flagged →
-14) and `2604.27742v1` (26 p, 11 → 1) — improve dramatically.
+1 unchanged. The worst PyMuPDF cases improve dramatically:
+`2604.28182v1` (81 p, 31 flagged → 14) and `2604.27742v1` (26 p, 11 → 1).
 
-### Honest caveat: the 4 "regressions" are audit-tool artefacts
+### Caveat: the 4 "regressions" are audit-tool artefacts
 
 Visual spot-check on `2604.28193v1` p02 (the worst nominal regression,
 PyMuPDF 0 → Docling 3) shows **both Figure 2 and Table 1 ARE extracted
-by Docling with valid bboxes** — the overlay PNG has the orange and
+by Docling with valid bboxes**. The overlay PNG has the orange and
 blue boxes clearly drawn on the right artefacts. The audit flagged
 them because its `Figure N:` / `Table N:` regex on `caption_text`
 couldn't recover the label from Docling's caption rendering, while
@@ -156,14 +157,14 @@ fetched + audited via Docling:
 | `het-apollo17` | **339-page scanned OCR'd 1973 NASA report** | 339 | **89** | **89** | **27** | **27** | 53 |
 
 Headline reads: **Docling held across every format tested.**
-- Slide deck — `0` flagged, format-agnostic ingestion of a layout with
+- Slide deck: `0` flagged, format-agnostic ingestion of a layout with
   no body prose.
-- HAL paper — 3 flagged, same audit-tool-overcount pattern as the
+- HAL paper: 3 flagged, same audit-tool-overcount pattern as the
   ArXiv corpus; visual spot-check confirms the artefacts are extracted.
-- Apollo 17 scan — the OCR pipeline (RapidOCR inside Docling) fed
+- Apollo 17 scan: the OCR pipeline (RapidOCR inside Docling) fed
   the layout model and produced **89 figures + 27 tables with bboxes
   from a 50-year-old scanned report**. The 53 flagged pages cluster as
-  35+ consecutive pages all flagging "Figure 10" — visual check on
+  35+ consecutive pages all flagging "Figure 10". A visual check on
   `p180` shows it's a body-text page with cross-references like
   `(see Figure 10)` and section heading `10.13`, both caught by the
   audit's caption regex as false positives. Not real Docling misses.
@@ -214,27 +215,27 @@ multi_hop +10 pp) and **crowd out the right text chunks** for factoid
 / table lookup (−16 to −17 pp). The 3.8× latency blow-up is from those
 same long multi-modal chunks filling the generator's context window.
 
-### Honest split decision
+### Split decision
 
-Docling-as-parser stays **default-on** — the structural audit (halved
+Docling-as-parser stays **default-on**: the structural audit (halved
 flag rate, slide decks 0 flag, 339-page OCR'd scan handled) is
 unequivocal, and when figures or tables are wanted, Docling is the
 right tool. But `extract_figures_enabled` / `extract_tables_enabled`
-stay **default-off** — same product call as ADR 0002, now reconfirmed
+stay **default-off**, the same product call as ADR 0002, now reconfirmed
 with the better parser and `answer_correctness` instead of
 `answer_relevance`. The text-only retrieval path that scores 0.7626 on
 `answer_correctness` is *not* improved by always-on multi-modal chunks;
 it is improved when the caller selectively enables them for figure /
-multi-hop query classes — and that selective routing is the natural
+multi-hop query classes. That selective routing is the natural
 follow-up (it does for ingestion what ADR 0008 / ADR 0013 do for
 retrieval: route by query category).
 
 Committed measurements:
-- `data/eval/baseline-text-only.json` — pre-Docling, no multi-modal.
-- `data/eval/agentic-text-only.json` — pre-Docling, agentic, no multi-modal.
-- `data/eval/baseline-docling-mm.json` — Docling primary, full multi-modal on.
+- `data/eval/baseline-text-only.json`: pre-Docling, no multi-modal.
+- `data/eval/agentic-text-only.json`: pre-Docling, agentic, no multi-modal.
+- `data/eval/baseline-docling-mm.json`: Docling primary, full multi-modal on.
 
-The honest pair to read together is `baseline-text-only.json` (default
+The pair to read together is `baseline-text-only.json` (default
 production posture) vs `baseline-docling-mm.json` (the "what does
 turning everything on cost" measurement). For a future ADR, the
 question becomes: can a per-query-category router enable multi-modal
@@ -246,12 +247,12 @@ That experiment is its own ADR.
 
 ## What this leaves open
 
-- **Heterogeneous-format eval (the honest test of "any document").**
+- **Heterogeneous-format eval (the real test of "any document").**
   Audit only re-run on one paper so far. Run across the existing 20-paper
   corpus + add one IEEE paper, one slide-deck PDF, one OCR'd scan, and
   one non-English document. Report flag rates per format class. Only
   flip `use_docling=True` to default-on after that.
-- **VLM residual fallback wiring.** Not wired yet — Docling's flag rate
+- **VLM residual fallback wiring.** Not wired yet. Docling's flag rate
   is 0 on the only paper measured. Wire only if the heterogeneous eval
   surfaces a residual class Docling itself misses. The VLM spike script
   and prompt are the template.
@@ -261,19 +262,19 @@ That experiment is its own ADR.
   offline ingestion; would not be for hot-path query latency, which
   this is not.
 - **False-positive culling on tables.** Docling produced 3 continuation-
-  table fragments on p14–p16. They are *real* (Table 4 is multi-page in
+  table fragments on p14 to p16. They are *real* (Table 4 is multi-page in
   this paper) but their caption is empty. A future iteration could
   merge continuation fragments under their parent caption.
 
 ## Related
 
-- ADR 0017 — corpus clean; its 2026-05-20 amendment introduced the
+- ADR 0017: corpus clean; its 2026-05-20 amendment introduced the
   audit overlay that made this gap measurable and gates the cascade
   trigger.
-- ADR 0010 — cost-quality cascade for retrieval; same pattern applied
+- ADR 0010: cost-quality cascade for retrieval; same pattern applied
   here at the ingestion layer.
-- ADR 0002 — multi-modal chunks; `Figure` / `Table` types unchanged so
+- ADR 0002: multi-modal chunks; `Figure` / `Table` types unchanged so
   downstream is unaffected.
-- ADR 0018 / 0019 — kill-spike methodology (one decisive experiment
+- ADR 0018 / 0019: kill-spike methodology (one decisive experiment
   before committing to a build); two spikes here for two candidate
   parsers, the better one shipped.

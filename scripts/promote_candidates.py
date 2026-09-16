@@ -4,7 +4,7 @@ Pairs with `harvest_candidates.py`. Reads a `_candidates/*.yaml`, and for
 each entry: validates it against the `GoldenQuery` model **and** asserts
 the human actually filled the truth fields, then appends accepted entries
 to the target `data/golden/<set>.yaml`. Stubs still left as TODO/blank are
-rejected — the machine never ships an unlabeled golden.
+rejected: the machine never ships an unlabeled golden.
 
     python -m scripts.promote_candidates \\
         --candidates data/golden/_candidates/candidates-<ts>.yaml \\
@@ -31,8 +31,8 @@ class NotLabeledError(ValueError):
 def _validate_candidate(d: dict[str, Any]) -> GoldenQuery:
     """Pydantic-validate + require a human to have filled the ground truth.
 
-    Raises ``ValidationError`` for bad types (e.g. ``category="TODO"`` is
-    not a valid ``QueryCategory``) and ``NotLabeledError`` for an
+    Raises ``ValidationError`` for bad types (for example ``category="TODO"``
+    is not a valid ``QueryCategory``) and ``NotLabeledError`` for an
     otherwise-valid but still-empty stub.
     """
     q = GoldenQuery.model_validate(d)

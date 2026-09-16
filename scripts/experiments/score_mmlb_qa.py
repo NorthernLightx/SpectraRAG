@@ -11,7 +11,7 @@ measured on the same ruler the authors used.
 THE OFFICIAL PROTOCOL  (Ma et al., "MMLongBench-Doc: Benchmarking Long-context
 Document Understanding with Visualizations", arXiv:2407.01523; reference code
 github.com/mayubo2333/MMLongBench-Doc, files eval/extract_answer.py,
-eval/prompt_for_answer_extraction.md, eval/eval_score.py — fetched 2026-05-24)
+eval/prompt_for_answer_extraction.md, eval/eval_score.py; fetched 2026-05-24)
 ============================================================================
 
 Three stages (README: "we adopt a three-stage evaluation protocol"):
@@ -35,7 +35,7 @@ Three stages (README: "we adopt a three-stage evaluation protocol"):
 
   3. SCORE      the extracted answer against the gold answer with rule-based
                 matching keyed on the gold answer_format. This is a faithful
-                port of eval/eval_score.py:eval_score — see _eval_score below,
+                port of eval/eval_score.py:eval_score; see _eval_score below,
                 which carries the upstream logic line-for-line:
 
                 - Int   : int(gt) == int(float(pred)); parse failure -> 0.
@@ -90,7 +90,7 @@ of 149 queries). The MACHINE NEVER AUTHORS GROUND TRUTH: gold answers and
 formats are the human MMLongBench labels read straight from the golden; this
 script only runs the comparison.
 
-CAVEAT — category vs answer_format: 40 golden queries carry category
+CAVEAT (category vs answer_format): 40 golden queries carry category
 `out_of_corpus` but only 36 carry answer_format==None. The 4 extra are queries
 this repo's RETRIEVAL setup treats as out-of-corpus (their evidence pages are
 outside the indexed slice) yet MMLongBench labels them answerable. The official
@@ -108,7 +108,7 @@ WHAT IS NOT REPRODUCED EXACTLY:
     to tighten it.
   - The extractor MUST run serially (Ollama serialises GPU work; the user's
     parallel ColQwen2 job shares the 8 GB card). This script issues one
-    extraction at a time on purpose — do not add concurrency.
+    extraction at a time on purpose; do not add concurrency.
 
 Usage:
 
@@ -293,7 +293,7 @@ def _is_exact_match(s: str) -> bool:
         return True
     if re.fullmatch(r"\b\d{4}[-\s]\d{2}\b", s):  # YYYY-MM
         return True
-    # email — final clause kept explicit (not `return bool(...)`) to mirror the
+    # email: final clause kept explicit (not `return bool(...)`) to mirror the
     # upstream flag-accumulation structure of eval_score.py:is_exact_match.
     if re.fullmatch(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", s):  # noqa: SIM103
         return True
@@ -402,7 +402,7 @@ def _gold_format(note: str | None) -> str:
 
 
 def _dotted_get(record: dict[str, Any], field: str) -> Any:
-    """Resolve a dotted answer field, e.g. 'text.answer' or 'answer_text'."""
+    """Resolve a dotted answer field such as 'text.answer' or 'answer_text'."""
     cur: Any = record
     for part in field.split("."):
         if not isinstance(cur, dict):
@@ -415,7 +415,7 @@ def parse_extracted(reply: str) -> str:
     """Pull the short answer out of the extractor reply. The official format is
     `Extracted answer: <x>\\nAnswer format: <fmt>`. If the model omits the
     label we fall back to the whole stripped reply (the matcher then scores it
-    as-is, which is the honest outcome for a malformed extraction)."""
+    as-is, the defined behaviour for a malformed extraction)."""
     m = _EXTRACTED_RE.search(reply)
     if m:
         return m.group(1).strip()
@@ -424,7 +424,7 @@ def parse_extracted(reply: str) -> str:
 
 # Sentinel for an extraction that never succeeded after retries. The caller
 # scores it as an empty prediction (0, never the "Not answerable" negative
-# class) and does NOT cache it, so a later resume can retry — matching the
+# class) and does NOT cache it, so a later resume can retry, matching the
 # spirit of upstream extract_answer.py's `except: response="Failed"`.
 _EXTRACT_FAILED = "__extract_failed__"
 
@@ -627,7 +627,7 @@ def main() -> None:
         "--answer-field",
         default="answer_text",
         help="dotted field holding the generated answer text in each per_query record "
-        "(e.g. 'answer_text' for EvalRun shape, 'text.answer' / 'vision.answer' for "
+        "(such as 'answer_text' for EvalRun shape, 'text.answer' / 'vision.answer' for "
         "exp_mmlb_gen_full.json)",
     )
     parser.add_argument(
@@ -645,7 +645,7 @@ def main() -> None:
         default="gemma3:4b",
         help="text model for the answer-extraction stage. For --extractor-provider "
         "ollama: an Ollama model (default gemma3:4b; try llama3.2:3b for faster/weaker). "
-        "For openrouter: an OpenRouter text id, e.g. deepseek/deepseek-v4-flash:free. "
+        "For openrouter: an OpenRouter text id such as deepseek/deepseek-v4-flash:free. "
         "Runs SERIALLY either way.",
     )
     parser.add_argument("--ollama-url", default="http://localhost:11434")

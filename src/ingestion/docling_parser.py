@@ -39,15 +39,15 @@ from src.observability.logging import get_logger, timed_event
 from src.types import Bbox, Figure, Table
 from src.types.documents import FigureRole
 
-# ADR 0022 — figure role classification.
+# Figure role classification (ADR 0022).
 #
 # Pictures get a coarse role (``figure``, ``decoration``, ``unlabeled``)
 # so the gallery can hide page-furniture by default and retrieval can
 # treat the buckets differently if needed. Two layers feed the role:
 #
 # 1. **Docling's DocumentFigureClassifier-v2.5** (preferred when enabled).
-#    Outputs one of 28 fine-grained labels — `logo`, `icon`, `bar_chart`,
-#    `flow_chart`, `photograph`, etc. — at high confidence on this
+#    Outputs one of 28 fine-grained labels (`logo`, `icon`, `bar_chart`,
+#    `flow_chart`, `photograph` and more) at high confidence on this
 #    corpus (1.00 on every Microsoft-logo affiliation block, 0.97+ on
 #    most figures). The label is preserved on chunk.metadata for richer
 #    filtering; the role is derived from a fixed mapping below.
@@ -72,8 +72,8 @@ _FIGURE_CAPTION_RE = re.compile(
     re.IGNORECASE | re.VERBOSE,
 )
 
-# ADR 0022 (caption-recovery layer). Matches a *primary* caption line —
-# `Figure N` / `Fig. N` / `Table N` / `Tab. N` — used both to decide
+# ADR 0022 (caption-recovery layer). Matches a *primary* caption line
+# (`Figure N` / `Fig. N` / `Table N` / `Tab. N`), used both to decide
 # whether Docling's own ``caption_text`` already gave us a usable caption
 # and to pick a recovery candidate from the page's text items. Broader
 # than ``_FIGURE_CAPTION_RE`` (includes table/tab) and deliberately omits
@@ -117,9 +117,9 @@ def _associate_caption(pic_bbox: Bbox, page_text_items: list[tuple[str, Bbox]]) 
 
     Band rules:
 
-    - **Horizontal overlap is required** — a caption belongs to the figure
+    - **Horizontal overlap is required.** A caption belongs to the figure
       it sits under, not a neighbour in the next column.
-    - **Below is preferred over above** — captions in this corpus sit under
+    - **Below is preferred over above.** Captions in this corpus sit under
       their figure; an above-match is the fallback for the rarer top
       caption (mostly tables).
     - **Nearest wins** within the chosen side, gap capped at
@@ -199,7 +199,7 @@ _DOCLING_LABEL_TO_ROLE: dict[str, FigureRole] = {
     "calendar": "unlabeled",
     "crossword_puzzle": "unlabeled",
 }
-# Below this confidence we don't trust the model — fall back to the
+# Below this confidence we don't trust the model and fall back to the
 # caption/area heuristic. 0.30 is well above the uniform-prior baseline
 # (~0.04 with 28 classes) but low enough to keep the model's good
 # medium-confidence calls.
@@ -233,17 +233,17 @@ def _classify_figure_role(
 ) -> FigureRole:
     """Pick a role for the picture (ADR 0022).
 
-    Priority order — most authoritative signal first:
+    Priority order, most authoritative signal first:
 
     1. **Paper-authored ``Figure N`` caption.** The paper telling us "this
        is Figure 3" beats the classifier. Catches the small-but-real
        Figure-3 / Figure-3-screenshot cases that the visual model can
        mistake for a logo because the thumbnail is so small.
     2. **Docling classifier label** at ≥ confidence threshold. 28 fine-
-       grained labels — `logo`, `icon`, `bar_chart`, `flow_chart`, ... —
+       grained labels (`logo`, `icon`, `bar_chart`, `flow_chart`, ...)
        mapped to our 3-role taxonomy via ``_DOCLING_LABEL_TO_ROLE``.
     3. **Area heuristic.** A picture with a bbox at or above the area cut
-       is a real ``figure`` — even uncaptioned and unlabelled, a large
+       is a real ``figure``. Even uncaptioned and unlabelled, a large
        crop on the page is content, not "unknown". Sub-threshold and
        uncaptioned is ``decoration`` (page furniture). A bbox-less
        picture can be neither placed nor measured, so it stays
@@ -260,7 +260,7 @@ def _classify_figure_role(
     if bbox is None:
         # No bbox to place or measure → "unknown", not "page furniture". ADR
         # 0022: `decoration` is removed from the gallery content view, excluded
-        # by the role-aware retrieval filter, and skipped by the VLM captioner —
+        # by the role-aware retrieval filter, and skipped by the VLM captioner,
         # so defaulting a bbox-less *real* figure to decoration would silently
         # delete it end to end. `unlabeled` keeps it retrievable + captionable.
         return "unlabeled"
@@ -271,7 +271,7 @@ def _classify_figure_role(
     # recovery (``_associate_caption``) can still miss (multi-column pages,
     # a caption Docling never emitted as a text item). Failing such a
     # picture to ``figure`` rather than ``unlabeled`` keeps real figures out
-    # of the kept-but-uncaptioned bucket — the live 2604.28177v1 p13
+    # of the kept-but-uncaptioned bucket. The live 2604.28177v1 p13
     # anatomical illustration (`photograph`@0.24, caption-association miss)
     # is a figure even when both upstream signals fall through.
     return "figure"
@@ -294,7 +294,7 @@ def _flip_bbox(raw: Any, page_height: float) -> Bbox | None:
     """Docling ``BoundingBox`` (``BOTTOMLEFT`` origin) → project ``Bbox`` (``TOP-LEFT``).
 
     Docling reports ``t`` (top) and ``b`` (bottom) in PDF-native
-    BOTTOMLEFT coords — y=0 is the page bottom, so ``t > b`` and the
+    BOTTOMLEFT coords, where y=0 is the page bottom, so ``t > b`` and the
     visual top of the box has the *larger* y. Flipping to TOP-LEFT
     where y=0 is the page top: ``new_y_top = page_height - old_t`` and
     ``new_y_bottom = page_height - old_b``. The project's ``Bbox``
@@ -319,7 +319,7 @@ def _flip_bbox(raw: Any, page_height: float) -> Bbox | None:
 def _build_converter() -> DocumentConverter:
     """Pdf converter with picture-image generation enabled so we can
     persist crops to disk (the project's `Figure.image_path` is required).
-    Picture classification is on (ADR 0022) — produces the role label;
+    Picture classification is on (ADR 0022) and produces the role label;
     `TORCHDYNAMO_DISABLE=1` is set at import time to keep the underlying
     transformers engine off the torch.compile path."""
     pipeline = PdfPipelineOptions()
@@ -399,7 +399,7 @@ def parse_with_docling(
     """Run Docling over `pdf_path` and return Figures + Tables in project types.
 
     Per-item failures (image save error, bbox flip degenerate, markdown
-    export error) log + skip rather than abort the whole conversion —
+    export error) log + skip rather than abort the whole conversion, the
     same posture as `figures.py` / `captioner.py`.
     """
     if doc is None and not pdf_path.exists():
@@ -413,8 +413,8 @@ def parse_with_docling(
 
         paper_out = out_dir / paper_id
         # Clear any prior run's crops first. Figure ids are per-run (global
-        # picture index), so re-ingesting — especially with a different
-        # extractor — otherwise leaves orphaned crops that collide with new ids
+        # picture index), so re-ingesting (especially with a different
+        # extractor) otherwise leaves orphaned crops that collide with new ids
         # and turn the dir into a palimpsest that misleads anything reading it.
         if paper_out.exists():
             shutil.rmtree(paper_out, ignore_errors=True)

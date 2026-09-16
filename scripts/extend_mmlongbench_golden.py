@@ -3,7 +3,7 @@
 The eval set is small (149 queries, n~107 scored), which is why levers keep
 landing "directional, not significant" (ADR 0019/0023/0025). MMLongBench ships
 1082 questions over 134 locally-available docs, with human-authored gold answers
-and evidence pages — so growing coverage adds statistical power WITHOUT the
+and evidence pages, so growing coverage adds statistical power WITHOUT the
 machine authoring any ground truth (same provenance as mmlongbench-v1, just more
 of it).
 
@@ -77,7 +77,7 @@ def main() -> None:
 
     v1 = yaml.safe_load(args.v1.read_text(encoding="utf-8"))
     v1_queries: list[dict[str, Any]] = v1["queries"]
-    # Reuse a v1 query_id when (paper_id, question) matches — keys are unique in v1.
+    # Reuse a v1 query_id when (paper_id, question) matches; keys are unique in v1.
     v1_by_key = {(q["paper_id"], q["text"]): q for q in v1_queries}
     used_ids = {q["query_id"] for q in v1_queries}
     next_idx = max(int(q["query_id"].split("_")[1]) for q in v1_queries) + 1

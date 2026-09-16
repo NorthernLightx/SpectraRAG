@@ -1,4 +1,4 @@
-# ADR 0011 — Figure caption aggregation (one Figure per `Figure N:` caption span)
+# ADR 0011: Figure caption aggregation (one Figure per `Figure N:` caption span)
 
 **Status:** Accepted (2026-05-10).
 **Date:** 2026-05-10.
@@ -7,17 +7,17 @@
 
 Run `b8r2w5kc4` (Tier 1 + Tier 2 eval on the $0 Nemotron stack) hit a
 pathological extraction on paper `2604.28190v1` (FD-loss): the PDF holds a
-single appendix figure — `Figure E.1: Uncurated paired samples on ImageNet
-256×256` — encoded as a 5×2 grid of class-panels, each panel a 4×4 grid of
+single appendix figure (`Figure E.1: Uncurated paired samples on ImageNet
+256×256`) encoded as a 5×2 grid of class-panels, each panel a 4×4 grid of
 16 model-output thumbnails. PyMuPDF's `page.get_images(full=True)` returns
 each of those ~220 sub-thumbnails as a distinct XREF. The pre-ADR-0011
 extractor emitted one `Figure` per XREF, so a single logical figure became
-220 chunks. Pages 20–23 each had a similar grid; in total the paper
+220 chunks. Pages 20 to 23 each had a similar grid; in total the paper
 contributed ~1000 figure chunks where ~10 was correct.
 
 Downstream this corrupted retrieval:
 - BM25 + dense both got flooded with caption-stub chunks that share the same
-  caption text — every sub-thumbnail emitted a chunk whose `text` was the
+  caption text: every sub-thumbnail emitted a chunk whose `text` was the
   PDF caption (since `figure_to_chunk` falls back to it).
 - The reranker spent its budget on near-identical near-duplicate chunks.
 - VLM captioning got hammered (one VLM call per sub-thumbnail).
@@ -26,7 +26,7 @@ Downstream this corrupted retrieval:
 
 The architectural problem is a layer conflation. ColQwen2 (our visual leg)
 already does micro-attention right: it embeds each ~14×14 patch of the
-rendered page and scores via late interaction (MaxSim) — fine-grained
+rendered page and scores via late interaction (MaxSim): fine-grained
 features for *scoring*, coarse units for *retrieval*. Our `extract_figures`
 inverted that: fine-grained units (XREFs at the visual-element level) became
 retrieval units, while losing the aggregate caption context.
@@ -47,11 +47,11 @@ preserve.
    PyMuPDF text block that contains the label.
 
 2. **Broaden the label regex.** Appendix and supplementary figures use
-   letter-prefixed labels: `Figure E.1`, `Figure A.3`, `Figure S1`, etc.
+   letter-prefixed labels: `Figure E.1`, `Figure A.3`, `Figure S1` and others.
    The prior `\d+`-only pattern missed `Figure E.1:` entirely, which on
-   28190 meant pages 20–23 had 220 XREFs each and *zero* parsed captions
-   — every XREF fell through to the per-XREF fallback. Label keys are now
-   strings (`"1"`, `"E.1"`, `"S1"`) instead of ints.
+   28190 meant pages 20 to 23 had 220 XREFs each and *zero* parsed
+   captions. Every XREF fell through to the per-XREF fallback. Label keys
+   are now strings (`"1"`, `"E.1"`, `"S1"`) instead of ints.
 
 3. **Assign XREFs to captions by nearest-y.** `_assign_xrefs_to_captions`
    maps each XREF whose bbox we know to the caption whose label bbox has
@@ -81,8 +81,8 @@ The integration test `test_extract_figures_aggregates_composite_paper`
 asserts that paper `2604.28190v1` extracts to **< 50** figures. Actual:
 **12** figures (one per logical caption: `Figure 1, 4, 5, 7, A.1, C.1,
 E.1-E.4, G.1, G.2`). Pre-ADR-0011 with `min_dim=64`: ~1000. With the
-`min_dim=256` band-aid: ~50–80 (the sub-thumb floor effect). With
-caption-anchored aggregation: 12 — the right number.
+`min_dim=256` band-aid: ~50 to 80 (the sub-thumb floor effect). With
+caption-anchored aggregation: 12, the right number.
 
 Logged per-figure manifest sizes confirm the aggregation is grouping
 correctly:
@@ -96,7 +96,7 @@ caption_label=E.4 n_members=217
 ## What this leaves open
 
 - **VLM captioning operates on the representative XREF only.** For a
-  composite, the rep is one panel — the VLM sees one cell, not the grid.
+  composite, the rep is one panel: the VLM sees one cell, not the grid.
   PDF caption text covers the aggregate, so retrieval signal is preserved;
   the loss is on VLM caption fidelity for composites specifically. Fix
   would be rendering the union-bbox region of the page as a single composite
@@ -114,6 +114,6 @@ caption_label=E.4 n_members=217
 ## Related
 
 - ADR 0009: region-level evidence with bbox citations. This ADR fixes the
-  unit of aggregation; ADR 0009's bbox surface continues to work — the
+  unit of aggregation; ADR 0009's bbox surface continues to work: the
   citation just points at a union rect now instead of one sub-cell.
 - The band-aid `min_dim=256` is replaced by `min_dim=64` + aggregation.

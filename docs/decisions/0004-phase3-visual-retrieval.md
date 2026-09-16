@@ -1,4 +1,4 @@
-# ADR 0004 — Visual retrieval (ColQwen2 / ColPali-style)
+# ADR 0004: Visual retrieval (ColQwen2 / ColPali-style)
 
 **Status:** Accepted as a complementary path. Visual and text retrievers have
 fundamentally different strengths on this corpus; neither dominates.
@@ -31,24 +31,24 @@ or term-overlap heuristics break down.
 
 ## Implementation
 
-- `colpali-engine 0.3.10` (forced — newer 0.3.15 needs transformers 5.x +
+- `colpali-engine 0.3.10` (forced: newer 0.3.15 needs transformers 5.x +
   a peft version that doesn't have `_maybe_shard_state_dict_for_tp`,
   unresolvable dependency knot). Pinned `torch 2.6.0+cu124` and
   `torchvision 0.21.0+cu124` to match.
-- `src/ingestion/visual.py` — `render_pages()` rasterises each PDF page
+- `src/ingestion/visual.py`: `render_pages()` rasterises each PDF page
   to PNG at configurable DPI (150 default), idempotent on disk.
-- `src/rag/retrievers/visual.py` — `VisualRetriever` (in-memory
+- `src/rag/retrievers/visual.py`: `VisualRetriever` (in-memory
   multi-vector store of `[n_patches, dim]` bf16 tensors keyed by chunk-id
   `<paper_id>::p<N>::page`) + `build_visual_retriever()` async factory
   that loads ColQwen2 once and embeds every page. Duck-types `Retriever`
   protocol so it slots into `eval.runner.evaluate` cleanly.
-- `scripts/eval_visual.py` — sibling to `eval_run.py`. ColQwen2 needs the
+- `scripts/eval_visual.py`: sibling to `eval_run.py`. ColQwen2 needs the
   full GPU (~5 GB), can't co-exist with bge-m3+reranker+Ollama, so the
   visual path is its own command. Falls back to deriving relevant pages
   from `relevant_chunk_ids` when the golden set's `relevant_pages` is empty.
 - 3 new unit tests (page rendering smoke + idempotence). 213 total pass.
 
-## Headline result — visual vs text on golden v2 (5 papers, 23 queries)
+## Headline result: visual vs text on golden v2 (5 papers, 23 queries)
 
 Visual run: `ab16789c4f3b` (`data/eval/runs/run-visual-20260501-215441.json`).
 
@@ -60,11 +60,11 @@ Visual run: `ab16789c4f3b` (`data/eval/runs/run-visual-20260501-215441.json`).
 | **p50 retrieve latency** | ~5 s | **~300 ms** | **17× faster** |
 | p95 retrieve latency | ~6 s | ~360 ms | 17× faster |
 
-**Visual retrieves the right page for *every* in-corpus query** — recall@10
+**Visual retrieves the right page for *every* in-corpus query**: recall@10
 is a perfect 1.0 (vs text's 0.94). It just doesn't always rank the right
 page first or in the top-5, dragging nDCG and MRR.
 
-## Per-query analysis — the strengths are *different*, not "better/worse"
+## Per-query analysis: the strengths are *different*, not "better/worse"
 
 | query | category | text ndcg5 | visual ndcg5 | Δ |
 |---|---|---|---|---|
@@ -86,12 +86,12 @@ page first or in the top-5, dragging nDCG and MRR.
 multi-source), and dramatically q20 (exploration_hacking, where text path
 totally failed because the answer chunk was buried under repeated mentions).
 
-**Visual losses** (6 strong losses): q1, q6, q7, q8, q16, q22 — all
+**Visual losses** (6 strong losses): q1, q6, q7, q8, q16, q22, all
 single-fact definitional lookups where text rerank pinpoints the exact
 chunk. ColPali sees the whole page and the relevant fact is one sentence
 in a sea of others.
 
-**Surprise loss** on q13 (figure-targeted) — the visual retriever picked a
+**Surprise loss** on q13 (figure-targeted): the visual retriever picked a
 *different* page that visually resembles Figure 1's heatmap structure
 rather than the actual page-2 figure. Cross-paper visual similarity
 fooled it on a corpus where every paper has at least one heatmap.
@@ -105,12 +105,12 @@ fooled it on a corpus where every paper has at least one heatmap.
 - Visual retrieval ships as `scripts/eval_visual.py` for ablation /
   research use.
 - The natural next step is **hybrid text + visual** with RRF fusion of
-  both retrievers' top-K — text for definitional precision, visual for
+  both retrievers' top-K: text for definitional precision, visual for
   multi-hop / term-mismatch coverage. The `VisualRetriever` already
   duck-types the protocol so a `MultiSourceRetriever` decorator
   (analogous to `MultiQueryRetriever`) is small. Deferred (pursued in a
   later ADR) if and when we want to chase that combined number.
-- Latency (~300 ms p50 retrieve) is genuinely production-worthy — visual
+- Latency (~300 ms p50 retrieve) is genuinely production-worthy. Visual
   is **17× faster than text at the retrieve stage** on this corpus
   because ColQwen2 query embedding + MaxSim is GPU-bound and direct,
   whereas the text path is dense + sparse + RRF + cross-encoder rerank.
@@ -124,12 +124,12 @@ fooled it on a corpus where every paper has at least one heatmap.
    would either chunk pages into sub-image regions for visual, or score
    text at page-granularity. Not done; the current numbers are a
    reasonable headline read but should not be over-interpreted.
-2. **Cross-paper visual similarity** can mislead — q13 was hit by this.
+2. **Cross-paper visual similarity** can mislead; q13 was hit by this.
    With a larger corpus this would amplify. Hybrid would mitigate via
    the text-path semantic signal.
 3. **Generation + judge not run on visual path.** A text generator on
    page-image chunks would need a vision-language model in the
-   generation step (e.g., the minicpm-v:8b captioner repurposed
+   generation step (for example, the minicpm-v:8b captioner repurposed
    as generator). Out of scope for this ADR.
 4. **`vidore/colqwen2-v1.0`** weights are 7 GB on disk, ~5 GB GPU at bf16.
    Coexists fine with nothing else loaded; can't run alongside the text
@@ -139,7 +139,7 @@ fooled it on a corpus where every paper has at least one heatmap.
 
 - `src/ingestion/visual.py`, `src/rag/retrievers/visual.py`,
   `scripts/eval_visual.py`, `tests/unit/test_visual_render.py`.
-- ADR 0001 (contextual retrieval — Rejected), ADR 0002 (multi-modal
-  chunks — Accepted opt-in), ADR 0003 (query expansion — Rejected,
+- ADR 0001 (contextual retrieval: Rejected), ADR 0002 (multi-modal
+  chunks: Accepted opt-in), ADR 0003 (query expansion: Rejected,
   per-query wins) for the pattern of "real per-query wins, mixed
   aggregate."

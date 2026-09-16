@@ -1,7 +1,7 @@
-# ADR 0007 — Corpus expansion + golden v3 + offline hybrid re-evaluation
+# ADR 0007: Corpus expansion + golden v3 + offline hybrid re-evaluation
 
 **Status:** Accepted. Hybrid (text + visual) RRF fusion remains rejected as a
-default — but the per-subset evidence is strong enough that **per-query
+default, but the per-subset evidence is strong enough that **per-query
 routing is promoted as the priority (taken up in ADR 0008)**: figure/table-category queries
 should route through hybrid, definitional/factual queries should stay
 text-only.
@@ -15,15 +15,15 @@ term-mismatch coverage, both have complementary failure modes, RRF should
 combine them.
 
 The first attempt at offline fusion (`scripts/eval_hybrid.py`, this session,
-5 papers / golden v2 / 17 in-corpus queries) produced a null result —
+5 papers / golden v2 / 17 in-corpus queries) produced a null result:
 hybrid −5.8% nDCG@5 and −11.4% MRR vs text @ page. Two confounds:
 
 1. **Corpus too small for text to fail.** At 5 papers × ~25 pages, text
-   @ page recall@10 saturated at 1.0 mechanically — no headroom for visual
+   @ page recall@10 saturated at 1.0 mechanically. No headroom for visual
    to contribute coverage. Any deviation by visual was a strict ranking
    loss.
 2. **Query mix biased toward text.** Golden v2 had 1 figure query, 1
-   equation query, 0 table queries — heavily definitional / factual lookup.
+   equation query, 0 table queries, heavily definitional / factual lookup.
    ColPali-style retrieval has its claimed strength on figure/table-grounded
    content the text path can't index well, but we weren't asking those
    queries.
@@ -44,9 +44,9 @@ This decision fixes both:
 - `scripts/inspect_candidates.py` (new, kept for future expansion) scored
   each candidate by a visual-richness composite:
   `1.5 · pages_with_figures + 2.0 · table_pages + 0.05 · pages` with a
-  hard 8–45 page gate. Picked top 15 keepers; rejects deleted.
+  hard 8-45 page gate. Picked top 15 keepers; rejects deleted.
 - All 15 papers parse cleanly through `extract_pages` + `chunk_pages`
-  (smoke-tested separately via `scripts.ingest --qdrant :memory:` —
+  (smoke-tested separately via `scripts.ingest --qdrant :memory:`;
   total 2 436 chunks across 20 papers, no NaN crashes after the logger fix
   below).
 
@@ -65,14 +65,14 @@ This decision fixes both:
 - Every cited `relevant_chunk_id` verified to exist via re-running
   `scripts.dump_chunks` on each paper.
 
-### Visual stack — install fix + model dispatcher
+### Visual stack: install fix + model dispatcher
 
 - ADR 0004's visual retriever import (`from colpali_engine ...`) was
   silently broken after the recent `torch 2.6 → 2.11` cu126 upgrade
-  (commit 96a4fe7) — `colpali-engine` was not in `pyproject.toml` deps.
+  (commit 96a4fe7): `colpali-engine` was not in `pyproject.toml` deps.
 - Re-added: `colpali-engine>=0.3.15`. The 0.3.15 release pins `peft<0.19`,
   but `transformers 5.6.2`'s `load_adapter` path imports
-  `_maybe_shard_state_dict_for_tp` from `peft.utils.save_and_load` — added
+  `_maybe_shard_state_dict_for_tp` from `peft.utils.save_and_load`, added
   in peft 0.19. Added a `[tool.uv] override-dependencies = ["peft>=0.19.1"]`
   to force the resolver past colpali's overly-conservative cap; both
   imports verified post-override.
@@ -80,13 +80,13 @@ This decision fixes both:
   dispatcher so swapping between `ColPali`, `ColQwen2`, `ColQwen2_5` is a
   `--model` flag away.
 
-### Visual model choice — pragmatic constraint
+### Visual model choice: pragmatic constraint
 
 - The 2026-defensible upgrade is `vidore/colqwen2.5-v0.2` (Qwen2.5-VL-3B,
-  ~6 GB at bf16). Attempted but **OOMs on the 8 GB RTX 3070 dev box** —
+  ~6 GB at bf16). Attempted but **OOMs on the 8 GB RTX 3070 dev box**:
   Windows desktop compositor + Ollama runtime hold ~3.3 GB regardless of
   loaded models, leaving ~4.6 GB free.
-- Fell back to `vidore/colqwen2-v1.0` (Qwen2-VL-2B, ~4 GB) — same
+- Fell back to `vidore/colqwen2-v1.0` (Qwen2-VL-2B, ~4 GB), same
   architectural family, fits headroom. Default in `eval_visual.py` reverted
   with an annotated comment explaining the constraint.
 - Newer ColQwen3 / ColNomic / ColModernVBERT exist but were not tried;
@@ -107,7 +107,7 @@ This decision fixes both:
 - `scripts/ingest.py` now also calls `configure_logging()` so it shares
   the hardened path.
 
-## Headline result — three stacks at 20 papers × golden v3
+## Headline result: three stacks at 20 papers × golden v3
 
 Run ids:
 - text @ page: `2d818239dbc0` (re-scored from text run `d8ff80ee9258`)
@@ -125,7 +125,7 @@ Run ids:
 Hybrid still loses on aggregate (−4.7% nDCG@5, −4.2% MRR vs text @ page).
 Same direction as the 5-paper run; smaller magnitude (was −5.8%/−11.4%).
 
-### Per-subset — the sign flip
+### Per-subset: the sign flip
 
 | Subset | text@page nDCG@5 | visual nDCG@5 | hybrid nDCG@5 | hybrid Δ |
 |---|---|---|---|---|
@@ -143,7 +143,7 @@ Two things in this table:
    on N=14 but the *direction* is what we predicted from ADR 0004 once the
    query mix tilts away from definitional.
 
-### Implications for routing — concrete
+### Implications for routing: concrete
 
 An oracle router that picked `max(text@page, hybrid)` per query would hit
 **~0.93 nDCG@5** vs 0.86 text-only or 0.82 hybrid-only. Even an imperfect
@@ -151,11 +151,11 @@ classifier (say, 80 % accuracy on category) would clear text-only.
 
 Concrete observations for a heuristic:
 - Hybrid wins on `category in {figure, table, multi_hop}` for queries the
-  text retriever doesn't already perfect (e.g., q4 +0.27, q9 +0.50,
+  text retriever doesn't already perfect (for example, q4 +0.27, q9 +0.50,
   q37 +0.37).
 - Hybrid loses on `category=factual` definitional queries text already
   nails (q6 / q7 / q8 each go 1.000 → 0.5).
-- Text-only at-page-granularity is a strong baseline — we should *not*
+- Text-only at-page-granularity is a strong baseline. We should *not*
   fuse for queries the text path already serves at nDCG@5 = 1.0.
 
 The simplest viable router: detect category via length / lexical
@@ -171,7 +171,7 @@ classifier signals figure / table / multi-hop.
 
 2. **Accept the 20-paper corpus + golden v3 as the new evaluation
    substrate** for visual-vs-text comparisons going forward. v3-only
-   queries (q24–q39) are added on top of the unchanged v2 queries.
+   queries (q24 to q39) are added on top of the unchanged v2 queries.
 
 3. **Promote per-query routing as the priority (taken up in ADR 0008).** The empirical case
    was already in ADR 0003 (query-expansion) and ADR 0004 (visual);
@@ -194,43 +194,43 @@ classifier signals figure / table / multi-hop.
    3 B+ tier infeasible. Future hardware unlocks the comparison.
 3. **Query authoring bias.** Most v3-only queries are caption-derivable
    (figure caption text appears in chunks, so text rerank can answer
-   them). The truly visual-only queries — figure-internal layout, chart
-   colour-coding, table cell relationships not flat-extractable — would
+   them). The truly visual-only queries (figure-internal layout, chart
+   colour-coding, table cell relationships not flat-extractable) would
    need a vision tool in the authoring loop. Q37 is the only image-grounded
    query with a clean visual win.
 4. **Cross-paper visual similarity at scale.** Q26 (Frechet Table 4
-   ImageNet) failed for visual — picked the wrong page in the same paper.
+   ImageNet) failed for visual: picked the wrong page in the same paper.
    ADR 0004 flagged this for q13 at 5 papers; at 20 papers the failure
    mode persists. Worse with corpus size.
-5. **Hybrid recall@10 = 1.000 on every in-corpus query** — fusion never
+5. **Hybrid recall@10 = 1.000 on every in-corpus query**: fusion never
    *loses* coverage, only ranking. Promotes the case for routing rather
    than dropping visual entirely.
 6. **The page-level metric coarsens granularity.** Text @ page (0.8628)
    beats text @ chunk (0.7214 from the original v2 baseline) by ~12 %
    purely from the metric change, not stack improvement. Worth calling
    out so we don't double-count the win.
-7. **No generation / judge in this run.** Retrieval-only — `--rerank`
+7. **No generation / judge in this run.** Retrieval-only: `--rerank`
    without `--generate --judge` for speed. End-to-end faithfulness on the
    v3 mix is open.
 
 ## References
 
-- ADR 0003 — query expansion (rejected, per-query wins on multi-hop /
-  term-mismatch — same routing lesson).
-- ADR 0004 — Visual retrieval (accepted complementary; deferred
+- ADR 0003: query expansion (rejected, per-query wins on multi-hop /
+  term-mismatch; same routing lesson).
+- ADR 0004: Visual retrieval (accepted complementary; deferred
   hybrid).
-- `scripts/eval_hybrid.py` — offline RRF fusion of two existing run JSONs.
-- `scripts/inspect_candidates.py` — visual-richness scoring used for the
+- `scripts/eval_hybrid.py`: offline RRF fusion of two existing run JSONs.
+- `scripts/inspect_candidates.py`: visual-richness scoring used for the
   corpus expansion.
-- `data/golden/v3.yaml` — 39-query golden set used for the runs above.
-- `data/eval/runs/run-20260502-235237.json` — text run (id `d8ff80ee9258`).
-- `data/eval/runs/run-text-page-20260502-235300.json` — text @ page
+- `data/golden/v3.yaml`: 39-query golden set used for the runs above.
+- `data/eval/runs/run-20260502-235237.json`: text run (id `d8ff80ee9258`).
+- `data/eval/runs/run-text-page-20260502-235300.json`: text @ page
   re-scored baseline (id `2d818239dbc0`).
-- `data/eval/runs/run-visual-20260502-234345.json` — ColQwen2-v1.0 run
+- `data/eval/runs/run-visual-20260502-234345.json`: ColQwen2-v1.0 run
   (id `69d92c7cdd97`).
-- `data/eval/runs/run-hybrid-20260502-235300.json` and `.compare.md` —
+- `data/eval/runs/run-hybrid-20260502-235300.json` and `.compare.md`:
   hybrid (id `6d57de8bbda1`) + side-by-side comparison.
 - `pyproject.toml` `[tool.uv].override-dependencies` for the
   colpali-engine / peft conflict.
 - `tests/unit/test_logging.py::test_stdout_handler_handles_non_cp1252_chars_without_crashing`
-  — regression test for the Windows cp1252 logger crash.
+  (regression test for the Windows cp1252 logger crash).

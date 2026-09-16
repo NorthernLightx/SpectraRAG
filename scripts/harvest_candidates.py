@@ -1,13 +1,13 @@
 """Harvest golden-candidate stubs from eval-run logs (see CONTRIBUTING "Scripts layout").
 
-Reference-free triage. Reads `data/eval/runs/*.json` (no infra — works off
+Reference-free triage. Reads `data/eval/runs/*.json` (no infra needed, it works off
 artifacts the eval already produces), flags interactions a human should
 review (low judged metrics, false/missing refusal, empty retrieval), and
 writes GoldenQuery-shaped *stubs* to `data/golden/_candidates/` with the
 truth fields (paper_id / category / relevant_* / expected_facts) left
 blank for a human.
 
-It never invents ground truth — it proposes the question plus the model's
+It never invents ground truth. It proposes the question plus the model's
 answer/retrieval as a review aid. `promote_candidates.py` is the
 human-gated step that validates a filled stub and appends it to a real
 golden set.
@@ -70,7 +70,7 @@ def _flag_reasons(pq: dict[str, Any]) -> list[str]:
 def _to_candidate(pq: dict[str, Any], run_id: str) -> dict[str, Any]:
     """GoldenQuery-shaped stub; truth fields are placeholders for a human.
 
-    `category`/`paper_id` use "TODO" deliberately — invalid, so
+    `category`/`paper_id` use "TODO" deliberately: invalid, so
     `promote_candidates` rejects the stub until a human fills them.
     """
     answer = str(pq.get("answer_text") or "")

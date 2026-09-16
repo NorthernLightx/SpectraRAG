@@ -13,7 +13,7 @@ Two backends share the same `caption(image_path) -> str` surface:
 
 Captions populate `Figure.vlm_caption`; the existing `figure_to_chunk`
 preferentially uses them at index time. The `caption_figures` helper is
-provider-agnostic — it duck-types on `.caption(image_path)`.
+provider-agnostic. It duck-types on `.caption(image_path)`.
 
 Why a dedicated module instead of reusing `OllamaChatClient` /
 `OpenRouterClient`:
@@ -56,7 +56,7 @@ _DEFAULT_TIMEOUT_SECONDS = 600.0
 # concurrent bursts. One request in flight plus the 429 backoff-retry on each
 # captioner keeps a bake under the rate limit; local models just run a bit slower.
 _DEFAULT_CONCURRENCY = 1
-# Reasoning-style VLMs (Nemotron Nano 12B VL, gemini-thinking, etc.) emit
+# Reasoning-style VLMs (Nemotron Nano 12B VL, gemini-thinking and others) emit
 # chain-of-thought tokens before the final caption. With the old 200-token
 # cap they truncated mid-reasoning and returned empty `content`. 400 covers
 # observed reasoning-heavy outputs (~150-300 reasoning + ~100 caption) and
@@ -82,9 +82,9 @@ _DEFAULT_PROMPT = (
 class OllamaVisionCaptioner:
     """Single-image captioner backed by Ollama's vision-capable models.
 
-    `model` must be a vision-capable Ollama tag (e.g. `gemma3:4b`,
+    `model` must be a vision-capable Ollama tag (for example `gemma3:4b`,
     `qwen2.5vl:7b`, `llava-llama3:8b`). Wrong model → either an obvious
-    error from Ollama or, worse, an empty caption — handle both.
+    error from Ollama or, worse, an empty caption. Handle both.
     """
 
     def __init__(
@@ -119,8 +119,8 @@ class OllamaVisionCaptioner:
         caption-relatex pass, which feeds the existing caption back in).
 
         Errors that won't get better on retry (404, malformed image, vision-model
-        not present) become a logged warning and an empty string — caller decides
-        whether to use the original PDF caption or accept no caption.
+        not present) become a logged warning and an empty string. The caller
+        decides whether to use the original PDF caption or accept no caption.
         """
         effective_prompt = self._prompt if prompt is None else prompt
         # Path I/O is blocking; offload so we don't stall the event loop while a
@@ -189,12 +189,12 @@ class OpenRouterVisionCaptioner:
 
     Mirrors `OllamaVisionCaptioner.caption(image_path) -> str`. Uses
     OpenAI's vision schema (`content` is a list of `text` + `image_url`
-    blocks) — same shape `OpenRouterClient.chat` uses for in-context
+    blocks), the same shape `OpenRouterClient.chat` uses for in-context
     images on `/answer`. No streaming; one image per request.
 
     Permanent failures (auth error, model-not-found, malformed image)
-    return an empty string and log a warning — caller falls back to the
-    PDF caption. Transport errors (network blips) get up to 3 retries
+    return an empty string and log a warning, and the caller falls back to
+    the PDF caption. Transport errors (network blips) get up to 3 retries
     with exponential backoff.
 
     Cost-shape: gpt-4o-mini at vision is ~$0.0002 per low-detail image,
@@ -239,7 +239,8 @@ class OpenRouterVisionCaptioner:
         Free-tier OpenRouter VLMs commonly return 429 under burst load;
         we raise on 429 so tenacity retries with exponential backoff.
         Other non-200 (401, 404, 5xx after retries) become a logged
-        warning and an empty string — caller falls back to the PDF caption.
+        warning and an empty string, and the caller falls back to the PDF
+        caption.
         """
         effective_prompt = self._prompt if prompt is None else prompt
         if not await asyncio.to_thread(image_path.exists):
@@ -312,7 +313,7 @@ def _needs_vlm_caption(
     """Decide whether `figure` is worth a VLM call.
 
     Default policy (ADR 0022 follow-up): skip figures that already carry a
-    real PDF caption — VLM adds no retrieval value there — and skip every
+    real PDF caption (the VLM adds no retrieval value there) and skip every
     `decoration` role (logos, icons, signatures): a "this is the Microsoft
     logo" caption is wasted compute when the gallery has already binned
     those out.
@@ -334,15 +335,15 @@ async def caption_figures(
 
     Concurrency-limited so a small VRAM device can serve the VLM model without
     thrashing. Errors on individual figures are logged and the figure is
-    returned with its original `vlm_caption` (None) — `figure_to_chunk` will
-    fall back to whatever else it has.
+    returned with its original `vlm_caption` (None), so `figure_to_chunk`
+    falls back to whatever else it has.
 
     The filter:
     - Figures whose PDF caption is already populated are passed through
       unchanged (the existing caption already feeds retrieval; replacing it
       adds latency without measured value).
     - Figures whose `role` is in `skip_roles` (default: `decoration`) are
-      passed through unchanged — no point in captioning logos and icons.
+      passed through unchanged (no point in captioning logos and icons).
     - Everything else (real figures with no caption, plus `unlabeled` real
       pictures) gets a VLM call.
 
@@ -358,7 +359,7 @@ async def caption_figures(
         if _needs_vlm_caption(f, skip_when_captioned=skip_when_captioned, skip_roles=skip_roles)
     ]
     if not eligible_indices:
-        # Nothing to do — return the input list unchanged.
+        # Nothing to do; return the input list unchanged.
         _log.info(
             "vlm_caption.skipped_all",
             n_figures=len(figures),
@@ -419,9 +420,9 @@ _RELATEX_PROMPT = (
 # render, so they are not flagged.
 _FLAT_MATH_RE = re.compile(
     r"(?<![A-Za-z0-9])[A-Z]\s\d(?![0-9])"
-    r"|[=≤≥≈≠→↦∑∫√∈∇±×∆∞∣]"  # noqa: RUF001 — math operators incl. U+2223 norm/abs bar
-    r"|[Α-ω]"  # noqa: RUF001 — Greek letters are the math signal, not a Latin-A typo
-    r"|\bO\s*\("  # big-O complexity, e.g. a flattened "O ( ... )" from O(|Y|^2)
+    r"|[=≤≥≈≠→↦∑∫√∈∇±×∆∞∣]"  # noqa: RUF001 (math operators incl. U+2223 norm/abs bar)
+    r"|[Α-ω]"  # noqa: RUF001 (Greek letters are the math signal, not a Latin-A typo)
+    r"|\bO\s*\("  # big-O complexity, for example a flattened "O ( ... )" from O(|Y|^2)
 )
 
 
@@ -457,9 +458,9 @@ async def relatex_captions(
     Targets only math-looking captions (`_caption_has_math`), so clean author
     captions stay untouched and the VLM cost stays bounded. The VLM reads the
     rendered image (where a superscript is visibly raised) and re-emits the same
-    caption with `$...$` math. The result is written back to `figure.caption` —
-    still the author's caption, only the math fixed — so `figure_to_chunk` picks
-    it up without swapping in a from-scratch VLM description.
+    caption with `$...$` math. The result is written back to `figure.caption`
+    (still the author's caption, only the math fixed), so `figure_to_chunk`
+    picks it up without swapping in a from-scratch VLM description.
     """
     if not figures:
         return []
@@ -504,7 +505,7 @@ async def relatex_table_captions(
     """Re-encode text-flattened math in table captions as LaTeX, preserving wording.
 
     Tables carry no crop image (unlike figures), so the VLM reads the table's
-    rendered *page* image — ``<pages_dir>/<paper_id>/<paper_id>_p<N>.png`` — and
+    rendered *page* image (``<pages_dir>/<paper_id>/<paper_id>_p<N>.png``) and
     re-emits the caption with ``$...$`` math. Tables whose caption has no flat
     math, or whose page image is absent (pages not rendered), are left untouched.
     Mirrors `relatex_captions`.

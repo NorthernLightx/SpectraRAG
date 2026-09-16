@@ -56,12 +56,12 @@ def _parse_rewrites(raw: str, *, expected: int) -> list[str]:
 
 
 class QueryExpander:
-    """LLM-backed query expansion. Concrete impl, no protocol — there is only
+    """LLM-backed query expansion. Concrete impl, no protocol: there is only
     one (`QueryExpander`) and the rule of three says we abstract on the third.
 
     Both methods accept a `query` string and return either `list[str]`
     (`rewrite`) or `str` (`hyde`). On LLM failure, returns an empty list / empty
-    string — caller decides whether to fall back to the original query.
+    string, and the caller decides whether to fall back to the original query.
     """
 
     def __init__(

@@ -59,7 +59,7 @@ def set_retriever(retriever: Retriever) -> None:
 
 
 def peek_retriever() -> Retriever | None:
-    """Non-raising reader for capability checks (e.g. /health flags)."""
+    """Non-raising reader for capability checks such as /health flags."""
     return _RetrieverState.instance
 
 

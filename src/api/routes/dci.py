@@ -3,9 +3,9 @@
 Off by default (`RAG_ENABLE_DCI`). The agent runs server-side, so it needs an
 OpenRouter key: the server's own when configured, else the caller's via the
 `X-OpenRouter-Key` header. Unlike normal generation (which goes browser-direct so
-the server never sees the key), this mode does receive the key — used in-memory for
-the request, never logged or stored. The key is read from a header, not the request
-body, so it never lands in the request log.
+the server never sees the key), this mode does receive the key. It is used
+in-memory for the request, never logged or stored. The key is read from a
+header, not the request body, so it never lands in the request log.
 """
 
 from __future__ import annotations

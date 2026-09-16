@@ -4,14 +4,14 @@ Extends the eval corpus from 20 docs (routing_study) to all 134 locally-availabl
 docs, so the mmlongbench-v2 golden (821 in-corpus queries) is end-to-end scorable
 and future lever A/Bs have ~7.5x the statistical power.
 
-Text leg only (docling chunker + bge-m3 + BM25 via Qdrant payload) — the same
+Text leg only (docling chunker + bge-m3 + BM25 via Qdrant payload), the same
 pipeline the committed text baseline uses. The OOM-prone ColQwen2 visual index is
 a separate build, deferred. Non-destructive: writes a NEW collection, leaving
 `routing_study` (the committed baseline corpus) untouched.
 
 Resumable: skips any paper already present in the target collection, so a restart
-after an OOM / crash continues where it stopped. Per-doc error isolation — one bad
-PDF doesn't abort the batch.
+after an OOM / crash continues where it stopped. Per-doc error isolation keeps one
+bad PDF from aborting the batch.
 
 Usage:
     .venv/Scripts/python.exe -m scripts.ingest_mmlb_v2 \

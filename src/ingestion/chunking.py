@@ -8,15 +8,15 @@ boundaries.
 Two noise classes are removed here (ADR 0017, evidence in
 `scripts/experiments/quantify_corpus_junk.py`):
 
-- running headers / page numbers — stripped per page in `clean.py` before
+- running headers / page numbers, stripped per page in `clean.py` before
   concatenation (PyMuPDF emits them as their own lines).
-- figure/table interior "number soup" — dropped per window via
+- figure/table interior "number soup", dropped per window via
   `clean.is_soup`.
 
 Bibliography removal is *not* done here. Lexical heuristics cannot robustly
 separate a reference list from citation-dense body/appendix text on this
 corpus (the introduction of 2604.22753v1 cites more years-per-char than its
-own reference list — see `quantify_corpus_junk.py`); doing it by region
+own reference list, see `quantify_corpus_junk.py`); doing it by region
 excision destroyed golden-anchored appendix content. ADR 0017 defers it to
 the GraphRAG ingestion pass (Step 1), which already runs an LLM over every
 chunk and can judge "is this a reference list" reliably.
@@ -38,12 +38,12 @@ from src.types import Chunk, Figure, Page, Table
 
 _log = get_logger(__name__)
 
-# `1 Introduction`, `3.1 Encoding` — numbered headings on their own line.
+# `1 Introduction`, `3.1 Encoding`: numbered headings on their own line.
 _NUMBERED_HEADING_RE = re.compile(
     r"^[ \t]*(\d+(?:\.\d+)*)[ \t]+([A-Z][A-Za-z][A-Za-z\s\-:&]{1,60})[ \t]*$",
     re.MULTILINE,
 )
-# `A Use of LLMs`, `B.1 Task Collection`, `Appendix C Derivations` — appendix
+# `A Use of LLMs`, `B.1 Task Collection`, `Appendix C Derivations`: appendix
 # sections use a letter index instead of a number. Same conservative title
 # shape as numbered headings so body lines are not mistaken for headings.
 _APPENDIX_HEADING_RE = re.compile(
@@ -89,8 +89,8 @@ def _section_spans(doc: str) -> list[tuple[int, int, str | None]]:
     """`(body_start, body_end, title)` per section, in `doc` char coordinates.
 
     `body_start` is the char after the heading's own line (headings are
-    full-line, regex-anchored), so the heading text is excluded from the body
-    — same as the pre-ADR-0017 behaviour. Text before the first heading is an
+    full-line, regex-anchored), so the heading text is excluded from the body,
+    the same as the pre-ADR-0017 behaviour. Text before the first heading is an
     untitled prelude. Offsets are exact (no string search) so windows map
     back to pages precisely.
     """
@@ -160,9 +160,9 @@ def chunk_pages(
     Pages are cleaned (`clean.strip_page_furniture`) and concatenated into one
     document with a char→page map, so a chunk gets every page its text spans.
     Figure/table number-soup windows are dropped (`clean.is_soup`).
-    Bibliography is *not* dropped here — see the module docstring. `chunk_id`
-    stays `{paper}::p{first_page}::c{counter}` with `counter` global per paper
-    — ids are *expected* to differ from the pre-ADR-0017 corpus; the golden
+    Bibliography is *not* dropped here; see the module docstring. `chunk_id`
+    stays `{paper}::p{first_page}::c{counter}` with `counter` global per paper.
+    Ids are *expected* to differ from the pre-ADR-0017 corpus; the golden
     set was re-anchored against this output.
     """
     if not pages:
@@ -213,11 +213,11 @@ def figure_to_chunk(figure: Figure) -> Chunk:
 
     Picks the *single best* caption source: VLM caption when present (it tends
     to add visual structure beyond the dense terminology PDFs capture), else
-    the PDF-extracted caption. Empirically, concatenating both *hurts* — the
+    the PDF-extracted caption. Empirically, concatenating both *hurts*: the
     longer combined text fooled the reranker into surfacing weak figure chunks
     over the strong text chunks that actually answer the query.
 
-    Figures with no caption at all become a stub chunk with just the figure id —
+    Figures with no caption at all become a stub chunk with just the figure id,
     better than dropping them, since BM25 might still match the id when an
     answer cites a figure.
 

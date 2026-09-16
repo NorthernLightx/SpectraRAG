@@ -1,14 +1,14 @@
 """Experiment: vision generator vs text generator on figure/table queries.
 
 Asks: does sending page images to a VLM (Qwen3-VL-32b-instruct) actually beat
-a text-only LLM (gpt-4o-mini) on golden v3's figure / table queries — or does
+a text-only LLM (gpt-4o-mini) on golden v3's figure / table queries, or does
 the page TEXT alone (caption + nearby paragraphs that PyMuPDF extracts)
 already give the text generator everything it needs?
 
 Method:
 - Filter golden v3 to category in {figure, table} with relevant_pages set
   (or derivable from chunk-id format `paper::pN::cM`).
-- For each query, both generators get the SAME text context — full text of
+- For each query, both generators get the SAME text context: full text of
   the relevant pages via PyMuPDF. Vision additionally receives the rendered
   page PNG (data/pages/<paper>/<paper>_pN.png) as a content block. So vision
   has STRICTLY MORE information; if it doesn't outperform, the image isn't
@@ -21,7 +21,7 @@ Cost: ~$0.05 across the in-corpus figure/table queries (text-side calls
 ~$0.001 each, vision-side ~$0.0003 with Qwen3-VL-32b's compact image
 tokenisation, judges ~$0.001 each).
 
-Caveat — the experiment compares GENERATION quality given fixed context.
+Caveat: the experiment compares GENERATION quality given fixed context.
 It does NOT test retrieval (golden truth fills that role). Conclusions
 about "vision wins" only apply to the generation step.
 """
@@ -52,7 +52,7 @@ from src.llm.protocol import Message
 from src.prompts.loader import load_prompt_by_name
 from src.types import RetrievalResult
 
-# cp1252-safe stdout (matches configure_logging) so model output with π/≥/etc.
+# cp1252-safe stdout (matches configure_logging) so model output with π or ≥
 # doesn't crash mid-print on Windows.
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(errors="replace")
@@ -280,7 +280,7 @@ async def main() -> None:
 
     results: list[PerQuery] = []
     for q, pages, pdf, renders in eligible:
-        # Get text of relevant pages — use PyMuPDF directly
+        # Get text of relevant pages, using PyMuPDF directly
         all_pages = extract_pages(q.paper_id, pdf)
         page_text = "\n\n".join(
             f"[{q.paper_id}::p{p.page_number}] {p.text}"
@@ -294,7 +294,7 @@ async def main() -> None:
         system, user = answer_prompt.render(query=q.text, context=page_text)
 
         # Generate both ways
-        print(f"=== {q.query_id} (p{pages}, {q.category}) — {q.text[:60]}...")
+        print(f"=== {q.query_id} (p{pages}, {q.category}): {q.text[:60]}...")
         text_out = await _text_generate(
             text_client, model=args.text_model, system=system, user=user
         )
@@ -306,7 +306,7 @@ async def main() -> None:
             image_paths=renders,
         )
 
-        # Judge — use a single fake RetrievalResult holding the page text so
+        # Judge: use a single fake RetrievalResult holding the page text so
         # LLMJudge.faithfulness sees the full context.
         retrieved_for_judge = [
             RetrievalResult(

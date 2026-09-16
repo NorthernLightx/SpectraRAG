@@ -11,7 +11,7 @@ This asks a strong free judge (default openai/gpt-oss-120b:free) a fair question
 for each post-retrieval failure (gold page WAS fed, official score 0): "ignoring
 formatting/phrasing/extra words, is the model's answer factually correct given
 the gold?" The count of YES is the harness's false-negative rate on the
-gold-present failures — the size of the measurement artifact.
+gold-present failures, the size of the measurement artifact.
 
 NOT authoring ground truth: the judge compares the model's free text to the
 HUMAN gold answer; it only relaxes the strict string match, it does not invent

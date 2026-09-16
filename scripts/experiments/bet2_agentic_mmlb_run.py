@@ -66,7 +66,7 @@ QDRANT = "http://localhost:6333"
 
 # Local decomposer. Cloud Ollama weekly quota is exhausted this session, and
 # gemma3:4b is the shipped router classifier model (Settings.classifier_ollama_model),
-# so it is the honest local choice for query splitting too.
+# so this arm uses it for query splitting too.
 DECOMPOSE_MODEL = "gemma3:4b"
 
 # Same collection that backs the committed depth-50 baseline (driver.log:

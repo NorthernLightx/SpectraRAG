@@ -2,7 +2,7 @@
 
 Same discipline as ADR 0018's GraphRAG spike: don't pivot the ingestion
 stack on a hunch. Take the audit-flagged miss pages from 2604.22753v1
-(Figures 2/3, Tables 1/3/4 — every miss the overlay tool surfaced) plus
+(Figures 2/3, Tables 1/3/4, every miss the overlay tool surfaced) plus
 one known-good control page (p02, Figure 1 correctly extracted), render
 each at 150 DPI, and ask `qwen3-vl:235b-cloud` (already pulled via
 Ollama, matches the cloud-via-Ollama preference) to list every figure
@@ -43,12 +43,12 @@ PROMPT = (
 
 # 2604.22753v1: audit ground truth from the overlay tool.
 TARGETS: list[tuple[int, str]] = [
-    (2, "CONTROL — Figure 1 should be reported, nothing extra"),
-    (6, "MISS — should recover Table 1 (task statistics)"),
-    (7, "MISS — should recover Figure 2 (4-panel line plot) and Table 2"),
-    (8, "MISS — should recover Figure 3 (t-SNE/parameter-space viz)"),
-    (9, "MISS — should recover Table 3 (ablation)"),
-    (13, "MISS — should recover Table 4"),
+    (2, "CONTROL: Figure 1 should be reported, nothing extra"),
+    (6, "MISS: should recover Table 1 (task statistics)"),
+    (7, "MISS: should recover Figure 2 (4-panel line plot) and Table 2"),
+    (8, "MISS: should recover Figure 3 (t-SNE/parameter-space viz)"),
+    (9, "MISS: should recover Table 3 (ablation)"),
+    (13, "MISS: should recover Table 4"),
 ]
 
 OLLAMA = "http://localhost:11434"
@@ -129,7 +129,7 @@ async def main() -> None:
                         f"  bbox={bb_str}  caption: {cap}"
                     )
                 if not parsed:
-                    print("  (empty list — VLM saw no figures/tables on this page)")
+                    print("  (empty list: VLM saw no figures/tables on this page)")
                 print()
                 results.append(
                     {

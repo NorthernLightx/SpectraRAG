@@ -4,12 +4,12 @@ run_mmlb_qa.py writes the full run JSON only at the END of a complete pass, but
 it checkpoints every answer into a resumable --cache keyed
 `<model>::k<top_k>::<query_id>`. When a generation pass is PARTIAL (the
 qwen3-vl:235b-cloud frontier run is throttled to ~33 calls/day by Ollama's cloud
-quota), the run JSON for the answers produced so far doesn't exist yet — only the
-cache does. This rebuilds a scorable run JSON from whatever answers are in the
+quota), the run JSON for the answers produced so far doesn't exist yet; only
+the cache does. This rebuilds a scorable run JSON from whatever answers are in the
 cache, so the partial frontier set can be scored with the official protocol
 without waiting for all 149.
 
-It does NOT generate anything (no model call, no retrieval) — it only reshapes
+It does NOT generate anything (no model call, no retrieval); it only reshapes
 cached answers + golden question text into score_mmlb_qa's `per_query[i].vision.
 answer` contract. The MACHINE NEVER AUTHORS GROUND TRUTH: question text comes
 from the human golden, the answer is the model's own cached output.
@@ -51,7 +51,7 @@ def main() -> None:
     parser.add_argument(
         "--model",
         required=True,
-        help="model name that prefixes the cache keys (e.g. qwen3-vl:235b-cloud)",
+        help="model name that prefixes the cache keys, such as qwen3-vl:235b-cloud",
     )
     parser.add_argument("--top-k", type=int, default=5, help="top_k that appears in the cache keys")
     args = parser.parse_args()

@@ -1,4 +1,4 @@
-/* APP SHELL — sidebar nav, theme toggle, tab routing */
+/* APP SHELL: sidebar nav, theme toggle, tab routing */
 
 const NAV = [
 { id: "chat", label: "Chat", icon: "chat" },
@@ -51,7 +51,7 @@ const CRUMB = {
   inspection: { t: "Inspection", s: "Trace a query through routing, retrieval, and reranking." },
   papers: { t: "Papers", s: "The 20-paper corpus, indexed by text and figure." },
   figures: { t: "Figures", s: "Every figure extracted from the corpus, searchable." },
-  why: { t: "Why multimodal?", s: "Where text-only RAG breaks — and what visual retrieval recovers." }
+  why: { t: "Why multimodal?", s: "Where text-only RAG breaks, and what visual retrieval recovers." }
 };
 
 const ACCENTS = {
@@ -72,10 +72,10 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
 } /*EDITMODE-END*/;
 
 /* Two top-bar pills: model picker and key entry. Separate menus, because
-   switching models is a mid-session action and key entry is one-time setup —
-   one popover for both autofocused the password field on every model switch.
+   switching models is a mid-session action and key entry is one-time setup.
+   One popover for both autofocused the password field on every model switch.
    The model menu switches between the two providers (ADR 0031): OpenRouter
-   (browser-direct with the visitor's key — required even on :free models, so
+   (browser-direct with the visitor's key, required even on :free models, so
    keyless rows hand off to the key menu) and a local Ollama, whose vision
    models are listed live from /api/tags and need no key at all. */
 /* Hosted deploys bake window.SPECTRARAG_HOSTED=true into config.js: the page
@@ -102,7 +102,7 @@ function ConnectionControl({ apiKey, setApiKey, provider, setProvider, model, se
     return () => {document.removeEventListener("mousedown", onDown);document.removeEventListener("keydown", onEsc);};
   }, [menu]);
 
-  // Fetch the open pane's model list lazily — the OpenRouter catalog once per
+  // Fetch the open pane's model list lazily: the OpenRouter catalog once per
   // page load, the Ollama probe on every open (it's local and instant, and the
   // user may have started Ollama since the last look).
   useEffect(() => {
@@ -124,7 +124,7 @@ function ConnectionControl({ apiKey, setApiKey, provider, setProvider, model, se
 
   // First Ollama pick is automatic: the provider is unusable without a model.
   // Also fires when the persisted pick is no longer listed (retired cloud
-  // model, or removed with `ollama rm`) — the first usable model takes over
+  // model, or removed with `ollama rm`). The first usable model takes over
   // instead of erroring at generation.
   useEffect(() => {
     if (provider !== "ollama" || !ollama || !ollama.ok || ollama.models.length === 0) return;
@@ -148,7 +148,7 @@ function ConnectionControl({ apiKey, setApiKey, provider, setProvider, model, se
         setOllama(res);
         if (res.ok && res.models.some((m) => m.id === id)) setModel(id);
       })
-      .catch((e) => setPull({ id, error: (e && e.message) || "pull failed — retry" }));
+      .catch((e) => setPull({ id, error: (e && e.message) || "pull failed, retry" }));
   };
 
   const orRow = (m) =>
@@ -203,7 +203,7 @@ function ConnectionControl({ apiKey, setApiKey, provider, setProvider, model, se
               <div className="model-group-label">
                 <span className="label-info">
                   {orList === undefined ? "Loading the full list…"
-                    : orList === null ? "Couldn't load the full list — showing the shortlist"
+                    : orList === null ? "Couldn't load the full list, showing the shortlist"
                     : `All vision models · ${orList.length}`}
                 </span>
               </div>
@@ -237,7 +237,7 @@ function ConnectionControl({ apiKey, setApiKey, provider, setProvider, model, se
             </React.Fragment>
             }
             {ollama && ollama.ok && ollama.models.length === 0 &&
-            <div className="model-group-label"><span className="label-info">No vision models installed — pull one below.</span></div>
+            <div className="model-group-label"><span className="label-info">No vision models installed. Pull one below.</span></div>
             }
             {ollama && ollama.ok && ollama.models.length > 0 &&
             <React.Fragment>
@@ -312,15 +312,15 @@ function ConnectionControl({ apiKey, setApiKey, provider, setProvider, model, se
 
 }
 
-/* Shown when a turn needs the visitor's own OpenRouter key — today that's
+/* Shown when a turn needs the visitor's own OpenRouter key. Today that's
    agentic search, which runs server-side on it. The key never touches this
    server's storage: it lives in localStorage and goes with the request. */
 const KEY_MODAL_COPY = {
   agentic: {
     h: "Agentic search needs your key",
     p: HOSTED
-      ? "The search agent runs server-side on your OpenRouter key. Add one to try it — regular chat also uses your key, straight from the browser."
-      : "The search agent runs server-side on your OpenRouter key. Add one to try it — regular chat works without it, on Ollama or your own OpenRouter models.",
+      ? "The search agent runs server-side on your OpenRouter key. Add one to try it. Regular chat also uses your key, straight from the browser."
+      : "The search agent runs server-side on your OpenRouter key. Add one to try it. Regular chat works without it, on Ollama or your own OpenRouter models.",
   },
 };
 function KeyModal({ open, onSave, onClose }) {
@@ -346,7 +346,7 @@ function KeyModal({ open, onSave, onClose }) {
         <input className="input" type="password" placeholder="sk-or-v1-…" value={val} autoFocus
           onChange={(e) => setVal(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") save(); }} />
-        <p className="km-note">Your key stays in this browser and goes straight to OpenRouter — it never touches this server. No key yet? <a href="https://openrouter.ai/settings/keys" target="_blank" rel="noopener">Creating one</a> takes about a minute.</p>
+        <p className="km-note">Your key stays in this browser and goes straight to OpenRouter. It never touches this server. No key yet? <a href="https://openrouter.ai/settings/keys" target="_blank" rel="noopener">Creating one</a> takes about a minute.</p>
         <div className="km-actions">
           <button className="btn ghost" onClick={onClose}>Maybe later</button>
           <button className="btn primary" disabled={!valid} onClick={save}>Use my key</button>
@@ -359,7 +359,8 @@ function KeyModal({ open, onSave, onClose }) {
 function App() {
   const [theme, setThemeRaw] = useState(() => localStorage.getItem("sr-theme") || "dark");
   const [tab, setTab] = useState(() => {
-    // Deep-link support: /#inspection etc. (the legacy *.html pages redirect here).
+    // Deep-link support: /#inspection and the like (the legacy *.html pages
+    // redirect here).
     const h = (location.hash || "").replace(/^#/, "");
     const valid = ["chat", "inspection", "papers", "figures", "why"];
     return (valid.includes(h) && h) || localStorage.getItem("sr-tab") || "chat";
@@ -393,14 +394,14 @@ function App() {
   const [routingAvailable, setRoutingAvailable] = useState(true);
   const [uploadAvailable, setUploadAvailable] = useState(false);
   const [keyModalOpen, setKeyModalOpen] = useState(false);
-  // "probing" | "cold" | "ready" — drives the cold-start banner.
+  // "probing" | "cold" | "ready". Drives the cold-start banner.
   const [backendWarm, setBackendWarm] = useState("probing");
 
   const setTheme = (th) => {setThemeRaw(th);localStorage.setItem("sr-theme", th);};
   useEffect(() => {document.documentElement.setAttribute("data-theme", theme);}, [theme]);
   useEffect(() => {
     localStorage.setItem("sr-tab", tab);
-    // Keep the hash in sync — a stale deep-link hash would otherwise override
+    // Keep the hash in sync. A stale deep-link hash would otherwise override
     // the saved tab on every reload.
     if ((location.hash || "").replace(/^#/, "") !== tab) history.replaceState(null, "", "#" + tab);
   }, [tab]);
@@ -412,11 +413,11 @@ function App() {
     // The API scales to zero and holds every request until startup init
     // (model loading) finishes, so a cold instance answers /health only after
     // ~2 minutes. No reply within a few seconds means a cold start is in
-    // progress — show the banner instead of silently empty tabs.
+    // progress, so show the banner instead of silently empty tabs.
     const coldTimer = setTimeout(() => setBackendWarm((s) => (s === "probing" ? "cold" : s)), 3000);
     window.RAG.loadPapers().then(setPapers);
     window.RAG.loadFigures().then(setFigures);
-    // routing_available must be POSITIVELY confirmed — a failed /health (or
+    // routing_available must be POSITIVELY confirmed. A failed /health (or
     // an older server without the field) should not leave routing controls
     // offered on a deployment that can't honor them.
     window.RAG.loadHealth().then((h) => {
@@ -427,7 +428,7 @@ function App() {
       // fetches above can burn all their retries inside the cold-start window
       // (they give up in seconds; the cold hold lasts minutes) and would leave
       // the session with an empty Papers tab and id-only source labels until a
-      // manual reload — so re-fetch whatever came back empty.
+      // manual reload, so re-fetch whatever came back empty.
       window.RAG.loadPapers().then((p) => setPapers((prev) => (prev.length ? prev : p)));
       window.RAG.loadFigures().then((f) => setFigures((prev) => (prev && prev.length ? prev : f)));
     });
@@ -473,11 +474,11 @@ function App() {
         {backendWarm === "cold" &&
         <div className="warmup" role="status">
           <span className="warmup-dot"></span>
-          <span>The backend is waking up — loading the retrieval models takes a minute or two. The page fills in on its own.</span>
+          <span>The backend is waking up. Loading the retrieval models takes a minute or two. The page fills in on its own.</span>
         </div>}
 
         <div className="view">
-          {/* ChatView stays mounted across tab switches — unmounting would
+          {/* ChatView stays mounted across tab switches. Unmounting would
               destroy the conversation while the chat itself points users at
               the Papers and Figures tabs. */}
           <div style={{ display: tab === "chat" ? "contents" : "none" }}>

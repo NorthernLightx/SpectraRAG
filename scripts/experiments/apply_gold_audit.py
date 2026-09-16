@@ -2,11 +2,11 @@
 
 Pairs with build_gold_audit.py. That builder rendered the gold-present failures for
 a human to judge; this reads the human's verdicts.json and does three things, all
-mechanical — it authors NO ground truth, it only transcribes the human's verdicts
+mechanical: it authors NO ground truth, it only transcribes the human's verdicts
 and recomputes arithmetic:
 
   1. LABEL-NOISE REPORT: how the human classified the failures
-     (gold_correct / format_only_mismatch / gold_wrong / gold_unprovable), i.e. how
+     (gold_correct / format_only_mismatch / gold_wrong / gold_unprovable): how
      much of the measured ceiling was scorer/label noise vs genuine model miss.
 
   2. CLEAN RE-SCORE: re-score a committed oracle run, crediting the queries the human
@@ -121,7 +121,7 @@ def _rescore(
     print(f"  before (committed gold): ACC {before:.4f}  (n={len(answerable)})")
     print(f"  after  (human-clean)   : ACC {after:.4f}  (n={len(kept)}, dropped {len(dropped)} unprovable)")
     print(f"  delta: {after - before:+.4f}   ({changed} queries adjusted by human verdicts)")
-    print("  NOTE: this is the ruler correction, not a model change — same model output, cleaner gold.")
+    print("  NOTE: this is the ruler correction, not a model change; same model output, cleaner gold.")
 
 
 def _write_clean_golden(

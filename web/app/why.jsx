@@ -1,4 +1,4 @@
-/* WHY MULTIMODAL — the pitch, driven by real MMLongBench results in
+/* WHY MULTIMODAL: the pitch, driven by real MMLongBench results in
    /why-multimodal.json. Each card is a question whose answer lives in a figure:
    text_pages = the text retriever's top hits (gold page absent); router_pages =
    the router's top hits (gold page present). */
@@ -44,7 +44,7 @@ function WhyView({ setTab, routingAvailable }) {
         <section className="why-hero">
           <span className="why-eyebrow mono">THE PROBLEM</span>
           <h1 className="serif">Most RAG can't read the figure.</h1>
-          <p>A large share of a document's answers live where a text chunker never looks — leaderboard <b>tables</b>, architecture <b>diagrams</b>, values printed inside <b>charts</b>. Embed only the body text and those answers are simply not in the index. SpectraRAG indexes the page images too and routes each question to the store that actually holds the answer. Every example below is a real MMLongBench question whose answer sits in a figure.</p>
+          <p>A large share of a document's answers live where a text chunker never looks: leaderboard <b>tables</b>, architecture <b>diagrams</b>, values printed inside <b>charts</b>. Embed only the body text and those answers are not in the index. SpectraRAG indexes the page images too and routes each question to the store that actually holds the answer. Every example below is a real MMLongBench question whose answer sits in a figure.</p>
         </section>
 
         {card && (
@@ -66,7 +66,7 @@ function WhyView({ setTab, routingAvailable }) {
               <div className="vs-card bad">
                 <div className="vs-head"><span className="vs-tag bad">Text-only retrieval</span><Icon name="x" size={16} /></div>
                 <div style={{ margin: "6px 0 12px" }}>top-10 pages: <PageChips pages={card.text_pages} gold={card.gold_pages} /></div>
-                <p>Gold page <b>p{card.gold_pages[0]}</b> ({card.figure_label}) is <b>not</b> in the text retriever's top hits — the answer is printed in the figure, which never enters the text index. The model has no grounding for it.</p>
+                <p>Gold page <b>p{card.gold_pages[0]}</b> ({card.figure_label}) is <b>not</b> in the text retriever's top hits. The answer is printed in the figure, which never enters the text index. The model has no grounding for it.</p>
                 <div className="vs-verdict bad"><Icon name="x" size={13} /> gold page missed</div>
               </div>
               <div className="vs-card good">
@@ -81,14 +81,14 @@ function WhyView({ setTab, routingAvailable }) {
           </section>
         )}
 
-        {/* Numbers come from why-multimodal.json — render nothing rather than
+        {/* Numbers come from why-multimodal.json. Render nothing rather than
             "0/0 examples" while it loads or if the fetch fails. */}
         {cards.length > 0 &&
         <section className="why-chart">
           <div className="why-chart-text">
             <span className="why-eyebrow mono">MMLONGBENCH · FIGURE-BOUND ITEMS</span>
             <h2 className="serif">Routing recovers the gold page that text-only retrieval drops.</h2>
-            <p>Across these {cards.length} figure-bound examples, the gold page — the one where the answer actually appears — lands in the text retriever's top-10 <b>{textHit}/{cards.length}</b> times. The router recovers it <b>{routerHit}/{cards.length}</b>. Same query, same corpus, different store.</p>
+            <p>Across these {cards.length} figure-bound examples, the gold page (the one where the answer actually appears) lands in the text retriever's top-10 <b>{textHit}/{cards.length}</b> times. The router recovers it <b>{routerHit}/{cards.length}</b>. Same query, same corpus, different store.</p>
           </div>
           <div className="bar-chart">
             <div className="bar-row">
@@ -131,7 +131,7 @@ function WhyView({ setTab, routingAvailable }) {
             {routingAvailable === false ? (
               <React.Fragment>
                 <h2 className="serif">See the retrieval pipeline live.</h2>
-                <p>This deployment runs text-side (the router needs a GPU), but every stage — retrieval, reranking, evidence — traces in real time. Figure questions still read the page images.</p>
+                <p>This deployment runs text-side (the router needs a GPU), but every stage (retrieval, reranking, evidence) traces in real time. Figure questions still read the page images.</p>
               </React.Fragment>
             ) : (
               <React.Fragment>

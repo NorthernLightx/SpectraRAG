@@ -2,7 +2,7 @@
 
 Each judge calls the LLM with a versioned prompt and parses a single decimal
 score from the first line of the response. The first-line-decimal format is
-deliberately simple so small local models (e.g. qwen2.5:7b) can produce
+deliberately simple so small local models (qwen2.5:7b, for example) can produce
 parseable output reliably; strict JSON tends to fail at this size.
 
 Multi-seed averaging (B2 / Tier 2): when `n_samples > 1`, each metric is
@@ -38,7 +38,7 @@ class JudgeOutput:
     when multi-seed averaging is enabled (B2). 0.0 when `n_samples == 1`
     (single call, no variance to measure). The mean is in `score`.
     `n_samples` records how many calls were averaged so downstream
-    reporting can format `score ± score_std (n=N)` honestly.
+    reporting can format `score ± score_std (n=N)`.
     """
 
     score: float
@@ -81,7 +81,7 @@ class LLMJudge:
 
     By default makes one LLM call per (query, metric). Set `n_samples > 1`
     to enable multi-seed averaging (B2 / Tier 2): each metric becomes N
-    parallel calls at `sampling_temperature` (defaults to 0.7 — high enough
+    parallel calls at `sampling_temperature` (defaults to 0.7, high enough
     to surface judge variance without making the scores nonsense), with
     the mean reported as `JudgeOutput.score` and the sample stddev as
     `JudgeOutput.score_std`.
@@ -160,7 +160,7 @@ class LLMJudge:
         """Recall of ground-truth facts in the answer. Chunk-id-robust (ADR 0019).
 
         Caller must check `has_answer_correctness` (or only invoke when
-        `expected_facts` is non-empty and the answer is not a refusal —
+        `expected_facts` is non-empty and the answer is not a refusal;
         the runner enforces both). Renders `expected_facts` as a bullet
         list so the judge prompt can count coverage.
         """
@@ -234,7 +234,7 @@ class LLMJudge:
 
 
 def _stddev(values: list[float]) -> float:
-    """Sample standard deviation. Returns 0.0 for n < 2 — there's no
+    """Sample standard deviation. Returns 0.0 for n < 2: there's no
     variance to measure with a single sample, and ddof=1 would divide by 0."""
     n = len(values)
     if n < 2:

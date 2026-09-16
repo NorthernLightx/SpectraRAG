@@ -7,14 +7,14 @@ screenshots, image-only diagrams)?
 
 The earlier golden v3 experiment (commit 373cccc) showed null because PyMuPDF
 text-layer extraction was already sufficient on modern arXiv preprints. MMLongBench
-is the test on a corpus where text extraction is genuinely inadequate — Pew
+is the test on a corpus where text extraction is genuinely inadequate: Pew
 Research charts, screenshots, brochures.
 
 Anti-overfitting design:
 - All in-corpus queries (factual + figure + table + multi_hop), not just figure.
   If vision wins uniformly across categories that's suspicious; if it wins on
   figure/table/multi_hop and ties on factual, that's the right signal.
-- Identical context for both generators — gold-evidence page text + image.
+- Identical context for both generators: gold-evidence page text + image.
 - Two scoring channels: LLM judge (faithfulness, answer_relevance) AND
   programmatic gold-answer match (case-insensitive substring). The programmatic
   channel defuses judge bias toward answer style.
@@ -156,7 +156,7 @@ async def main() -> None:
         type=str,
         default="",
         help=(
-            "Comma-separated query_ids to filter to (e.g. for a focused smoke test "
+            "Comma-separated query_ids to filter to (for a focused smoke test, say, "
             "before running the full eval). Empty = no filter."
         ),
     )

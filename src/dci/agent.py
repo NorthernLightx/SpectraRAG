@@ -1,13 +1,13 @@
 """The DCI agent: a ReAct loop that interacts with a raw corpus via lexical tools.
 
-The model is given three tools — SEARCH (rank docs by term matches), GREP (find
-exact lines), READ (open a doc span) — and must reach either a final ANSWER (QA)
+The model is given three tools (SEARCH to rank docs by term matches, GREP to find
+exact lines, READ to open a doc span) and must reach either a final ANSWER (QA)
 or a final RANK of doc ids (retrieval). Actions are emitted as plain text and
 parsed here, so the loop works with any instruct model regardless of whether the
 provider supports native tool-calling.
 
 This is the agentic-search core of DCI (arXiv 2605.05242): no embedding index, no
-top-k vector step — the model decides what to search, reads what it finds, and
+top-k vector step. The model decides what to search, reads what it finds, and
 combines lexical clues across turns.
 """
 
@@ -200,11 +200,11 @@ class DciAgent:
             # never RANK. Demand a final answer in the last couple of turns.
             if self._max_steps - step <= 2:
                 want = "RANK <doc ids, best first>" if mode == "retrieval" else "ANSWER <answer>"
-                obs += f"\n\n(Only {self._max_steps - step - 1} turn(s) left — reply with ACTION: {want} NOW.)"
+                obs += f"\n\n(Only {self._max_steps - step - 1} turn(s) left; reply with ACTION: {want} NOW.)"
             messages += [Message(role="assistant", content=text), Message(role="user", content=obs)]
             result.steps.append(DciStep(action=verb, arg=arg.strip(), observation=obs[:600]))
 
-        # budget exhausted — fall back to discovery order so retrieval still scores
+        # budget exhausted; fall back to discovery order so retrieval still scores
         result.ranked_doc_ids = self._pad(result.ranked_doc_ids, discovered, top_k)
         return result
 

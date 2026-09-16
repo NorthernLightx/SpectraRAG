@@ -2,7 +2,7 @@
 page PNG, so we can characterize what Docling's layout model is labelling
 as "picture" at small sizes.
 
-Output: data/tiny_figures_inspect/<paper>__<page>__<chunk>.png — page crop
+Output: data/tiny_figures_inspect/<paper>__<page>__<chunk>.png, a page crop
 around the bbox with the bbox drawn in red. Plus a single contact-sheet
 montage for quick comparison.
 

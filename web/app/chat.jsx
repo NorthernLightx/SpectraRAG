@@ -1,4 +1,4 @@
-/* CHAT VIEW — conversation + live retrieval panel (the hero).
+/* CHAT VIEW: conversation + live retrieval panel (the hero).
    Wired to the real backend via window.RAG: condense → /query → OpenRouter
    BYOK stream → renumbered citations. The retrieval panel reflects the actual
    chunks the server returned. */
@@ -23,7 +23,7 @@ function previewQuote(raw, max = 180) {
   return t.length > max ? t.slice(0, max).trim() + "…" : t;
 }
 
-// The sources shown under an answer are exactly what the answer CITED — text
+// The sources shown under an answer are exactly what the answer CITED: text
 // AND visual, nothing it didn't use. Deduped by page so one source is one tile.
 function citedSources(citations) {
   const seen = new Set();
@@ -40,10 +40,10 @@ function citedSources(citations) {
 
 function AdvancedPanel({ settings, set, papers, routingAvailable }) {
   // When the server runs without the multimodal router (no GPU visual leg),
-  // force_route/routing_mode are no-ops — grey them out rather than offering
+  // force_route/routing_mode are no-ops, so grey them out rather than offering
   // switches that silently do nothing. "agentic" stays: DCI is its own path.
   const noRouter = routingAvailable === false;
-  const offTitle = "Needs the multimodal router (GPU visual leg) — not available on this deployment";
+  const offTitle = "Needs the multimodal router (GPU visual leg), not available on this deployment";
   return (
     <div className="adv-panel rise">
       <div className="field">
@@ -54,7 +54,7 @@ function AdvancedPanel({ settings, set, papers, routingAvailable }) {
             { value: "hybrid", label: "hybrid", disabled: noRouter, disabledTitle: offTitle },
             { value: "agentic", label: "agentic" }]} />
         {noRouter &&
-        <span className="field-note">visual routing is off — enable it with RAG_ENABLE_MULTIMODAL=true (offline: +35% recall over text-only); figure questions still work via page images</span>
+        <span className="field-note">visual routing is off, enable it with RAG_ENABLE_MULTIMODAL=true (offline: +35% recall over text-only); figure questions still work via page images</span>
         }
       </div>
       <div className="field">
@@ -94,7 +94,7 @@ function EmptyState({ onAsk, routingAvailable }) {
       <h2>Ask across the corpus</h2>
       <p>{noRouter
         ? "20 research papers, indexed by text and figure. Watch retrieval rank the evidence live in the panel on the right."
-        : "20 research papers, indexed by text and figure. Every turn re-retrieves against the right modality — watch it route in the panel on the right."}</p>
+        : "20 research papers, indexed by text and figure. Every turn re-retrieves against the right modality. Watch it route in the panel on the right."}</p>
       <div className="suggest-grid">
         {window.RAG.SUGGESTIONS.map((s, i) => (
           <button key={i} className="suggest" onClick={() => onAsk(s.q)}>
@@ -236,7 +236,7 @@ function RetrievalPanel({ turn, highlight, settings, paperTitle, routingAvailabl
   // Text rerank logits (~±10) and visual patch-sim (~18+) are different
   // scales, so bars and ranks compare within a leg, never across. A shared
   // min-max would flatten every text bar the moment one visual candidate
-  // appears. Min-max per leg (rerank logits can be all-negative — raw values
+  // appears. Min-max per leg (rerank logits can be all-negative, and raw values
   // would render empty bars), with a small floor so the leg's worst row still
   // shows a sliver instead of reading as zero relevance.
   const legScores = {
@@ -270,14 +270,14 @@ function RetrievalPanel({ turn, highlight, settings, paperTitle, routingAvailabl
   };
   // Page-image citations (`::page`) the model produced from the page images
   // attached at generation. They aren't retrieval candidates, so they get no
-  // ranked row — surface them here so a cited [n] always resolves to something
+  // ranked row. Surface them here so a cited [n] always resolves to something
   // in the panel. Skip any whose id is already a candidate (hybrid route, where
   // the visual leg retrieved the same page).
   const citedPages = (turn.citations || []).filter(
     (c) => c.page_cite && !cands.some((cd) => cd.chunk_id === c.id)
   );
   // Surface the candidates the answer actually cited at the top, then the rest.
-  // Each group keeps the retriever's existing rank order — which for a text-only
+  // Each group keeps the retriever's existing rank order, which for a text-only
   // result set is score DESC. We deliberately don't re-sort by raw `score`: text
   // rerank logits and visual patch-sim are different scales, so a global sort
   // would interleave the legs wrongly. The [n] badge is the citation's own number.
@@ -298,7 +298,7 @@ function RetrievalPanel({ turn, highlight, settings, paperTitle, routingAvailabl
           <h4>Routing decision</h4>
           {routingAvailable === false ? (
             <div className="route-card">
-              <span className="cand-src">visual router off (set RAG_ENABLE_MULTIMODAL=true to turn it on) — offline it measures <b>+35% recall</b> over text-only retrieval on MMLongBench (<a href="https://github.com/NorthernLightx/SpectraRAG/blob/main/docs/results.md" target="_blank" rel="noopener">results</a>). Every turn retrieves text-side; figure questions read the page images at generation.</span>
+              <span className="cand-src">visual router off (set RAG_ENABLE_MULTIMODAL=true to turn it on). Offline it measures <b>+35% recall</b> over text-only retrieval on MMLongBench (<a href="https://github.com/NorthernLightx/SpectraRAG/blob/main/docs/results.md" target="_blank" rel="noopener">results</a>). Every turn retrieves text-side; figure questions read the page images at generation.</span>
             </div>
           ) : (
             <div className="route-card">
@@ -314,8 +314,8 @@ function RetrievalPanel({ turn, highlight, settings, paperTitle, routingAvailabl
           )}
         </div>
 
-        {/* Caption chunks injected for figures/tables the question names —
-            context the model saw and can cite, but not retrieval output, so
+        {/* Caption chunks injected for figures/tables the question names.
+            Context the model saw and can cite, but not retrieval output, so
             they get their own labeled section instead of a ranked row. */}
         {turn.injected && turn.injected.length > 0 && (
           <div className="retr-section">
@@ -345,7 +345,7 @@ function RetrievalPanel({ turn, highlight, settings, paperTitle, routingAvailabl
           <h4>Ranked candidates <span className="n">{total} chunks</span></h4>
           {legScores.visual.length > 0 && legScores.text.length > 0 && (
             <div className="cand-src" style={{ marginBottom: 8 }}>
-              text and visual scores aren't comparable — ranks and bars compare within each
+              text and visual scores aren't comparable, so ranks and bars compare within each
             </div>
           )}
           {orderedCands.map((c, i) => {
@@ -455,7 +455,7 @@ function ChatView({ settings, set, resetSignal, apiKey, provider, model, papers,
 
     const priorTurns = turnsRef.current
       // Error and notice turns are UI copy ("add your key…"), not assistant
-      // answers — feeding them to condense/generation pollutes the history.
+      // answers. Feeding them to condense/generation pollutes the history.
       .filter((t) => t.role === "user" || (t.role === "assistant" && t.answer && !t.error && !t.notice))
       .map((t) => ({ role: t.role, text: t.role === "user" ? t.text : t.answer }));
 
@@ -471,7 +471,7 @@ function ChatView({ settings, set, resetSignal, apiKey, provider, model, papers,
       // of letting the thrown error render as a generic failure.
       if (settings.route === "agentic" && !(apiKey && apiKey.trim())) {
         upd({
-          answer: "Agentic search runs a search agent server-side on your OpenRouter key, so it needs one — add yours (top-right) to try it. The standard retrieval modes work without a key.",
+          answer: "Agentic search runs a search agent server-side on your OpenRouter key, so it needs one. Add yours (top-right) to try it. The standard retrieval modes work without a key.",
           streaming: false,
           notice: true,
         });
@@ -485,8 +485,8 @@ function ChatView({ settings, set, resetSignal, apiKey, provider, model, papers,
 
       // Condense follow-ups into a standalone query through the chosen
       // provider. First turns retrieve as typed. A transient failure on this
-      // 80-token call must not kill the turn: retrieval needs no generation —
-      // fall back to the raw message.
+      // 80-token call must not kill the turn: retrieval needs no generation,
+      // so fall back to the raw message.
       let searchQuery = q;
       if (priorTurns.length && canGenerate) {
         try {
@@ -511,8 +511,8 @@ function ChatView({ settings, set, resetSignal, apiKey, provider, model, papers,
       live(() => setStatus(""));
       const tRetrieve = performance.now() - t0;
       const candidates = results.map(toCand);
-      // With no router on the deployment the route label is always "text" —
-      // noise, not information. Suppress the per-message pill there.
+      // With no router on the deployment the route label is always "text",
+      // which is noise, not information. Suppress the per-message pill there.
       // Agentic turns are their own path (DCI), not a router decision; the
       // pill should say so rather than defaulting to "text route".
       upd({
@@ -530,7 +530,7 @@ function ChatView({ settings, set, resetSignal, apiKey, provider, model, papers,
       // configured, stop at retrieval with a how-to notice.
       if (!canGenerate) {
         const notice = provider === "ollama"
-          ? "Retrieved the chunks shown on the right. Pick a vision model in the model menu (top-right) to generate a cited answer from them — retrieval works either way."
+          ? "Retrieved the chunks shown on the right. Pick a vision model in the model menu (top-right) to generate a cited answer from them. Retrieval works either way."
           : "Retrieved the chunks shown on the right. Add your OpenRouter key (top-right) to generate a cited answer from them.";
         live(() => setStatus(""));
         upd({ answer: notice, streaming: false, notice: true, latencyMs: Math.round(tRetrieve) });
@@ -552,13 +552,13 @@ function ChatView({ settings, set, resetSignal, apiKey, provider, model, papers,
       const byId = new Map(results.map((c) => [c.chunk_id, c]));
       const citations = ids.map((id, i) => {
         // Page-image citations (`paper::pN::page`) point at an attached page,
-        // not a retrieved chunk — the model cites them for figure claims.
+        // not a retrieved chunk. The model cites them for figure claims.
         const pm = id.match(/^(.+)::p(\d+)::page$/);
         if (pm) return { n: i + 1, id, paper: pm[1], page: +pm[2], quote: null, kind: "visual", page_cite: true };
         const c = byId.get(id);
         if (!c) {
           // Injected figure/table caption (buildMessages adds it when the
-          // question names the element) — resolve through the figure index.
+          // question names the element). Resolve through the figure index.
           const fg = (figures || []).find((g) => g.chunk_id === id);
           if (fg) return { n: i + 1, id, paper: fg.paper_id, page: fg.page_number, quote: previewQuote(fg.caption || ""), kind: "visual", fig_cite: true, bbox: fg.bbox || null };
         }
@@ -574,18 +574,18 @@ function ChatView({ settings, set, resetSignal, apiKey, provider, model, papers,
       });
     } catch (err) {
       if (err && (err.code === "ollama_down" || err.code === "stream_error")) {
-        // Provider failure, not the visitor's fault — say so without blaming
+        // Provider failure, not the visitor's fault. Say so without blaming
         // a key or model they configured fine, and keep any partial answer.
         upd((prev) => ({
           answer: prev.answer
             ? `${prev.answer}\n\nGeneration stopped early: ${(err && err.message) || "the model provider failed."}`
-            : `${(err && err.message) || "The model provider failed."} Retrieval still worked — the chunks are on the right.`,
+            : `${(err && err.message) || "The model provider failed."} Retrieval still worked. The chunks are on the right.`,
           streaming: false,
           notice: true,
         }));
       } else {
-        // Keep whatever streamed before the failure — wiping a half-answer is
-        // worse than showing it with an honest interruption note.
+        // Keep whatever streamed before the failure. Wiping a half-answer is
+        // worse than showing it with an interruption note.
         upd((prev) => ({
           answer: prev.answer
             ? `${prev.answer}\n\nGeneration interrupted: ${(err && err.message) || err}`
@@ -604,7 +604,7 @@ function ChatView({ settings, set, resetSignal, apiKey, provider, model, papers,
   // Bumping runSeq orphans any in-flight ask: its guarded writes become no-ops.
   const newChat = () => { runSeq.current += 1; setTurns([]); setHighlight(null); setBusy(false); setStatus(""); };
   // The retrieval panel is hidden at phone width, so a
-  // highlight there would be invisible — open the source-page modal instead.
+  // highlight there would be invisible, so open the source-page modal instead.
   // Page-image citations always open the modal: they have no panel row.
   const onCite = (tag, msg) => {
     if (tag[0] === "F") return;
@@ -619,7 +619,7 @@ function ChatView({ settings, set, resetSignal, apiKey, provider, model, papers,
       return;
     }
     // The panel only ever shows the LAST turn's evidence, so a highlight is
-    // wrong for citations in older messages — open the modal for those too.
+    // wrong for citations in older messages, so open the modal for those too.
     const panelHidden = window.matchMedia && window.matchMedia("(max-width: 760px)").matches;
     const isLastTurn = msg === lastAssistant;
     if ((panelHidden || !isLastTurn) && cit && msg.candidates) {

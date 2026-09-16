@@ -1,14 +1,14 @@
 """Bet 1 (research-strategist agenda, 2026-06-01): build a HUMAN gold-audit surface.
 
 The 2026-05-29 taxonomy estimates ~29% of post-retrieval "failures" are strict-
-scoring artifacts and ~17% are bad/unprovable gold — i.e. a large share of the
+scoring artifacts and ~17% are bad/unprovable gold, so a large share of the
 measured ~0.46 ceiling is the RULER, not the model. Before any further model
 work, the gold slice must be human-audited so future experiments are decidable
 (every prior model lever died inside judge/scorer noise).
 
 THE IRON RULE (docs/evals.md, eval-harvest-promote skill): the machine never
-authors ground truth. This script ONLY assembles evidence for a human to judge —
-it renders each gold-present failure (question, human gold, what the model
+authors ground truth. This script ONLY assembles evidence for a human to judge.
+It renders each gold-present failure (question, human gold, what the model
 answered, and the actual gold page image(s)) into a self-contained HTML page with
 a 4-way verdict control. The human adjudicates in the browser and exports
 verdicts.json. A separate apply step (apply_gold_audit.py) consumes those human
@@ -16,11 +16,11 @@ verdicts. This script writes NO labels and emits NO verdict of its own.
 
 The 4 verdicts a human assigns per query:
   - gold_correct        : the gold answer is right and the page supports it.
-  - gold_wrong          : the page contradicts the gold (mislabeled, e.g. "Red"
+  - gold_wrong          : the page contradicts the gold (mislabeled, for example "Red"
                           for a pink element). Human supplies the corrected value.
   - gold_unprovable     : the fact needed to confirm gold is NOT on the fed page(s).
   - format_only_mismatch: model's content matches gold; only formatting differs
-                          (prose-vs-list, "21%" vs "21") — a scorer artifact.
+                          (prose-vs-list, "21%" vs "21"), a scorer artifact.
 
 Usage:
     .venv/Scripts/python.exe -m scripts.experiments.build_gold_audit \
@@ -153,7 +153,7 @@ def build_html(failures: list[dict[str, Any]]) -> str:
     cards = "\n".join(_card_html(i, total, rec) for i, rec in enumerate(failures))
     qids = json.dumps([r["qid"] for r in failures])
     # The page script holds verdicts in-memory and exports them; it NEVER fills a
-    # default — an un-adjudicated query is simply absent from the export, so the
+    # default: an un-adjudicated query is absent from the export, so the
     # apply step can tell adjudicated from skipped. No machine-authored truth.
     script = """
 const QIDS = __QIDS__;
@@ -187,7 +187,7 @@ function exportVerdicts(){
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Gold audit — {total} gold-present failures</title>
+<title>Gold audit: {total} gold-present failures</title>
 <style>{_PAGE_CSS}</style></head>
 <body>
 <header>
@@ -197,7 +197,7 @@ function exportVerdicts(){
 </header>
 {cards}
 <footer>Adjudicate each, then download verdicts.json and run apply_gold_audit.py.
-The machine authors no labels — every verdict here is yours.</footer>
+The machine authors no labels; every verdict here is yours.</footer>
 <script>{script}</script>
 </body></html>"""
 
@@ -212,7 +212,7 @@ def main() -> None:
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(build_html(failures), encoding="utf-8")
     n_imgs = sum(len(f["gold_page_pngs"]) for f in failures)
-    print(f"Built {args.out} — {len(failures)} failures, {n_imgs} page images inlined.")
+    print(f"Built {args.out}: {len(failures)} failures, {n_imgs} page images inlined.")
     print("Open it in a browser, adjudicate each, click 'Download verdicts.json',")
     print("then: .venv/Scripts/python.exe -m scripts.experiments.apply_gold_audit --verdicts verdicts.json")
 

@@ -1,7 +1,7 @@
 """Materialise a BRIGHT domain into a DCI corpus + query set.
 
 BRIGHT (xlangai/BRIGHT) is the reasoning-intensive IR benchmark the DCI paper
-uses, where dense retrievers fail and lexical+reasoning wins — the cleanest fit
+uses, where dense retrievers fail and lexical+reasoning wins, the cleanest fit
 for agentic corpus interaction. Metric: nDCG@10 over `gold_ids`, with
 `excluded_ids` removed from the ranking before scoring.
 

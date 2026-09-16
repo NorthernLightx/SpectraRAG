@@ -4,7 +4,7 @@ Used at Docker build time to bake the visual leg's page images into the
 runtime image: the deployed `/answer` UI sends those page URLs to OpenRouter
 as image content blocks, so a vision-capable model (gpt-4o, claude, qwen3-vl)
 can read pixels even though the deploy has no GPU for ColQwen2 retrieval.
-Idempotent — `render_pages()` skips files that already exist.
+Idempotent: `render_pages()` skips files that already exist.
 
 Usage:
 

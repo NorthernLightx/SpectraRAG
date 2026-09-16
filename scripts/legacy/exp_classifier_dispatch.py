@@ -104,7 +104,7 @@ async def main() -> None:
     llm_hybrid = sum(1 for r in per_query if r["llm_path"] == "hybrid")
     agree = sum(1 for r in per_query if r["agree"])
 
-    # Hybrid-rate by GOLD category — the truth
+    # Hybrid-rate by GOLD category, the truth
     by_gold_regex_hybrid: defaultdict[str, int] = defaultdict(int)
     by_gold_llm_hybrid: defaultdict[str, int] = defaultdict(int)
     by_gold_n: Counter[str] = Counter()

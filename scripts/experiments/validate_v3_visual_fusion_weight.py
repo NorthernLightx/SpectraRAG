@@ -218,7 +218,7 @@ async def main() -> None:
     text_recall = _avg(text_page_recall)
     log(
         f"SANITY text-only page recall@10 (figure+table, n={len(text_page_recall)}): "
-        f"{text_recall:.4f} — v3 text is strong, expect high."
+        f"{text_recall:.4f}. v3 text is strong, expect high."
     )
     if text_recall < 0.5:
         log(
@@ -302,7 +302,7 @@ async def main() -> None:
 
     # --- RE-FUSE at each weight through the REAL _fuse_page_level. ---
     log("=" * 78)
-    log("PAGE-LEVEL metric (primary — matches the page-granularity fusion lever):")
+    log("PAGE-LEVEL metric (primary, matches the page-granularity fusion lever):")
     weight_rows: dict[str, dict[str, Any]] = {}
     for weight in WEIGHTS:
         router = RoutingRetriever(
