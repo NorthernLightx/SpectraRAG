@@ -684,3 +684,141 @@ async def test_query_routing_mode_category_overrides_cascade_server() -> None:
     await router.retrieve(Query(text="explain the approach", routing_mode="category"))
 
     assert visual.calls == 0
+
+
+# ADR 0032: always-hybrid dispatch — fuse both legs, never classify.
+
+
+class _RecordingClassifier:
+    """Test fake: counts classify() calls, returns a fixed category.
+
+    Returns `definitional`, which routes text-only under ADR 0008 dispatch, so
+    a visual-leg call proves the classifier was skipped.
+    """
+
+    def __init__(self, category: Category = "definitional") -> None:
+        self.category = category
+        self.calls = 0
+
+    async def classify(self, query: str) -> Category:
+        self.calls += 1
+        return self.category
+
+
+@pytest.mark.asyncio
+async def test_hybrid_mode_fuses_both_legs_without_classifying() -> None:
+    """mode='hybrid' runs both legs on a query the classifier would send to text."""
+    classifier = _RecordingClassifier()
+    text = _RecordingRetriever("text", [_text_chunk("paper1::p1::c0", 0.9)])
+    visual = _RecordingRetriever("visual", [_visual_page(2, 0.7)])
+    router = RoutingRetriever(
+        text=text,
+        visual=visual,
+        classifier=classifier,  # type: ignore[arg-type]
+        mode="hybrid",
+    )
+
+    results = await router.retrieve(Query(text="What does the model do?", top_k=5))
+
+    assert classifier.calls == 0
+    assert text.calls == 1
+    assert visual.calls == 1
+    assert {r.chunk_id for r in results} == {"paper1::p1::c0", "paper1::p2::page"}
+
+
+@pytest.mark.asyncio
+async def test_hybrid_mode_reports_itself_in_routing_info() -> None:
+    """The /query response names the mode that ran."""
+    text = _RecordingRetriever("text", [_text_chunk("paper1::p1::c0", 0.9)])
+    visual = _RecordingRetriever("visual", [_visual_page(2, 0.7)])
+    router = RoutingRetriever(text=text, visual=visual, mode="hybrid")
+
+    await router.retrieve(Query(text="What does the model do?", top_k=5))
+
+    info = get_last_routing_info()
+    assert info is not None
+    assert info.mode == "hybrid"
+    assert info.path == "hybrid"
+    assert info.forced is False
+    assert info.category is None
+
+
+@pytest.mark.asyncio
+async def test_hybrid_mode_honours_force_route_text() -> None:
+    """force_route overrides the server mode."""
+    classifier = _RecordingClassifier()
+    text = _RecordingRetriever("text", [_text_chunk("paper1::p1::c0", 0.9)])
+    visual = _RecordingRetriever("visual", [_visual_page(2, 0.7)])
+    router = RoutingRetriever(
+        text=text,
+        visual=visual,
+        classifier=classifier,  # type: ignore[arg-type]
+        mode="hybrid",
+    )
+
+    await router.retrieve(Query(text="Show Figure 3", top_k=5, force_route="text"))
+
+    assert classifier.calls == 0
+    assert text.calls == 1
+    assert visual.calls == 0
+    info = get_last_routing_info()
+    assert info is not None
+    assert info.mode == "hybrid"
+    assert info.path == "text"
+    assert info.forced is True
+
+
+@pytest.mark.asyncio
+async def test_hybrid_mode_visual_failure_degrades_to_text() -> None:
+    """A raising visual leg returns text-only results (ADR 0008 failure modes)."""
+    text = _RecordingRetriever("text", [_text_chunk("paper1::p1::c0", 0.9)])
+    visual = _FailingRetriever(RuntimeError("CUDA out of memory"))
+    router = RoutingRetriever(text=text, visual=visual, mode="hybrid")
+
+    results = await router.retrieve(Query(text="Show Figure 3", top_k=5))
+
+    assert [r.chunk_id for r in results] == ["paper1::p1::c0"]
+    info = get_last_routing_info()
+    assert info is not None
+    assert info.mode == "hybrid"
+    assert info.path == "text"
+    assert info.visual_failed is True
+
+
+@pytest.mark.asyncio
+async def test_query_routing_mode_hybrid_overrides_category_server() -> None:
+    """Query.routing_mode overrides the server mode for one call."""
+    classifier = _RecordingClassifier()
+    text = _RecordingRetriever("text", [_text_chunk("paper1::p1::c0", 0.9)])
+    visual = _RecordingRetriever("visual", [_visual_page(2, 0.7)])
+    router = RoutingRetriever(
+        text=text,
+        visual=visual,
+        classifier=classifier,  # type: ignore[arg-type]
+        mode="category",
+    )
+
+    await router.retrieve(Query(text="explain the approach", routing_mode="hybrid"))
+
+    assert classifier.calls == 0
+    assert visual.calls == 1
+
+
+@pytest.mark.asyncio
+async def test_hybrid_server_still_serves_forced_visual_only() -> None:
+    """force_route='visual' bypasses every mode.
+
+    The logged mode stays the server's.
+    """
+    text = _RecordingRetriever("text", [_text_chunk("paper1::p1::c0", 0.9)])
+    visual = _RecordingRetriever("visual", [_visual_page(2, 0.7)])
+    router = RoutingRetriever(text=text, visual=visual, mode="hybrid")
+
+    results = await router.retrieve(Query(text="anything", top_k=5, force_route="visual"))
+
+    assert text.calls == 0
+    assert [r.chunk_id for r in results] == ["paper1::p2::page"]
+    info = get_last_routing_info()
+    assert info is not None
+    assert info.mode == "hybrid"
+    assert info.path == "visual"

@@ -80,7 +80,8 @@ Each of these could have explained the result away. None did:
 ## Consequences
 
 - The shipped default should fuse both legs. `--force-route hybrid` exists on
-  `eval_run` to measure it; the serving default is a separate change.
+  `eval_run` to measure it; the serving default is a separate change, landed in
+  the amendment below.
 - The README's "+35 %" remains true of the router against text-only, and is now
   the weaker of two available numbers.
 - The reader, not retrieval, is the binding constraint: even handed the right
@@ -116,3 +117,33 @@ correct refusal — the metric moved while the product got worse. Receipts in
 
 Anything that trades refusals for attempts needs a precision-aware metric first.
 The repo already has faithfulness judges; they were not part of this gate.
+
+## Amendment (2026-09-17): the serving default now fuses
+
+The measurement above did not reach the served retriever. Nothing read
+`Settings.routing_mode`, and `RoutingMode` had no `hybrid` member, so no
+configuration made the server fuse on every query. Only a per-call
+`force_route="hybrid"` did, one request at a time. What shipped was the
+classifier arm measured at 0.621 against always-hybrid's 0.784.
+
+Three changes close that:
+
+- `RoutingMode` gains `hybrid`. It runs both legs and skips the classifier.
+  `force_route` still overrides it per call.
+- `_wire_retriever_from_settings` passes `mode` and
+  `cascade_confidence_threshold` to the `RoutingRetriever`. Asking for
+  `cascade` without a threshold now raises at wiring time instead of being
+  ignored.
+- `Settings.routing_mode` defaults to `hybrid`. `category` and `cascade` stay
+  reachable through `RAG_ROUTING_MODE`.
+
+The `RoutingRetriever` constructor still defaults to `category`, which is what
+`eval_run` builds without `--cascade`. Changing it would move the arm every
+committed baseline was produced under. The hybrid arm stays addressable there
+through `--force-route hybrid`.
+
+Not measured: the latency table above comes from the local box against a
+pre-encoded page index. Cloud Run serves the visual leg on CPU (ADR 0028), and
+the classifier previously kept about half of traffic off it, so the served p50
+under always-hybrid is unknown. Measure it against the live service before
+reading the cost column as zero.

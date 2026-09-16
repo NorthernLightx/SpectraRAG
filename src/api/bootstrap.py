@@ -223,10 +223,10 @@ async def _wire_retriever_from_settings(
     attempts to build the visual leg (ColQwen2 over ``pages_dir``) and the
     LLM classifier (over ``openrouter_api_key``). If the visual leg builds,
     the registered retriever is a ``RoutingRetriever`` wrapping the text leg
-    + visual leg + classifier — figure/table/multi_hop queries dispatch to
-    RRF-fused hybrid, factual/definitional stay text-only. If the visual leg
-    can't be built (no GPU, missing pages, model load error) the function
-    falls through to text-only — same as ``enable_multimodal=False``.
+    + visual leg + classifier, running in ``settings.routing_mode``. The
+    default fuses both legs on every query (ADR 0032). If the visual leg can't
+    be built (no GPU, missing pages, model load error) the function falls
+    through to text-only, same as ``enable_multimodal=False``.
 
     The keyword args allow tests to inject fakes without monkeypatching
     module-level constructors. Production callers pass none.
@@ -311,12 +311,17 @@ async def _wire_retriever_from_settings(
                     text=text_retriever,
                     visual=visual_retriever,
                     classifier=classifier,
+                    # ADR 0032. `cascade` without a threshold raises here rather
+                    # than starting in a mode the retriever cannot run.
+                    mode=settings.routing_mode,
+                    cascade_confidence_threshold=settings.cascade_confidence_threshold,
                     visual_fusion_weight=settings.visual_fusion_weight,
                 )
             )
             log.info(
                 "api.retriever.wired",
                 mode="routing",
+                routing_mode=settings.routing_mode,
                 chunks=len(chunks),
                 classifier="llm" if classifier is not None else "regex",
             )

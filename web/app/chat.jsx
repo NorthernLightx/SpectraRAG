@@ -61,8 +61,10 @@ function AdvancedPanel({ settings, set, papers, routingAvailable }) {
         <label>Routing mode</label>
         <Segmented value={settings.routingMode} onChange={(v) => set("routingMode", v)}
           options={[{ value: "", label: "default" },
+            { value: "hybrid", label: "hybrid", disabled: noRouter, disabledTitle: offTitle },
             { value: "category", label: "category", disabled: noRouter, disabledTitle: offTitle },
             { value: "cascade", label: "cascade", disabled: noRouter, disabledTitle: offTitle }]} />
+        <span className="field-note">the default runs both legs on every query</span>
       </div>
       <div className="field">
         <label>Context budget</label>

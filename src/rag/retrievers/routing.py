@@ -11,6 +11,9 @@ invokes the visual leg if the top-1 rerank score falls below
 already confident, ColQwen2 inference is skipped (~30 % of total per-query
 latency on the v3 corpus). The threshold is calibrated via
 `scripts/calibrate_cascade.py`.
+
+ADR 0032 adds a third mode, `hybrid`: both legs on every query, no classifier
+call. It is the served default. `category` and `cascade` are opt-in cost knobs.
 """
 
 from __future__ import annotations
@@ -59,7 +62,7 @@ _DEFAULT_CASCADE_THRESHOLD = 0.85
 
 Category = Literal["table", "figure", "multi_hop", "factual", "definitional"]
 RoutingPath = Literal["text", "visual", "hybrid"]
-RoutingMode = Literal["category", "cascade"]
+RoutingMode = Literal["category", "cascade", "hybrid"]
 
 # Precedence-ordered patterns. Order matters: a query like "compare Figure 3 vs
 # Figure 4" matches both `figure` and `multi_hop`; precedence picks `figure`.
@@ -162,17 +165,19 @@ class RoutingRetriever:
         self._visual_fusion_weight = visual_fusion_weight
 
     async def retrieve(self, query: Query) -> list[RetrievalResult]:
-        # A forced visual-only route bypasses both dispatch modes: run just the
+        # query.routing_mode overrides the constructor mode for this call only.
+        # Lets the demo UI A/B compare dispatch modes without restarting the
+        # server.
+        effective_mode = query.routing_mode or self._mode
+        # A forced visual-only route bypasses every dispatch mode: run just the
         # visual leg, no text, no fusion. (force_route="text"/"hybrid" are handled
         # within each mode below.)
         if query.force_route == "visual":
-            return await self._retrieve_visual_only(query)
-        # query.routing_mode overrides the constructor mode for this call only.
-        # Lets the demo UI A/B compare category vs cascade dispatch without
-        # restarting the server.
-        effective_mode = query.routing_mode or self._mode
+            return await self._retrieve_visual_only(query, mode=effective_mode)
         if effective_mode == "cascade":
             return await self._retrieve_cascade(query)
+        if effective_mode == "hybrid":
+            return await self._retrieve_always_hybrid(query)
 
         if self._classifier is not None:
             try:
@@ -204,7 +209,8 @@ class RoutingRetriever:
 
         if path == "text":
             text_results = await self._text.retrieve(query)
-            self._log_category(
+            self._log_dispatch(
+                mode="category",
                 path="text",
                 category=category,
                 forced=forced,
@@ -214,14 +220,64 @@ class RoutingRetriever:
             )
             return text_results
 
-        # Hybrid: gather text + visual concurrently so latency is max(text, visual)
+        return await self._run_both_legs(
+            query, span, mode="category", category=category, forced=forced
+        )
+
+    async def _retrieve_always_hybrid(self, query: Query) -> list[RetrievalResult]:
+        """Fuse both legs without calling the classifier (ADR 0032).
+
+        `force_route="text"` overrides the mode for one call.
+        """
+        span = trace.get_current_span()
+        span.set_attribute("routing.mode", "hybrid")
+
+        if query.force_route == "text":
+            span.set_attribute("routing.path", "text")
+            span.set_attribute("routing.forced", True)
+            text_results = await self._text.retrieve(query)
+            self._log_dispatch(
+                mode="hybrid",
+                path="text",
+                category=None,
+                forced=True,
+                text_results=text_results,
+                visual_results=None,
+                fused_n=len(text_results),
+            )
+            return text_results
+
+        span.set_attribute("routing.path", "hybrid")
+        span.set_attribute("routing.forced", query.force_route is not None)
+        return await self._run_both_legs(
+            query,
+            span,
+            mode="hybrid",
+            category=None,
+            forced=query.force_route is not None,
+        )
+
+    async def _run_both_legs(
+        self,
+        query: Query,
+        span: Span,
+        *,
+        mode: RoutingMode,
+        category: Category | None,
+        forced: bool,
+    ) -> list[RetrievalResult]:
+        """Run both legs concurrently, then RRF-fuse at page granularity.
+
+        Latency is max(text, visual). Returns text-only results when the visual
+        leg raises (ADR 0008 §"Failure modes").
+        """
         text_task = asyncio.create_task(self._text.retrieve(query))
         visual_task = asyncio.create_task(self._safe_visual_retrieve(query, span))
         text_results, visual_results = await asyncio.gather(text_task, visual_task)
 
         if visual_results is None:
-            # Visual failed; degrade to text-only so demos don't die from GPU hiccups
-            self._log_category(
+            self._log_dispatch(
+                mode=mode,
                 path="text",
                 category=category,
                 forced=forced,
@@ -233,7 +289,8 @@ class RoutingRetriever:
             return text_results
 
         fused = self._fuse_page_level(text_results, visual_results, top_k=query.top_k)
-        self._log_category(
+        self._log_dispatch(
+            mode=mode,
             path="hybrid",
             category=category,
             forced=forced,
@@ -243,17 +300,20 @@ class RoutingRetriever:
         )
         return fused
 
-    async def _retrieve_visual_only(self, query: Query) -> list[RetrievalResult]:
+    async def _retrieve_visual_only(
+        self, query: Query, *, mode: RoutingMode = "category"
+    ) -> list[RetrievalResult]:
         """Forced visual-only route: run the visual leg alone — no text leg, no
         fusion. On a visual-leg failure, degrade to text-only like the other
         paths so a GPU hiccup doesn't kill the demo (ADR 0008 §"Failure modes")."""
         span = trace.get_current_span()
-        span.set_attribute("routing.mode", "category")
+        span.set_attribute("routing.mode", mode)
         span.set_attribute("routing.forced", True)
         visual_results = await self._safe_visual_retrieve(query, span)
         if visual_results is None:
             text_results = await self._text.retrieve(query)
-            self._log_category(
+            self._log_dispatch(
+                mode=mode,
                 path="text",
                 category=None,
                 forced=True,
@@ -264,7 +324,8 @@ class RoutingRetriever:
             )
             span.set_attribute("routing.path", "text")
             return text_results
-        self._log_category(
+        self._log_dispatch(
+            mode=mode,
             path="visual",
             category=None,
             forced=True,
@@ -384,9 +445,10 @@ class RoutingRetriever:
         span.set_attribute("routing.path", "hybrid")
         return fused
 
-    def _log_category(
+    def _log_dispatch(
         self,
         *,
+        mode: RoutingMode,
         path: RoutingPath,
         category: Category | None,
         forced: bool,
@@ -396,11 +458,12 @@ class RoutingRetriever:
         visual_failed: bool = False,
     ) -> None:
         """Set the per-task RoutingInfo and emit routing.dispatched for the
-        category path. Symmetric to _log_cascade — both legs go through one
-        emitter so the response decision and the log can't drift apart."""
+        category and always-hybrid paths. Symmetric to _log_cascade — every
+        path goes through one emitter so the response decision and the log
+        can't drift apart."""
         _routing_info_var.set(
             RoutingInfo(
-                mode="category",
+                mode=mode,
                 path=path,
                 forced=forced,
                 category=category,
@@ -408,7 +471,7 @@ class RoutingRetriever:
             )
         )
         kwargs: dict[str, object] = {
-            "mode": "category",
+            "mode": mode,
             "category": category,
             "path": path,
             "forced": forced,

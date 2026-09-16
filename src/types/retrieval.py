@@ -26,7 +26,8 @@ class Query(BaseModel):
     # configured mode is used. When set, RoutingRetriever switches dispatch
     # logic for this call only. Cascade dispatch falls back to a 0.85
     # threshold when the server wasn't started with one configured.
-    routing_mode: Literal["category", "cascade"] | None = None
+    # ADR 0032 adds "hybrid": fuse both legs, skip the classifier.
+    routing_mode: Literal["category", "cascade", "hybrid"] | None = None
 
     def paper_id_filter(self) -> str | None:
         """Optional single-paper scope hint (ADR 0009 follow-up). Eval populates
@@ -66,7 +67,7 @@ class RoutingInfo(BaseModel):
     next to timings.
     """
 
-    mode: Literal["category", "cascade"]
+    mode: Literal["category", "cascade", "hybrid"]
     path: Literal["text", "visual", "hybrid"]
     forced: bool = False
     category: str | None = None  # set only when mode=category

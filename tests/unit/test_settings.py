@@ -139,18 +139,20 @@ def test_refusal_score_threshold_disabled_via_yaml(
     assert settings.refusal_score_threshold is None
 
 
-# ADR 0010: routing_mode + cascade_confidence_threshold defaults.
+# ADR 0010 + 0032: routing_mode + cascade_confidence_threshold defaults.
 
 
-def test_routing_mode_defaults_to_category(monkeypatch: pytest.MonkeyPatch) -> None:
-    """ADR 0008's category-based dispatch is the safe default; cascade is opt-in."""
+def test_routing_mode_defaults_to_hybrid(monkeypatch: pytest.MonkeyPatch) -> None:
+    """ADR 0032: the served default fuses both legs. `category` and `cascade`
+    are opt-in."""
     monkeypatch.delenv("RAG_ROUTING_MODE", raising=False)
-    assert Settings().routing_mode == "category"
+    assert Settings().routing_mode == "hybrid"
 
 
-def test_routing_mode_can_be_set_to_cascade(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("RAG_ROUTING_MODE", "cascade")
-    assert Settings().routing_mode == "cascade"
+@pytest.mark.parametrize("mode", ["category", "cascade"])
+def test_routing_mode_overridable_via_env(monkeypatch: pytest.MonkeyPatch, mode: str) -> None:
+    monkeypatch.setenv("RAG_ROUTING_MODE", mode)
+    assert Settings().routing_mode == mode
 
 
 def test_cascade_threshold_defaults_to_none(monkeypatch: pytest.MonkeyPatch) -> None:

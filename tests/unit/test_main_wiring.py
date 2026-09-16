@@ -52,6 +52,8 @@ def _settings(
     refusal_score_threshold: float | None = 0.105,
     reranker_model: str | None = None,
     page_budget: int | None = None,
+    routing_mode: str | None = None,
+    cascade_confidence_threshold: float | None = None,
 ) -> Settings:
     kwargs: dict[str, object] = {
         "env": "test",
@@ -70,6 +72,10 @@ def _settings(
         kwargs["openrouter_api_key"] = openrouter_api_key
     if reranker_model is not None:
         kwargs["reranker_model"] = reranker_model
+    if routing_mode is not None:
+        kwargs["routing_mode"] = routing_mode
+    if cascade_confidence_threshold is not None:
+        kwargs["cascade_confidence_threshold"] = cascade_confidence_threshold
     return Settings(**kwargs)  # type: ignore[arg-type]
 
 
@@ -326,6 +332,66 @@ async def test_multimodal_on_with_visual_leg_yields_routing_retriever() -> None:
 
     assert wired is True
     assert isinstance(_RetrieverState.instance, RoutingRetriever)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("configured", "expected"),
+    [(None, "hybrid"), ("category", "category"), ("cascade", "cascade")],
+)
+async def test_wire_threads_routing_mode_from_settings(
+    configured: str | None, expected: str
+) -> None:
+    """Settings.routing_mode reaches the wired RoutingRetriever.
+
+    The default is `hybrid` (ADR 0032). What each mode does is covered in
+    test_routing.py.
+    """
+    embedder = FakeEmbedder(dim=8)
+    store = await _populate_store(embedder)
+    visual = FakeRetriever(
+        results=[
+            RetrievalResult(
+                chunk_id="paper::p1::page",
+                paper_id="paper",
+                score=0.9,
+                text="[Page image paper p1]",
+                page_numbers=[1],
+                source="visual",
+            )
+        ]
+    )
+    kwargs: dict[str, object] = {} if configured is None else {"routing_mode": configured}
+    if configured == "cascade":
+        kwargs["cascade_confidence_threshold"] = 0.5
+
+    wired = await _wire_retriever_from_settings(
+        _settings(enable_multimodal=True, **kwargs),  # type: ignore[arg-type]
+        embedder=embedder,
+        vectorstore=store,
+        visual_retriever=visual,
+    )
+
+    assert wired is True
+    retriever = _RetrieverState.instance
+    assert isinstance(retriever, RoutingRetriever)
+    assert retriever._mode == expected
+
+
+@pytest.mark.asyncio
+async def test_wire_rejects_cascade_without_a_threshold() -> None:
+    """`cascade` without a calibrated threshold raises during wiring."""
+    embedder = FakeEmbedder(dim=8)
+    store = await _populate_store(embedder)
+    visual = FakeRetriever(results=[])
+
+    with pytest.raises(ValueError, match="cascade_confidence_threshold"):
+        await _wire_retriever_from_settings(
+            _settings(enable_multimodal=True, routing_mode="cascade"),
+            embedder=embedder,
+            vectorstore=store,
+            visual_retriever=visual,
+        )
 
 
 @pytest.mark.asyncio
