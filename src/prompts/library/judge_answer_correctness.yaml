@@ -19,16 +19,17 @@ user_template: |
   Answer to grade:
   {answer}
 
-  Output the score as a single decimal between 0.0 and 1.0 on the FIRST
-  LINE ONLY, with no prefix, label, or punctuation. Then on subsequent
-  lines write a 1-2 sentence rationale naming which facts were covered and
-  which were missed.
+  Output the score on the FIRST LINE ONLY, with no prefix, label, or
+  punctuation. Then on subsequent lines write a 1-2 sentence rationale
+  naming which facts were covered and which were missed.
 
   Score = (number of expected facts covered by the answer) / (number of
-  expected facts). Examples of valid first lines:
-    1.0
-    0.5
-    0.0
+  expected facts). There are {n_facts} expected facts, so the score is one
+  of these values and nothing else:
+    {legal_scores}
+
+  Do not interpolate between them. A partially stated fact is either
+  covered or not covered; decide which.
 
   If the answer is "Not stated in the provided context" or a similar
   refusal, score 0.0 — refusal does not cover any facts. (The eval runner

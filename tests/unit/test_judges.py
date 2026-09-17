@@ -311,3 +311,53 @@ async def test_judge_answer_correctness_raises_when_prompt_missing() -> None:
     )
     with pytest.raises(RuntimeError, match=r"answer_correctness judge not configured"):
         await plain.answer_correctness(query="q", answer="a", expected_facts=["f"])
+
+
+# The coverage score is k/n_facts, so only n_facts+1 values are defined. A judge
+# that interpolates puts every mean taken over it on an undefined scale.
+
+
+async def test_answer_correctness_flags_a_score_off_the_grid() -> None:
+    """One expected fact admits 0.0 and 1.0 only; 0.5 is not a stricter grade."""
+    judge, _ = _judge_with_correctness(["0.5\nPartially covered."])
+
+    result = await judge.answer_correctness(
+        query="What is X?", answer="X is sort of Y.", expected_facts=["X is Y."]
+    )
+
+    assert result.score == pytest.approx(0.5)  # reported, never snapped
+    assert result.off_scale is True
+
+
+@pytest.mark.parametrize("reply", ["0.0\nnone", "1.0\nall"])
+async def test_answer_correctness_accepts_the_grid(reply: str) -> None:
+    judge, _ = _judge_with_correctness([reply])
+
+    result = await judge.answer_correctness(
+        query="What is X?", answer="X is Y.", expected_facts=["X is Y."]
+    )
+
+    assert result.off_scale is False
+
+
+async def test_answer_correctness_accepts_rounded_thirds() -> None:
+    """A judge writing 2/3 as 0.66 is rounding, not interpolating."""
+    judge, _ = _judge_with_correctness(["0.66\nCovered 2 of 3."])
+
+    result = await judge.answer_correctness(
+        query="q", answer="a", expected_facts=["one", "two", "three"]
+    )
+
+    assert result.off_scale is False
+
+
+async def test_answer_correctness_tells_the_judge_its_legal_scores() -> None:
+    """The prompt carries the grid, so off-grid returns are disobedience rather
+    than an underspecified instruction."""
+    judge, llm = _judge_with_correctness(["0.5\nhalf"])
+
+    await judge.answer_correctness(query="q", answer="a", expected_facts=["one", "two"])
+
+    user_msg = llm.calls[0]["messages"][-1].content
+    assert "2 expected facts" in user_msg
+    assert "0.5" in user_msg

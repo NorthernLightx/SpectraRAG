@@ -18,7 +18,7 @@ from __future__ import annotations
 import asyncio
 import math
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from src.llm.protocol import LLMClient, Message
 from src.observability.logging import get_logger, timed_event
@@ -47,6 +47,22 @@ class JudgeOutput:
     prompt_version: str
     score_std: float = 0.0
     n_samples: int = 1
+    # True when a coverage score landed off the k/n grid its scale allows.
+    # Only answer_correctness sets this; it has the fact count to check against.
+    off_scale: bool = False
+
+
+# Judges write 2/3 as "0.66" or "0.67", so an exact grid match is too strict.
+# 0.02 accepts two-decimal rounding of any k/n up to n=20 while still rejecting
+# the interpolations this guard exists for (0.5 at n=1 sits 0.5 off the grid).
+_GRID_TOLERANCE = 0.02
+
+
+def _legal_scores(n_facts: int) -> tuple[float, ...]:
+    """The k/n_facts grid a coverage score may take, for k in 0..n_facts."""
+    if n_facts <= 0:
+        return (0.0,)
+    return tuple(k / n_facts for k in range(n_facts + 1))
 
 
 def _parse_score(raw: str) -> tuple[float, str]:
@@ -167,13 +183,31 @@ class LLMJudge:
         if self._answer_correctness_prompt is None:
             raise RuntimeError("answer_correctness judge not configured")
         rendered = "\n".join(f"- {f}" for f in expected_facts)
-        return await self._judge(
+        n_facts = len(expected_facts)
+        legal = _legal_scores(n_facts)
+        out = await self._judge(
             self._answer_correctness_prompt,
             metric="answer_correctness",
             query=query,
             answer=answer,
             expected_facts=rendered,
+            n_facts=n_facts,
+            legal_scores="    ".join(f"{s:.4g}" for s in legal),
         )
+        # coverage/total admits only n_facts+1 values. A score off that grid is
+        # not a stricter grade, it is a grade on an undefined scale, so any mean
+        # taken over it is uninterpretable. Flag rather than snap: rounding a
+        # 0.5 at n_facts=1 would invent a verdict the judge did not give.
+        if not any(abs(out.score - s) <= _GRID_TOLERANCE for s in legal):
+            _log.warning(
+                "judge.off_scale",
+                metric="answer_correctness",
+                score=out.score,
+                n_facts=n_facts,
+                model=self._model,
+            )
+            return replace(out, off_scale=True)
+        return out
 
     async def _judge(self, prompt: Prompt, *, metric: str, **render_kwargs: object) -> JudgeOutput:
         # Some prompts don't use 'answer' or 'context'; pass empty strings so str.format won't KeyError.
