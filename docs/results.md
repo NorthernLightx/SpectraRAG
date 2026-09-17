@@ -360,40 +360,74 @@ and the whole-doc comparison are in
 
 ## Multi-modal regression gate
 
-The two MMLongBench retrieval runs are committed as a pair:
-[`data/eval/baseline-mmlongbench-text.json`](../data/eval/baseline-mmlongbench-text.json)
-(text-only, `3de944c0d03d`) and
-[`data/eval/baseline-mmlongbench-router.json`](../data/eval/baseline-mmlongbench-router.json)
-(LLM router, `76c164307b05`), so future changes can't silently lose the
-+34.6 % recall@10 win. The earlier
-[`baseline-mmlongbench.json`](../data/eval/baseline-mmlongbench.json)
-(regex-era router `cc45831697b6`, recall@10 0.7469) is superseded by this
-pair but left in place for provenance. The eval runner stores chunk-level
-scores against `relevant_chunk_ids` (always 0.0 for MMLongBench, since the
-golden uses page-level relevance). Page-level scoring lives in
-[`scripts/rescore_mmlb_pages.py`](../scripts/rescore_mmlb_pages.py); each
-committed baseline is its output.
+The gate pins the arm production serves. Since ADR 0032 that is always-hybrid,
+so the baseline is
+[`data/eval/baseline-mmdocir-hybrid.json`](../data/eval/baseline-mmdocir-hybrid.json)
+(`31c34df9d27d`, 1,127 queries). Its three siblings, `-text`, `-router` and
+`-visual`, are committed alongside it as the other arms of the same comparison.
+
+MMDocIR suits a gate better than the MMLongBench pair below on three counts.
+It carries 1,127 queries against 107, so a 5 % threshold sits outside the noise
+rather than inside one standard error. It stores page-level metrics directly in
+`per_query.retrieval`, so no rescore step stands between a run and the check.
+And the baseline arm is produced with `--force-route hybrid`, which bypasses the
+LLM classifier, so re-running it does not have a nondeterministic model in the
+loop.
 
 To check a candidate run against the gate:
 
 ```sh
-.venv/Scripts/python.exe -m scripts.rescore_mmlb_pages \
-    --run data/eval/runs/run-XXXX.json \
-    --golden data/golden/mmlongbench-v1.yaml \
-    --output /tmp/candidate-rescored.json
-.venv/Scripts/python.exe -m scripts.check_regression \
-    --baseline data/eval/baseline-mmlongbench-router.json \
-    --candidate /tmp/candidate-rescored.json \
-    --metrics ndcg_at_5 recall_at_10 mrr
+.venv/Scripts/python.exe -m scripts.check_regression     --baseline data/eval/baseline-mmdocir-hybrid.json     --candidate data/eval/runs/run-XXXX.json     --metrics ndcg_at_5 recall_at_10 mrr
 ```
 
-The gate fails if any retrieval metric regresses > 5 %. Verified locally:
-running it with the **text-only** baseline as candidate against the router
-baseline fails with `recall_at_10 -25.68 %` (nDCG@5 -19.11 %, MRR
--19.29 %, exit 1), exactly the regression we'd see if a future change
-disabled the visual leg. CI doesn't run MMLongBench (it needs Qdrant +
-Ollama + 15 min of compute); this is a manual gate, run before merging any
-change that touches retrieval.
+The gate fails if any retrieval metric regresses more than 5 %. Verified by
+running each committed arm against it as a candidate:
+
+| candidate | nDCG@5 | recall@10 | MRR | exit |
+|---|---|---|---|---|
+| hybrid (the baseline itself) | +0.00 % | +0.00 % | +0.00 % | 0 |
+| classifier router | -15.49 % | -20.61 % | -13.81 % | 1 |
+| text-only | -31.65 % | -41.44 % | -28.19 % | 1 |
+| visual-only | +25.05 % | +2.02 % | +38.00 % | 0 |
+
+Reverting to the classifier or to text-only is what the gate is for, and both
+fail it. Dropping the **text** leg does not: visual-only scores above hybrid on
+all three metrics, which is the same result ADR 0032 measured (0.800 against
+0.784). The text leg is kept for chunk-level citations and for corpora with no
+page index, which these numbers do not measure, so no retrieval gate can
+protect it. Read the visual-only row as a property of the metric rather than as
+a suggestion.
+
+Reproducing a candidate needs the MMDocIR corpus, which is 5.6 GB and
+gitignored under `data/mmdocir/`; `scripts/fetch_mmdocir.py` rebuilds it. CI
+runs neither this gate nor the MMLongBench one: both need Qdrant, a visual
+index and far more than a runner's budget. This is a manual gate, run before
+merging any change that touches retrieval.
+
+### The earlier MMLongBench pair
+
+[`baseline-mmlongbench-text.json`](../data/eval/baseline-mmlongbench-text.json)
+(text-only, `3de944c0d03d`) and
+[`baseline-mmlongbench-router.json`](../data/eval/baseline-mmlongbench-router.json)
+(LLM router, `76c164307b05`) remain committed as the pair behind the +34.6 %
+recall@10 result. [`baseline-mmlongbench.json`](../data/eval/baseline-mmlongbench.json)
+(regex-era router `cc45831697b6`, recall@10 0.7469) predates both and is kept
+for provenance.
+
+Checking a candidate against this pair needs an extra step: the eval runner
+stores chunk-level scores against `relevant_chunk_ids`, always 0.0 for
+MMLongBench because the golden uses page-level relevance, so
+[`scripts/rescore_mmlb_pages.py`](../scripts/rescore_mmlb_pages.py) has to
+rescore the run first. Each committed baseline is that script's output.
+
+```sh
+.venv/Scripts/python.exe -m scripts.rescore_mmlb_pages     --run data/eval/runs/run-XXXX.json     --golden data/golden/mmlongbench-v1.yaml     --output /tmp/candidate-rescored.json
+.venv/Scripts/python.exe -m scripts.check_regression     --baseline data/eval/baseline-mmlongbench-router.json     --candidate /tmp/candidate-rescored.json     --metrics ndcg_at_5 recall_at_10 mrr
+```
+
+Verified locally: the text-only baseline as candidate against the router
+baseline fails with `recall_at_10 -25.68 %` (nDCG@5 -19.11 %, MRR -19.29 %,
+exit 1).
 
 ## Failure modes: when this gets it wrong
 

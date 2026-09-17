@@ -56,7 +56,8 @@ The earlier MMLongBench-Doc measurement stands on its own terms: over 107
 in-corpus queries the router scores 0.7461 recall@10 against text-only's 0.5545,
 a 35 % lift, and 0.5111 to 0.7578 on the figure subset. Those runs are committed
 under [`data/eval/`](./data/eval/) as `baseline-mmlongbench-text.json` and
-`baseline-mmlongbench-router.json`, and they are what the regression gate pins.
+`baseline-mmlongbench-router.json`. The regression gate pins the larger MMDocIR
+set, on the always-hybrid arm that production now serves.
 
 **Retrieval is no longer the binding constraint. Reading is.** Handed the right
 page, the reader answers roughly a third of queries correctly. Of 120 queries
@@ -212,9 +213,9 @@ RAG_PAGES_DIR=data/pages
 `scripts/eval_run.py` replays retrieval (and optionally generation + an LLM
 judge) against a golden YAML and writes a run JSON. `scripts/check_regression.py`
 is the gate: it compares a run against a committed baseline and fails on any
-metric that drops more than 5 %. MMLongBench scoring is page-level, so a run
-JSON is post-processed by `scripts/rescore_mmlb_pages.py` before it becomes a
-baseline.
+metric that drops more than 5 %. It pins `baseline-mmdocir-hybrid.json`, the arm
+production serves. The older MMLongBench baselines need a page-level rescore
+through `scripts/rescore_mmlb_pages.py` first; MMDocIR runs do not.
 
 Every retrieval knob (chunk size, fusion weights, rerank cutoff, router
 classifier) is measured in isolation, so a recall change traces to one knob
