@@ -14,6 +14,11 @@ on:
         description: "GHCR image tag (default 'main' = latest CI-baked image)"
         required: true
         default: "main"
+      allow_text_only:
+        description: "Deploy even if the result serves no visual leg (ADR 0028)"
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: read
@@ -78,7 +83,7 @@ jobs:
           image: ${{ steps.image.outputs.uri }}
           region: ${{ env.GCP_REGION }}
           # --update-env-vars MERGES (does not replace), so the out-of-band env
-          # config (corpus collection, pages dir, etc.) is preserved. Enables the
+          # config (corpus collection, pages dir and the rest) is preserved. Enables
           # experimental DCI mode; with no server key it runs on the caller's key.
           # max-instances=1 + timeout bound the worst-case Cloud Run burn rate.
           # ADR 0028: 16Gi/4vCPU fits the in-process ColQwen2 query encoder (2B,
@@ -86,6 +91,45 @@ jobs:
           # RAG_ENABLE_MULTIMODAL turns the visual leg on (it stays inert unless
           # the visual collection is populated in the baked Qdrant snapshot).
           flags: --port=8000 --memory=16Gi --cpu=4 --cpu-boost --min-instances=0 --max-instances=1 --timeout=120 --allow-unauthenticated --update-env-vars=RAG_ENABLE_DCI=true,RAG_ENABLE_MULTIMODAL=true
+
+      - name: Check the visual leg survived the deploy
+        env:
+          URL: ${{ steps.deploy.outputs.url }}
+          ALLOW_TEXT_ONLY: ${{ inputs.allow_text_only }}
+        run: |
+          set -euo pipefail
+          # ADR 0028: the visual index rides in the Cloud Build overlay, not in
+          # the GHCR image this workflow deploys, so a dispatch here drops
+          # production to the text-only arm. ADR 0032 measured that arm at 0.460
+          # recall@10 against 0.784. /health already reports the wiring, so the
+          # revert does not have to be silent.
+          #
+          # min-instances=0, so the first request is a cold start: retry while
+          # the container wires its corpus rather than reading a 503 as text-only.
+          for attempt in $(seq 1 10); do
+            # `// "unknown"` would be wrong here: jq's alternative operator
+            # fires on false as well as null, so an explicit false would read
+            # as an unreachable health endpoint.
+            ROUTING=$(curl -fsSL --max-time 180 "${URL}/health" \
+              | jq -r 'if has("routing_available") then (.routing_available|tostring) else "unknown" end') \
+              && break || true
+            echo "health not ready (attempt ${attempt}/10), retrying"
+            sleep 15
+          done
+          echo "routing_available=${ROUTING:-unreachable}"
+          if [ "${ROUTING:-unreachable}" = "true" ]; then
+            echo "::notice::Visual leg is wired"
+            exit 0
+          fi
+          if [ "${ALLOW_TEXT_ONLY}" = "true" ]; then
+            echo "::warning::Serving text-only, accepted via allow_text_only"
+            exit 0
+          fi
+          echo "::error::Deploy left production text-only (routing_available=${ROUTING:-unreachable})."
+          echo "Rebuild the visual overlay instead: see the runbook in"
+          echo "docs/decisions/0028-persisted-visual-index-cpu-serve.md, and pass"
+          echo "allow_text_only=true if a text-only deploy is what you wanted."
+          exit 1
 
       - name: Print URL
         run: |
