@@ -19,11 +19,15 @@ where a text-only index misses the page entirely.
   ColQwen2 (ColPali-family) multi-vector index over rendered pages and scores it
   with MaxSim, so a chart with no useful text layer is still retrievable. On
   figure/chart pages that's the difference between finding the page and not.
-- **A per-query router, with a closed-loop proof it captured the available
-  lift.** A small classifier sends each query to the text leg or to text+visual.
-  The repo measured the ceiling: oracle routing equals the shipped router on the
-  benchmark (ADR 0013). Peers that always run one path (always-ColPali, or
-  always-text) don't make (or measure) that decision.
+- **Both retrieval legs on every query, after the router was measured and
+  dropped.** A classifier used to send each query to the text leg or to
+  text+visual, and a 107-query benchmark showed it capturing the available lift.
+  A 1,127-query set carrying page and bounding-box labels reversed that: fusing
+  both legs reaches 0.784 recall@10 where the classifier reaches 0.621, at the
+  same median latency (ADR 0032, superseding 0013). The classifier survives as a
+  cost switch. Peers that always run one path (always-ColPali, or always-text)
+  don't make that decision; this repo made it, measured it again with more
+  power, and overturned its own answer.
 - **An eval behind every change, including the negatives.** Committed golden
   sets, a >5% regression gate, and a wall of *measured* dead ends (GraphRAG lost
   to plain RAG, agentic decomposition hurt retrieval, rerankers were a wash) plus
