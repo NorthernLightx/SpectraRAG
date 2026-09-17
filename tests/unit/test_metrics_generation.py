@@ -5,7 +5,12 @@ from __future__ import annotations
 import pytest
 
 from src.eval.latency import latency_stats
-from src.eval.metrics_generation import citation_grounding, is_refusal_answer
+from src.eval.metrics_generation import (
+    answer_outcome,
+    citation_grounding,
+    is_refusal_answer,
+    outcome_rates,
+)
 
 
 def test_citation_grounding_all_grounded() -> None:
@@ -89,3 +94,67 @@ def test_refusal_empty_or_none() -> None:
 
 def test_refusal_with_leading_whitespace() -> None:
     assert is_refusal_answer("\n  Not stated in the provided context.\n")
+
+
+# answer_outcome separates the two cases coverage alone collapses to 0.0:
+# a correct refusal and a confident wrong answer.
+
+
+def test_refusal_and_wrong_answer_both_score_zero_coverage() -> None:
+    """The reason the outcome metric exists. Same coverage, opposite outcomes."""
+    refusal = answer_outcome("Not stated in the provided context.", 0.0)
+    confident_miss = answer_outcome("The value is 42%.", 0.0)
+
+    assert refusal == "refused"
+    assert confident_miss == "wrong"
+
+
+def test_refusal_wins_over_coverage() -> None:
+    """A judge that scored a refusal above zero does not make it an attempt."""
+    assert answer_outcome("Not stated in the provided context.", 1.0) == "refused"
+
+
+@pytest.mark.parametrize(
+    ("coverage", "expected"),
+    [(1.0, "correct"), (0.99, "correct"), (0.67, "wrong"), (0.0, "wrong"), (None, "wrong")],
+)
+def test_attempt_graded_against_full_coverage(coverage: float | None, expected: str) -> None:
+    assert answer_outcome("Some answer.", coverage) == expected
+
+
+def test_threshold_allows_partial_credit_when_asked_for() -> None:
+    assert answer_outcome("Some answer.", 0.5, threshold=0.5) == "correct"
+
+
+def test_outcome_rates_reports_fractions_and_counts() -> None:
+    rates = outcome_rates(["refused", "refused", "correct", "wrong"])
+
+    assert rates["refused"] == pytest.approx(0.5)
+    assert rates["correct"] == pytest.approx(0.25)
+    assert rates["wrong"] == pytest.approx(0.25)
+    assert rates["n_refused"] == pytest.approx(2.0)
+    assert rates["n"] == pytest.approx(4.0)
+
+
+def test_outcome_rates_on_empty_input() -> None:
+    assert outcome_rates([]) == {
+        "refused": 0.0,
+        "correct": 0.0,
+        "wrong": 0.0,
+        "n_refused": 0.0,
+        "n_correct": 0.0,
+        "n_wrong": 0.0,
+        "n": 0.0,
+    }
+
+
+def test_trading_refusals_for_attempts_shows_up_as_wrong() -> None:
+    """A change that lifts mean coverage by answering more can raise the wrong
+    count at the same time. Mean coverage hides that; these rates do not."""
+    before = outcome_rates(["refused", "refused", "refused", "correct"])
+    after = outcome_rates(["wrong", "wrong", "correct", "correct"])
+
+    mean_before = (0.0 + 0.0 + 0.0 + 1.0) / 4
+    mean_after = (0.0 + 0.0 + 1.0 + 1.0) / 4
+    assert mean_after > mean_before  # coverage calls it an improvement
+    assert after["wrong"] > before["wrong"]  # the outcome metric does not
