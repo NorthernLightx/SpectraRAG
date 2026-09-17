@@ -74,10 +74,16 @@ function WhyView({ setTab, routingAvailable }) {
                 <img src={"/" + card.image} alt={card.figure_label}
                   style={{ width: "100%", borderRadius: 8, border: "1px solid var(--border, rgba(127,127,127,.2))", marginBottom: 12 }} loading="lazy" />
                 <div style={{ margin: "0 0 10px" }}>top-10 pages: <PageChips pages={card.router_pages} gold={card.gold_pages} /></div>
-                <p>The router flags a figure-bound query, searches the visual store, and pulls gold page <b>p{card.gold_pages[0]}</b>. The model reads the answer off the {card.figure_label}.</p>
+                <p>The router flagged a figure-bound query, searched the visual store, and pulled gold page <b>p{card.gold_pages[0]}</b>. The model read the answer off the {card.figure_label}.</p>
                 <div className="vs-verdict good"><Icon name="check" size={13} /> grounded · answer: <b>{card.answer}</b></div>
               </div>
             </div>
+            <p className="mono" style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 10 }}>
+              Both columns replay the committed MMLongBench runs. These documents
+              are not in the demo corpus, so asking these exact questions in chat
+              will not reproduce them. The chat suggestions are written against
+              the 20 papers this deployment serves.
+            </p>
           </section>
         )}
 
@@ -136,7 +142,7 @@ function WhyView({ setTab, routingAvailable }) {
             ) : (
               <React.Fragment>
                 <h2 className="serif">See it route in real time.</h2>
-                <p>Ask a figure-bound question and watch the retrieval panel pick the page.</p>
+                <p>Chat opens with figure-bound questions written against this deployment's corpus. Pick one and watch the retrieval panel choose the page.</p>
               </React.Fragment>
             )}
           </div>
