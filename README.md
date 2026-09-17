@@ -30,32 +30,44 @@ point the ingester at any folder of `.pdf` files.
 
 ## Result
 
-Page-level retrieval on [MMLongBench-Doc](https://arxiv.org/abs/2407.01523)
-(20 documents, 149 queries, 107 in-corpus). The metric is recall@10 over
-retrieved pages, scored paper-aware (a page counts only if it is the gold
-paper's), so it is independent of any generator. The router uses an
-LLM classifier (`gemma3:4b` via Ollama) to send figure and table queries to
-the visual leg.
+Page-level retrieval on [MMDocIR](https://arxiv.org/abs/2501.08828): 1,127
+queries over 218 documents and 4,837 pages, with page and bounding-box evidence
+labels. Numbers are reported on the 1,029 queries whose documents are absent
+from the older MMLongBench corpus. The metric is recall@10 over retrieved pages,
+scored paper-aware (a page counts only if it is the gold paper's), so it is
+independent of any generator.
 
-| retrieval | recall@10 | figures only |
+| retrieval | recall@10 | median latency |
 |---|---|---|
-| text-only | 0.55 | 0.51 |
-| **text + visual router** | **0.75** | **0.76** |
-| relative lift | **+35 %** | **+48 %** |
+| text-only | 0.460 ±0.030 | 4,265 ms |
+| classifier router | 0.621 ±0.030 | 5,860 ms |
+| **text + visual on every query** | **0.784 ±0.025** | 5,843 ms |
+| visual-only | 0.800 ±0.024 | 983 ms |
 
-The exact values (text-only 0.5545, router 0.7461; figure subset 0.5111 →
-0.7578) and the per-query records are committed under
-[`data/eval/`](./data/eval/) as `baseline-mmlongbench-text.json` and
-`baseline-mmlongbench-router.json`.
+Running both legs beats the per-query classifier by 0.163 recall@10 at the same
+median latency, so the classifier is a cost switch rather than an accuracy one.
+That reversed this project's earlier conclusion, which rested on a 107-query set
+too small to separate the two: [ADR 0032](./docs/decisions/0032-routing-is-a-cost-lever.md)
+supersedes [0013](./docs/decisions/0013-routing-is-the-accuracy-lever.md). Three
+ways the result could have been an artefact (query mix, corpus text density,
+page budget) were each tested, and none of them explains it.
 
-The gain is mechanical, not a metric artefact: on every figure query that
-improved, the router retrieved a page the text leg never returned, while
-text-routed (factual) queries scored identically across both runs.
-MMLongBench-Doc answers are ~93 % visual, which rewards routing
-aggressively to the visual leg. On a text-heavy corpus the lift is smaller. Full methodology and failure modes are in
-[`docs/results.md`](./docs/results.md). For how measuring the end-to-end path
-overturned this project's own assumptions (and which fixes died under
-measurement), see [`docs/finding-the-bottleneck.md`](./docs/finding-the-bottleneck.md).
+The earlier MMLongBench-Doc measurement stands on its own terms: over 107
+in-corpus queries the router scores 0.7461 recall@10 against text-only's 0.5545,
+a 35 % lift, and 0.5111 to 0.7578 on the figure subset. Those runs are committed
+under [`data/eval/`](./data/eval/) as `baseline-mmlongbench-text.json` and
+`baseline-mmlongbench-router.json`, and they are what the regression gate pins.
+
+**Retrieval is no longer the binding constraint. Reading is.** Handed the right
+page, the reader answers roughly a third of queries correctly. Of 120 queries
+whose correct evidence reached it, 46 % were refused and 11 % were answered
+wrongly, so refusal outnumbers misreading four to one. Prompting past those
+refusals lifts the coverage metric and produces more wrong answers: one variant
+went from 44 wrong answers to 57 of 150. No prompt variant shipped. Full
+methodology and failure modes are in [`docs/results.md`](./docs/results.md). For
+how measuring the end-to-end path overturned this project's own assumptions (and
+which fixes died under measurement), see
+[`docs/finding-the-bottleneck.md`](./docs/finding-the-bottleneck.md).
 
 ## How it works
 
@@ -255,8 +267,8 @@ compares to other document-RAG tools, see
 
 - **The demo corpus is text-heavy.** Visual routing is on, but the baked
   arXiv set has few figure or table answers, so the visual lift you
-  see here is small. The +35 % above is the MMLongBench result, not what these
-  papers will show.
+  see here is small. The retrieval numbers above come from MMDocIR and
+  MMLongBench, not from these papers.
 - **Generation needs a provider.** Chat answers require an OpenRouter key or
   a local Ollama vision model; retrieval works with neither.
 - **The LLM judge under-rates pixel answers.** When the answer is in the
@@ -313,7 +325,7 @@ tests/      unit + integration suites, mirrors src/
 - **Observability**: [OpenTelemetry](https://opentelemetry.io/),
   [Sentry](https://sentry.io/), [Langfuse](https://langfuse.com/)
 - **Deploy**: Cloud Run via GitHub Actions with Workload Identity Federation
-- **Eval benchmark**: [MMLongBench-Doc](https://arxiv.org/abs/2407.01523)
+- **Eval benchmarks**: [MMDocIR](https://arxiv.org/abs/2501.08828), [MMLongBench-Doc](https://arxiv.org/abs/2407.01523)
 
 ## References
 
@@ -329,8 +341,13 @@ Papers and benchmarks this project builds on or measures against:
 - **Docling Technical Report** (Auer et al., IBM,
   [arXiv:2408.09869](https://arxiv.org/abs/2408.09869)). Layout-aware PDF parsing
   for the structure-attributed chunker.
+- **MMDocIR: Benchmarking Multi-Modal Retrieval for Long Documents**
+  ([arXiv:2501.08828](https://arxiv.org/abs/2501.08828)). Page and
+  bounding-box evidence labels over 1,127 queries; the benchmark behind the
+  headline retrieval result and behind ADR 0032.
 - **MMLongBench-Doc** ([arXiv:2407.01523](https://arxiv.org/abs/2407.01523)).
-  The long-document multimodal benchmark behind the headline retrieval result.
+  The long-document multimodal benchmark behind the earlier router measurement
+  and the committed regression gate.
 - **BRIGHT: A Realistic and Challenging Benchmark for Reasoning-Intensive
   Retrieval** (Su et al., [arXiv:2407.12883](https://arxiv.org/abs/2407.12883)).
   Retrieval that needs reasoning rather than surface similarity; the benchmark
