@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Pre-push gauntlet — runs the same gates as .github/workflows/ci.yml plus a
+# Pre-push gauntlet. Runs the same gates as .github/workflows/ci.yml plus a
 # gitleaks scan, so the most common CI failures are caught locally before
 # anything reaches GitHub. Bypass with `git push --no-verify` if you really
-# need to (e.g., pushing in-progress work to a private branch).
+# need to, for example pushing in-progress work to a private branch.
 #
 # Install once per clone (this is a one-time setup, not in version control):
 #   git config core.hooksPath .githooks
@@ -30,7 +30,7 @@ if [ -d ".venv/Scripts" ]; then
 elif [ -d ".venv/bin" ]; then
     VENV_DIR=".venv/bin"
 else
-    fail ".venv not found — run \`uv sync --extra dev\` first"
+    fail ".venv not found, run \`uv sync --extra dev\` first"
 fi
 
 RUFF="$VENV_DIR/ruff"
@@ -59,7 +59,7 @@ else
     fail "ruff format (run \`ruff format .\` to fix)"
 fi
 
-# 3. mypy strict (CI runs against src tests scripts — match that)
+# 3. mypy strict (CI runs against src tests scripts, match that)
 if "$MYPY" src tests scripts >/dev/null 2>&1; then
     pass "mypy strict"
 else
@@ -76,19 +76,19 @@ else
 fi
 
 # 5. gitleaks via Docker (this is the one that caught us; opt-in, never blocks
-# the push on Docker-down — that's a separate operational issue).
+# the push on Docker-down, that's a separate operational issue).
 if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
     # MSYS_NO_PATHCONV=1 stops Git Bash on Windows from rewriting `/repo` (the
     # in-container path) to its install dir; harmless no-op on macOS / Linux.
     if MSYS_NO_PATHCONV=1 docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:latest detect --source /repo --redact --exit-code 2 >/dev/null 2>&1; then
         pass "gitleaks"
     else
-        printf "${RED}FAIL${NC} gitleaks — see details:\n"
+        printf "${RED}FAIL${NC} gitleaks, see details:\n"
         MSYS_NO_PATHCONV=1 docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:latest detect --source /repo --redact -v --exit-code 2 || true
         fail "gitleaks (silence false positives in .gitleaksignore or with inline \`# gitleaks:allow\` comments)"
     fi
 else
-    warn "gitleaks (Docker not running — start Docker Desktop to enable)"
+    warn "gitleaks (Docker not running, start Docker Desktop to enable)"
 fi
 
-printf "${GREEN}all checks passed — pushing${NC}\n"
+printf "${GREEN}all checks passed, pushing${NC}\n"
