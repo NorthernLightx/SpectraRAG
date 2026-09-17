@@ -147,3 +147,32 @@ pre-encoded page index. Cloud Run serves the visual leg on CPU (ADR 0028), and
 the classifier previously kept about half of traffic off it, so the served p50
 under always-hybrid is unknown. Measure it against the live service before
 reading the cost column as zero.
+
+## Amendment (2026-09-17): the precision-aware metric exists, and it agrees
+
+The 2026-07-30 amendment ended by saying anything that trades refusals for
+attempts needs a precision-aware metric first. `answer_outcome` and
+`outcome_rates` in `src/eval/metrics_generation.py` are that metric. Refusal is
+read from the answer text, and only an attempt is graded, so a correct refusal
+and a confident wrong answer stop collapsing to the same 0.0.
+
+Replaying the four committed arms of
+`data/eval/baseline-mmdocir-perception.json` through it, n=150 each:
+
+| arm | mean coverage | refused | correct | wrong |
+|---|---|---|---|---|
+| hyb26b | 0.299 | 48.0 % | 22.7 % | 29.3 % |
+| hyb26b_dpi150 | 0.322 | 48.0 % | 24.7 % | 27.3 % |
+| hyb26b_vprompt | 0.387 | 31.3 % | 30.7 % | **38.0 %** |
+| hyb26b_strict | 0.349 | 24.7 % | 25.3 % | **50.0 %** |
+
+The prompt variant this ADR declined to ship lifts mean coverage by 0.088 and
+raises wrong answers from 44 to 57 of 150. It converted 25 refusals, 13 of them
+into wrong answers. The strict variant is worse: half its answers are wrong. The
+no-ship call stands, now on a number rather than a reading of examples.
+
+One caveat on the coverage column: every gen150 query carries exactly one
+expected fact, so coverage admits only 0.0 and 1.0, and 21 to 28 grades per arm
+sit off that grid. Dropping the off-grid grades moves each arm down 0.02 to
+0.04 and leaves the ordering unchanged. `answer_correctness` now states the
+legal grid in its prompt and flags returns that miss it.
