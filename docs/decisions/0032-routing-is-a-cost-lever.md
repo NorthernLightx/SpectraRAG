@@ -176,3 +176,38 @@ expected fact, so coverage admits only 0.0 and 1.0, and 21 to 28 grades per arm
 sit off that grid. Dropping the off-grid grades moves each arm down 0.02 to
 0.04 and leaves the ordering unchanged. `answer_correctness` now states the
 legal grid in its prompt and flags returns that miss it.
+
+## Amendment (2026-09-17): visual-only beats hybrid, by a tenth of the margin
+
+The arms table above compares each arm to the classifier router, so the two
+leading arms were never compared to each other. Their separate means, 0.800 and
+0.784, sat inside overlapping intervals, which settles nothing: both arms answer
+the same queries, so the comparison is paired and an unpaired interval is the
+wrong instrument.
+
+`scripts/experiments/paired_arm_compare.py` pairs the committed runs by
+query_id, bootstraps the mean delta and runs an exact two-sided sign test over
+the discordant pairs. It reads run JSONs only, so it needs no corpus and no
+model. recall@10, n=1,127:
+
+| pair | mean delta | 95 % CI | better / worse / tied | sign test |
+|---|---|---|---|---|
+| always-hybrid minus router | +0.1609 | [+0.1398, +0.1820] | 207 / 3 / 917 | p = 2e-57 |
+| visual-only minus always-hybrid | +0.0158 | [+0.0043, +0.0278] | 44 / 20 / 1063 | p = 0.0037 |
+
+Both are real. They are not the same size. Dropping the classifier is settled to
+the point of not being worth re-testing, and it moves 207 queries. Dropping the
+text leg would move 44 and cost 20, on 94 % ties.
+
+The text leg stays, and the reason is not recall. Retrieval scoring counts gold
+pages, and the text leg returns chunks, so it is what makes a citation point at
+a passage rather than at a whole page. It is also the only leg that works on a
+corpus with no page index built. Against that, ADR 0028's persisted index makes
+the visual leg's marginal cost near zero while the reranked text leg accounts
+for roughly 4.3 s of the 5.8 s median, so the text leg is the expensive half and
+buys 0.0158 less recall. A deployment that wants latency over citations has a
+measured case for visual-only, and `--force-route visual` already serves it.
+
+What this does not license: reading the visual-only row of the regression gate
+in `docs/results.md` as a recommendation. It passes the gate for the same reason
+it wins here, and the gate cannot see what the text leg is kept for.
