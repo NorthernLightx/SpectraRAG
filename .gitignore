@@ -44,6 +44,8 @@ secrets/
 
 # Coding-agent / LLM-tooling local state
 .claude/
+# Editing policy, not published package content
+/.githooks/pre-commit
 .cursor/
 .windsurfrules
 .aider*
