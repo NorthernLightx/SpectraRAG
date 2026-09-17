@@ -9,6 +9,7 @@ on:
     # Weekly scan to catch any drift in dependencies / accidental commits
     # that slipped past pre-commit.
     - cron: "0 9 * * 1"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -20,12 +21,33 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
         with:
           # Full history so we can scan the commit graph, not just HEAD.
           fetch-depth: 0
 
       - name: Run gitleaks
-        uses: gitleaks/gitleaks-action@v2
+        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7  # v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  image-scan:
+    name: Image vulnerability scan
+    # Scans the published image rather than the tree: dependabot already
+    # watches uv.lock, so what is uncovered is the Debian base layer. Schedule
+    # and manual dispatch only, because on a push the image for that commit has
+    # not been published yet and this would scan the previous one.
+    if: github.event_name != 'push' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Run trivy against the published image
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25  # v0.36.0
+        with:
+          image-ref: ghcr.io/${{ github.repository }}:main
+          severity: HIGH,CRITICAL
+          # Unfixed base-layer findings are noise here: there is no action to
+          # take until Debian ships a patched package.
+          ignore-unfixed: true
+          exit-code: "1"
+          format: table

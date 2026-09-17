@@ -1,0 +1,41 @@
+# Dependabot opens the update PRs; the gates in ci.yml decide whether they
+# merge. Alerts were already on, so this only adds the automated proposals.
+version: 2
+
+updates:
+  # Actions are pinned to commit SHAs (a floating tag is rewritable by whoever
+  # owns the action). Dependabot rewrites the SHA and keeps the version comment
+  # beside it current, so pinning does not mean going stale.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: ci
+
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: build
+    groups:
+      # One PR per week for the routine bumps. Anything below is excluded from
+      # this group and lands on its own, because the diff needs reading.
+      minor-and-patch:
+        update-types: [minor, patch]
+        exclude-patterns:
+          # transformers 5.17 renamed the vision-language module path, which
+          # left the ColQwen2 checkpoint reinitialising two tensors per load
+          # with nothing raising (ADR 0032 amendment). The visual stack moves
+          # together or not at all, and tests/unit/test_visual_model_load.py is
+          # what catches it.
+          - transformers
+          - tokenizers
+          - colpali-engine
+          - peft
+          - torch
+          - torchvision
+          - accelerate
