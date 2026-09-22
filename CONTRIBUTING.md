@@ -26,11 +26,16 @@ uv run ruff check .
 uv run ruff format --check .
 uv run mypy src tests scripts
 uv run pytest -v --cov=src --cov-report=term-missing
-uv run python -m scripts.eval_retrieval_ci --output data/eval/runs/retrieval-ci.json
+uv run python -m scripts.eval_retrieval_ci --output data/eval/runs/retrieval-ci.json \
+    --hybrid-output data/eval/runs/retrieval-ci-hybrid.json
 uv run python -m scripts.check_regression \
     --baseline data/eval/baseline_retrieval.json \
     --candidate data/eval/runs/retrieval-ci.json \
-    --metrics ndcg_at_5 recall_at_10 mrr --threshold 0.05
+    --metrics ndcg_at_5 recall_at_10 mrr --threshold 0.05 --per-query recall_at_10
+uv run python -m scripts.check_regression \
+    --baseline data/eval/baseline_retrieval_hybrid.json \
+    --candidate data/eval/runs/retrieval-ci-hybrid.json \
+    --metrics ndcg_at_5 recall_at_10 mrr --threshold 0.05 --per-query recall_at_10
 ```
 
 ## Scripts layout

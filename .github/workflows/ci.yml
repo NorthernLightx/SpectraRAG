@@ -44,23 +44,28 @@ jobs:
       - name: Pytest (unit)
         run: uv run pytest -v --cov=src --cov-report=term-missing
 
-      - name: Cache bge-m3 weights
+      - name: Cache bge-m3 and reranker weights
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4
         with:
           path: ~/.cache/huggingface
-          key: hf-bge-m3
+          key: hf-bge-m3-minilm-l6
 
-      - name: Eval regression gate (CPU page-level text retrieval)
-        # Runs the hybrid text retriever (bge-m3 on CPU + BM25 + RRF) over the
-        # committed rag_corpus snapshot and gates page-level retrieval metrics
-        # against data/eval/baseline_retrieval.json at a 5% threshold. The visual
-        # (GPU) and generation/judge (API) legs run in the manual/scheduled full
-        # eval, not here. See docs/evals.md "Regression gate".
+      - name: Eval regression gate (served cpu profile, text and hybrid arms)
+        # The served `cpu` stack (bge-m3 on CPU, BM25, RRF, MiniLM rerank) runs
+        # live over the committed rag_corpus snapshot; the visual leg replays
+        # from data/eval/fixtures/visual-legs-v3.json. Both arms are gated on
+        # page-level means and per query. See docs/evals.md "Regression gate".
         run: |
           uv run python -m scripts.eval_retrieval_ci \
-            --output data/eval/runs/retrieval-ci.json
+            --output data/eval/runs/retrieval-ci.json \
+            --hybrid-output data/eval/runs/retrieval-ci-hybrid.json
           uv run python -m scripts.check_regression \
             --baseline data/eval/baseline_retrieval.json \
             --candidate data/eval/runs/retrieval-ci.json \
             --metrics ndcg_at_5 recall_at_10 mrr \
-            --threshold 0.05
+            --threshold 0.05 --per-query recall_at_10
+          uv run python -m scripts.check_regression \
+            --baseline data/eval/baseline_retrieval_hybrid.json \
+            --candidate data/eval/runs/retrieval-ci-hybrid.json \
+            --metrics ndcg_at_5 recall_at_10 mrr \
+            --threshold 0.05 --per-query recall_at_10

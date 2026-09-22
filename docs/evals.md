@@ -119,21 +119,38 @@ threshold, 1 if any regressed, 2 on bad input.
 
 ### What CI runs, every commit
 
-`scripts/eval_retrieval_ci.py` runs the hybrid text retriever (bge-m3 on CPU,
-BM25, RRF, no reranker) over the committed `qdrant_local/rag_corpus` snapshot
-and scores **page-level** nDCG@5 / recall@10 / MRR against
-`data/eval/baseline_retrieval.json`:
+`scripts/eval_retrieval_ci.py` builds the stack the Cloud Run image serves,
+from the same `cpu` profile (bge-m3 on CPU, BM25, RRF, the MiniLM reranker),
+over the committed `qdrant_local/rag_corpus` snapshot. The visual leg cannot
+run on the runner (ColQwen2, and a page index outside git), so it replays from
+`data/eval/fixtures/visual-legs-v3.json` and the router fuses it live. One pass
+scores **page-level** nDCG@5 / recall@10 / MRR for two arms: the hybrid arm
+against `data/eval/baseline_retrieval_hybrid.json`, and the text arm, read off
+the same run's text leg, against `data/eval/baseline_retrieval.json`:
 
 ```bash
-uv run python -m scripts.eval_retrieval_ci --output data/eval/runs/retrieval-ci.json
+uv run python -m scripts.eval_retrieval_ci --output data/eval/runs/retrieval-ci.json \
+    --hybrid-output data/eval/runs/retrieval-ci-hybrid.json
 uv run python -m scripts.check_regression \
     --baseline data/eval/baseline_retrieval.json \
     --candidate data/eval/runs/retrieval-ci.json \
-    --metrics ndcg_at_5 recall_at_10 mrr --threshold 0.05
+    --metrics ndcg_at_5 recall_at_10 mrr --threshold 0.05 --per-query recall_at_10
+uv run python -m scripts.check_regression \
+    --baseline data/eval/baseline_retrieval_hybrid.json \
+    --candidate data/eval/runs/retrieval-ci-hybrid.json \
+    --metrics ndcg_at_5 recall_at_10 mrr --threshold 0.05 --per-query recall_at_10
 ```
 
-No Ollama, no GPU, no LLM: the deterministic slice a stock CPU runner can
-reproduce. Metrics are page-level because `rag_corpus` is the shipped demo
+No Ollama, no GPU, no LLM, and the same retrieved ids on every run. Because
+the run is deterministic, the gate also fails on any single query losing
+recall@10 (`--per-query`): on 31 in-corpus queries one query going from found
+to missed moves the mean by about 0.03, which the 5% bar lets through.
+
+Re-record the visual fixture with `scripts/record_visual_legs.py` when the page
+index, the visual model or the golden set changes. The recording runs ColQwen2
+in bf16 on CPU; the served encoder is fp32, so the replayed leg is the served
+one to within bf16 rounding. A query missing from the fixture fails the run
+rather than falling back to text. Metrics are page-level because `rag_corpus` is the shipped demo
 corpus, periodically re-baked by the docling chunker (ADR 0017 / 0021), which
 renumbers the `::cN` suffix. The v3 golden's chunk-level labels drift out of
 sync with that bake, but the page each one points at does not. Projecting both
@@ -142,10 +159,13 @@ new ones, the same re-chunk-robustness reasoning behind ADR 0019's
 `answer_correctness`. The visual (GPU) and generation/judge (API,
 non-deterministic) legs are excluded here; they live in the full eval below.
 
-The baseline is generated on a CPU dev box. The relative-threshold gate
-absorbs the small float differences between that box and the Linux runner; if
-a green run ever shows drift from platform alone, regenerate
-`baseline_retrieval.json` on the runner.
+The baselines are generated on a CPU dev box. If the runner ever fails the
+per-query check from platform float differences alone (a gold page swapping
+places with a near-tie at rank 10), regenerate both baselines on the runner.
+
+Both baselines were regenerated on 2026-09-23 when the gate moved from an
+unreranked text leg to the served stack; text-arm recall@10 went from 0.790 to
+0.871 and no query lost a gold page.
 
 ### Full-stack baseline, manual or scheduled
 

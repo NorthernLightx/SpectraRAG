@@ -1,0 +1,1196 @@
+{
+  "run_id": "22e1fb1a356c",
+  "started_at": "2026-09-22T23:23:51.293223Z",
+  "finished_at": "2026-09-22T23:25:00.811262Z",
+  "golden_set_name": "phase1-text-baseline",
+  "golden_set_version": "v3",
+  "config": {
+    "retriever": "ci-hybrid",
+    "granularity": "page",
+    "profile": "cpu",
+    "retrieval_config": {
+      "embedder_backend": "sentence_transformers",
+      "embed_model": "bge-m3",
+      "reranker_model": "cross-encoder/ms-marco-MiniLM-L-6-v2",
+      "rerank_length_norm": true,
+      "rerank_length_threshold": 300,
+      "rerank_length_penalty": 0.5,
+      "candidate_pool": 20,
+      "rerank_input_size": 50,
+      "exclude_decoration": true,
+      "visual_model": "vidore/colqwen2-v1.0",
+      "routing_mode": "hybrid",
+      "classifier": null,
+      "cascade_threshold": null,
+      "visual_fusion_weight": 1.0,
+      "fusion_depth": null
+    },
+    "retrieval_fingerprint": "4543c8ffb013",
+    "top_k": 10,
+    "paper_id_filter": true,
+    "snapshot": "qdrant_local",
+    "collection": "rag_corpus",
+    "paper_ids": [
+      "2604.22753v1",
+      "2604.27742v1",
+      "2604.27883v1",
+      "2604.28144v1",
+      "2604.28149v1",
+      "2604.28159v1",
+      "2604.28169v1",
+      "2604.28173v1",
+      "2604.28175v1",
+      "2604.28176v1",
+      "2604.28177v1",
+      "2604.28180v1",
+      "2604.28181v1",
+      "2604.28182v1",
+      "2604.28186v1",
+      "2604.28190v1",
+      "2604.28192v1",
+      "2604.28193v1",
+      "2604.28196v1",
+      "2604.28197v1"
+    ],
+    "visual_legs": {
+      "golden": "phase1-text-baseline/v3",
+      "visual_model": "vidore/colqwen2-v1.0",
+      "dtype": "bf16",
+      "n_pages": 575,
+      "depth": 50
+    }
+  },
+  "per_query": [
+    {
+      "query_id": "q1_inter_basin",
+      "category": "factual",
+      "text": "What is the inter-basin gain criterion?",
+      "retrieved_chunk_ids": [
+        "2604.22753v1::p5::c17",
+        "2604.22753v1::p23::c59",
+        "2604.22753v1::p25::c62",
+        "2604.22753v1::p24::c60",
+        "2604.22753v1::p9::c29",
+        "2604.22753v1::p19::c54",
+        "2604.22753v1::p4::page",
+        "2604.22753v1::p22::c57",
+        "2604.22753v1::p20::page",
+        "2604.22753v1::p21::c56"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 7467,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "leg_chunk_ids": null
+    },
+    {
+      "query_id": "q2_bic_ranking",
+      "category": "factual",
+      "text": "How does the paper rank basins?",
+      "retrieved_chunk_ids": [
+        "2604.22753v1::p18::c52",
+        "2604.22753v1::p20::c55",
+        "2604.22753v1::p19::c53",
+        "2604.22753v1::p25::c62",
+        "2604.22753v1::p24::c60",
+        "2604.22753v1::p23::c58",
+        "2604.22753v1::p4::c14",
+        "2604.22753v1::p5::c18",
+        "2604.22753v1::p22::c57",
+        "2604.22753v1::p21::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.5,
+        "recall_at_10": 1.0,
+        "mrr": 0.3333333333333333
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 1282,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "leg_chunk_ids": null
+    },
+    {
+      "query_id": "q3_approximation_options",
+      "category": "factual",
+      "text": "What approximations are used to score basins?",
+      "retrieved_chunk_ids": [
+        "2604.22753v1::p18::c52",
+        "2604.22753v1::p19::c54",
+        "2604.22753v1::p5::c18",
+        "2604.22753v1::p20::c55",
+        "2604.22753v1::p16::c47",
+        "2604.22753v1::p4::page",
+        "2604.22753v1::p21::c56",
+        "2604.22753v1::p25::page",
+        "2604.22753v1::p3::c12",
+        "2604.22753v1::p17::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.6309297535714575,
+        "recall_at_10": 1.0,
+        "mrr": 0.5
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 1077,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "leg_chunk_ids": null
+    },
+    {
+      "query_id": "q4_target_region",
+      "category": "multi_hop",
+      "text": "Why is the predictive accuracy goal restricted to a target region?",
+      "retrieved_chunk_ids": [
+        "2604.22753v1::p3::c12",
+        "2604.22753v1::p17::c50",
+        "2604.22753v1::p2::c7",
+        "2604.22753v1::p5::c17",
+        "2604.22753v1::p9::c30",
+        "2604.22753v1::p25::c62",
+        "2604.22753v1::p4::c14",
+        "2604.22753v1::p1::c4",
+        "2604.22753v1::p6::page",
+        "2604.22753v1::p21::c56"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.9197207891481876,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 1922,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "leg_chunk_ids": null
+    },
+    {
+      "query_id": "q5_oc_weather",
+      "category": "out_of_corpus",
+      "text": "Will it rain on Mars tomorrow?",
+      "retrieved_chunk_ids": [
+        "2604.22753v1::p9::c29",
+        "2604.22753v1::p24::c60",
+        "2604.22753v1::p15::tab6",
+        "2604.22753v1::p19::page",
+        "2604.22753v1::p23::c58",
+        "2604.22753v1::p4::page",
+        "2604.22753v1::p20::c55",
+        "2604.22753v1::p6::page",
+        "2604.22753v1::p18::c52",
+        "2604.22753v1::p25::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 2140,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "leg_chunk_ids": null
+    },
+    {
+      "query_id": "q6_basin_definition",
+      "category": "factual",
+      "text": "What is a basin in this paper?",
+      "retrieved_chunk_ids": [
+        "2604.22753v1::p19::c54",
+        "2604.22753v1::p5::c17",
+        "2604.22753v1::p23::c59",
+        "2604.22753v1::p24::c60",
+        "2604.22753v1::p25::c62",
+        "2604.22753v1::p18::c52",
+        "2604.22753v1::p22::c57",
+        "2604.22753v1::p20::page",
+        "2604.22753v1::p16::page",
+        "2604.22753v1::p4::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 1.0,
+        "mrr": 0.1
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 1562,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "leg_chunk_ids": null
+    },
+    {
+      "query_id": "q7_posterior_mixture",
+      "category": "factual",
+      "text": "How is the posterior over scaling-law parameters approximated?",
+      "retrieved_chunk_ids": [
+        "2604.22753v1::p3::c12",
+        "2604.22753v1::p20::c55",
+        "2604.22753v1::p16::c48",
+        "2604.22753v1::p2::c5",
+        "2604.22753v1::p8::fig3",
+        "2604.22753v1::p25::c63",
+        "2604.22753v1::p19::c53",
+        "2604.22753v1::p1::page",
+        "2604.22753v1::p13::page",
+        "2604.22753v1::p11::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 1594,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "leg_chunk_ids": null
+    },
+    {
+      "query_id": "q8_benchmark_size",
+      "category": "factual",
+      "text": "How many tasks and scaling-law instances are in the benchmark?",
+      "retrieved_chunk_ids": [
+        "2604.22753v1::p13::c43",
+        "2604.22753v1::p6::tab1",
+        "2604.22753v1::p5::c19",
+        "2604.22753v1::p8::c26",
+        "2604.22753v1::p9::c30",
+        "2604.22753v1::p7::tab2",
+        "2604.22753v1::p1::c1",
+        "2604.22753v1::p2::page",
+        "2604.22753v1::p11::page",
+        "2604.22753v1::p3::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.5,
+        "recall_at_10": 1.0,
+        "mrr": 0.3333333333333333
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 1702,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "leg_chunk_ids": null
+    },
+    {
+      "query_id": "q9_baselines",
+      "category": "factual",
+      "text": "Which baselines does the paper compare against?",
+      "retrieved_chunk_ids": [
+        "2604.22753v1::p6::c21",
+        "2604.22753v1::p7::c25",
+        "2604.22753v1::p9::c30",
+        "2604.22753v1::p8::fig3",
+        "2604.22753v1::p18::c51",
+        "2604.22753v1::p15::tab6",
+        "2604.22753v1::p1::page",
+        "2604.22753v1::p13::c43",
+        "2604.22753v1::p25::page",
+        "2604.22753v1::p24::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 1922,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "leg_chunk_ids": null
+    },
+    {
+      "query_id": "q10_ablation_terms",
+      "category": "factual",
+      "text": "What does the ablation study remove from the acquisition function?",
+      "retrieved_chunk_ids": [
+        "2604.22753v1::p9::c28",
+        "2604.22753v1::p19::c54",
+        "2604.22753v1::p5::c18",
+        "2604.22753v1::p17::c50",
+        "2604.22753v1::p25::c63",
+        "2604.22753v1::p21::c56",
+        "2604.22753v1::p6::c22",
+        "2604.22753v1::p15::tab6",
+        "2604.22753v1::p2::page",
+        "2604.22753v1::p13::c46"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 1765,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "leg_chunk_ids": null
+    },
+    {
+      "query_id": "q11_budget_levels",
+      "category": "factual",
+      "text": "What budget levels are used in the experiments?",
+      "retrieved_chunk_ids": [
+        "2604.22753v1::p7::c24",
+        "2604.22753v1::p3::c10",
+        "2604.22753v1::p1::c1",
+        "2604.22753v1::p9::c30",
+        "2604.22753v1::p6::c20",
+        "2604.22753v1::p5::c19",
+        "2604.22753v1::p8::page",
+        "2604.22753v1::p2::page",
+        "2604.22753v1::p13::page",
+        "2604.22753v1::p25::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.38685280723454163,
+        "recall_at_10": 1.0,
+        "mrr": 0.2
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 1702,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "leg_chunk_ids": null
+    },
+    {
+      "query_id": "q12_multibasin_vs_vopt",
+      "category": "multi_hop",
+      "text": "Why does this method maintain multiple basins rather than a single best-fit linearization?",
+      "retrieved_chunk_ids": [
+        "2604.22753v1::p8::c26",
+        "2604.22753v1::p4::c15",
+        "2604.22753v1::p24::c60",
+        "2604.22753v1::p18::c51",
+        "2604.22753v1::p17::c49",
+        "2604.22753v1::p23::c59",
+        "2604.22753v1::p7::c25",
+        "2604.22753v1::p5::page",
+        "2604.22753v1::p20::page",
+        "2604.22753v1::p9::c29"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 1202,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "leg_chunk_ids": null
+    },
+    {
+      "query_id": "q13_figure1_lrbsz",
+      "category": "figure",
+      "text": "What does Figure 1 illustrate on the lr&bsz task?",
+      "retrieved_chunk_ids": [
+        "2604.22753v1::p2::fig1",
+        "2604.22753v1::p8::fig3",
+        "2604.22753v1::p7::c25",
+        "2604.22753v1::p9::c28",
+        "2604.22753v1::p6::tab1",
+        "2604.22753v1::p14::page",
+        "2604.22753v1::p13::page",
+        "2604.22753v1::p15::page",
+        "2604.22753v1::p5::page",
+        "2604.22753v1::p3::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 1766,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "leg_chunk_ids": null
+    },
+    {
+      "query_id": "q14_final_acquisition",
+      "category": "equation",
+      "text": "How is the final acquisition score combined?",
+      "retrieved_chunk_ids": [
+        "2604.22753v1::p9::tab3",
+        "2604.22753v1::p25::c62",
+        "2604.22753v1::p5::c18",
+        "2604.22753v1::p6::c22",
+        "2604.22753v1::p19::c54",
+        "2604.22753v1::p17::c50",
+        "2604.22753v1::p18::c51",
+        "2604.22753v1::p21::c56",
+        "2604.22753v1::p15::tab6",
+        "2604.22753v1::p4::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.6309297535714575,
+        "recall_at_10": 1.0,
+        "mrr": 0.5
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 1922,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "leg_chunk_ids": null
+    },
+    {
+      "query_id": "q15_oc_gpt4",
+      "category": "out_of_corpus",
+      "text": "What is the loss curve of GPT-4?",
+      "retrieved_chunk_ids": [
+        "2604.22753v1::p13::c44",
+        "2604.22753v1::p2::fig1",
+        "2604.22753v1::p7::tab2",
+        "2604.22753v1::p3::c9",
+        "2604.22753v1::p15::tab6",
+        "2604.22753v1::p8::page",
+        "2604.22753v1::p16::tab7",
+        "2604.22753v1::p17::page",
+        "2604.22753v1::p14::tab5",
+        "2604.22753v1::p11::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 1968,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "leg_chunk_ids": null
+    },
+    {
+      "query_id": "q16_aw_pinn_what",
+      "category": "factual",
+      "text": "What is AW-PINN?",
+      "retrieved_chunk_ids": [
+        "2604.28180v1::p12::c31",
+        "2604.28180v1::p1::c0",
+        "2604.28180v1::p15::fig7",
+        "2604.28180v1::p13::c33",
+        "2604.28180v1::p7::c22",
+        "2604.28180v1::p6::c16",
+        "2604.28180v1::p14::page",
+        "2604.28180v1::p2::c8",
+        "2604.28180v1::p11::page",
+        "2604.28180v1::p8::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 1937,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "leg_chunk_ids": null
+    },
+    {
+      "query_id": "q17_oc_pinn_rl",
+      "category": "out_of_corpus",
+      "text": "How does AW-PINN handle reinforcement learning?",
+      "retrieved_chunk_ids": [
+        "2604.28180v1::p1::c1",
+        "2604.28180v1::p8::c23",
+        "2604.28180v1::p12::c31",
+        "2604.28180v1::p7::c22",
+        "2604.28180v1::p9::c25",
+        "2604.28180v1::p10::c28",
+        "2604.28180v1::p15::c37",
+        "2604.28180v1::p6::c16",
+        "2604.28180v1::p14::page",
+        "2604.28180v1::p2::c8"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 1734,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "leg_chunk_ids": null
+    },
+    {
+      "query_id": "q18_synth_computer_count",
+      "category": "factual",
+      "text": "How many synthetic computers were created in the preliminary experiments?",
+      "retrieved_chunk_ids": [
+        "2604.28181v1::p1::c2",
+        "2604.28181v1::p2::c6",
+        "2604.28181v1::p21::c69",
+        "2604.28181v1::p3::c8",
+        "2604.28181v1::p17::c57",
+        "2604.28181v1::p13::c49",
+        "2604.28181v1::p22::c74",
+        "2604.28181v1::p20::page",
+        "2604.28181v1::p7::fig12",
+        "2604.28181v1::p16::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 1170,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "leg_chunk_ids": null
+    },
+    {
+      "query_id": "q19_oc_synth_energy",
+      "category": "out_of_corpus",
+      "text": "What is the energy consumption of the data center used to run the simulations?",
+      "retrieved_chunk_ids": [
+        "2604.28181v1::p21::c69",
+        "2604.28181v1::p1::c2",
+        "2604.28181v1::p14::c50",
+        "2604.28181v1::p19::c65",
+        "2604.28181v1::p2::c6",
+        "2604.28181v1::p13::c47",
+        "2604.28181v1::p20::c67",
+        "2604.28181v1::p10::page",
+        "2604.28181v1::p30::page",
+        "2604.28181v1::p7::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 1547,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "leg_chunk_ids": null
+    },
+    {
+      "query_id": "q20_exploration_hacking",
+      "category": "factual",
+      "text": "What is exploration hacking?",
+      "retrieved_chunk_ids": [
+        "2604.28182v1::p3::c13",
+        "2604.28182v1::p5::c18",
+        "2604.28182v1::p24::c91",
+        "2604.28182v1::p2::c6",
+        "2604.28182v1::p26::c94",
+        "2604.28182v1::p17::c63",
+        "2604.28182v1::p57::page",
+        "2604.28182v1::p1::c2",
+        "2604.28182v1::p54::c182",
+        "2604.28182v1::p4::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.43067655807339306,
+        "recall_at_10": 1.0,
+        "mrr": 0.25
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 1062,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "leg_chunk_ids": null
+    },
+    {
+      "query_id": "q21_oc_llama_finetune",
+      "category": "out_of_corpus",
+      "text": "What hyperparameters were used to fine-tune Llama 3?",
+      "retrieved_chunk_ids": [
+        "2604.28182v1::p31::c114",
+        "2604.28182v1::p29::c106",
+        "2604.28182v1::p32::tab3",
+        "2604.28182v1::p47::tab4",
+        "2604.28182v1::p37::c139",
+        "2604.28182v1::p48::tab5",
+        "2604.28182v1::p52::c180",
+        "2604.28182v1::p12::page",
+        "2604.28182v1::p6::page",
+        "2604.28182v1::p9::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 1828,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "leg_chunk_ids": null
+    },
+    {
+      "query_id": "q22_mase_definition",
+      "category": "factual",
+      "text": "What does MASE stand for in this paper?",
+      "retrieved_chunk_ids": [
+        "2604.28186v1::p20::c59",
+        "2604.28186v1::p5::c17",
+        "2604.28186v1::p10::c36",
+        "2604.28186v1::p24::c68",
+        "2604.28186v1::p6::c21",
+        "2604.28186v1::p43::fig8",
+        "2604.28186v1::p16::fig3",
+        "2604.28186v1::p1::c4",
+        "2604.28186v1::p27::page",
+        "2604.28186v1::p30::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 1421,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "leg_chunk_ids": null
+    },
+    {
+      "query_id": "q23_oc_eurozone",
+      "category": "out_of_corpus",
+      "text": "What is the current inflation rate of the eurozone?",
+      "retrieved_chunk_ids": [
+        "2604.28186v1::p19::c56",
+        "2604.28186v1::p2::c7",
+        "2604.28186v1::p46::c114",
+        "2604.28186v1::p16::page",
+        "2604.28186v1::p25::c71",
+        "2604.28186v1::p45::page",
+        "2604.28186v1::p39::c99",
+        "2604.28186v1::p9::page",
+        "2604.28186v1::p48::c116",
+        "2604.28186v1::p28::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 1453,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "leg_chunk_ids": null
+    },
+    {
+      "query_id": "q24_lc_fig4_gradients",
+      "category": "figure",
+      "text": "What does Figure 4 show about gradient magnitudes on CIFAR-10 with 40% noise?",
+      "retrieved_chunk_ids": [
+        "2604.27742v1::p6::fig4",
+        "2604.27742v1::p5::c26",
+        "2604.27742v1::p2::c6",
+        "2604.27742v1::p1::c1",
+        "2604.27742v1::p18::page",
+        "2604.27742v1::p7::page",
+        "2604.27742v1::p17::page",
+        "2604.27742v1::p8::page",
+        "2604.27742v1::p11::page",
+        "2604.27742v1::p4::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 1358,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "leg_chunk_ids": null
+    },
+    {
+      "query_id": "q25_lc_tab1_loss_properties",
+      "category": "table",
+      "text": "Which surrogate losses are compared in Table 1 by their convexity, smoothness, and consistency?",
+      "retrieved_chunk_ids": [
+        "2604.27742v1::p2::tab1",
+        "2604.27742v1::p1::c1",
+        "2604.27742v1::p3::c13",
+        "2604.27742v1::p8::c43",
+        "2604.27742v1::p13::c60",
+        "2604.27742v1::p4::c21",
+        "2604.27742v1::p6::page",
+        "2604.27742v1::p10::page",
+        "2604.27742v1::p16::page",
+        "2604.27742v1::p7::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 1391,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "leg_chunk_ids": null
+    },
+    {
+      "query_id": "q26_fd_tab4_imagenet256",
+      "category": "table",
+      "text": "What benchmark and resolution does Table 4 evaluate in the FD-loss paper?",
+      "retrieved_chunk_ids": [
+        "2604.28190v1::p6::c27",
+        "2604.28190v1::p8::c31",
+        "2604.28190v1::p10::tab6",
+        "2604.28190v1::p27::tab17",
+        "2604.28190v1::p2::c6",
+        "2604.28190v1::p26::tab16",
+        "2604.28190v1::p18::c59",
+        "2604.28190v1::p19::page",
+        "2604.28190v1::p3::fig3",
+        "2604.28190v1::p1::c3"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.5,
+        "recall_at_10": 1.0,
+        "mrr": 0.3333333333333333
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 2030,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "leg_chunk_ids": null
+    },
+    {
+      "query_id": "q27_fd_fig2_pipeline",
+      "category": "figure",
+      "text": "What does Figure 2 illustrate about the FD-loss training pipeline?",
+      "retrieved_chunk_ids": [
+        "2604.28190v1::p2::fig2",
+        "2604.28190v1::p29::fig17",
+        "2604.28190v1::p8::fig4",
+        "2604.28190v1::p1::fig1",
+        "2604.28190v1::p4::page",
+        "2604.28190v1::p7::c30",
+        "2604.28190v1::p9::c33",
+        "2604.28190v1::p18::page",
+        "2604.28190v1::p21::page",
+        "2604.28190v1::p14::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 1812,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "leg_chunk_ids": null
+    },
+    {
+      "query_id": "q28_aegis_fig4_tasks",
+      "category": "figure",
+      "text": "What does Figure 4 of AEGIS illustrate about its task progression?",
+      "retrieved_chunk_ids": [
+        "2604.28177v1::p5::c14",
+        "2604.28177v1::p3::c9",
+        "2604.28177v1::p4::fig7",
+        "2604.28177v1::p1::fig5",
+        "2604.28177v1::p7::fig9",
+        "2604.28177v1::p8::fig10",
+        "2604.28177v1::p14::c49",
+        "2604.28177v1::p15::page",
+        "2604.28177v1::p13::page",
+        "2604.28177v1::p2::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 1687,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "leg_chunk_ids": null
+    },
+    {
+      "query_id": "q29_aegis_tab8_janus_rank",
+      "category": "table",
+      "text": "What is the rank of Janus-Pro-7B in Table 8 of AEGIS?",
+      "retrieved_chunk_ids": [
+        "2604.28177v1::p4::c11",
+        "2604.28177v1::p23::tab8",
+        "2604.28177v1::p2::tab1",
+        "2604.28177v1::p3::c9",
+        "2604.28177v1::p1::c1",
+        "2604.28177v1::p7::page",
+        "2604.28177v1::p9::c27",
+        "2604.28177v1::p6::page",
+        "2604.28177v1::p21::page",
+        "2604.28177v1::p19::c68"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.6309297535714575,
+        "recall_at_10": 1.0,
+        "mrr": 0.5
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 2125,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "leg_chunk_ids": null
+    },
+    {
+      "query_id": "q30_a4mer_tab1_pose_datasets",
+      "category": "table",
+      "text": "What properties does Table 1 use to compare human 3D pose datasets?",
+      "retrieved_chunk_ids": [
+        "2604.28173v1::p3::tab1",
+        "2604.28173v1::p7::c29",
+        "2604.28173v1::p9::c37",
+        "2604.28173v1::p2::c9",
+        "2604.28173v1::p1::c1",
+        "2604.28173v1::p23::c73",
+        "2604.28173v1::p6::fig5",
+        "2604.28173v1::p5::c24",
+        "2604.28173v1::p8::page",
+        "2604.28173v1::p18::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 1890,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "leg_chunk_ids": null
+    },
+    {
+      "query_id": "q31_hermes_fig1_unification",
+      "category": "figure",
+      "text": "What does Figure 1 in HERMES++ illustrate about the proposed framework?",
+      "retrieved_chunk_ids": [
+        "2604.28196v1::p1::c0",
+        "2604.28196v1::p2::c8",
+        "2604.28196v1::p4::c22",
+        "2604.28196v1::p8::c45",
+        "2604.28196v1::p7::c38",
+        "2604.28196v1::p10::c49",
+        "2604.28196v1::p5::page",
+        "2604.28196v1::p9::page",
+        "2604.28196v1::p14::page",
+        "2604.28196v1::p13::c66"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.6309297535714575,
+        "recall_at_10": 1.0,
+        "mrr": 0.5
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 953,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "leg_chunk_ids": null
+    },
+    {
+      "query_id": "q32_pgp_fig1_methods",
+      "category": "figure",
+      "text": "Which methods does Figure 1 in the constrained exploration paper compare?",
+      "retrieved_chunk_ids": [
+        "2604.28144v1::p8::fig1",
+        "2604.28144v1::p35::c128",
+        "2604.28144v1::p1::c0",
+        "2604.28144v1::p33::c122",
+        "2604.28144v1::p37::page",
+        "2604.28144v1::p22::c91",
+        "2604.28144v1::p39::page",
+        "2604.28144v1::p10::c37",
+        "2604.28144v1::p9::page",
+        "2604.28144v1::p42::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 1390,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "leg_chunk_ids": null
+    },
+    {
+      "query_id": "q33_oc_aegis_quantum",
+      "category": "out_of_corpus",
+      "text": "How does AEGIS use quantum computing for image authentication?",
+      "retrieved_chunk_ids": [
+        "2604.28177v1::p5::c14",
+        "2604.28177v1::p1::c2",
+        "2604.28177v1::p3::c9",
+        "2604.28177v1::p9::c27",
+        "2604.28177v1::p2::c6",
+        "2604.28177v1::p14::c49",
+        "2604.28177v1::p4::c11",
+        "2604.28177v1::p10::c28",
+        "2604.28177v1::p15::page",
+        "2604.28177v1::p16::c55"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 1670,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "leg_chunk_ids": null
+    },
+    {
+      "query_id": "q34_oc_lc_nas",
+      "category": "out_of_corpus",
+      "text": "Which neural architecture search algorithm does the Linear-Core Surrogate paper use?",
+      "retrieved_chunk_ids": [
+        "2604.27742v1::p18::c71",
+        "2604.27742v1::p19::fig11",
+        "2604.27742v1::p8::c41",
+        "2604.27742v1::p5::c22",
+        "2604.27742v1::p17::c68",
+        "2604.27742v1::p1::page",
+        "2604.27742v1::p11::page",
+        "2604.27742v1::p4::c17",
+        "2604.27742v1::p2::c6",
+        "2604.27742v1::p9::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.0,
+        "recall_at_10": 0.0,
+        "mrr": 0.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 1266,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "leg_chunk_ids": null
+    },
+    {
+      "query_id": "q35_qd_fig6_rejection",
+      "category": "figure",
+      "text": "What does the QAE++ defense framework do when a sample's confidence metric falls below the threshold?",
+      "retrieved_chunk_ids": [
+        "2604.28176v1::p6::c27",
+        "2604.28176v1::p10::c47",
+        "2604.28176v1::p4::fig6",
+        "2604.28176v1::p3::c14",
+        "2604.28176v1::p9::c41",
+        "2604.28176v1::p1::c4",
+        "2604.28176v1::p8::c39",
+        "2604.28176v1::p5::c22",
+        "2604.28176v1::p7::page",
+        "2604.28176v1::p2::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.5,
+        "recall_at_10": 1.0,
+        "mrr": 0.3333333333333333
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 1765,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "leg_chunk_ids": null
+    },
+    {
+      "query_id": "q36_qd_fig7_layer_structure",
+      "category": "figure",
+      "text": "How many rotation gates and entangling gates does one layer of the circuit-centric classifier contain?",
+      "retrieved_chunk_ids": [
+        "2604.28176v1::p4::fig7",
+        "2604.28176v1::p3::c15",
+        "2604.28176v1::p2::c7",
+        "2604.28176v1::p11::c52",
+        "2604.28176v1::p6::c32",
+        "2604.28176v1::p1::page",
+        "2604.28176v1::p5::page",
+        "2604.28176v1::p10::page",
+        "2604.28176v1::p8::page",
+        "2604.28176v1::p9::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 1687,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "leg_chunk_ids": null
+    },
+    {
+      "query_id": "q37_eh_fig1_outcomes",
+      "category": "figure",
+      "text": "What two RL training outcomes does the exploration hacking paper's Figure 1 contrast for locked model organisms?",
+      "retrieved_chunk_ids": [
+        "2604.28182v1::p17::c60",
+        "2604.28182v1::p3::c11",
+        "2604.28182v1::p42::c150",
+        "2604.28182v1::p2::fig1",
+        "2604.28182v1::p41::fig19",
+        "2604.28182v1::p1::c1",
+        "2604.28182v1::p52::c178",
+        "2604.28182v1::p6::page",
+        "2604.28182v1::p10::page",
+        "2604.28182v1::p15::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.43067655807339306,
+        "recall_at_10": 1.0,
+        "mrr": 0.25
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 1797,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "leg_chunk_ids": null
+    },
+    {
+      "query_id": "q38_eh_fig2_main_categories",
+      "category": "figure",
+      "text": "What are the two main categories of exploration hacking strategies in the paper's taxonomy?",
+      "retrieved_chunk_ids": [
+        "2604.28182v1::p5::fig2",
+        "2604.28182v1::p25::tab1",
+        "2604.28182v1::p17::c60",
+        "2604.28182v1::p26::c94",
+        "2604.28182v1::p23::c86",
+        "2604.28182v1::p3::c11",
+        "2604.28182v1::p4::page",
+        "2604.28182v1::p27::c100",
+        "2604.28182v1::p24::page",
+        "2604.28182v1::p16::c55"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 1.0,
+        "recall_at_10": 1.0,
+        "mrr": 1.0
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 1797,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "leg_chunk_ids": null
+    },
+    {
+      "query_id": "q39_eh_fig2_terminal_vs_instrumental",
+      "category": "figure",
+      "text": "How does the taxonomy distinguish 'instrumental' from 'terminal' partial under-exploration?",
+      "retrieved_chunk_ids": [
+        "2604.28182v1::p24::c88",
+        "2604.28182v1::p25::fig16",
+        "2604.28182v1::p5::c18",
+        "2604.28182v1::p4::c16",
+        "2604.28182v1::p23::c86",
+        "2604.28182v1::p14::fig14",
+        "2604.28182v1::p68::page",
+        "2604.28182v1::p69::page",
+        "2604.28182v1::p61::page",
+        "2604.28182v1::p57::page"
+      ],
+      "retrieval": {
+        "ndcg_at_5": 0.5,
+        "recall_at_10": 1.0,
+        "mrr": 0.3333333333333333
+      },
+      "generation": null,
+      "answer_text": null,
+      "cited_chunk_ids": [],
+      "latency_ms": 1733,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "leg_chunk_ids": null
+    }
+  ]
+}

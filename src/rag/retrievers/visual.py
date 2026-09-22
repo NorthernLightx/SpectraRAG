@@ -195,16 +195,19 @@ def _select_col_classes(model_name: str) -> tuple[Any, Any]:
     )
 
 
-async def load_visual_model(model_name: str, device: str) -> tuple[Any, Any]:
+async def load_visual_model(
+    model_name: str, device: str, *, dtype: torch.dtype | None = None
+) -> tuple[Any, Any]:
     """Load a Col* model + processor (no page embedding).
 
     Shared by the serve path (which encodes only the query against a persisted
     Qdrant page index, ADR 0028) and by ``build_visual_retriever``, which then
-    embeds pages in-process. bf16 on GPU; fp32 on CPU (bf16 matmuls are not
-    uniformly supported there).
+    embeds pages in-process. Defaults to bf16 on GPU and fp32 on CPU (bf16
+    matmuls are not uniformly supported there); `dtype` overrides it.
     """
     model_cls, processor_cls = _select_col_classes(model_name)
-    dtype = torch.bfloat16 if device.startswith("cuda") else torch.float32
+    if dtype is None:
+        dtype = torch.bfloat16 if device.startswith("cuda") else torch.float32
 
     def _load() -> tuple[Any, Any]:
         m = model_cls.from_pretrained(model_name, torch_dtype=dtype, device_map=device)

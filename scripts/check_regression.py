@@ -77,6 +77,44 @@ def _macro_mean(per_query: list[dict[str, Any]], field: str) -> float | None:
     return sum(values) / len(values)
 
 
+def _query_value(q: dict[str, Any], field: str) -> float | None:
+    for container in (q.get("retrieval") or {}, q.get("generation") or {}):
+        if container.get(field) is not None:
+            return float(container[field])
+    return None
+
+
+def per_query_losses(
+    baseline: dict[str, Any], candidate: dict[str, Any], metric: str, tolerance: float
+) -> list[tuple[str, float, float]]:
+    """(query_id, baseline, candidate) for every query whose `metric` fell by
+    more than `tolerance`.
+
+    A deterministic run (the CPU CI gate) can drop a query from found to missed
+    without moving the mean past the relative threshold: on 31 in-corpus
+    queries one lost query is ~0.03 of recall@10. Comparing per query catches
+    it. Retrieval metrics skip out-of-corpus queries, as the means do.
+    """
+    base = {
+        q["query_id"]: q
+        for q in baseline["per_query"]
+        if metric not in _RETRIEVAL_FIELDS or q.get("category") != "out_of_corpus"
+    }
+    cand = {q["query_id"]: q for q in candidate["per_query"]}
+    losses: list[tuple[str, float, float]] = []
+    for query_id, b_q in base.items():
+        b = _query_value(b_q, metric)
+        if b is None:
+            continue
+        c_q = cand.get(query_id)
+        # A query the candidate dropped would otherwise leave the means and
+        # this check both untouched.
+        c = _query_value(c_q, metric) if c_q is not None else None
+        if c is None or c < b - tolerance:
+            losses.append((query_id, b, c if c is not None else float("nan")))
+    return losses
+
+
 def _compute_deltas(
     baseline: dict[str, Any],
     candidate: dict[str, Any],
@@ -158,6 +196,19 @@ def main() -> None:
         default=list(_DEFAULT_METRICS),
         help="Which fields to gate. Defaults: %(default)s.",
     )
+    parser.add_argument(
+        "--per-query",
+        nargs="+",
+        default=[],
+        metavar="METRIC",
+        help="Also fail when any single query's METRIC drops (for deterministic runs).",
+    )
+    parser.add_argument(
+        "--per-query-tolerance",
+        type=float,
+        default=0.0,
+        help="Absolute drop a single query may take before --per-query fails it.",
+    )
     args = parser.parse_args()
 
     try:
@@ -179,12 +230,24 @@ def main() -> None:
     print(_format_table(deltas))
     print()
 
+    losses = {
+        metric: per_query_losses(baseline, candidate, metric, args.per_query_tolerance)
+        for metric in args.per_query
+    }
+    for metric, lost in losses.items():
+        for query_id, b, c in lost:
+            print(f"{metric} dropped on {query_id}: {b:.4f} -> {c:.4f}")
+
     regressions = [d for d in deltas if d.regressed]
-    if regressions:
-        print(
-            f"FAIL: {len(regressions)} metric(s) regressed > {args.threshold * 100:.1f}%: "
-            f"{', '.join(d.name for d in regressions)}"
-        )
+    n_lost = sum(len(lost) for lost in losses.values())
+    if regressions or n_lost:
+        if regressions:
+            print(
+                f"FAIL: {len(regressions)} metric(s) regressed > {args.threshold * 100:.1f}%: "
+                f"{', '.join(d.name for d in regressions)}"
+            )
+        if n_lost:
+            print(f"FAIL: {n_lost} per-query drop(s) beyond {args.per_query_tolerance}.")
         sys.exit(1)
     print("PASS: no metrics regressed beyond threshold.")
 
