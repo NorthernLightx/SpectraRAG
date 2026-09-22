@@ -304,7 +304,7 @@ visual leg with `RAG_ENABLE_MULTIMODAL=false`.
 ```
 src/        FastAPI app, retrievers, ingestion, eval, observability
 scripts/    CLI entry points (bootstrap, render, eval, regression)
-web/        local web UI — React via in-browser Babel, no build step, served by the API
+web/        web UI (React), served by the API as is; web-build/ compiles it for deploys
 data/       gitignored except curated_demo/papers.txt, eval baselines,
             golden sets, and the committed demo page renders
 docs/       ADRs, eval methodology, results

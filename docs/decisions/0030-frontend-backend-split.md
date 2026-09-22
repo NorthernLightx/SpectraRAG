@@ -34,3 +34,18 @@ structure, not the private endpoints.
 - Two services to operate instead of one (the frontend one is trivial/static).
 - Cross-origin is the one gotcha: the API now needs CORS for the web origin;
   page images load fine cross-origin via `<img>`.
+
+## Amendment (2026-09-23): the deployed frontend is compiled
+
+The split made the frontend its own deploy, and it still shipped the no-build
+setup: React's development builds plus `@babel/standalone`, which downloads
+about 3 MB and transpiles the JSX on every page load. `web-build/build.mjs`
+now compiles each `.jsx` ahead of time with a pinned esbuild into `web-dist/`,
+swaps in React's production builds, and drops Babel. `Dockerfile.web` runs it
+in a build stage. The compiled scripts are classic scripts with their top-level
+names kept and loaded with `defer`, which matches how Babel ran them: after
+parsing, after the deferred KaTeX scripts, in document order.
+
+`web/` is unchanged and stays no-build, so `spectrarag serve` and local edits
+work as before. On the local box, time to first render went from about 1.0 s
+to 0.14 s, and all five tabs rendered the same content in both builds.

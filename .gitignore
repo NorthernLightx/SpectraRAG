@@ -117,3 +117,7 @@ data/curated_demo/*
 qdrant_local/.lock
 qdrant_local_old/
 qdrant_local/collection/rag_corpus_visual/
+
+# Web production build (web-build/build.mjs)
+web-dist/
+web-build/node_modules/
