@@ -15,7 +15,7 @@ class _StubLLM:
 
     async def chat(self, messages: list[Message], model: str, **kwargs: object) -> ChatResponse:
         # Record the user message content for debugging.
-        self.calls.append(messages[-1].content if messages else "")
+        self.calls.append(str(messages[-1].content) if messages else "")
         text = self._replies.pop(0) if self._replies else ""
         return ChatResponse(text=text, model=model, tokens_in=1, tokens_out=1)
 

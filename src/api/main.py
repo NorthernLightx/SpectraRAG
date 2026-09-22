@@ -22,7 +22,7 @@ from src.api.bootstrap import _wire_generator_from_settings, _wire_retriever_fro
 from src.api.deps import set_tracer
 from src.api.middleware import request_context_middleware
 from src.api.rate_limit import limiter
-from src.api.routes import answer, dci, figures, health, ingest, papers, query
+from src.api.routes import answer, context, dci, figures, health, ingest, papers, query
 from src.config.settings import load_settings
 from src.observability.langfuse import make_langfuse_client
 from src.observability.logging import configure_logging, get_logger
@@ -141,14 +141,14 @@ def create_app(*, log_file: Path | None = Path("logs/api.log")) -> FastAPI:
     app.include_router(ingest.router)
     app.include_router(dci.router)
     app.include_router(answer.router)
+    app.include_router(context.router)
     app.include_router(papers.router)
     app.include_router(figures.router)
 
     # Page PNGs served at /pages/<paper>/<paper>_pN.png. The browser pulls
     # these URLs into OpenRouter `image_url` content blocks so a vision-
-    # capable model (gpt-4o, claude, qwen3-vl) sees the pixels directly. This
-    # is the deploy-side equivalent of `Generator._collect_image_paths`'s
-    # server-side attachment: same data, different transport. Mounted from
+    # capable model (gpt-4o, claude, qwen3-vl) sees the pixels directly. The
+    # server-side Generator attaches the same files from disk (ADR 0033). Mounted from
     # settings.pages_dir when set (defaults to None, so no pages are served).
     if settings.pages_dir is not None and settings.pages_dir.is_dir():
         app.mount("/pages", StaticFiles(directory=settings.pages_dir), name="pages")

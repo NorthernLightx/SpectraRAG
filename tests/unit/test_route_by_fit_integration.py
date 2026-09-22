@@ -18,17 +18,18 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from src.llm.protocol import ChatResponse, Message
+from src.llm.protocol import ChatResponse, ImagePart, Message
 from src.prompts.loader import Prompt
+from src.rag.context import MAX_PAGE_IMAGES
 from src.rag.generate import Generator
 from src.rag.page_budget import resolve_whole_doc_pages
 
 
 class _ImageCapturingLLM:
-    """LLMClient fake that records the `images` attached to the chat call."""
+    """LLMClient fake that records the images sent inline in the chat call."""
 
     def __init__(self) -> None:
-        self.images: list[Path] | None = None
+        self.images: list[Path] = []
 
     async def chat(
         self,
@@ -37,17 +38,20 @@ class _ImageCapturingLLM:
         *,
         temperature: float = 0.2,
         max_tokens: int | None = None,
-        images: list[Path] | None = None,
         **kwargs: Any,
     ) -> ChatResponse:
-        self.images = images
+        self.images = [
+            p.path
+            for m in messages
+            if isinstance(m.content, list)
+            for p in m.content
+            if isinstance(p, ImagePart)
+        ]
         return ChatResponse(text="ok", model=model, tokens_in=1, tokens_out=1, raw={})
 
 
 def _prompt() -> Prompt:
-    return Prompt(
-        name="answer", version="v1", system="be helpful", user_template="{query}\n{context}"
-    )
+    return Prompt(name="reader", version="v1", system="be helpful", user_template="{query}")
 
 
 def _make_doc(pages_dir: Path, paper_id: str, n_pages: int) -> None:
@@ -61,9 +65,10 @@ async def test_whole_doc_pages_reach_the_llm_as_images(tmp_path: Path) -> None:
     # The end-to-end seam: a 6-page doc resolved by route-by-fit, fed to a REAL
     # Generator whose cap is raised to the budget (as bootstrap does when
     # page_budget is set), attaches all 6 page images to the LLM call.
-    _make_doc(tmp_path, "paperX", 6)
+    n_pages = MAX_PAGE_IMAGES + 2
+    _make_doc(tmp_path, "paperX", n_pages)
     resolved = resolve_whole_doc_pages("paperX", tmp_path, budget=10)
-    assert resolved is not None and len(resolved) == 6
+    assert resolved is not None and len(resolved) == n_pages
 
     llm = _ImageCapturingLLM()
     gen = Generator(
@@ -76,18 +81,16 @@ async def test_whole_doc_pages_reach_the_llm_as_images(tmp_path: Path) -> None:
     answer = await gen.answer("what does the doc say?", resolved)
 
     assert answer.text == "ok"
-    assert llm.images is not None
-    # All 6 whole-doc page images flowed through — resolver chunk_ids parsed by
+    # Every whole-doc page image flowed through: resolver chunk_ids parsed by
     # the real Generator and resolved to real PNG paths on disk.
-    assert len(llm.images) == 6
-    assert {p.name for p in llm.images} == {f"paperX_p{n}.png" for n in range(1, 7)}
+    assert {p.name for p in llm.images} == {f"paperX_p{n}.png" for n in range(1, n_pages + 1)}
 
 
 async def test_default_cap_truncates_whole_doc_without_raised_budget(tmp_path: Path) -> None:
     # Guard for the silent-truncation trap: the SAME 6-page resolved doc fed to a
     # default-cap Generator (no page_budget wiring) attaches only 4 — proving the
     # raised cap is load-bearing, not decorative.
-    _make_doc(tmp_path, "paperX", 6)
+    _make_doc(tmp_path, "paperX", MAX_PAGE_IMAGES + 2)
     resolved = resolve_whole_doc_pages("paperX", tmp_path, budget=10)
     assert resolved is not None
 
@@ -95,5 +98,5 @@ async def test_default_cap_truncates_whole_doc_without_raised_budget(tmp_path: P
     gen = Generator(llm=llm, prompt=_prompt(), model="vision-model", pages_dir=tmp_path)
     await gen.answer("q", resolved)
 
-    assert llm.images is not None
-    assert len(llm.images) == 4  # default _MAX_VISION_IMAGES — would erase the win
+    # The default cap truncates the document, which would erase the win.
+    assert len(llm.images) == MAX_PAGE_IMAGES

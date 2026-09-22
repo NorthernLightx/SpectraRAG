@@ -503,12 +503,12 @@ def test_wire_generator_raises_image_cap_to_page_budget() -> None:
 
 def test_wire_generator_keeps_default_cap_when_no_page_budget() -> None:
     """Unset page_budget = default cap (4) = unchanged top-k/text behaviour."""
-    from src.rag.generate import _MAX_VISION_IMAGES
+    from src.rag.context import MAX_PAGE_IMAGES
 
     wired = _wire_generator_from_settings(_settings(openrouter_api_key="sk-test"))
     assert wired is True
     assert _GeneratorState.instance is not None
-    assert _GeneratorState.instance._max_vision_images == _MAX_VISION_IMAGES
+    assert _GeneratorState.instance._max_vision_images == MAX_PAGE_IMAGES
 
 
 def test_auto_refusal_threshold_uses_the_rerankers_calibration() -> None:

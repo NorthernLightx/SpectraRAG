@@ -9,7 +9,7 @@ from typing import Any
 import httpx
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
-from src.llm.protocol import ChatResponse, Message
+from src.llm.protocol import ChatResponse, ImagePart, Message
 
 # Local CPU-served chat models can take 30s-3min per generation on cold start
 # or under client-side concurrency (Ollama serializes by default), so we use a
@@ -27,6 +27,26 @@ def _encode_image(image: Any) -> str:
     if not path.exists():
         return ""
     return base64.b64encode(path.read_bytes()).decode("ascii")
+
+
+def _message_dict(message: Message) -> dict[str, Any]:
+    """Ollama-native message: text parts joined in order, images as base64 in
+    `images`. Labels in the text keep the order the images arrive in."""
+    if isinstance(message.content, str):
+        return {"role": message.role, "content": message.content}
+    texts: list[str] = []
+    images: list[str] = []
+    for part in message.content:
+        if isinstance(part, ImagePart):
+            encoded = _encode_image(part.path)
+            if encoded:
+                images.append(encoded)
+        else:
+            texts.append(part.text)
+    out: dict[str, Any] = {"role": message.role, "content": "\n".join(texts)}
+    if images:
+        out["images"] = images
+    return out
 
 
 class OllamaChatClient:
@@ -86,14 +106,14 @@ class OllamaChatClient:
         # Ollama takes images as a per-message list of base64 strings, not as
         # OpenAI-style content blocks. They attach to the last user message, the
         # one carrying the question and context.
-        payload_messages: list[dict[str, Any]] = [m.model_dump() for m in messages]
+        payload_messages: list[dict[str, Any]] = [_message_dict(m) for m in messages]
         if images:
             encoded = [_encode_image(i) for i in images]
             encoded = [e for e in encoded if e]
             if encoded:
                 for msg in reversed(payload_messages):
                     if msg.get("role") == "user":
-                        msg["images"] = encoded
+                        msg["images"] = [*msg.get("images", []), *encoded]
                         break
 
         payload: dict[str, Any] = {

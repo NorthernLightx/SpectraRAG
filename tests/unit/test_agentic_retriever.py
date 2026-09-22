@@ -14,7 +14,7 @@ class _StubLLM:
         self.calls: list[str] = []
 
     async def chat(self, messages: list[Message], model: str, **kwargs: object) -> ChatResponse:
-        self.calls.append(messages[-1].content if messages else "")
+        self.calls.append(str(messages[-1].content) if messages else "")
         if self._boom:
             raise RuntimeError("llm down")
         text = self._replies.pop(0) if self._replies else ""

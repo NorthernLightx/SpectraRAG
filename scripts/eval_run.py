@@ -46,6 +46,7 @@ from src.llm.protocol import LLMClient
 from src.observability.logging import configure_logging, get_logger
 from src.prompts.loader import load_prompt_by_name
 from src.rag.bm25 import Bm25Index
+from src.rag.context import READER_PROMPT_NAME, figure_refs
 from src.rag.generate import Generator
 from src.rag.query_expansion import QueryExpander
 from src.rag.retrieval_config import (
@@ -468,12 +469,16 @@ async def _main(
     generator_obj: Generator | None = None
     if generate:
         generator_llm = _build_llm(generator_provider, ollama_url=ollama_url)
+        # ADR 0033: the chat UI's prompt and context builder, so the run
+        # measures what users are sent.
+        corpus_figures = figure_refs(chunks_by_id.values())
         generator_obj = Generator(
             llm=generator_llm,
-            prompt=load_prompt_by_name("answer"),
+            prompt=load_prompt_by_name(READER_PROMPT_NAME),
             model=generator_model,
             refusal_score_threshold=refusal_score_threshold,
             pages_dir=pages_dir,
+            figure_index=lambda: corpus_figures,
         )
         print(f"Generating answers via {generator_provider} with {generator_model}")
 
@@ -519,6 +524,7 @@ async def _main(
             "generate": generate,
             "generator_provider": generator_provider if generate else None,
             "generator_model": generator_model if generate else None,
+            "generator_prompt": READER_PROMPT_NAME if generate else None,
             "refusal_score_threshold": refusal_score_threshold,
             "judge": judge,
             "judge_provider": judge_provider if judge else None,

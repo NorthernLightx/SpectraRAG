@@ -167,8 +167,11 @@ all. Models receive the retrieved page PNGs as image blocks when
 
 API surface:
 
-- `/health`: component-wiring check (status, version, env, `pages_available`)
+- `/health`: component-wiring check (status, version, env, `pages_available`,
+  and the fingerprint of the retrieval stack that was wired)
 - `/query`: retrieval only, no generation
+- `/context`: the reader's messages for one chat turn, which the browser sends
+  to the visitor's provider ([ADR 0033](./docs/decisions/0033-one-reader-context.md))
 - `/answer`: full server-side generation with a configured key
 
 ## Bring your own PDFs

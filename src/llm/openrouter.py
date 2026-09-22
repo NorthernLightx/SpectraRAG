@@ -9,7 +9,7 @@ from typing import Any
 import httpx
 from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
-from src.llm.protocol import ChatResponse, Message
+from src.llm.protocol import ChatResponse, ImagePart, Message, image_mime
 
 _OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 _DEFAULT_TIMEOUT_SECONDS = 60.0
@@ -38,8 +38,22 @@ def _should_retry_request(exc: BaseException) -> bool:
 
 
 def _encode_image(path: Path) -> str:
-    """PNG path -> data URL (`data:image/png;base64,...`) for an image_url block."""
-    return f"data:image/png;base64,{base64.standard_b64encode(path.read_bytes()).decode()}"
+    """Image path -> data URL for an image_url block, typed by extension."""
+    encoded = base64.standard_b64encode(path.read_bytes()).decode()
+    return f"data:{image_mime(path)};base64,{encoded}"
+
+
+def _message_dict(message: Message) -> dict[str, Any]:
+    """OpenAI-compat message: string content as is, parts as content blocks."""
+    if isinstance(message.content, str):
+        return {"role": message.role, "content": message.content}
+    blocks: list[dict[str, Any]] = [
+        {"type": "image_url", "image_url": {"url": _encode_image(part.path)}}
+        if isinstance(part, ImagePart)
+        else {"type": "text", "text": part.text}
+        for part in message.content
+    ]
+    return {"role": message.role, "content": blocks}
 
 
 class OpenRouterClient:
@@ -104,16 +118,19 @@ class OpenRouterClient:
         images: list[Path] | None = None,
         **kwargs: Any,
     ) -> ChatResponse:
-        # When `images` is provided and non-empty, the LAST user message is
-        # rewritten from string-content to a content-block list (text + image_url
-        # blocks). This is the OpenAI-compat schema for vision input. Other
-        # messages stay string-content. Without `images`, behaviour is unchanged.
-        msg_dicts: list[dict[str, Any]] = [m.model_dump() for m in messages]
+        # `images`, when given, are appended to the LAST user message as
+        # image_url blocks (the OpenAI-compat schema for vision input), after
+        # whatever text or parts it already carries.
+        msg_dicts: list[dict[str, Any]] = [_message_dict(m) for m in messages]
         if images:
             for m in reversed(msg_dicts):
                 if m["role"] == "user":
-                    text_content = m["content"]
-                    blocks: list[dict[str, Any]] = [{"type": "text", "text": text_content}]
+                    content = m["content"]
+                    blocks: list[dict[str, Any]] = (
+                        content
+                        if isinstance(content, list)
+                        else [{"type": "text", "text": content}]
+                    )
                     for img_path in images:
                         blocks.append(
                             {

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from functools import lru_cache
+from typing import ClassVar
 
 from fastapi import HTTPException, status
 
@@ -10,6 +11,7 @@ from src.config.settings import Settings, load_settings
 from src.embeddings.protocol import Embedder
 from src.observability.langfuse import LangfuseLike
 from src.rag.bm25 import Bm25Index
+from src.rag.context import FigureRef, figure_refs
 from src.rag.generate import Generator
 from src.rag.retrieval_config import RetrievalConfig
 from src.rag.retrievers.protocol import Retriever
@@ -114,6 +116,25 @@ def get_chunks() -> dict[str, Chunk]:
 
 def set_chunks(chunks: dict[str, Chunk]) -> None:
     _ChunksState.instance = chunks
+
+
+class _FiguresState:
+    """Figure refs derived from the chunk index, rebuilt when POST /ingest has
+    grown it."""
+
+    n_chunks = -1
+    refs: ClassVar[list[FigureRef]] = []
+
+
+def peek_figures() -> list[FigureRef]:
+    """Figure and table chunks a question can name, or [] with no corpus."""
+    chunks = _ChunksState.instance
+    if chunks is None:
+        return []
+    if len(chunks) != _FiguresState.n_chunks:
+        _FiguresState.refs = figure_refs(list(chunks.values()))
+        _FiguresState.n_chunks = len(chunks)
+    return _FiguresState.refs
 
 
 class _CorpusHandles:

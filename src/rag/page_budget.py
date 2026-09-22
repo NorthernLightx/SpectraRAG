@@ -27,7 +27,7 @@ from pathlib import Path
 from src.types import RetrievalResult
 
 # Page render filename, mirroring the layout ingestion writes and
-# Generator._collect_image_paths reads: `<pages_dir>/<paper>/<paper>_p<N>.png`.
+# Generator._page_path reads: `<pages_dir>/<paper>/<paper>_p<N>.png`.
 _PAGE_FILE_RE = re.compile(r"^(?P<paper>.+)_p(?P<page>\d+)\.png$")
 
 # `paper_id` arrives from untrusted request input (Query.filters['paper_id']) and

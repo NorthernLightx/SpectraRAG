@@ -46,6 +46,9 @@ class Answer(BaseModel):
     text: str
     citations: list[Citation] = Field(default_factory=list)
     retrieved: list[RetrievalResult] = Field(default_factory=list)
+    # Every id the reader was shown and could cite (chunks, injected figure
+    # captions, page images). Citation grounding is measured against this.
+    context_ids: list[str] = Field(default_factory=list)
     model: str
     prompt_version: str | None = None
     latency_ms: int = Field(ge=0)

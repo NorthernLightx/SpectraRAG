@@ -537,11 +537,10 @@ function ChatView({ settings, set, resetSignal, apiKey, provider, model, papers,
         return;
       }
 
-      // Both providers only offer vision-capable models, so page images are
-      // gated solely on whether the server mounts them.
-      const useImages = pagesAvailable;
-      if (useImages) live(() => setStatus("Reading the retrieved page images…"));
-      const { messages, injected } = await window.RAG.buildMessages(priorTurns, q, results, useImages, figures);
+      // Both providers only offer vision-capable models; the server attaches
+      // page images whenever it serves page renders.
+      if (pagesAvailable) live(() => setStatus("Reading the retrieved page images…"));
+      const { messages, injected } = await window.RAG.buildMessages(priorTurns, q, results);
       if (injected && injected.length) upd({ injected });
       const tGen = performance.now();
       const onDelta = (delta) => upd((prev) => ({ answer: prev.answer + delta }));

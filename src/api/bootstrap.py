@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from src.api.deps import (
+    peek_figures,
     set_chunks,
     set_corpus_handles,
     set_generator,
@@ -29,7 +30,8 @@ from src.llm.openrouter import OpenRouterClient
 from src.observability.logging import get_logger
 from src.prompts.loader import load_prompt_by_name
 from src.rag.bm25 import Bm25Index
-from src.rag.generate import _MAX_VISION_IMAGES, Generator
+from src.rag.context import MAX_PAGE_IMAGES, READER_PROMPT_NAME
+from src.rag.generate import Generator
 from src.rag.rerank import calibrated_refusal_threshold
 from src.rag.retrieval_config import (
     RetrievalConfig,
@@ -45,7 +47,7 @@ if TYPE_CHECKING:
 
     from src.rag.retrievers.classifier_llm import LLMQueryClassifier
 
-# Mirrors the layout `scripts/eval_run.py` writes / `Generator._collect_image_paths`
+# Mirrors the layout `scripts/eval_run.py` writes / `Generator._page_path`
 # reads: `<pages_dir>/<paper_id>/<paper_id>_p<N>.png`. The paper id allows
 # arbitrary characters except `/`, so we anchor on the trailing `_p<N>.png`.
 _PAGE_FILE_RE = re.compile(r"^(?P<paper>.+)_p(?P<page>\d+)\.png$")
@@ -71,21 +73,21 @@ def _wire_generator_from_settings(settings: Settings) -> bool:
     set_generator(
         Generator(
             llm=client,
-            prompt=load_prompt_by_name("answer"),
+            # ADR 0033: the chat UI's prompt and context builder.
+            prompt=load_prompt_by_name(READER_PROMPT_NAME),
             model=settings.default_chat_model,
             temperature=settings.temperature,
             max_context_tokens=settings.max_context_tokens,
-            # When pages_dir is set the Generator attaches the rendered page PNG
-            # for any visual RetrievalResult so a vision-capable default_chat_model
-            # can read images directly. None = text-only behaviour (back-compat).
+            # With pages_dir set, each retrieved page's render goes to the
+            # model inline; None sends text only.
             pages_dir=settings.pages_dir,
             # Calibrated per reranker (settings docstring + ADR 0009 follow-up).
             refusal_score_threshold=threshold,
-            # ADR 0024: when route-by-fit is enabled, a fitting whole document
-            # resolves to ALL its pages; the per-call image cap must rise to the
-            # page budget or _collect_image_paths silently truncates to 4 and
-            # erases the win. Unset budget keeps the constructor default cap.
-            max_vision_images=settings.page_budget or _MAX_VISION_IMAGES,
+            # ADR 0024: route-by-fit feeds a fitting document's every page, so
+            # the image cap rises to the page budget or the feed is truncated.
+            max_vision_images=settings.page_budget or MAX_PAGE_IMAGES,
+            # The corpus loads after this runs; read the figure index per call.
+            figure_index=peek_figures,
         )
     )
     return True

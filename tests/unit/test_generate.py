@@ -5,8 +5,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from src.llm.protocol import ChatResponse, Message
+import pytest
+
+from src.llm.protocol import ChatResponse, ImagePart, Message, TextPart
 from src.prompts.loader import Prompt
+from src.rag.context import MAX_PAGE_IMAGES
 from src.rag.generate import Generator
 from src.types import RetrievalResult
 
@@ -55,8 +58,20 @@ def _result(
     )
 
 
-def _prompt(template: str = "Q: {query}\nC:\n{context}", system: str | None = None) -> Prompt:
+def _prompt(template: str = "Q: {query}", system: str | None = None) -> Prompt:
     return Prompt(name="t", version="v1-abc", system=system, user_template=template)
+
+
+def _text_of(message: Message) -> str:
+    if isinstance(message.content, str):
+        return message.content
+    return "\n".join(p.text for p in message.content if isinstance(p, TextPart))
+
+
+def test_prompt_with_a_context_placeholder_is_rejected() -> None:
+    """answer.yaml's `{context}` shape would silently drop the builder's parts."""
+    with pytest.raises(ValueError, match="only"):
+        Generator(llm=_StubLLM("x"), prompt=_prompt("{query} {context}"), model="m")
 
 
 async def test_generator_calls_llm_with_rendered_prompt() -> None:
@@ -78,8 +93,10 @@ async def test_generator_calls_llm_with_rendered_prompt() -> None:
     assert model == "anthropic/claude-3.5-sonnet"
     assert messages[0].role == "system" and messages[0].content == "be helpful"
     assert messages[1].role == "user"
-    assert "What is X?" in messages[1].content
-    assert "[c1]" in messages[1].content and "[c2]" in messages[1].content
+    user = _text_of(messages[1])
+    assert "Q: What is X?" in user
+    assert "[chunk c1]" in user and "[chunk c2]" in user
+    assert user.index("[chunk c1]") < user.index("Q: What is X?")
 
 
 async def test_generator_extracts_citations_for_chunks_referenced_in_answer() -> None:
@@ -101,9 +118,9 @@ async def test_generator_truncates_context_to_token_budget() -> None:
     await gen.answer("q", chunks)
 
     [(messages, _, _)] = llm.calls
-    # Only the first chunk fits — second chunk wouldn't, so it's dropped.
-    assert "[c0]" in messages[0].content
-    assert "[c1]" not in messages[0].content
+    # The first chunk always goes in; the second would overrun the budget.
+    assert "[chunk c0]" in _text_of(messages[0])
+    assert "[chunk c1]" not in _text_of(messages[0])
 
 
 async def test_generator_runs_with_no_chunks() -> None:
@@ -222,19 +239,35 @@ def _whole_doc_visual_results(
     return out
 
 
-def test_collect_image_paths_default_cap_is_four(tmp_path: Path) -> None:
-    # ADR 0024: the default vision-image cap stays 4 (back-compat) — a whole-doc
-    # feed without the raised cap would be silently truncated.
-    results = _whole_doc_visual_results(tmp_path, "p1", 6)
-    gen = Generator(llm=_StubLLM("x"), prompt=_prompt(), model="m", pages_dir=tmp_path)
-    assert len(gen._collect_image_paths(results)) == 4
+def _images_sent(llm: _StubLLM) -> list[Path]:
+    [(messages, _, _)] = llm.calls
+    return [
+        p.path
+        for m in messages
+        if isinstance(m.content, list)
+        for p in m.content
+        if isinstance(p, ImagePart)
+    ]
 
 
-def test_collect_image_paths_respects_raised_cap(tmp_path: Path) -> None:
-    # ADR 0024: with max_vision_images raised to the page budget, a whole document
-    # is fed in full rather than truncated to the default 4.
-    results = _whole_doc_visual_results(tmp_path, "p1", 6)
+async def test_default_image_cap(tmp_path: Path) -> None:
+    # ADR 0024: without the raised cap a whole-doc feed is truncated.
+    results = _whole_doc_visual_results(tmp_path, "p1", MAX_PAGE_IMAGES + 2)
+    llm = _StubLLM("x")
+    gen = Generator(llm=llm, prompt=_prompt(), model="m", pages_dir=tmp_path)
+    await gen.answer("q", results)
+    assert len(_images_sent(llm)) == MAX_PAGE_IMAGES
+
+
+async def test_raised_image_cap_feeds_the_whole_document(tmp_path: Path) -> None:
+    results = _whole_doc_visual_results(tmp_path, "p1", MAX_PAGE_IMAGES + 2)
+    llm = _StubLLM("x")
     gen = Generator(
-        llm=_StubLLM("x"), prompt=_prompt(), model="m", pages_dir=tmp_path, max_vision_images=6
+        llm=llm,
+        prompt=_prompt(),
+        model="m",
+        pages_dir=tmp_path,
+        max_vision_images=MAX_PAGE_IMAGES + 2,
     )
-    assert len(gen._collect_image_paths(results)) == 6
+    await gen.answer("q", results)
+    assert len(_images_sent(llm)) == MAX_PAGE_IMAGES + 2

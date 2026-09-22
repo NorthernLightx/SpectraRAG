@@ -32,7 +32,7 @@ def _chunk(score: float, chunk_id: str = "c1") -> RetrievalResult:
 
 
 def _prompt() -> Prompt:
-    return Prompt(name="answer", version="v0", system=None, user_template="{query} {context}")
+    return Prompt(name="answer", version="v0", system=None, user_template="{query}")
 
 
 async def test_generator_refuses_when_all_scores_below_threshold() -> None:
@@ -95,14 +95,23 @@ def _visual(score: float) -> RetrievalResult:
     )
 
 
-async def test_visual_maxsim_does_not_block_a_refusal() -> None:
-    """A ColQwen2 MaxSim in the tens sits next to rerank scores in a fused list.
-    It must not read as a confident hit against a rerank threshold."""
+async def test_a_visual_page_keeps_the_gate_out_of_the_way() -> None:
+    """Weak text next to a visual page must not refuse a figure question: the
+    MaxSim score has no calibrated threshold, so the gate cannot judge it."""
     llm = _CountingLLM()
     gen = Generator(llm=llm, prompt=_prompt(), model="m", refusal_score_threshold=0.1)  # type: ignore[arg-type]
     answer = await gen.answer("q", [_chunk(0.01, "c1"), _visual(18.0)])
-    assert answer.model == "refusal-gate"
-    assert llm.calls == 0
+    assert answer.model != "refusal-gate"
+    assert llm.calls == 1
+
+
+async def test_unreranked_chunks_do_not_trigger_a_refusal() -> None:
+    """RRF scores sit near 0.03, under any rerank threshold."""
+    llm = _CountingLLM()
+    gen = Generator(llm=llm, prompt=_prompt(), model="m", refusal_score_threshold=0.1)  # type: ignore[arg-type]
+    rrf = _chunk(0.03, "c1").model_copy(update={"score_kind": "rrf"})
+    answer = await gen.answer("q", [rrf])
+    assert answer.model != "refusal-gate"
 
 
 async def test_no_rerank_scores_means_no_refusal() -> None:

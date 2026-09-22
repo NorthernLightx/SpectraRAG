@@ -37,7 +37,7 @@ class _FakeLLM:
 
 
 async def test_generator_emits_token_metrics(reader: InMemoryMetricReader) -> None:
-    prompt = Prompt(name="t", version="v0", user_template="{query} {context}", system=None)
+    prompt = Prompt(name="t", version="v0", user_template="{query}", system=None)
     gen = Generator(llm=_FakeLLM(), prompt=prompt, model="fake")  # type: ignore[arg-type]
     chunk = RetrievalResult(
         chunk_id="c1", paper_id="p", page_numbers=[1], text="t", score=1.0, source="pipeline"

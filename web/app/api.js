@@ -415,10 +415,6 @@
     return (data.choices?.[0]?.message?.content || "").trim() || latest;
   }
 
-  // Build the OpenRouter chat messages. Based on src/prompts/library/answer.yaml
-  // v5's refusal contract, relaxed for chat: meta-conversation and follow-ups
-  // about the previous answer are answered conversationally rather than
-  // refused, and attached page images carry citable ids for figure claims.
   // Fetch a page image (same-origin) and inline it as a base64 data URL.
   // Passing a link (localhost or even the public domain) makes the model's
   // provider fetch it server-side, which fails for localhost and is flaky for
@@ -445,128 +441,49 @@
     }
   }
 
-  // When the question names "Figure N" / "Table N", find that element's real
-  // page via the figure index (/figures). Retrieval often returns body text
-  // that only references the figure from another page. Without this, the
-  // page that actually shows it never reaches the model. Scoped to papers in
-  // the top retrieved chunks; at most two extra pages.
-  function referencedFigurePages(question, chunks, figureIndex) {
-    if (!Array.isArray(figureIndex) || figureIndex.length === 0) return [];
-    // Plural-aware: "figures 2 and 3" / "tables 1, 2" carry one keyword for a
-    // list of numbers, so capture the whole number list and split it.
-    const refs = [];
-    for (const m of question.matchAll(/\b(figs?\.?|figures?|tables?)\s*(\d+(?:\s*(?:,|and|&|–|-)\s*\d+)*)\b/gi)) {
-      const isTable = /^t/i.test(m[1]);
-      for (const num of m[2].match(/\d+/g) || []) refs.push({ isTable, num });
-    }
-    if (refs.length === 0) return [];
-    const papers = [...new Set(chunks.slice(0, 3).map((c) => c.paper_id))];
-    const out = [];
-    for (const { isTable, num } of refs) {
-      const re = isTable
-        ? new RegExp(`^table\\.?\\s*${num}\\b`, "i")
-        : new RegExp(`^fig(?:ure)?\\.?\\s*${num}\\b`, "i");
-      for (const paperId of papers) {
-        const f = figureIndex.find((g) => g.paper_id === paperId && re.test(String(g.caption || "").trim()));
-        if (f && typeof f.page_number === "number") {
-          out.push({ paperId, page: f.page_number, chunkId: f.chunk_id, caption: String(f.caption || ""), bbox: f.bbox || null });
-          // One page per reference. Matching the same "Figure 2" in a second
-          // paper would crowd out the question's other references.
-          break;
-        }
-      }
-    }
-    return out.slice(0, 2);
-  }
-
-  async function buildMessages(priorTurns, latestUserText, chunks, useImages, figureIndex) {
-    const system = [
-      "You are a careful research assistant answering questions from the supplied documents.",
-      '- Use only the provided context for factual claims. If the user asks a factual question the context cannot answer, say exactly "Not stated in the provided context." — do not speculate.',
-      "- Out-of-domain questions (for example, about a topic completely unrelated to the chunks) must be refused with the exact phrase above. Do not produce a generic summary of the chunks instead.",
-      "- Not every message is a question. If the user is reacting to your previous answer — challenging it, asking what you checked, or making conversation — reply naturally using the prior turns: explain what evidence you used (the chunks and page images you cited) and offer to check something specific. Never use the refusal phrase for such messages.",
-      "- Questions about the corpus as a whole (how many papers, which papers cover a topic) cannot be answered from the few retrieved excerpts you see. Say that plainly and point to the Papers and Figures tabs for corpus-wide browsing — do not use the refusal phrase and do not guess a count.",
-      "- Analysis questions (implications, comparisons, how an idea could transfer or be useful elsewhere) call for reasoning, not lookup. Reason from the provided context, label that reasoning as your own interpretation, and cite the chunks that anchor it. The refusal phrase is for missing facts only — never for questions that ask you to think.",
-      "- When one answer mentions figures from more than one paper, say which paper each figure belongs to.",
-      "- If the user asks to see a figure, plot, or graph and the retrieved chunks don't contain one matching the question, say so plainly — do not claim you cannot display images.",
-      "- Cite specific chunk IDs when making factual claims by wrapping the literal id in square brackets. Example: if a chunk header is [2604.22753v1::p5::c24], cite it as [2604.22753v1::p5::c24] — NOT [chunk_id 2604.22753v1::p5::c24] and NOT [chunk 24]. Use only ids that appear in the provided context.",
-      "- Attached page images are labeled with their own id, for example [page image 2604.22753v1::p5::page]. When you describe what a figure, plot, table, or diagram shows based on looking at a page image, cite that page id (for example [2604.22753v1::p5::page]) — not a text chunk. Cite text chunk ids only for claims supported by the chunk text itself.",
-      "- Several pages may be attached. Cite the id of the page that actually contains the figure you are describing — check the label immediately before the image you read; a page that merely mentions the figure in its text is the wrong citation.",
-      "- Watch figure numbers. If a retrieved chunk discusses a different figure than the one the user asked about (it says \"Fig. 2\" but the question asks about Figure 1), do not transfer its claims to the asked figure. Describe the asked figure only from its own caption chunk or its page image.",
-      "- Prior turns are included for reference. If the user follows up about something from your own previous answer (a term you used, a claim you made) and the current chunks don't cover it, explain it from the previous turn's evidence — without bracket citations — instead of refusing.",
-      "- Keep answers concise (3-6 sentences unless the question demands more).",
-    ].join("\n");
-
-    const messages = [{ role: "system", content: system }];
-    for (const t of priorTurns) {
-      messages.push({ role: t.role, content: t.text || t.answer || "" });
-    }
-
-    const content = [];
-    const seenPages = new Set();
-    // Page images average ~0.5 MB as base64; with the ctx slider at 16 an
-    // uncapped loop could inline 15+ MB and blow provider payload limits.
-    // Six chunk pages plus the two referenced-figure extras keeps the body
-    // well under that.
-    let chunkImages = 0;
-    for (const c of chunks) {
-      content.push({
-        type: "text",
-        text: `[chunk ${c.chunk_id}] paper=${c.paper_id} pages=${(c.page_numbers || []).join(",")}\n${c.text || ""}`,
-      });
-      if (useImages && Array.isArray(c.page_numbers)) {
-        for (const page of c.page_numbers) {
-          if (chunkImages >= 6) break;
-          const key = `${c.paper_id}:${page}`;
-          if (seenPages.has(key)) continue;
-          seenPages.add(key);
-          const dataUrl = await imageToDataUrl(pageImageUrl(c.paper_id, page));
-          if (dataUrl) {
-            chunkImages += 1;
-            // Label the image so visual claims have a citable id (the system
-            // prompt directs figure descriptions at these, not text chunks).
-            content.push({ type: "text", text: `[page image ${c.paper_id}::p${page}::page]` });
-            content.push({ type: "image_url", image_url: { url: dataUrl } });
-          }
-        }
-      }
-    }
-    // When the question names a figure/table, inject its caption as a citable
-    // chunk and attach its page. Retrieval often misses the caption chunk,
-    // because captions rarely share words with the question ("Fig. 1: (a)
-    // Previous driving world models…" vs "What does Figure 1 illustrate?"),
-    // and the model then transplants text about a DIFFERENT figure onto the
-    // asked one.
-    const injected = referencedFigurePages(latestUserText, chunks, figureIndex);
-    for (const ref of injected) {
-      if (ref.chunkId && ref.caption) {
-        content.push({
-          type: "text",
-          text: `[chunk ${ref.chunkId}] paper=${ref.paperId} pages=${ref.page} — caption of the figure/table named in the question\n${ref.caption.slice(0, 700)}`,
-        });
-      }
-      if (!useImages) continue;
-      const key = `${ref.paperId}:${ref.page}`;
-      if (seenPages.has(key)) continue;
-      seenPages.add(key);
-      const dataUrl = await imageToDataUrl(pageImageUrl(ref.paperId, ref.page));
-      if (dataUrl) {
-        content.push({ type: "text", text: `[page image ${ref.paperId}::p${ref.page}::page]` });
-        content.push({ type: "image_url", image_url: { url: dataUrl } });
-      }
-    }
-    // The citation rule lives in the system prompt, but small models drop it
-    // there: nemotron-nano-12b emits zero bracket citations until the rule is
-    // restated next to the question.
-    content.push({
-      type: "text",
-      text:
-        `\nQuestion: ${latestUserText}` +
-        "\n(Reminder: every factual claim taken from the context must cite its supporting chunk id in square brackets, for example [2604.22753v1::p5::c24] — an answer that states facts without bracket citations is rejected.)",
+  // The reader's messages come from the server (POST /context, ADR 0033), built
+  // by the same code /answer and the eval use. The browser only swaps each page
+  // image ref for the image bytes (fetched in parallel, kept in order) and sends
+  // the result to the provider on the visitor's key, which never reaches the
+  // server. A page whose image fails to load drops out with its label. The
+  // server decides whether pages are attached (it knows what it serves), so a
+  // question asked before /health returns still gets its images.
+  async function buildMessages(priorTurns, latestUserText, chunks) {
+    const res = await fetch(`${API}/context`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        question: latestUserText,
+        results: chunks,
+        prior_turns: priorTurns,
+      }),
     });
-    messages.push({ role: "user", content });
+    if (!res.ok) throw new Error(`Context failed (${res.status}): ${await res.text()}`);
+    const ctx = await res.json();
+    const messages = await Promise.all(
+      ctx.messages.map(async (m) => {
+        if (typeof m.content === "string") return { role: m.role, content: m.content };
+        const resolved = await Promise.all(
+          m.content.map(async (part) => {
+            if (part.type !== "page_image") return [{ type: "text", text: part.text }];
+            const dataUrl = await imageToDataUrl(pageImageUrl(part.paper_id, part.page));
+            return dataUrl
+              ? [{ type: "text", text: part.label }, { type: "image_url", image_url: { url: dataUrl } }]
+              : [];
+          }),
+        );
+        return { role: m.role, content: resolved.flat() };
+      }),
+    );
     // `injected` rides along so the UI can show this evidence in the panel.
     // It is context the model saw, but it is not a retrieval result.
+    const injected = (ctx.injected || []).map((f) => ({
+      paperId: f.paper_id,
+      page: f.page,
+      chunkId: f.chunk_id,
+      caption: f.caption,
+      bbox: f.bbox || null,
+    }));
     return { messages, injected };
   }
 

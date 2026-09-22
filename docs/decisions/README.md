@@ -36,3 +36,4 @@ kept on purpose.
 - [0030](./0030-frontend-backend-split.md): Split the frontend off the backend image
 - [0031](./0031-provider-menu-byok-or-ollama.md): Provider menu: generation on the visitor's own provider (OpenRouter BYOK or local Ollama)
 - [0032](./0032-routing-is-a-cost-lever.md): Routing is a cost lever, not an accuracy lever (supersedes 0013)
+- [0033](./0033-one-reader-context.md): One reader context for the chat, /answer and the eval

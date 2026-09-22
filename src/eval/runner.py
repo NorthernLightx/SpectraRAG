@@ -133,7 +133,11 @@ async def _run_one(
         cited_chunk_ids = [c.chunk_id for c in answer.citations]
         tokens_in = answer.tokens_in
         tokens_out = answer.tokens_out
-        citation_rate = citation_grounding(cited_chunk_ids, retrieved_chunk_ids)
+        # Grounded = cited something the reader was shown: a retrieved chunk,
+        # an injected figure caption or an attached page image (ADR 0033).
+        citation_rate = citation_grounding(
+            cited_chunk_ids, answer.context_ids or retrieved_chunk_ids
+        )
 
     if judge is not None:
         if answer_text is not None:
