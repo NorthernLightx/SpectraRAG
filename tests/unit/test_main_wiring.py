@@ -509,3 +509,20 @@ def test_wire_generator_keeps_default_cap_when_no_page_budget() -> None:
     assert wired is True
     assert _GeneratorState.instance is not None
     assert _GeneratorState.instance._max_vision_images == _MAX_VISION_IMAGES
+
+
+def test_auto_refusal_threshold_uses_the_rerankers_calibration() -> None:
+    settings = Settings(openrouter_api_key="sk-test", reranker_model="BAAI/bge-reranker-v2-m3")
+    assert settings.refusal_score_threshold == "auto"
+    assert _wire_generator_from_settings(settings) is True
+    assert _GeneratorState.instance is not None
+    assert _GeneratorState.instance._refusal_score_threshold == pytest.approx(0.105)
+
+
+def test_auto_refusal_threshold_is_off_for_an_uncalibrated_reranker() -> None:
+    """0.105 is a bge probability; applying it to another model's scores
+    would refuse or answer on noise."""
+    settings = Settings(openrouter_api_key="sk-test", reranker_model="some/other-reranker")
+    assert _wire_generator_from_settings(settings) is True
+    assert _GeneratorState.instance is not None
+    assert _GeneratorState.instance._refusal_score_threshold is None

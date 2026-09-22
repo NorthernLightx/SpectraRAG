@@ -233,12 +233,12 @@ function RetrievalPanel({ turn, highlight, settings, paperTitle, routingAvailabl
     );
   }
   const cands = turn.candidates;
-  // Text rerank logits (~±10) and visual patch-sim (~18+) are different
-  // scales, so bars and ranks compare within a leg, never across. A shared
-  // min-max would flatten every text bar the moment one visual candidate
-  // appears. Min-max per leg (rerank logits can be all-negative, and raw values
-  // would render empty bars), with a small floor so the leg's worst row still
-  // shows a sliver instead of reading as zero relevance.
+  // Text rerank scores (0 to 1, less any length penalty) and visual patch-sim
+  // (~18+) are different scales, so bars and ranks compare within a leg, never
+  // across. A shared min-max would flatten every text bar the moment one visual
+  // candidate appears. Min-max per leg (rerank scores can bunch near 0 or 1, and
+  // raw values would render near-empty or near-full bars), with a small floor so
+  // the leg's worst row still shows a sliver instead of reading as zero relevance.
   const legScores = {
     text: cands.filter((c) => c.kind !== "visual").map((c) => c.score || 0),
     visual: cands.filter((c) => c.kind === "visual").map((c) => c.score || 0),
@@ -279,7 +279,7 @@ function RetrievalPanel({ turn, highlight, settings, paperTitle, routingAvailabl
   // Surface the candidates the answer actually cited at the top, then the rest.
   // Each group keeps the retriever's existing rank order, which for a text-only
   // result set is score DESC. We deliberately don't re-sort by raw `score`: text
-  // rerank logits and visual patch-sim are different scales, so a global sort
+  // rerank scores and visual patch-sim are different scales, so a global sort
   // would interleave the legs wrongly. The [n] badge is the citation's own number.
   const orderedCands = [
     ...cands.filter((c) => citedNum(c) != null),

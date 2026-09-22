@@ -266,3 +266,36 @@ feature ships in-tree as an opt-in with the upgrade path documented.
   conditions, false-refusal guard.
 - `data/eval/runs/run-20260502-211555.json`: gate-run data (run id `47a9c3eaca0e`).
 - `data/eval/baseline.json`: baseline (run id `7b5242df5b38`).
+
+## Amendment (2026-09-23): the threshold belongs to a reranker
+
+The 0.105 threshold is a bge-reranker-v2-m3 probability. sentence-transformers
+runs that model through a sigmoid (one output label, no activation in its
+config), so its scores sit in [0, 1]. The Cloud Run image and `spectrarag serve`
+rerank with `cross-encoder/ms-marco-MiniLM-L-6-v2`, whose config asks for no
+activation, so it returns raw logits between roughly -11 and 11. The gate had
+been comparing those logits to 0.105. In the fused hybrid list it also compared
+ColQwen2 MaxSim scores (18 and up) to the same number, so once the visual leg
+was wired the gate could never fire.
+
+Three changes:
+
+- `BgeReranker` maps a logit model's score through a sigmoid before returning
+  it. Ranking is unchanged; every reranker now reports on a [0, 1] scale.
+- `RetrievalResult.score_kind` says what a score measures (`rerank`, `rrf`,
+  `maxsim`). The gate judges only a list made entirely of reranked chunks. A
+  visual page or an unreranked chunk has no calibrated score, so one in the
+  list keeps the gate out of the way. An unreranked text leg used to refuse
+  every query, since its RRF scores (about 0.03) sit under 0.105.
+- Thresholds live in `src/rag/rerank.py`, keyed by reranker model.
+  `Settings.refusal_score_threshold` defaults to `"auto"`, which looks the
+  value up and leaves the gate off for a model with no entry.
+
+MiniLM was calibrated under the served conditions (no paper filter, no region
+boost, length-norm on, 20-candidate pool) with `scripts/calibrate_refusal.py
+--profile cpu` over golden v3. It does not separate the classes: five of eight
+out-of-corpus queries score above the lowest in-corpus query, one at 0.99. The
+best cut, 0.044, refuses three of eight out-of-corpus queries and sits exactly
+on the lowest in-corpus score. That is no margin at n=39, so MiniLM gets no
+entry and the served gate stays off; the prompt's own refusal instruction still
+applies. Receipt: `data/eval/calibration-refusal-minilm-cpu.json`.

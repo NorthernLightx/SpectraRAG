@@ -155,3 +155,42 @@ def test_length_norm_handles_empty_text_chunks() -> None:
     # empty's score is 1.0 - 0.5 = 0.5; long's is 0.7
     assert hits[0].rerank_score == pytest.approx(0.7)
     assert hits[1].rerank_score == pytest.approx(0.5)
+
+
+def test_logit_scores_are_mapped_to_probabilities_without_reordering() -> None:
+    """ms-marco cross-encoders return raw logits (about -11 to 11). Thresholds
+    are calibrated on bge's sigmoid output, so logits leave rerank() on [0, 1]."""
+    from src.rag.rerank import BgeReranker
+    from src.types import Chunk
+
+    logits = {"a": 8.0, "b": -4.0, "c": 0.0}
+    reranker = BgeReranker(
+        scorer=lambda pairs: [logits[doc] for _, doc in pairs], scorer_returns_logits=True
+    )
+    chunks = [Chunk(chunk_id=k, paper_id="p", page_numbers=[1], text=k) for k in logits]
+    hits = reranker.rerank("q", chunks, top_k=3)
+    assert [h.chunk_id for h in hits] == ["a", "c", "b"]
+    assert all(0.0 < h.rerank_score < 1.0 for h in hits)
+    assert hits[1].rerank_score == pytest.approx(0.5)
+
+
+def test_probability_scores_pass_through() -> None:
+    from src.rag.rerank import BgeReranker
+    from src.types import Chunk
+
+    reranker = BgeReranker(scorer=lambda pairs: [0.3 for _ in pairs])
+    [hit] = reranker.rerank("q", [Chunk(chunk_id="a", paper_id="p", page_numbers=[1], text="a")], 1)
+    assert hit.rerank_score == pytest.approx(0.3)
+
+
+@pytest.mark.slow
+def test_minilm_is_detected_as_a_logit_model() -> None:
+    """Guards the activation check against the real model the cpu profile serves."""
+    from src.rag.rerank import BgeReranker
+    from src.types import Chunk
+
+    reranker = BgeReranker(model_name="cross-encoder/ms-marco-MiniLM-L-6-v2", device="cpu")
+    chunk = Chunk(chunk_id="a", paper_id="p", page_numbers=[1], text="Paris is in France.")
+    [hit] = reranker.rerank("Where is Paris?", [chunk], top_k=1)
+    assert reranker._outputs_logits is True
+    assert 0.0 < hit.rerank_score < 1.0

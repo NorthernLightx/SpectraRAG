@@ -32,10 +32,10 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from src.embeddings.ollama_bge import OllamaBgeEmbedder
+from src.config.settings import load_settings
 from src.eval.golden_set import load_golden_set
 from src.rag.bm25 import Bm25Index
-from src.rag.rerank import BgeReranker
+from src.rag.retrieval_config import RetrievalConfig, build_embedder, build_text_retriever
 from src.rag.retrievers.pipeline import PipelineRetriever
 from src.rag.retrievers.region_boost import RegionNumberBoostRetriever
 from src.rag.vectorstore import QdrantVectorStore
@@ -47,7 +47,7 @@ async def _build_retriever(
     qdrant_url: str,
     collection: str,
     ollama_url: str,
-    rerank_length_norm: bool,
+    config: RetrievalConfig,
     region_boost: bool,
 ) -> tuple[PipelineRetriever | RegionNumberBoostRetriever, int]:
     """Re-build the text retriever from an existing populated Qdrant collection.
@@ -55,7 +55,7 @@ async def _build_retriever(
     Returns the retriever and the number of chunks it sees. If that count is
     0, the collection name is wrong or the schema is from an older run.
     """
-    embedder = OllamaBgeEmbedder(base_url=ollama_url)
+    embedder = build_embedder(config, ollama_url=ollama_url)
     vectorstore = QdrantVectorStore(url=qdrant_url, collection_name=collection, dim=embedder.dim)
     chunks = await vectorstore.scroll_chunks()
     if not chunks:
@@ -65,13 +65,8 @@ async def _build_retriever(
     bm25.add(chunks)
     chunks_by_id = {c.chunk_id: c for c in chunks}
 
-    reranker = BgeReranker(length_norm=rerank_length_norm)
-    pipeline = PipelineRetriever(
-        embedder=embedder,
-        vectorstore=vectorstore,
-        bm25=bm25,
-        chunks_by_id=chunks_by_id,
-        reranker=reranker,
+    pipeline = build_text_retriever(
+        config, embedder=embedder, vectorstore=vectorstore, bm25=bm25, chunks_by_id=chunks_by_id
     )
     if region_boost:
         return RegionNumberBoostRetriever(base=pipeline), len(chunks)
@@ -130,7 +125,7 @@ async def _calibrate(
     collection: str,
     ollama_url: str,
     top_k: int,
-    rerank_length_norm: bool,
+    config: RetrievalConfig,
     region_boost: bool,
     paper_id_filter: bool,
     out_path: Path | None,
@@ -139,7 +134,7 @@ async def _calibrate(
         qdrant_url=qdrant_url,
         collection=collection,
         ollama_url=ollama_url,
-        rerank_length_norm=rerank_length_norm,
+        config=config,
         region_boost=region_boost,
     )
     golden_set = load_golden_set(golden_path)
@@ -148,8 +143,9 @@ async def _calibrate(
     )
     print(f"Corpus: {n_chunks} chunks in Qdrant collection '{collection}'")
     print(
-        f"Config: length_norm={rerank_length_norm}, region_boost={region_boost}, "
-        f"paper_id_filter={paper_id_filter}"
+        f"Config: reranker={config.reranker_model}, length_norm={config.rerank_length_norm}, "
+        f"region_boost={region_boost}, paper_id_filter={paper_id_filter}, "
+        f"retrieval_fingerprint={config.fingerprint()}"
     )
     print()
 
@@ -217,7 +213,9 @@ async def _calibrate(
                 {
                     "config": {
                         "collection": collection,
-                        "rerank_length_norm": rerank_length_norm,
+                        "retrieval_config": config.as_dict(),
+                        "retrieval_fingerprint": config.fingerprint(),
+                        "rerank_length_norm": config.rerank_length_norm,
                         "region_boost": region_boost,
                         "paper_id_filter": paper_id_filter,
                         "top_k": top_k,
@@ -246,6 +244,12 @@ def main() -> int:
         "Default = the latest committed-baseline collection.",
     )
     parser.add_argument("--top-k", type=int, default=10)
+    parser.add_argument(
+        "--profile",
+        default=None,
+        help="Calibrate the text leg of a served profile (for example `cpu`) instead "
+        "of bge-reranker-v2-m3 over Ollama bge-m3.",
+    )
     parser.add_argument("--rerank-length-norm", action="store_true", default=True)
     parser.add_argument("--no-rerank-length-norm", dest="rerank_length_norm", action="store_false")
     parser.add_argument("--region-boost", action="store_true", default=True)
@@ -260,6 +264,10 @@ def main() -> int:
     )
     args = parser.parse_args()
 
+    if args.profile:
+        config = RetrievalConfig.from_settings(load_settings(profile=args.profile)).text_only()
+    else:
+        config = RetrievalConfig(rerank_length_norm=args.rerank_length_norm)
     asyncio.run(
         _calibrate(
             golden_path=args.golden,
@@ -267,7 +275,7 @@ def main() -> int:
             collection=args.collection,
             ollama_url=args.ollama,
             top_k=args.top_k,
-            rerank_length_norm=args.rerank_length_norm,
+            config=config,
             region_boost=args.region_boost,
             paper_id_filter=args.paper_id_filter,
             out_path=args.out if str(args.out) else None,

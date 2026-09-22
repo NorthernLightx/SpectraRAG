@@ -193,6 +193,7 @@ class QdrantVisualStore:
                     text=f"[Page image {paper_id} p{page_no}]",
                     page_numbers=[page_no],
                     source="visual",
+                    score_kind="maxsim",
                 )
             )
         return results

@@ -54,12 +54,6 @@ _log = get_logger(__name__)
 # production router's fused ranking tracks that eval methodology.
 _RRF_K = 60
 
-# Per-query cascade override default. When a client asks for cascade dispatch
-# via Query.routing_mode but the server wasn't started with a threshold, fall
-# back to ADR 0010's verification value (0.85). Operators who want a different
-# value still set it server-side via Settings.cascade_confidence_threshold.
-_DEFAULT_CASCADE_THRESHOLD = 0.85
-
 Category = Literal["table", "figure", "multi_hop", "factual", "definitional"]
 RoutingPath = Literal["text", "visual", "hybrid"]
 RoutingMode = Literal["category", "cascade", "hybrid"]
@@ -149,6 +143,7 @@ class RoutingRetriever:
         mode: RoutingMode = "category",
         cascade_confidence_threshold: float | None = None,
         visual_fusion_weight: float = 1.0,
+        default_cascade_threshold: float | None = None,
     ) -> None:
         if mode == "cascade" and cascade_confidence_threshold is None:
             raise ValueError(
@@ -160,6 +155,11 @@ class RoutingRetriever:
         self._classifier = classifier
         self._mode = mode
         self._cascade_threshold = cascade_confidence_threshold
+        # Used when a query asks for cascade dispatch on a server started in
+        # another mode. It must be calibrated for the text leg's reranker
+        # (src/rag/rerank.py CASCADE_THRESHOLDS); with none, cascade runs both
+        # legs rather than trusting a threshold measured on another scale.
+        self._default_cascade_threshold = default_cascade_threshold
         # ADR 0023: visual-leg weight for the page-level RRF. 1.0 (default)
         # reproduces ADR 0008's equal-weight fusion exactly.
         self._visual_fusion_weight = visual_fusion_weight
@@ -346,13 +346,9 @@ class RoutingRetriever:
         always-hybrid; `force_route="text"` short-circuits to always-text.
         """
         # Per-query cascade requests (Query.routing_mode='cascade' against a
-        # category-mode server) won't have a configured threshold. Fall back
-        # to ADR 0010's verification value so the demo UI can A/B compare.
-        threshold = (
-            self._cascade_threshold
-            if self._cascade_threshold is not None
-            else _DEFAULT_CASCADE_THRESHOLD
-        )
+        # category-mode server) won't have a configured threshold; they use the
+        # value calibrated for this reranker, if there is one.
+        threshold = self._effective_cascade_threshold()
         span = trace.get_current_span()
         span.set_attribute("routing.mode", "cascade")
 
@@ -381,7 +377,20 @@ class RoutingRetriever:
                 top_score=0.0,
             )
 
-        top_score = text_results[0].score if text_results else 0.0
+        # Only a cross-encoder score is on the scale the threshold was measured
+        # on. An unreranked text leg (RRF scores) or an uncalibrated reranker
+        # gives no basis for skipping the visual leg, so both legs run.
+        top = text_results[0] if text_results else None
+        if top is None or top.score_kind != "rerank" or threshold is None:
+            return await self._cascade_run_visual_and_fuse(
+                query,
+                span,
+                text_results,
+                decision="uncalibrated_hybrid",
+                forced=False,
+                top_score=top.score if top is not None else 0.0,
+            )
+        top_score = top.score
         span.set_attribute("routing.cascade_top_score", float(top_score))
         span.set_attribute("routing.cascade_threshold", threshold)
 
@@ -495,11 +504,7 @@ class RoutingRetriever:
         top_score: float = 0.0,
         visual_failed: bool = False,
     ) -> None:
-        effective_threshold = (
-            self._cascade_threshold
-            if self._cascade_threshold is not None
-            else _DEFAULT_CASCADE_THRESHOLD
-        )
+        effective_threshold = self._effective_cascade_threshold()
         _routing_info_var.set(
             RoutingInfo(
                 mode="cascade",
@@ -525,6 +530,11 @@ class RoutingRetriever:
         if visual_failed:
             kwargs["visual_failed"] = True
         _log.info("routing.dispatched", **kwargs)
+
+    def _effective_cascade_threshold(self) -> float | None:
+        if self._cascade_threshold is not None:
+            return self._cascade_threshold
+        return self._default_cascade_threshold
 
     async def _safe_visual_retrieve(self, query: Query, span: Span) -> list[RetrievalResult] | None:
         """Run the visual retriever; on any exception, log and return None to

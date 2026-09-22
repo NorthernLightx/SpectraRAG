@@ -23,7 +23,6 @@ from src.api.deps import (
     set_retriever,
 )
 from src.config.settings import Settings
-from src.embeddings.ollama_bge import OllamaBgeEmbedder
 from src.embeddings.protocol import Embedder
 from src.llm.ollama_chat import OllamaChatClient
 from src.llm.openrouter import OpenRouterClient
@@ -31,8 +30,10 @@ from src.observability.logging import get_logger
 from src.prompts.loader import load_prompt_by_name
 from src.rag.bm25 import Bm25Index
 from src.rag.generate import _MAX_VISION_IMAGES, Generator
+from src.rag.rerank import calibrated_refusal_threshold
 from src.rag.retrieval_config import (
     RetrievalConfig,
+    build_embedder,
     build_routing_retriever,
     build_text_retriever,
 )
@@ -57,6 +58,15 @@ def _wire_generator_from_settings(settings: Settings) -> bool:
     """
     if settings.openrouter_api_key is None:
         return False
+    threshold = settings.refusal_score_threshold
+    if threshold == "auto":
+        threshold = calibrated_refusal_threshold(settings.reranker_model)
+        if threshold is None:
+            get_logger(__name__).warning(
+                "api.generator.refusal_gate_off",
+                reason="no calibrated threshold for this reranker",
+                reranker_model=settings.reranker_model,
+            )
     client = OpenRouterClient(api_key=settings.openrouter_api_key.get_secret_value())
     set_generator(
         Generator(
@@ -69,8 +79,8 @@ def _wire_generator_from_settings(settings: Settings) -> bool:
             # for any visual RetrievalResult so a vision-capable default_chat_model
             # can read images directly. None = text-only behaviour (back-compat).
             pages_dir=settings.pages_dir,
-            # Calibrated refusal gate (settings docstring + ADR 0009 follow-up).
-            refusal_score_threshold=settings.refusal_score_threshold,
+            # Calibrated per reranker (settings docstring + ADR 0009 follow-up).
+            refusal_score_threshold=threshold,
             # ADR 0024: when route-by-fit is enabled, a fitting whole document
             # resolves to ALL its pages; the per-call image cap must rise to the
             # page budget or _collect_image_paths silently truncates to 4 and
@@ -244,24 +254,13 @@ async def _wire_retriever_from_settings(
     config = RetrievalConfig.from_settings(settings)
     try:
         if embedder is None:
-            if settings.embedder_backend == "sentence_transformers":
-                # Both the torch/sentence-transformers import (deferred to keep
-                # it off the local-dev hot path where Ollama is the default)
-                # and the constructor's ~2 GB bge-m3 weight load are
-                # synchronous and slow. Run the whole thing off-thread so it
-                # can't stall the event loop while the lifespan background
-                # wiring task runs. Otherwise /health and the static demo
-                # would hang for the duration of import + load on cold start.
-                def _build_st_embedder() -> Embedder:
-                    from src.embeddings.sentence_transformers_bge import (
-                        SentenceTransformersBgeEmbedder,
-                    )
-
-                    return SentenceTransformersBgeEmbedder()
-
-                embedder = await asyncio.to_thread(_build_st_embedder)
-            else:
-                embedder = OllamaBgeEmbedder(base_url=settings.ollama_base_url)
+            # The sentence-transformers import and its ~2 GB bge-m3 weight load
+            # are synchronous and slow. Off-thread so they can't stall the event
+            # loop while the lifespan wiring runs; otherwise /health and the
+            # static demo hang for the duration of import + load on cold start.
+            embedder = await asyncio.to_thread(
+                build_embedder, config, ollama_url=settings.ollama_base_url
+            )
         if vectorstore is None:
             vectorstore = QdrantVectorStore(
                 url=settings.qdrant_url,

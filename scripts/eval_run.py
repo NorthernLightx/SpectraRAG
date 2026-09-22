@@ -32,8 +32,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from src.config.settings import load_settings
-from src.embeddings.ollama_bge import OllamaBgeEmbedder
-from src.embeddings.protocol import Embedder
 from src.eval.golden_set import load_golden_set
 from src.eval.judges import LLMJudge
 from src.eval.report import write_run_json, write_run_markdown
@@ -52,6 +50,7 @@ from src.rag.generate import Generator
 from src.rag.query_expansion import QueryExpander
 from src.rag.retrieval_config import (
     RetrievalConfig,
+    build_embedder,
     build_routing_retriever,
     build_text_retriever,
 )
@@ -77,14 +76,6 @@ def _build_llm(provider: str, *, ollama_url: str, num_ctx: int | None = None) ->
     if provider == "ollama":
         return OllamaChatClient(base_url=ollama_url, num_ctx=num_ctx)
     raise SystemExit(f"unknown provider: {provider!r} (expected 'openrouter' or 'ollama')")
-
-
-def _build_embedder(backend: str, *, ollama_url: str) -> Embedder:
-    if backend == "sentence_transformers":
-        from src.embeddings.sentence_transformers_bge import SentenceTransformersBgeEmbedder
-
-        return SentenceTransformersBgeEmbedder()
-    return OllamaBgeEmbedder(base_url=ollama_url)
 
 
 # Flags that describe the retrieval stack. `--profile` supplies all of them, so
@@ -212,7 +203,7 @@ async def _main(
         contextualize=contextualize,
     )
 
-    embedder = _build_embedder(retrieval_config.embedder_backend, ollama_url=ollama_url)
+    embedder = build_embedder(retrieval_config, ollama_url=ollama_url)
     vectorstore = QdrantVectorStore(url=qdrant_url, collection_name=collection, dim=embedder.dim)
     await vectorstore.ensure_collection()
     bm25 = Bm25Index()

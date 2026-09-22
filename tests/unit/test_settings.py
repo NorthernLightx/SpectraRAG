@@ -116,11 +116,15 @@ def test_public_api_key_loads_from_env(tmp_path: Path, monkeypatch: pytest.Monke
 def test_refusal_score_threshold_default_is_calibrated_value(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Tier 1: calibrated default of 0.105 ships in production. Picked from
-    scripts/calibrate_refusal.py output on the v3 corpus — closes q21's leak
-    (max_score=0.100) without misfiring on q6 (in-corpus max_score=0.111)."""
+    """The default defers to the value calibrated for the configured reranker:
+    0.105 for bge-reranker-v2-m3, from scripts/calibrate_refusal.py on the v3
+    corpus (closes q21's leak at 0.100 without misfiring on q6 at 0.111)."""
+    from src.rag.rerank import calibrated_refusal_threshold
+
     monkeypatch.delenv("RAG_REFUSAL_SCORE_THRESHOLD", raising=False)
-    assert Settings().refusal_score_threshold == pytest.approx(0.105)
+    settings = Settings()
+    assert settings.refusal_score_threshold == "auto"
+    assert calibrated_refusal_threshold(settings.reranker_model) == pytest.approx(0.105)
 
 
 def test_refusal_score_threshold_overridable_via_env(monkeypatch: pytest.MonkeyPatch) -> None:

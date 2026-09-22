@@ -220,3 +220,14 @@ gpt-4o-mini's score range; the code paths themselves are verified.
 - `scripts/calibrate_cascade.py`: per-corpus threshold picker.
 - `scripts/calibrate_refusal.py` (Tier 1): same shape, refusal version.
 - Run `568fe7cfd4f9`: Tier 2 smoke verification (Ollama, golden v1).
+
+## Amendment (2026-09-23): cascade needs a calibrated rerank score
+
+The 0.85 default is a bge-reranker-v2-m3 probability, and it was also applied
+to the MiniLM logits the CPU deploy produces. The threshold now comes from
+`CASCADE_THRESHOLDS` in `src/rag/rerank.py`, keyed by reranker model, and the
+cascade reads the top text result only when it carries a rerank score. With no
+calibrated threshold, or an unreranked text leg, it runs both legs and reports
+`cascade_decision="uncalibrated_hybrid"`. On the CPU deploy that means a
+per-query cascade request behaves like the hybrid default until MiniLM is
+calibrated with `scripts/calibrate_cascade.py`.

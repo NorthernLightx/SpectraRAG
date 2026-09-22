@@ -27,6 +27,7 @@ def _chunk(score: float, chunk_id: str = "c1") -> RetrievalResult:
         text="content",
         page_numbers=[1],
         source="pipeline",
+        score_kind="rerank",
     )
 
 
@@ -80,3 +81,33 @@ async def test_generator_refuses_on_empty_retrieval_when_threshold_set() -> None
 
     assert llm.calls == 0
     assert answer.model == "refusal-gate"
+
+
+def _visual(score: float) -> RetrievalResult:
+    return RetrievalResult(
+        chunk_id="p::p2::page",
+        paper_id="p",
+        score=score,
+        text="[Page image p p2]",
+        page_numbers=[2],
+        source="visual",
+        score_kind="maxsim",
+    )
+
+
+async def test_visual_maxsim_does_not_block_a_refusal() -> None:
+    """A ColQwen2 MaxSim in the tens sits next to rerank scores in a fused list.
+    It must not read as a confident hit against a rerank threshold."""
+    llm = _CountingLLM()
+    gen = Generator(llm=llm, prompt=_prompt(), model="m", refusal_score_threshold=0.1)  # type: ignore[arg-type]
+    answer = await gen.answer("q", [_chunk(0.01, "c1"), _visual(18.0)])
+    assert answer.model == "refusal-gate"
+    assert llm.calls == 0
+
+
+async def test_no_rerank_scores_means_no_refusal() -> None:
+    llm = _CountingLLM()
+    gen = Generator(llm=llm, prompt=_prompt(), model="m", refusal_score_threshold=0.1)  # type: ignore[arg-type]
+    answer = await gen.answer("q", [_visual(0.01)])
+    assert answer.model != "refusal-gate"
+    assert llm.calls == 1

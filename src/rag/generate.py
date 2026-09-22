@@ -214,11 +214,17 @@ class Generator:
         return citations
 
     def _should_refuse(self, retrieved: list[RetrievalResult]) -> bool:
+        """Refuse when nothing was retrieved, or when every reranked result
+        scores under the threshold. Only rerank scores count: the threshold is
+        calibrated on the cross-encoder's scale, and a ColQwen2 MaxSim (tens) or
+        an RRF sum (~0.03) next to it would either block or force every refusal.
+        With no rerank score to judge by, the gate stays out of the way."""
         if not retrieved:
             return True
         threshold = self._refusal_score_threshold
         assert threshold is not None  # narrowed by caller's check
-        return all(r.score < threshold for r in retrieved)
+        rerank_scores = [r.score for r in retrieved if r.score_kind == "rerank"]
+        return bool(rerank_scores) and all(s < threshold for s in rerank_scores)
 
     def _refusal(self) -> Answer:
         return Answer(

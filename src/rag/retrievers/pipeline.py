@@ -11,6 +11,7 @@ from src.rag.hybrid import RankedItem, reciprocal_rank_fusion
 from src.rag.rerank import BgeReranker
 from src.rag.vectorstore import QdrantVectorStore
 from src.types import Chunk, Query, RetrievalResult
+from src.types.retrieval import ScoreKind
 
 _log = get_logger(__name__)
 
@@ -88,7 +89,7 @@ class PipelineRetriever:
                     self._reranker.rerank, query.text, chunks_to_rerank, query.top_k
                 )
                 results = [
-                    self._make_result(self._chunks_by_id[hit.chunk_id], hit.rerank_score)
+                    self._make_result(self._chunks_by_id[hit.chunk_id], hit.rerank_score, "rerank")
                     for hit in reranked
                     if hit.chunk_id in self._chunks_by_id
                 ]
@@ -99,7 +100,7 @@ class PipelineRetriever:
 
             fused = reciprocal_rank_fusion([dense_ranked, sparse_ranked], top_k=query.top_k)
             results = [
-                self._make_result(self._chunks_by_id[item.id], item.score)
+                self._make_result(self._chunks_by_id[item.id], item.score, "rrf")
                 for item in fused
                 if item.id in self._chunks_by_id
             ]
@@ -123,7 +124,7 @@ class PipelineRetriever:
             kept.append(item)
         return kept
 
-    def _make_result(self, chunk: Chunk, score: float) -> RetrievalResult:
+    def _make_result(self, chunk: Chunk, score: float, kind: ScoreKind) -> RetrievalResult:
         # Carry the chunk's metadata (kind, bbox, image_path, has_vlm_caption)
         # through to the RetrievalResult so the citation surface (ADR 0009)
         # can copy bbox into Citation when a region-grounded chunk is cited.
@@ -140,4 +141,5 @@ class PipelineRetriever:
             page_numbers=chunk.page_numbers,
             source="pipeline",
             metadata=meta,
+            score_kind=kind,
         )

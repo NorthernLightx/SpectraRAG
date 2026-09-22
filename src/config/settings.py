@@ -115,15 +115,13 @@ class Settings(BaseSettings):
     max_context_tokens: int = Field(default=8000, ge=512)
     temperature: float = Field(default=0.2, ge=0.0, le=2.0)
 
-    # Calibrated refusal-gate threshold (Tier 1 follow-up to ADR 0009).
-    # When all retrieved chunks have rerank score < this value, the Generator
-    # short-circuits to a refusal answer ("I cannot answer..."). 0.105 was
-    # picked empirically (scripts/calibrate_refusal.py) on the v3 corpus:
-    # closes the q21_oc_llama_finetune leak (max_score=0.100) and the obvious
-    # low-confidence OOC cluster (q5/q15/q19/q23 at <0.07), without
-    # misfiring on the lowest-scoring legitimate in-corpus query
-    # (q6_basin_definition at 0.111). Set to None to disable the gate.
-    refusal_score_threshold: float | None = 0.105
+    # Refusal gate (ADR 0006, ADR 0009 follow-up): when every reranked result
+    # scores under this, the Generator refuses instead of calling the LLM.
+    # "auto" looks up the value calibrated for `reranker_model` in
+    # src/rag/rerank.py (0.105 for bge-reranker-v2-m3, from
+    # scripts/calibrate_refusal.py on golden v3); a model with no calibration
+    # leaves the gate off. A float applies as given. None disables the gate.
+    refusal_score_threshold: float | Literal["auto"] | None = "auto"
 
     # ADR 0032: `hybrid` runs both legs on every query and skips the classifier.
     # `category` (ADR 0008) and `cascade` (ADR 0010) are opt-in cost knobs.

@@ -54,6 +54,7 @@ def _text_chunk(
         text="text chunk",
         page_numbers=[page],
         source="pipeline",
+        score_kind="rerank",
     )
 
 
@@ -66,6 +67,7 @@ def _visual_page(page: int, score: float, paper: str = "paper1") -> RetrievalRes
         text=f"[Page image {paper} p{page}]",
         page_numbers=[page],
         source="visual",
+        score_kind="maxsim",
     )
 
 
@@ -605,13 +607,14 @@ def test_query_routing_mode_rejects_invalid_literal() -> None:
 
 @pytest.mark.asyncio
 async def test_query_routing_mode_cascade_overrides_category_server() -> None:
-    """Server wired with mode='category', query asks for cascade — uses default 0.85.
+    """Server wired with mode='category', query asks for cascade: it uses the
+    threshold calibrated for the reranker (0.85 for bge-reranker-v2-m3).
 
     Text score 0.99 (>= 0.85) → cascade returns text-only, visual leg skipped.
     """
     text = _RecordingRetriever("text", [_text_chunk("paper1::p1::c0", score=0.99, page=1)])
     visual = _RecordingRetriever("visual", [_visual_page(page=2, score=0.5)])
-    router = RoutingRetriever(text=text, visual=visual)  # category mode, no threshold
+    router = RoutingRetriever(text=text, visual=visual, default_cascade_threshold=0.85)
 
     results = await router.retrieve(Query(text="show me the chart", routing_mode="cascade"))
 
@@ -822,3 +825,36 @@ async def test_hybrid_server_still_serves_forced_visual_only() -> None:
     assert info is not None
     assert info.mode == "hybrid"
     assert info.path == "visual"
+
+
+@pytest.mark.asyncio
+async def test_cascade_without_a_calibrated_threshold_runs_both_legs() -> None:
+    """An uncalibrated reranker gives no basis for skipping the visual leg."""
+    text = _RecordingRetriever("text", [_text_chunk("paper1::p1::c0", score=0.99, page=1)])
+    visual = _RecordingRetriever("visual", [_visual_page(page=2, score=0.5)])
+    router = RoutingRetriever(text=text, visual=visual)
+
+    await router.retrieve(Query(text="X?", routing_mode="cascade"))
+
+    info = get_last_routing_info()
+    assert visual.calls == 1
+    assert info is not None
+    assert info.cascade_decision == "uncalibrated_hybrid"
+    assert info.cascade_threshold is None
+
+
+@pytest.mark.asyncio
+async def test_cascade_ignores_scores_that_are_not_rerank_scores() -> None:
+    """An RRF score (~0.03) must not be read against a rerank threshold."""
+    unreranked = _text_chunk("paper1::p1::c0", score=0.99, page=1).model_copy(
+        update={"score_kind": "rrf"}
+    )
+    text = _RecordingRetriever("text", [unreranked])
+    visual = _RecordingRetriever("visual", [_visual_page(page=2, score=0.5)])
+    router = RoutingRetriever(
+        text=text, visual=visual, mode="cascade", cascade_confidence_threshold=0.5
+    )
+
+    await router.retrieve(Query(text="X?"))
+
+    assert visual.calls == 1

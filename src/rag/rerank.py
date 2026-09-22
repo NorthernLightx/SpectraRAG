@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import threading
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -16,15 +17,31 @@ ScorerFn = Callable[[list[tuple[str, str]]], list[float]]
 
 _DEFAULT_MODEL = "BAAI/bge-reranker-v2-m3"
 
+# Thresholds on a rerank score mean something only on the scale of the model
+# they were measured with, so they are looked up by model id instead of being
+# configured independently of the reranker. A model with no entry has no
+# calibrated threshold: the refusal gate stays off and cascade routing runs
+# both legs.
+REFUSAL_THRESHOLDS: dict[str, float] = {
+    # scripts/calibrate_refusal.py on golden v3 (ADR 0006, ADR 0009 follow-up).
+    "BAAI/bge-reranker-v2-m3": 0.105,
+}
+CASCADE_THRESHOLDS: dict[str, float] = {
+    # ADR 0010 verification value.
+    "BAAI/bge-reranker-v2-m3": 0.85,
+}
+
 # ADR 0009 follow-up: caption-stub figure chunks (~50-150 chars of PDF caption
 # text) and tiny table-only chunks empirically out-rank rich text chunks
 # (target ~1200 chars) at the cross-encoder. Run ad4fab3bb28d / q11 demonstrated
 # this: `p7::tab2` outranked `p6::c28` despite c28 carrying the answer. Length
 # normalisation is a smooth penalty: 0 above the threshold, scales linearly to
-# `length_penalty` at len=0. Defaults are calibrated for bge-reranker-v2-m3
-# scores (typically [-5, 5] logits): a 0.5 penalty is enough to displace a
-# borderline stub but not destroy a legitimately short answer (q8's
-# "8 tasks and 65 instances" is ~250 chars, above threshold so untouched).
+# `length_penalty` at len=0, applied in the model's native score space. The 0.5
+# default was tuned on bge-reranker-v2-m3, which sentence-transformers runs
+# through a sigmoid (one output label, no activation in its config), so it is
+# 0.5 off a [0, 1] probability. On a logit model such as ms-marco-MiniLM the
+# same 0.5 is a much milder nudge. q8's "8 tasks and 65 instances" (~250 chars)
+# sits above the threshold and is untouched.
 _DEFAULT_LENGTH_THRESHOLD = 300
 _DEFAULT_LENGTH_PENALTY = 0.5
 
@@ -84,8 +101,13 @@ class BgeReranker:
         length_norm: bool = False,
         length_threshold: int = _DEFAULT_LENGTH_THRESHOLD,
         length_penalty: float = _DEFAULT_LENGTH_PENALTY,
+        scorer_returns_logits: bool = False,
     ) -> None:
         self._injected_scorer = scorer
+        # Whether native scores are raw logits (mapped through a sigmoid before
+        # they leave rerank()). Read off the loaded model's activation;
+        # `scorer_returns_logits` covers an injected scorer.
+        self._outputs_logits = scorer_returns_logits
         self._model_name = model_name
         self._device = device
         self._ce: object | None = None
@@ -105,6 +127,8 @@ class BgeReranker:
 
                 device = self._device if self._device is not None else _autodetect_device()
                 self._ce = CrossEncoder(self._model_name, device=device)
+                activation = getattr(self._ce, "activation_fn", None)
+                self._outputs_logits = type(activation).__name__ == "Identity"
         ce = self._ce
 
         def _score(pairs: list[tuple[str, str]]) -> list[float]:
@@ -121,6 +145,11 @@ class BgeReranker:
         caption-stub chunks but leave legitimately short answers untouched.
         See ADR 0009 §"What this leaves open" for the empirical motivation
         and `_length_penalty_for` for the formula.
+
+        Ranking uses the native (penalised) score. The returned `rerank_score`
+        is probability-scaled for every model: a logit model's penalised score
+        goes through a sigmoid (order unchanged), a sigmoid model's is returned
+        as-is and can dip below zero by up to the length penalty.
         """
         if not candidates:
             return []
@@ -138,6 +167,24 @@ class BgeReranker:
             scores = [float(s) for s in raw_scores]
         ranked = sorted(zip(candidates, scores, strict=True), key=lambda p: p[1], reverse=True)
         return [
-            RerankedHit(chunk_id=chunk.chunk_id, rerank_score=score)
+            RerankedHit(
+                chunk_id=chunk.chunk_id,
+                rerank_score=_sigmoid(score) if self._outputs_logits else score,
+            )
             for chunk, score in ranked[:top_k]
         ]
+
+
+def _sigmoid(x: float) -> float:
+    if x >= 0:
+        return 1.0 / (1.0 + math.exp(-x))
+    z = math.exp(x)
+    return z / (1.0 + z)
+
+
+def calibrated_refusal_threshold(model: str | None) -> float | None:
+    return REFUSAL_THRESHOLDS.get(model) if model else None
+
+
+def calibrated_cascade_threshold(model: str | None) -> float | None:
+    return CASCADE_THRESHOLDS.get(model) if model else None

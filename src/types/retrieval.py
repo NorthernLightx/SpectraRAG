@@ -9,6 +9,10 @@ from pydantic import BaseModel, Field
 from src.types.documents import Chunk
 
 RetrievalSource = Literal["pipeline", "visual"]
+# What `RetrievalResult.score` measures. Scales differ by kind: a cross-encoder
+# probability in [0, 1], an RRF sum near 1/60, a ColQwen2 MaxSim sum in the tens.
+# Anything that compares a score to a threshold must check the kind first.
+ScoreKind = Literal["rerank", "rrf", "maxsim", "other"]
 
 
 class Query(BaseModel):
@@ -47,6 +51,7 @@ class RetrievalResult(BaseModel):
     page_numbers: list[int] = Field(min_length=1)
     source: RetrievalSource
     metadata: dict[str, Any] = Field(default_factory=dict)
+    score_kind: ScoreKind = "other"
 
 
 class RankedChunk(BaseModel):

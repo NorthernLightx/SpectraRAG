@@ -13,7 +13,7 @@ import json
 from dataclasses import asdict, dataclass, replace
 from typing import TYPE_CHECKING, Any
 
-from src.rag.rerank import BgeReranker
+from src.rag.rerank import BgeReranker, calibrated_cascade_threshold
 from src.rag.retrievers.pipeline import PipelineRetriever
 from src.rag.retrievers.routing import RoutingMode, RoutingRetriever
 
@@ -118,6 +118,18 @@ class RetrievalConfig:
         return hashlib.sha256(blob.encode("utf-8")).hexdigest()[:12]
 
 
+def build_embedder(config: RetrievalConfig, *, ollama_url: str) -> Embedder:
+    """Synchronous and, for sentence-transformers, slow (a ~2 GB weight load):
+    async callers run it in a worker thread."""
+    if config.embedder_backend == "sentence_transformers":
+        from src.embeddings.sentence_transformers_bge import SentenceTransformersBgeEmbedder
+
+        return SentenceTransformersBgeEmbedder()
+    from src.embeddings.ollama_bge import OllamaBgeEmbedder
+
+    return OllamaBgeEmbedder(base_url=ollama_url)
+
+
 def build_reranker(config: RetrievalConfig, *, device: str | None = None) -> BgeReranker | None:
     if config.reranker_model is None:
         return None
@@ -177,4 +189,5 @@ def build_routing_retriever(
         mode=config.routing_mode,
         cascade_confidence_threshold=config.cascade_threshold,
         visual_fusion_weight=config.visual_fusion_weight,
+        default_cascade_threshold=calibrated_cascade_threshold(config.reranker_model),
     )
