@@ -13,6 +13,7 @@ from src.eval.metrics_retrieval import ndcg_at_k, recall_at_k, reciprocal_rank
 from src.observability.logging import get_logger, timed_event
 from src.rag.generate import Generator
 from src.rag.retrievers.protocol import Retriever
+from src.rag.retrievers.routing import get_last_leg_ids, reset_last_leg_ids
 from src.types import (
     EvalRun,
     GenerationMetrics,
@@ -101,7 +102,9 @@ async def _run_one(
     if paper_id_filter and query.paper_id:
         filters["paper_id"] = query.paper_id
     rag_query = Query(text=query.text, top_k=top_k, filters=filters, force_route=force_route)
+    reset_last_leg_ids()
     retrieved = await retriever.retrieve(rag_query)
+    leg_chunk_ids = get_last_leg_ids()
     retrieved_chunk_ids = [r.chunk_id for r in retrieved]
 
     retrieval_metrics = RetrievalMetrics(
@@ -220,4 +223,5 @@ async def _run_one(
         latency_ms=int((time.monotonic() - started) * 1000),
         tokens_in=tokens_in,
         tokens_out=tokens_out,
+        leg_chunk_ids=leg_chunk_ids,
     )

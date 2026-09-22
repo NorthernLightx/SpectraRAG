@@ -86,6 +86,9 @@ class PerQueryResult(BaseModel):
     latency_ms: int = Field(ge=0)
     tokens_in: int = Field(default=0, ge=0)
     tokens_out: int = Field(default=0, ge=0)
+    # Each routing leg's ranked chunk ids ("text", "visual"), at the depth the
+    # legs ran. None when the retriever has no routing layer.
+    leg_chunk_ids: dict[str, list[str]] | None = None
 
 
 class EvalRun(BaseModel):

@@ -90,6 +90,27 @@ bge-m3, the MiniLM reranker, a 20-candidate pool per leg):
 `--profile` rejects the individual retrieval flags (`--rerank`,
 `--rerank-model`, `--cascade` and the rest) rather than silently ignoring them.
 
+### Every arm from one run
+
+A run through the router records each leg's ranked chunk ids in
+`per_query[].leg_chunk_ids`. `scripts/derive_arms.py` turns one such run into
+text-only, visual-only and hybrid arms at any fusion weight, with no model
+calls. The arms share their leg outputs, so a per-query difference between two
+of them is the fusion policy and nothing else. Record the legs deeper than the
+reported k (`--fusion-depth 50`) or the fusion only ever sees top-k pages from
+each leg:
+
+```bash
+.venv/Scripts/python.exe -m scripts.eval_run --router --force-route hybrid \
+    --fusion-depth 50 ... --output-dir data/eval/runs
+.venv/Scripts/python.exe -m scripts.derive_arms --run data/eval/runs/run-<ts>.json \
+    --golden data/golden/mmdocir-v1.yaml --out-dir data/eval/runs/arms \
+    --weight 1 --weight 5
+```
+
+The derived runs are ordinary run JSONs, so `check_regression` and
+`scripts/experiments/paired_arm_compare.py` read them as they are.
+
 ## Regression gate
 
 `scripts/check_regression.py` compares two run JSONs and fails when any gated

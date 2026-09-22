@@ -44,6 +44,21 @@ def get_last_routing_info() -> RoutingInfo | None:
     return _routing_info_var.get()
 
 
+# Per-task record of each leg's ranked chunk ids for the most recent query, at
+# the depth the legs ran. The eval stores it so every arm (text-only,
+# visual-only, hybrid at any weight) can be derived from one run, with the arms
+# paired on identical leg outputs (scripts/derive_arms.py).
+_leg_ids_var: ContextVar[dict[str, list[str]] | None] = ContextVar("leg_ids", default=None)
+
+
+def get_last_leg_ids() -> dict[str, list[str]] | None:
+    return _leg_ids_var.get()
+
+
+def reset_last_leg_ids() -> None:
+    _leg_ids_var.set(None)
+
+
 if TYPE_CHECKING:
     from src.rag.retrievers.classifier_llm import LLMQueryClassifier
 
@@ -98,6 +113,40 @@ def route_for_category(category: Category) -> RoutingPath:
     return "text"
 
 
+def fused_page_order(
+    text_ids: list[str],
+    visual_ids: list[str],
+    *,
+    top_k: int,
+    visual_weight: float = 1.0,
+) -> list[str]:
+    """Page ids (`paper::pN`) in weighted-RRF order, best first, at most `top_k`.
+
+    Each leg contributes each page once, at its first appearance, so several
+    text chunks on one page don't count several times. The fused score is
+    1/(k+rank_text) + w/(k+rank_visual). Text pages are inserted first and the
+    sort is stable, so ties keep text-before-visual order and w=1.0 matches
+    `src.rag.hybrid.reciprocal_rank_fusion` exactly (ADR 0008, ADR 0023).
+
+    With both legs cut to `top_k` before fusion the RRF scores of ranks 1..k
+    span only 1/(k+1) to 1/(k+top_k), so any weight above (k+top_k)/(k+1) (about
+    1.15 at top_k=10) returns exactly the visual leg's page set. The weight is a
+    dial only when the legs run deeper than `top_k` (`fusion_depth`).
+    """
+    rrf: dict[str, float] = {}
+    for weight, ids in ((1.0, text_ids), (visual_weight, visual_ids)):
+        seen: set[str] = set()
+        rank = 0
+        for chunk_id in ids:
+            page_id = _to_page_id(chunk_id)
+            if page_id in seen:
+                continue
+            seen.add(page_id)
+            rrf[page_id] = rrf.get(page_id, 0.0) + weight / (_RRF_K + rank + 1)
+            rank += 1
+    return [page for page, _ in sorted(rrf.items(), key=lambda p: p[1], reverse=True)[:top_k]]
+
+
 def _to_page_id(chunk_id: str) -> str:
     """Normalise any chunk_id to a page-id of the form 'paper::pN'.
 
@@ -144,6 +193,7 @@ class RoutingRetriever:
         cascade_confidence_threshold: float | None = None,
         visual_fusion_weight: float = 1.0,
         default_cascade_threshold: float | None = None,
+        fusion_depth: int | None = None,
     ) -> None:
         if mode == "cascade" and cascade_confidence_threshold is None:
             raise ValueError(
@@ -163,6 +213,10 @@ class RoutingRetriever:
         # ADR 0023: visual-leg weight for the page-level RRF. 1.0 (default)
         # reproduces ADR 0008's equal-weight fusion exactly.
         self._visual_fusion_weight = visual_fusion_weight
+        # How deep each leg runs before fusion, when deeper than the request's
+        # top_k. None fuses the two top_k lists, the behaviour every committed
+        # baseline measured. See `fused_page_order` for why depth matters.
+        self._fusion_depth = fusion_depth
 
     async def retrieve(self, query: Query) -> list[RetrievalResult]:
         # query.routing_mode overrides the constructor mode for this call only.
@@ -271,8 +325,9 @@ class RoutingRetriever:
         Latency is max(text, visual). Returns text-only results when the visual
         leg raises (ADR 0008 §"Failure modes").
         """
-        text_task = asyncio.create_task(self._text.retrieve(query))
-        visual_task = asyncio.create_task(self._safe_visual_retrieve(query, span))
+        leg_query = self._leg_query(query)
+        text_task = asyncio.create_task(self._text.retrieve(leg_query))
+        visual_task = asyncio.create_task(self._safe_visual_retrieve(leg_query, span))
         text_results, visual_results = await asyncio.gather(text_task, visual_task)
 
         if visual_results is None:
@@ -283,10 +338,10 @@ class RoutingRetriever:
                 forced=forced,
                 text_results=text_results,
                 visual_results=None,
-                fused_n=len(text_results),
+                fused_n=min(len(text_results), query.top_k),
                 visual_failed=True,
             )
-            return text_results
+            return text_results[: query.top_k]
 
         fused = self._fuse_page_level(text_results, visual_results, top_k=query.top_k)
         self._log_dispatch(
@@ -352,8 +407,10 @@ class RoutingRetriever:
         span = trace.get_current_span()
         span.set_attribute("routing.mode", "cascade")
 
-        # Always run text first; cheap and we need it for the decision.
-        text_results = await self._text.retrieve(query)
+        # Always run text first; cheap and we need it for the decision. It runs
+        # at fusion depth so a fall-through to hybrid fuses the deeper list.
+        leg_query = self._leg_query(query)
+        text_results = await self._text.retrieve(leg_query)
 
         # force_route overrides the confidence-based decision.
         if query.force_route == "text":
@@ -363,10 +420,10 @@ class RoutingRetriever:
                 forced=True,
                 text_results=text_results,
                 visual_results=None,
-                fused_n=len(text_results),
+                fused_n=min(len(text_results), query.top_k),
             )
             span.set_attribute("routing.path", "text")
-            return text_results
+            return text_results[: query.top_k]
         if query.force_route == "hybrid":
             return await self._cascade_run_visual_and_fuse(
                 query,
@@ -401,11 +458,11 @@ class RoutingRetriever:
                 forced=False,
                 text_results=text_results,
                 visual_results=None,
-                fused_n=len(text_results),
+                fused_n=min(len(text_results), query.top_k),
                 top_score=top_score,
             )
             span.set_attribute("routing.path", "text")
-            return text_results
+            return text_results[: query.top_k]
 
         return await self._cascade_run_visual_and_fuse(
             query,
@@ -427,7 +484,7 @@ class RoutingRetriever:
         top_score: float,
     ) -> list[RetrievalResult]:
         """Cascade fall-back: run the visual leg, RRF-fuse with text_results."""
-        visual_results = await self._safe_visual_retrieve(query, span)
+        visual_results = await self._safe_visual_retrieve(self._leg_query(query), span)
         if visual_results is None:
             self._log_cascade(
                 path="text",
@@ -435,12 +492,12 @@ class RoutingRetriever:
                 forced=forced,
                 text_results=text_results,
                 visual_results=None,
-                fused_n=len(text_results),
+                fused_n=min(len(text_results), query.top_k),
                 top_score=top_score,
                 visual_failed=True,
             )
             span.set_attribute("routing.path", "text")
-            return text_results
+            return text_results[: query.top_k]
         fused = self._fuse_page_level(text_results, visual_results, top_k=query.top_k)
         self._log_cascade(
             path="hybrid",
@@ -470,6 +527,7 @@ class RoutingRetriever:
         category and always-hybrid paths. Symmetric to _log_cascade: every
         path goes through one emitter so the response decision and the log
         can't drift apart."""
+        _record_leg_ids(text_results, visual_results)
         _routing_info_var.set(
             RoutingInfo(
                 mode=mode,
@@ -505,6 +563,7 @@ class RoutingRetriever:
         visual_failed: bool = False,
     ) -> None:
         effective_threshold = self._effective_cascade_threshold()
+        _record_leg_ids(text_results, visual_results)
         _routing_info_var.set(
             RoutingInfo(
                 mode="cascade",
@@ -530,6 +589,11 @@ class RoutingRetriever:
         if visual_failed:
             kwargs["visual_failed"] = True
         _log.info("routing.dispatched", **kwargs)
+
+    def _leg_query(self, query: Query) -> Query:
+        if self._fusion_depth is None or self._fusion_depth <= query.top_k:
+            return query
+        return query.model_copy(update={"top_k": self._fusion_depth})
 
     def _effective_cascade_threshold(self) -> float | None:
         if self._cascade_threshold is not None:
@@ -584,31 +648,26 @@ class RoutingRetriever:
             _to_page_id(r.chunk_id): r for r in visual_results
         }
 
-        # Build per-leg rank-by-page lists (each page once at its first appearance).
-        text_pages_in_rank: list[str] = []
-        seen: set[str] = set()
-        for r in text_results:
-            page_id = _to_page_id(r.chunk_id)
-            if page_id not in seen:
-                seen.add(page_id)
-                text_pages_in_rank.append(page_id)
-        visual_pages_in_rank = [_to_page_id(r.chunk_id) for r in visual_results]
-
-        # Weighted RRF, computed inline so the visual leg can carry a weight the
-        # shared reciprocal_rank_fusion (one weightless list-of-lists) doesn't
-        # model. Insertion order is text-then-visual and the sort is stable, so
-        # at w=1.0 the page ordering matches reciprocal_rank_fusion exactly.
-        rrf: dict[str, float] = {}
-        for rank, page_id in enumerate(text_pages_in_rank):
-            rrf[page_id] = rrf.get(page_id, 0.0) + 1.0 / (_RRF_K + rank + 1)
-        for rank, page_id in enumerate(visual_pages_in_rank):
-            rrf[page_id] = rrf.get(page_id, 0.0) + self._visual_fusion_weight / (_RRF_K + rank + 1)
-        fused_pages = sorted(rrf.items(), key=lambda pair: pair[1], reverse=True)[:top_k]
+        fused_pages = fused_page_order(
+            [r.chunk_id for r in text_results],
+            [r.chunk_id for r in visual_results],
+            top_k=top_k,
+            visual_weight=self._visual_fusion_weight,
+        )
 
         out: list[RetrievalResult] = []
-        for page_id, _score in fused_pages:
+        for page_id in fused_pages:
             if page_id in best_text_per_page:
                 out.append(best_text_per_page[page_id])
             elif page_id in visual_by_page:
                 out.append(visual_by_page[page_id])
         return out
+
+
+def _record_leg_ids(
+    text_results: list[RetrievalResult], visual_results: list[RetrievalResult] | None
+) -> None:
+    legs = {"text": [r.chunk_id for r in text_results]}
+    if visual_results is not None:
+        legs["visual"] = [r.chunk_id for r in visual_results]
+    _leg_ids_var.set(legs)

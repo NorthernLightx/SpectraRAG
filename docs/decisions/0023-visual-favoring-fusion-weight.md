@@ -172,3 +172,22 @@ open") remain the natural follow-up but are not justified by this evidence alone
   default is not flipped without a text-corpus eval.
 - ADR 0010: cascade, the other hybrid entry point `_fuse_page_level` serves, so
   the weight applies to cascade fall-back fusion too.
+
+## Amendment (2026-09-23): the weight is a switch at serving depth
+
+The sweep above re-fused depth-50 legs. The served router fused the two lists
+it was handed, and each leg returned only the request's `top_k`. With two
+top-10 lists and k=60 the reciprocal ranks run from 1/61 to 1/70, so any visual
+weight above 70/61 (about 1.15) lets every visual page outscore every
+text-only page, and the fused set becomes exactly the visual leg's set.
+
+Re-fusing the committed MMDocIR text and visual runs (all 1,127 queries) shows
+it: recall@10 is 0.784 at w=1, 0.794 at w=1.1, and 0.797 at every weight from
+1.5 to 5, which is the visual-only arm's number. Reproduce with
+`python -m scripts.derive_arms --legs-from data/eval/baseline-mmdocir-text.json
+data/eval/baseline-mmdocir-visual.json --golden data/golden/mmdocir-v1.yaml
+--out-dir <dir> --weight 1 --weight 1.1 --weight 1.5 --weight 5`.
+
+`Settings.fusion_depth` (`eval_run --fusion-depth`) now runs both legs deeper
+than `top_k` before fusing, which is the condition this ADR measured under. It
+defaults to off, so nothing served changes until a run at depth justifies it.

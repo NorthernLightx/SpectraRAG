@@ -55,6 +55,7 @@ class RetrievalConfig:
     classifier: str | None = None
     cascade_threshold: float | None = None
     visual_fusion_weight: float = 1.0
+    fusion_depth: int | None = None
 
     def __post_init__(self) -> None:
         normal: dict[str, Any] = {}
@@ -68,6 +69,7 @@ class RetrievalConfig:
                 classifier=None,
                 cascade_threshold=None,
                 visual_fusion_weight=1.0,
+                fusion_depth=None,
             )
         else:
             mode = self.routing_mode or "category"
@@ -104,6 +106,7 @@ class RetrievalConfig:
             classifier=classifier,
             cascade_threshold=settings.cascade_confidence_threshold,
             visual_fusion_weight=settings.visual_fusion_weight,
+            fusion_depth=settings.fusion_depth,
         )
 
     def text_only(self) -> RetrievalConfig:
@@ -190,4 +193,5 @@ def build_routing_retriever(
         cascade_confidence_threshold=config.cascade_threshold,
         visual_fusion_weight=config.visual_fusion_weight,
         default_cascade_threshold=calibrated_cascade_threshold(config.reranker_model),
+        fusion_depth=config.fusion_depth,
     )

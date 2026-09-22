@@ -211,3 +211,24 @@ measured case for visual-only, and `--force-route visual` already serves it.
 What this does not license: reading the visual-only row of the regression gate
 in `docs/results.md` as a recommendation. It passes the gate for the same reason
 it wins here, and the gate cannot see what the text leg is kept for.
+
+## Amendment (2026-09-23): at the chat's top-5, fusion costs more
+
+The arms above were compared at recall@10. The chat asks for five results by
+default, and at five the gap between always-hybrid and visual-only is wider.
+Re-fusing the committed MMDocIR text and visual runs (all 1,127 queries,
+`scripts/derive_arms.py --legs-from`):
+
+| arm | recall@10 | recall@5 | nDCG@5 |
+|---|---|---|---|
+| visual-only | 0.797 | 0.748 | 0.708 |
+| always-hybrid (w=1) | 0.784 | 0.692 | 0.552 |
+| hybrid, w=5 | 0.797 | 0.719 | 0.609 |
+
+Text pages pulled into the top five displace visual pages that were right.
+Caveat: these legs come from two separate runs, and on 128 queries the
+committed hybrid run's page set differs from what fusing them reproduces, so
+leg-to-leg noise is mixed in. The clean measurement is one `eval_run --router
+--force-route hybrid --fusion-depth 50` run, whose recorded legs give every arm
+at every k from the same outputs. The served default is unchanged until that
+run is in.

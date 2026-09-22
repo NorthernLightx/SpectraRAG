@@ -92,6 +92,7 @@ _RETRIEVAL_FLAGS = (
     "exclude_decoration",
     "visual_model",
     "visual_fusion_weight",
+    "fusion_depth",
     "router_classifier",
     "router_classifier_model",
     "cascade",
@@ -142,7 +143,16 @@ def retrieval_config_from_args(
         ),
         cascade_threshold=args.cascade_threshold,
         visual_fusion_weight=args.visual_fusion_weight,
+        fusion_depth=args.fusion_depth,
     )
+
+
+def effective_force_route(force_route: str | None, config: RetrievalConfig) -> str | None:
+    """The per-query override to pass on. In hybrid mode `--force-route hybrid`
+    is already the mode; in cascade mode it still forces the fall-through."""
+    if force_route == "hybrid" and config.routing_mode == "hybrid":
+        return None
+    return force_route
 
 
 async def _main(
@@ -489,8 +499,7 @@ async def _main(
         judge=judge_obj,
         top_k=top_k,
         paper_id_filter=paper_id_filter,
-        # The hybrid arm is a routing mode now, not a per-query override.
-        force_route=None if force_route == "hybrid" else force_route,  # type: ignore[arg-type]
+        force_route=effective_force_route(force_route, retrieval_config),  # type: ignore[arg-type]
         config={
             "retriever": "pipeline",
             "profile": profile,
@@ -604,6 +613,16 @@ def build_parser() -> argparse.ArgumentParser:
         type=float,
         default=1.0,
         help="ADR 0023 visual-leg weight in the page-level RRF. Requires --router.",
+    )
+    parser.add_argument(
+        "--fusion-depth",
+        type=int,
+        default=None,
+        help=(
+            "Results each leg returns to the fusion when more than --top-k. Also sets "
+            "how deep the per-leg rankings recorded in the run JSON go, which is what "
+            "scripts/derive_arms.py replays. Requires --router."
+        ),
     )
     parser.add_argument(
         "--contextualize",

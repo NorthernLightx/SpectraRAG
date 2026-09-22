@@ -143,6 +143,11 @@ class Settings(BaseSettings):
     # a text-only switch. Only affects hybrid-routed queries; text-routed
     # queries are unaffected.
     visual_fusion_weight: float = Field(default=1.0, ge=0.0)
+    # How many results each leg returns to the page-level fusion when that is
+    # more than the request's top_k. None fuses the two top_k lists, which is
+    # what every committed baseline measured; at that depth any weight above
+    # ~1.15 reduces to the visual leg's pages (see `fused_page_order`).
+    fusion_depth: int | None = Field(default=None, ge=1, le=100)
 
     # When set, the production Generator attaches the rendered page PNG
     # (`<pages_dir>/<paper>/<paper>_pN.png`) for any visual RetrievalResult to

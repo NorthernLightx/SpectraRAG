@@ -40,3 +40,16 @@ def test_defaults_are_text_only_and_unreranked() -> None:
     assert config.reranker_model is None
     assert config.visual_model is None
     assert config.embedder_backend == "ollama"
+
+
+def test_cascade_keeps_a_forced_hybrid_route() -> None:
+    from scripts.eval_run import effective_force_route
+
+    cascade = _config(
+        "--router", "--cascade", "--cascade-threshold", "0.5", "--force-route", "hybrid"
+    )
+    assert cascade.routing_mode == "cascade"
+    assert effective_force_route("hybrid", cascade) == "hybrid"
+    hybrid = _config("--router", "--force-route", "hybrid")
+    assert effective_force_route("hybrid", hybrid) is None
+    assert effective_force_route("visual", hybrid) == "visual"
