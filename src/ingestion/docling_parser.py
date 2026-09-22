@@ -21,6 +21,7 @@ import contextlib
 import os
 import re
 import shutil
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -331,13 +332,53 @@ def _build_converter() -> DocumentConverter:
     )
 
 
-def convert_with_docling(pdf_path: Path) -> Any:
+@dataclass(frozen=True)
+class DoclingConversion:
+    """One Docling conversion and the pages it could not process."""
+
+    document: Any
+    failed_pages: list[int] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+
+    @property
+    def partial(self) -> bool:
+        return bool(self.failed_pages or self.errors)
+
+
+def summarize_conversion(result: Any) -> DoclingConversion:
+    """Read page failures off a Docling `ConversionResult`.
+
+    Docling reports a page it could not process (a `std::bad_alloc` in the
+    layout model, a parse error, the document timeout) by dropping it from
+    `result.pages`, appending to `result.errors` and setting PARTIAL_SUCCESS.
+    The returned document still carries an empty placeholder for that page, so
+    counting `document.pages` hides the loss. Pages are 1-based.
+    """
+    start, end = result.input.limits.page_range
+    expected = set(range(max(1, start), min(result.input.page_count, end) + 1))
+    completed = {page.page_no for page in result.pages}
+    return DoclingConversion(
+        document=result.document,
+        failed_pages=sorted(expected - completed),
+        errors=[str(error.error_message) for error in result.errors],
+    )
+
+
+def convert_with_docling(pdf_path: Path) -> DoclingConversion:
     """Single Docling conversion. Shared between text-chunking (ADR 0021) and
     figure / table extraction (ADR 0020) so we only run the layout +
-    OCR pipeline once per paper. Returns the raw `DoclingDocument`."""
+    OCR pipeline once per paper."""
     if not pdf_path.exists():
         raise FileNotFoundError(f"PDF not found: {pdf_path}")
-    return _build_converter().convert(pdf_path).document
+    conversion = summarize_conversion(_build_converter().convert(pdf_path))
+    if conversion.partial:
+        _log.warning(
+            "docling.partial_conversion",
+            pdf=str(pdf_path),
+            failed_pages=conversion.failed_pages,
+            errors=conversion.errors[:5],
+        )
+    return conversion
 
 
 def page_heights(doc: Any) -> dict[int, float]:
@@ -407,7 +448,7 @@ def parse_with_docling(
 
     with timed_event(_log, "docling.parsed", paper_id=paper_id, pdf=str(pdf_path)) as ctx:
         if doc is None:
-            doc = convert_with_docling(pdf_path)
+            doc = convert_with_docling(pdf_path).document
         heights = page_heights(doc)
         caption_candidates = _page_caption_candidates(doc, heights)
 

@@ -217,6 +217,8 @@ async def _main(
                 chunks_by_id[chunk.chunk_id] = chunk
             paper_ids.append(paper.paper_id)
             print(f"Ingested {ingested.chunk_count} chunks from {pdf_path.name}")
+            if ingested.failed_pages:
+                print(f"WARNING {pdf_path.name}: Docling dropped pages {ingested.failed_pages}")
             if contextualize:
                 with_ctx = sum(1 for c in ingested.chunks if c.context)
                 print(f"Contextualized {with_ctx}/{ingested.chunk_count} chunks")

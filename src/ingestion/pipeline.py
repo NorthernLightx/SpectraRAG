@@ -8,7 +8,7 @@ the text chunks in the same embedding + BM25 + Qdrant pipeline.
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from src.embeddings.protocol import Embedder
@@ -39,6 +39,9 @@ class IngestedPaper:
     paper_id: str
     chunk_count: int
     chunks: list[Chunk]
+    # 1-based pages Docling could not process. Their content is missing from
+    # `chunks` even though the paper still ingested.
+    failed_pages: list[int] = field(default_factory=list)
 
 
 async def ingest_paper(
@@ -93,13 +96,16 @@ async def ingest_paper(
         # layout + OCR pipeline runs once per paper, not twice.
         docling_doc = None
         paper_text = ""
+        failed_pages: list[int] = []
         if use_docling:
             from src.ingestion.docling_chunker import chunk_with_docling, paper_text_from_docling
             from src.ingestion.docling_parser import convert_with_docling
 
             # Docling's layout + OCR pass takes seconds to minutes of CPU. Off the
             # event loop so POST /ingest doesn't freeze every other request.
-            docling_doc = await asyncio.to_thread(convert_with_docling, paper.pdf_path)
+            conversion = await asyncio.to_thread(convert_with_docling, paper.pdf_path)
+            docling_doc = conversion.document
+            failed_pages = conversion.failed_pages
             chunks = chunk_with_docling(
                 paper.paper_id,
                 docling_doc,
@@ -108,6 +114,7 @@ async def ingest_paper(
             )
             paper_text = paper_text_from_docling(docling_doc)
             ctx["pages"] = len(getattr(docling_doc, "pages", {}) or {})
+            ctx["pages_failed"] = len(failed_pages)
         else:
             pages = extract_pages(paper_id=paper.paper_id, pdf_path=paper.pdf_path)
             chunks = chunk_pages(pages, target_chars=target_chars, overlap_chars=overlap_chars)
@@ -170,7 +177,9 @@ async def ingest_paper(
         if not chunks:
             ctx["embedding_dim"] = 0
             ctx["contextualized"] = False
-            return IngestedPaper(paper_id=paper.paper_id, chunk_count=0, chunks=[])
+            return IngestedPaper(
+                paper_id=paper.paper_id, chunk_count=0, chunks=[], failed_pages=failed_pages
+            )
 
         contextualized = contextualizer_llm is not None and contextualizer_model is not None
         if contextualized:
@@ -189,4 +198,9 @@ async def ingest_paper(
         await vectorstore.upsert_chunks(chunks, embeddings)
         bm25.add(chunks)
         ctx["embedding_dim"] = len(embeddings[0]) if embeddings else 0
-        return IngestedPaper(paper_id=paper.paper_id, chunk_count=len(chunks), chunks=chunks)
+        return IngestedPaper(
+            paper_id=paper.paper_id,
+            chunk_count=len(chunks),
+            chunks=chunks,
+            failed_pages=failed_pages,
+        )

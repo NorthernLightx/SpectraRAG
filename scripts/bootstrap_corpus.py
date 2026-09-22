@@ -152,6 +152,8 @@ async def _main(
             extract_tables_enabled=extract_tables,
             vlm_captioner=vlm_captioner,
         )
+        if ingested.failed_pages:
+            print(f"WARNING {paper.paper_id}: Docling dropped pages {ingested.failed_pages}")
         return ingested.chunk_count
 
     total_chunks, skipped = await _ingest_each(pdf_paths, _ingest_one)

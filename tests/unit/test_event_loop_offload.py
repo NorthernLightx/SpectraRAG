@@ -113,9 +113,9 @@ async def test_docling_conversion_runs_off_the_event_loop(
     from src.ingestion import docling_chunker, docling_parser
     from src.ingestion.pipeline import ingest_paper
 
-    def slow_convert(pdf_path: Path) -> object:
+    def slow_convert(pdf_path: Path) -> docling_parser.DoclingConversion:
         time.sleep(_BLOCK_S)
-        return object()
+        return docling_parser.DoclingConversion(document=object())
 
     monkeypatch.setattr(docling_parser, "convert_with_docling", slow_convert)
     monkeypatch.setattr(docling_chunker, "chunk_with_docling", lambda *a, **k: [])

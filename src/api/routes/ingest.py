@@ -29,6 +29,8 @@ class IngestResult(BaseModel):
     paper_id: str
     chunks_added: int
     corpus_chunks: int
+    # Pages Docling could not process: the document ingested without them.
+    pages_failed: list[int] = []
 
 
 @router.post("/ingest", response_model=IngestResult)
@@ -94,7 +96,16 @@ async def ingest(
 
     for chunk in result.chunks:
         chunks_by_id[chunk.chunk_id] = chunk
-    log.info("api.ingest.done", paper=paper_id, chunks=result.chunk_count, corpus=len(chunks_by_id))
+    log.info(
+        "api.ingest.done",
+        paper=paper_id,
+        chunks=result.chunk_count,
+        corpus=len(chunks_by_id),
+        pages_failed=result.failed_pages,
+    )
     return IngestResult(
-        paper_id=paper_id, chunks_added=result.chunk_count, corpus_chunks=len(chunks_by_id)
+        paper_id=paper_id,
+        chunks_added=result.chunk_count,
+        corpus_chunks=len(chunks_by_id),
+        pages_failed=result.failed_pages,
     )

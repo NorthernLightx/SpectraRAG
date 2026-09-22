@@ -48,7 +48,7 @@ def test_ingest_happy_path_appends_chunks(monkeypatch: pytest.MonkeyPatch) -> No
     added = [mock.Mock(chunk_id="mydoc::p1::c0"), mock.Mock(chunk_id="mydoc::p1::c1")]
 
     async def fake_ingest(**kwargs: object) -> mock.Mock:
-        return mock.Mock(chunk_count=len(added), chunks=added)
+        return mock.Mock(chunk_count=len(added), chunks=added, failed_pages=[])
 
     monkeypatch.setattr(
         "src.api.routes.ingest.get_corpus_handles",

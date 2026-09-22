@@ -35,6 +35,8 @@ async def main(*, pdf_dir: Path, qdrant_url: str, ollama_url: str, collection: s
             paper=paper, embedder=embedder, vectorstore=vectorstore, bm25=bm25
         )
         print(f"Ingested {paper.paper_id}: {result.chunk_count} chunks")
+        if result.failed_pages:
+            print(f"WARNING {paper.paper_id}: Docling dropped pages {result.failed_pages}")
 
 
 if __name__ == "__main__":

@@ -87,6 +87,9 @@ async def run(args: argparse.Namespace) -> int:
             )
             done.append(pid)
             print(f"[{i}/{len(targets)}] ingested {pid}: {result.chunk_count} chunks")
+            if result.failed_pages:
+                failed.append({"paper_id": pid, "error": f"pages dropped: {result.failed_pages}"})
+                print(f"[{i}/{len(targets)}] PARTIAL {pid}: pages {result.failed_pages} dropped")
         except Exception as exc:  # one bad PDF must not abort the batch
             failed.append({"paper_id": pid, "error": f"{type(exc).__name__}: {exc}"})
             print(f"[{i}/{len(targets)}] FAILED {pid}: {type(exc).__name__}: {exc}")

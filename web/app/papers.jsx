@@ -96,7 +96,10 @@ function UploadControl({ onUploaded }) {
     setStatus({ kind: "busy", msg: `Ingesting ${file.name}…` });
     try {
       const r = await window.RAG.ingestPdf(file);
-      setStatus({ kind: "ok", msg: `Added ${r.paper_id} · ${r.chunks_added} chunks` });
+      const dropped = r.pages_failed || [];
+      setStatus(dropped.length
+        ? { kind: "err", msg: `Added ${r.paper_id} · ${r.chunks_added} chunks, but pages ${dropped.join(", ")} failed to parse and are missing` }
+        : { kind: "ok", msg: `Added ${r.paper_id} · ${r.chunks_added} chunks` });
       onUploaded && onUploaded();
     } catch (err) {
       setStatus({ kind: "err", msg: String((err && err.message) || err) });
