@@ -64,7 +64,7 @@ def test_write_run_json_round_trips(tmp_path: Path) -> None:
 
 def test_render_markdown_contains_expected_sections() -> None:
     md = render_markdown(_build_run())
-    assert "# Eval Report — phase1 v1" in md
+    assert "# Eval report: phase1 v1" in md
     assert "## Configuration" in md
     assert "## Retrieval (in-corpus queries)" in md
     assert "## Generation" in md
@@ -89,4 +89,4 @@ def test_write_run_markdown_creates_file(tmp_path: Path) -> None:
     path = tmp_path / "runs" / "run.md"
     write_run_markdown(_build_run(), path)
     assert path.exists()
-    assert path.read_text(encoding="utf-8").startswith("# Eval Report")
+    assert path.read_text(encoding="utf-8").startswith("# Eval report")

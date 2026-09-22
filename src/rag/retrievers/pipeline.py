@@ -6,6 +6,7 @@ import asyncio
 
 from src.embeddings.protocol import Embedder
 from src.observability.logging import get_logger, timed_event
+from src.observability.stages import stage
 from src.rag.bm25 import Bm25Index
 from src.rag.hybrid import RankedItem, reciprocal_rank_fusion
 from src.rag.rerank import BgeReranker
@@ -49,17 +50,20 @@ class PipelineRetriever:
             # candidate_pool=50 across 20 papers leaves too few same-paper hits.
             paper_filter = query.paper_id_filter()
             ctx["paper_filter"] = paper_filter or ""
-            [vector] = await self._embedder.embed_texts([query.text])
-            dense_hits = await self._vectorstore.search(
-                vector, top_k=self._candidate_pool, paper_filter=paper_filter
-            )
+            with stage("embed"):
+                [vector] = await self._embedder.embed_texts([query.text])
+            with stage("dense"):
+                dense_hits = await self._vectorstore.search(
+                    vector, top_k=self._candidate_pool, paper_filter=paper_filter
+                )
             # BM25 scoring and the cross-encoder below are synchronous CPU work.
             # Run in a worker thread so one query can't stall every other request
             # on the single-worker deploy (and so the hybrid path's visual leg
             # actually overlaps with the text leg).
-            sparse_hits = await asyncio.to_thread(
-                self._bm25.search, query.text, self._candidate_pool, paper_filter=paper_filter
-            )
+            with stage("bm25"):
+                sparse_hits = await asyncio.to_thread(
+                    self._bm25.search, query.text, self._candidate_pool, paper_filter=paper_filter
+                )
             ctx["dense_hits"] = len(dense_hits)
             ctx["sparse_hits"] = len(sparse_hits)
             ctx["candidate_pool"] = self._candidate_pool
@@ -85,9 +89,10 @@ class PipelineRetriever:
                 chunks_to_rerank = [
                     self._chunks_by_id[item.id] for item in rrf_top if item.id in self._chunks_by_id
                 ]
-                reranked = await asyncio.to_thread(
-                    self._reranker.rerank, query.text, chunks_to_rerank, query.top_k
-                )
+                with stage("rerank"):
+                    reranked = await asyncio.to_thread(
+                        self._reranker.rerank, query.text, chunks_to_rerank, query.top_k
+                    )
                 results = [
                     self._make_result(self._chunks_by_id[hit.chunk_id], hit.rerank_score, "rerank")
                     for hit in reranked

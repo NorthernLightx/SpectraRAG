@@ -27,6 +27,7 @@ from opentelemetry import trace
 from opentelemetry.trace import Span
 
 from src.observability.logging import get_logger
+from src.observability.stages import stage
 from src.rag.retrievers.protocol import Retriever
 from src.types import Query, RetrievalResult, RoutingInfo
 
@@ -235,7 +236,8 @@ class RoutingRetriever:
 
         if self._classifier is not None:
             try:
-                category = await self._classifier.classify(query.text)
+                with stage("classify"):
+                    category = await self._classifier.classify(query.text)
             except Exception as exc:
                 # A missing or unreachable classifier backend must not take down
                 # retrieval. The keyless wiring path builds an Ollama-backed
@@ -343,7 +345,8 @@ class RoutingRetriever:
             )
             return text_results[: query.top_k]
 
-        fused = self._fuse_page_level(text_results, visual_results, top_k=query.top_k)
+        with stage("fuse"):
+            fused = self._fuse_page_level(text_results, visual_results, top_k=query.top_k)
         self._log_dispatch(
             mode=mode,
             path="hybrid",
@@ -498,7 +501,8 @@ class RoutingRetriever:
             )
             span.set_attribute("routing.path", "text")
             return text_results[: query.top_k]
-        fused = self._fuse_page_level(text_results, visual_results, top_k=query.top_k)
+        with stage("fuse"):
+            fused = self._fuse_page_level(text_results, visual_results, top_k=query.top_k)
         self._log_cascade(
             path="hybrid",
             decision=decision,

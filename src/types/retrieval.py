@@ -91,3 +91,6 @@ class RetrievalResponse(BaseModel):
 
     results: list[RetrievalResult]
     routing: RoutingInfo | None = None
+    # Milliseconds per retrieval stage for this query (see
+    # src/observability/stages.py). Legs overlap, so stages do not sum.
+    stage_ms: dict[str, float] = Field(default_factory=dict)

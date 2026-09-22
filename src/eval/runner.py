@@ -11,6 +11,7 @@ from src.eval.judges import LLMJudge
 from src.eval.metrics_generation import citation_grounding, is_refusal_answer
 from src.eval.metrics_retrieval import ndcg_at_k, recall_at_k, reciprocal_rank
 from src.observability.logging import get_logger, timed_event
+from src.observability.stages import collect_stages, rounded
 from src.rag.generate import Generator
 from src.rag.retrievers.protocol import Retriever
 from src.rag.retrievers.routing import get_last_leg_ids, reset_last_leg_ids
@@ -103,7 +104,8 @@ async def _run_one(
         filters["paper_id"] = query.paper_id
     rag_query = Query(text=query.text, top_k=top_k, filters=filters, force_route=force_route)
     reset_last_leg_ids()
-    retrieved = await retriever.retrieve(rag_query)
+    with collect_stages() as stage_ms:
+        retrieved = await retriever.retrieve(rag_query)
     leg_chunk_ids = get_last_leg_ids()
     retrieved_chunk_ids = [r.chunk_id for r in retrieved]
 
@@ -228,4 +230,5 @@ async def _run_one(
         tokens_in=tokens_in,
         tokens_out=tokens_out,
         leg_chunk_ids=leg_chunk_ids,
+        stage_ms=rounded(stage_ms) or None,
     )

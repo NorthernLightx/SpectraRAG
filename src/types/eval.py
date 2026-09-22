@@ -89,6 +89,10 @@ class PerQueryResult(BaseModel):
     # Each routing leg's ranked chunk ids ("text", "visual"), at the depth the
     # legs ran. None when the retriever has no routing layer.
     leg_chunk_ids: dict[str, list[str]] | None = None
+    # Milliseconds per retrieval stage (embed, dense, bm25, rerank,
+    # visual_encode, visual_search, classify, fuse). Legs run concurrently, so
+    # stages overlap and do not sum to latency_ms.
+    stage_ms: dict[str, float] | None = None
 
 
 class EvalRun(BaseModel):

@@ -76,6 +76,9 @@ under `config.retrieval_config` with a 12-character
 `config.retrieval_fingerprint`, and `/health` reports the fingerprint of the
 stack the server actually wired. Equal fingerprints mean the two retrieved
 the same way; `check_regression` prints the knobs that differ when they don't.
+A fingerprint covers the fields `RetrievalConfig` has in the code that wrote
+it, so adding a field changes every fingerprint. Across such a change, compare
+the `retrieval_config` dicts instead.
 
 To measure a served stack, name its profile instead of passing retrieval
 flags. `cpu` is what the Cloud Run image and `spectrarag serve` run (in-process
@@ -110,6 +113,16 @@ each leg:
 
 The derived runs are ordinary run JSONs, so `check_regression` and
 `scripts/experiments/paired_arm_compare.py` read them as they are.
+
+### Latency by stage
+
+Every run JSON records `per_query[].stage_ms`: milliseconds for `embed`,
+`dense`, `bm25`, `rerank`, `visual_encode`, `visual_search`, `classify` and
+`fuse`, and the Markdown report tabulates p50 and p95 per stage. The two legs
+run concurrently, so stages overlap and do not add up to the query's latency.
+The live service returns the same `stage_ms` in each `/query` response and logs
+it as `query.stages`, so the served p50 by stage can be read from Cloud Run
+logs.
 
 ## Regression gate
 

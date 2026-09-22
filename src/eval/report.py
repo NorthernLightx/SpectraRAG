@@ -9,7 +9,7 @@ from src.types import EvalRun
 
 
 def _fmt_optional(value: float | None) -> str:
-    return f"{value:.3f}" if isinstance(value, float) else "—"
+    return f"{value:.3f}" if isinstance(value, float) else "n/a"
 
 
 def write_run_json(run: EvalRun, path: Path) -> None:
@@ -27,7 +27,7 @@ def write_run_markdown(run: EvalRun, path: Path) -> None:
 def render_markdown(run: EvalRun) -> str:
     """Build a markdown document from an EvalRun."""
     lines: list[str] = [
-        f"# Eval Report — {run.golden_set_name} {run.golden_set_version}",
+        f"# Eval report: {run.golden_set_name} {run.golden_set_version}",
         "",
         f"- **Run ID:** `{run.run_id}`",
         f"- **Started:** {run.started_at.isoformat()}",
@@ -126,6 +126,23 @@ def render_markdown(run: EvalRun) -> str:
             "",
         ]
     )
+
+    stage_names = sorted({name for q in run.per_query for name in (q.stage_ms or {})})
+    if stage_names:
+        lines.extend(
+            [
+                "Retrieval by stage (ms). Legs run concurrently, so stages overlap.",
+                "",
+                "| stage | p50 | p95 | n |",
+                "|---|---|---|---|",
+            ]
+        )
+        for name in stage_names:
+            s = latency_stats(
+                [q.stage_ms[name] for q in run.per_query if q.stage_ms and name in q.stage_ms]
+            )
+            lines.append(f"| {name} | {s.p50_ms:.0f} | {s.p95_ms:.0f} | {s.n} |")
+        lines.append("")
 
     lines.extend(
         [

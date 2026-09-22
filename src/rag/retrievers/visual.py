@@ -25,6 +25,7 @@ import torch
 from PIL import Image
 
 from src.observability.logging import get_logger, timed_event
+from src.observability.stages import stage
 from src.types import Query, RetrievalResult
 
 if TYPE_CHECKING:
@@ -81,8 +82,12 @@ class VisualRetriever:
             with timed_event(
                 _log, "visual_retrieve.done", query=query.text, top_k=query.top_k, backend="qdrant"
             ) as ctx:
-                query_vec = await asyncio.to_thread(self._embed_query, query.text)
-                hits = await self._store.search(query_vec, query.top_k, paper_filter=paper_filter)
+                with stage("visual_encode"):
+                    query_vec = await asyncio.to_thread(self._embed_query, query.text)
+                with stage("visual_search"):
+                    hits = await self._store.search(
+                        query_vec, query.top_k, paper_filter=paper_filter
+                    )
                 ctx["paper_filter"] = paper_filter or ""
                 ctx["returned"] = len(hits)
                 ctx["top_chunk"] = hits[0].chunk_id if hits else None
@@ -94,7 +99,8 @@ class VisualRetriever:
         # The in-memory index is `page_meta[chunk_id] = (paper_id, page_no)`,
         # so the paper filter is a dict-key check before scoring.
         with timed_event(_log, "visual_retrieve.done", query=query.text, top_k=query.top_k) as ctx:
-            scores = await asyncio.to_thread(self._score_query, query.text)
+            with stage("visual_score"):
+                scores = await asyncio.to_thread(self._score_query, query.text)
             if paper_filter is not None:
                 scores = {
                     cid: s for cid, s in scores.items() if self._page_meta[cid][0] == paper_filter
