@@ -11,10 +11,17 @@ from __future__ import annotations
 
 import asyncio
 import re
+from dataclasses import replace
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from src.api.deps import set_chunks, set_corpus_handles, set_generator, set_retriever
+from src.api.deps import (
+    set_chunks,
+    set_corpus_handles,
+    set_generator,
+    set_retrieval_config,
+    set_retriever,
+)
 from src.config.settings import Settings
 from src.embeddings.ollama_bge import OllamaBgeEmbedder
 from src.embeddings.protocol import Embedder
@@ -24,10 +31,12 @@ from src.observability.logging import get_logger
 from src.prompts.loader import load_prompt_by_name
 from src.rag.bm25 import Bm25Index
 from src.rag.generate import _MAX_VISION_IMAGES, Generator
-from src.rag.rerank import BgeReranker
-from src.rag.retrievers.pipeline import PipelineRetriever
+from src.rag.retrieval_config import (
+    RetrievalConfig,
+    build_routing_retriever,
+    build_text_retriever,
+)
 from src.rag.retrievers.protocol import Retriever
-from src.rag.retrievers.routing import RoutingRetriever
 from src.rag.vectorstore import QdrantVectorStore
 
 if TYPE_CHECKING:
@@ -232,6 +241,7 @@ async def _wire_retriever_from_settings(
     module-level constructors. Production callers pass none.
     """
     log = get_logger(__name__)
+    config = RetrievalConfig.from_settings(settings)
     try:
         if embedder is None:
             if settings.embedder_backend == "sentence_transformers":
@@ -282,23 +292,15 @@ async def _wire_retriever_from_settings(
     # ADR 0029: expose the live index objects so POST /ingest can append a
     # document at runtime through the same embedder / store / bm25.
     set_corpus_handles(embedder, vectorstore, bm25)
-    text_retriever = PipelineRetriever(
+    text_retriever = build_text_retriever(
+        config,
         embedder=embedder,
         vectorstore=vectorstore,
         bm25=bm25,
         chunks_by_id=chunks_by_id,
-        candidate_pool=settings.rerank_top_k,
-        # ADR 0014: the API ran unreranked while every eval/baseline reranks, so
-        # the live system never delivered the measured retrieval quality.
-        # `reranker_model` defaults to the baseline's bge-reranker-v2-m3 +
-        # length-norm (ADR 0009); the CPU-only Cloud Run deploy overrides it to a
-        # small MiniLM cross-encoder (RAG_RERANKER_MODEL) because the 568M bge
-        # model reranks the pool in minutes per query without a GPU.
-        reranker=BgeReranker(model_name=settings.reranker_model, length_norm=True),
-        exclude_decoration=settings.exclude_decoration_chunks,
     )
 
-    if settings.enable_multimodal:
+    if config.visual_model is not None:
         if visual_retriever is None:
             visual_retriever = await _build_visual_retriever_from_settings(
                 settings, client=vectorstore.client
@@ -306,24 +308,23 @@ async def _wire_retriever_from_settings(
         if classifier is None:
             classifier = _build_classifier_from_settings(settings)
         if visual_retriever is not None:
+            if config.routing_mode == "category" and classifier is None:
+                config = replace(config, classifier="regex")
+            # ADR 0032. `cascade` without a threshold raises here rather than
+            # starting in a mode the retriever cannot run.
             set_retriever(
-                RoutingRetriever(
-                    text=text_retriever,
-                    visual=visual_retriever,
-                    classifier=classifier,
-                    # ADR 0032. `cascade` without a threshold raises here rather
-                    # than starting in a mode the retriever cannot run.
-                    mode=settings.routing_mode,
-                    cascade_confidence_threshold=settings.cascade_confidence_threshold,
-                    visual_fusion_weight=settings.visual_fusion_weight,
+                build_routing_retriever(
+                    config, text=text_retriever, visual=visual_retriever, classifier=classifier
                 )
             )
+            set_retrieval_config(config)
             log.info(
                 "api.retriever.wired",
                 mode="routing",
                 routing_mode=settings.routing_mode,
                 chunks=len(chunks),
                 classifier="llm" if classifier is not None else "regex",
+                retrieval_fingerprint=config.fingerprint(),
             )
             return True
         log.warning(
@@ -332,11 +333,14 @@ async def _wire_retriever_from_settings(
         )
 
     set_retriever(text_retriever)
+    config = config.text_only()
+    set_retrieval_config(config)
     log.info(
         "api.retriever.wired",
         mode="text",
         qdrant_url=settings.qdrant_url,
         collection=settings.corpus_collection,
         chunks=len(chunks),
+        retrieval_fingerprint=config.fingerprint(),
     )
     return True

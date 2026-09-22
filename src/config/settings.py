@@ -14,6 +14,7 @@ from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DEFAULT_CONFIG_PATH = Path(__file__).parent / "default.yaml"
+PROFILES_DIR = Path(__file__).parent / "profiles"
 _ENV_PREFIX = "RAG_"
 
 
@@ -29,6 +30,10 @@ class Settings(BaseSettings):
 
     env: str = "local"
     log_level: str = "INFO"
+    # Named overlay from src/config/profiles/<profile>.yaml, applied over
+    # default.yaml and under env vars. `cpu` is the retrieval stack the Cloud
+    # Run image and `spectrarag serve` run; eval_run --profile cpu measures it.
+    profile: str | None = None
 
     default_chat_model: str = "anthropic/claude-sonnet-4.6"
     default_embed_model: str = "bge-m3"
@@ -47,13 +52,19 @@ class Settings(BaseSettings):
     # from a separate host (decoupled deploy). Empty = same-origin only, no CORS.
     cors_origins: str = ""
     top_k: int = Field(default=5, ge=1)
+    # Candidate pool per text-leg retriever: dense and BM25 each return this
+    # many before RRF. The name predates the explicit rerank_input_size below.
     rerank_top_k: int = Field(default=50, ge=1)
+    # How many RRF-fused candidates the cross-encoder scores.
+    rerank_input_size: int = Field(default=50, ge=1)
+    # ADR 0009 length penalty on the cross-encoder score. The served text leg has
+    # always run with it on; eval_run defaults it off (--rerank-length-norm).
+    rerank_length_norm: bool = True
     # Cross-encoder for the pipeline reranker (sentence-transformers CrossEncoder
     # id). Default is the bge-reranker-v2-m3 the eval baseline uses (ADR 0014).
-    # The Cloud Run deploy overrides this to a small MiniLM cross-encoder via
-    # RAG_RERANKER_MODEL: bge-reranker-v2-m3 is 568M params and reranking the
-    # candidate pool on CPU (no GPU on Cloud Run) costs minutes per query; the
-    # MiniLM model is ~25x smaller and CPU-feasible.
+    # The `cpu` profile swaps in a small MiniLM cross-encoder: bge-reranker-v2-m3
+    # is 568M params and reranking the candidate pool on CPU costs minutes per
+    # query; MiniLM is ~25x smaller.
     reranker_model: str = "BAAI/bge-reranker-v2-m3"
     hybrid_alpha: float = Field(default=0.5, ge=0.0, le=1.0)
     # When True (default), the pipeline retriever drops candidates tagged
@@ -210,14 +221,26 @@ def _read_yaml(path: Path) -> dict[str, Any]:
     return loaded
 
 
-def load_settings(config_path: Path | None = None) -> Settings:
-    """Load settings: YAML defaults < env vars.
+def profile_path(name: str) -> Path:
+    path = PROFILES_DIR / f"{name}.yaml"
+    if not path.exists():
+        known = sorted(p.stem for p in PROFILES_DIR.glob("*.yaml"))
+        raise ValueError(f"Unknown settings profile {name!r}; expected one of {known}")
+    return path
 
+
+def load_settings(config_path: Path | None = None, *, profile: str | None = None) -> Settings:
+    """Load settings: YAML defaults < profile overlay < env vars.
+
+    `profile` (or `RAG_PROFILE`) names an overlay in src/config/profiles/.
     Pydantic Settings normally treats constructor kwargs as highest priority,
     which would invert the precedence we want. So we strip any YAML key whose
     matching `RAG_*` env var is already set, letting env vars win.
     """
     yaml_values = _read_yaml(config_path or DEFAULT_CONFIG_PATH)
+    profile = profile or os.environ.get(f"{_ENV_PREFIX}PROFILE") or None
+    if profile:
+        yaml_values = {**yaml_values, **_read_yaml(profile_path(profile)), "profile": profile}
     overrides = {
         key: value
         for key, value in yaml_values.items()

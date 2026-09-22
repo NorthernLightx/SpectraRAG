@@ -68,6 +68,28 @@ Outputs land in `data/eval/runs/run-<timestamp>.{json,md}` (gitignored).
 The JSON is `EvalRun` from `src/types/eval.py`. `run_id` is a content
 hash so identical config + per-query data produce the same id.
 
+### Measuring what the service runs
+
+The API and `eval_run` build their retriever through the same
+`RetrievalConfig` (`src/rag/retrieval_config.py`). Every run JSON records it
+under `config.retrieval_config` with a 12-character
+`config.retrieval_fingerprint`, and `/health` reports the fingerprint of the
+stack the server actually wired. Equal fingerprints mean the two retrieved
+the same way; `check_regression` prints the knobs that differ when they don't.
+
+To measure a served stack, name its profile instead of passing retrieval
+flags. `cpu` is what the Cloud Run image and `spectrarag serve` run (in-process
+bge-m3, the MiniLM reranker, a 20-candidate pool per leg):
+
+```bash
+.venv/Scripts/python.exe -m scripts.eval_run --profile cpu --router \
+    --pdf ... --golden ... --skip-ingest --collection <corpus> \
+    --visual-collection <corpus>_visual
+```
+
+`--profile` rejects the individual retrieval flags (`--rerank`,
+`--rerank-model`, `--cascade` and the rest) rather than silently ignoring them.
+
 ## Regression gate
 
 `scripts/check_regression.py` compares two run JSONs and fails when any gated

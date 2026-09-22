@@ -67,9 +67,9 @@ COPY --chown=app:app qdrant_local /home/app/qdrant_local
 # HF fetch at runtime. Two models load on different paths: the bge-m3 embedder
 # during startup wiring, and the reranker cross-encoder (src/rag/rerank.py)
 # lazily on the first /query. The deploy reranks on CPU (no GPU on Cloud Run),
-# where the 568M bge-reranker-v2-m3 costs minutes per query — so this image
-# bakes and uses the small MiniLM cross-encoder instead (RAG_RERANKER_MODEL
-# below). Cache lives at /home/app/.cache/huggingface/ (default for `app`).
+# where the 568M bge-reranker-v2-m3 costs minutes per query, so this image bakes
+# the small MiniLM cross-encoder the `cpu` profile names (a unit test keeps the
+# two in step). Cache lives at /home/app/.cache/huggingface/ (default for `app`).
 RUN /home/app/.venv/bin/python -c \
     "from sentence_transformers import SentenceTransformer, CrossEncoder; SentenceTransformer('BAAI/bge-m3'); CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')"
 
@@ -83,14 +83,11 @@ RUN /home/app/.venv/bin/python -c \
 RUN /home/app/.venv/bin/python -c \
     "from colpali_engine.models import ColQwen2, ColQwen2Processor; ColQwen2.from_pretrained('vidore/colqwen2-v1.0'); ColQwen2Processor.from_pretrained('vidore/colqwen2-v1.0')"
 
-# RAG_RERANKER_MODEL: light CPU-feasible cross-encoder (see settings.py).
-# RAG_RERANK_TOP_K: trim the rerank pool 50 -> 20 for CPU latency; the 20-paper
-# demo corpus doesn't need a 50-candidate pool.
-ENV RAG_EMBEDDER_BACKEND=sentence_transformers \
+# RAG_PROFILE=cpu: the retrieval stack lives in src/config/profiles/cpu.yaml so
+# `eval_run --profile cpu` measures exactly what this image serves.
+ENV RAG_PROFILE=cpu \
     RAG_PAGES_DIR=/home/app/data/pages \
-    RAG_QDRANT_URL=path:/home/app/qdrant_local \
-    RAG_RERANKER_MODEL=cross-encoder/ms-marco-MiniLM-L-6-v2 \
-    RAG_RERANK_TOP_K=20
+    RAG_QDRANT_URL=path:/home/app/qdrant_local
 
 ENV PATH="/home/app/.venv/bin:$PATH" \
     PYTHONUNBUFFERED=1 \

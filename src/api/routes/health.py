@@ -7,7 +7,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends
 
-from src.api.deps import get_settings, peek_retriever
+from src.api.deps import get_settings, peek_retrieval_config, peek_retriever
 from src.config.settings import Settings
 from src.rag.retrievers.routing import RoutingRetriever
 
@@ -28,6 +28,7 @@ def health(settings: Settings = Depends(get_settings)) -> dict[str, Any]:
     the BYOK client uses this to decide if it should attach image content
     blocks in its OpenRouter call."""
     pages_available = settings.pages_dir is not None and settings.pages_dir.is_dir()
+    wired = peek_retrieval_config()
     return {
         "status": "ok",
         "version": _service_version(),
@@ -41,4 +42,13 @@ def health(settings: Settings = Depends(get_settings)) -> dict[str, Any]:
         # Whether POST /ingest accepts uploads (ADR 0029). The Papers tab shows
         # its "Add PDF" control only when this is true.
         "upload_available": settings.enable_upload,
+        # What the wired retriever actually runs. The fingerprint equals the
+        # `retrieval_fingerprint` of any eval run that measured this stack.
+        "retrieval": None
+        if wired is None
+        else {
+            "profile": settings.profile,
+            "fingerprint": wired.fingerprint(),
+            "config": wired.as_dict(),
+        },
     }

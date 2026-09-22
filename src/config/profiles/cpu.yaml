@@ -1,0 +1,6 @@
+# CPU serving: the Cloud Run image and `spectrarag serve`.
+# bge-reranker-v2-m3 takes minutes per query on CPU; MiniLM is ~25x smaller and
+# measured non-inferior on the eval sets (ADR 0012).
+embedder_backend: sentence_transformers
+reranker_model: cross-encoder/ms-marco-MiniLM-L-6-v2
+rerank_top_k: 20

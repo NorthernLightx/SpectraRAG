@@ -54,3 +54,27 @@ ColQwen2 visual leg to completion.
 - ADR 0009: length-normalisation the reranker config mirrors.
 - ADR 0010: cascade, the latency mitigation for long-doc corpora.
 - ADR 0008: routing. ADR 0013's classifier change lands in the same path.
+
+## Amendment (2026-09-23): one config for the served and the measured stack
+
+This ADR fixed one drift between the API and the eval: the API ran without the
+reranker. The same class of bug came back in ADR 0032's 2026-09-17 amendment,
+where the server never read `routing_mode`, and it was still open elsewhere:
+the Cloud Run image set its reranker, pool size and embedder through separate
+env vars, `bootstrap.py` hard-coded length-norm on, and no committed baseline
+matched that combination.
+
+Both entry points now build the retriever from one `RetrievalConfig`
+(`src/rag/retrieval_config.py`):
+
+- `RetrievalConfig.from_settings` reads the served stack. `eval_run` builds the
+  same object from its flags, or from a named profile with `--profile`.
+- `src/config/profiles/cpu.yaml` holds the stack the Cloud Run image and
+  `spectrarag serve` run (`RAG_PROFILE=cpu`). A unit test checks the image
+  bakes the reranker that profile names.
+- Every run JSON records `retrieval_config` and a 12-character
+  `retrieval_fingerprint`; `/health` reports the fingerprint of what was wired.
+  Equal fingerprints mean the two retrieved the same way.
+
+`spectrarag serve` used to rerank a 50-candidate pool per leg while Cloud Run
+used 20. Both now use the profile's 20.

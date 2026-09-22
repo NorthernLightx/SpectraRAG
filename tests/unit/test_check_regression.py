@@ -142,3 +142,22 @@ def test_cli_exits_one_when_metric_regresses(tmp_path: Path) -> None:
     )
     assert proc.returncode == 1, proc.stdout
     assert "FAIL" in proc.stdout
+
+
+def test_config_note_names_the_changed_retrieval_knobs() -> None:
+    from scripts.check_regression import config_note
+
+    def run(fp: str, reranker: str) -> dict[str, object]:
+        return {
+            "config": {
+                "retrieval_fingerprint": fp,
+                "retrieval_config": {"reranker_model": reranker, "candidate_pool": 50},
+            }
+        }
+
+    assert config_note(run("a", "x"), run("a", "x")) is None
+    note = config_note(run("a", "x"), run("b", "y"))
+    assert note is not None
+    assert "reranker_model: 'x' -> 'y'" in note
+    assert "candidate_pool" not in note
+    assert "older run" in (config_note({"config": {}}, run("b", "y")) or "")

@@ -11,6 +11,7 @@ from src.embeddings.protocol import Embedder
 from src.observability.langfuse import LangfuseLike
 from src.rag.bm25 import Bm25Index
 from src.rag.generate import Generator
+from src.rag.retrieval_config import RetrievalConfig
 from src.rag.retrievers.protocol import Retriever
 from src.rag.vectorstore import QdrantVectorStore
 from src.types import Chunk
@@ -24,6 +25,13 @@ class _RetrieverState:
 
 class _GeneratorState:
     instance: Generator | None = None
+
+
+class _RetrievalConfigState:
+    """The retrieval config that was actually wired (text-only when the visual
+    leg failed to load), reported on /health."""
+
+    instance: RetrievalConfig | None = None
 
 
 class _TracerState:
@@ -56,6 +64,14 @@ def get_retriever() -> Retriever:
 
 def set_retriever(retriever: Retriever) -> None:
     _RetrieverState.instance = retriever
+
+
+def set_retrieval_config(config: RetrievalConfig) -> None:
+    _RetrievalConfigState.instance = config
+
+
+def peek_retrieval_config() -> RetrievalConfig | None:
+    return _RetrievalConfigState.instance
 
 
 def peek_retriever() -> Retriever | None:

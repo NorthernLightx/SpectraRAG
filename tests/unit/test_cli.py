@@ -6,10 +6,11 @@ from unittest import mock
 import pytest
 
 from src.cli import main
+from src.config.settings import load_settings
 
 
 def test_serve_sets_self_contained_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
-    for var in ("RAG_EMBEDDER_BACKEND", "RAG_QDRANT_URL", "RAG_PAGES_DIR", "RAG_RERANKER_MODEL"):
+    for var in ("RAG_PROFILE", "RAG_QDRANT_URL", "RAG_PAGES_DIR"):
         monkeypatch.delenv(var, raising=False)
     with mock.patch("uvicorn.run") as run:
         rc = main(["serve", "--port", "9000"])
@@ -17,16 +18,19 @@ def test_serve_sets_self_contained_defaults(monkeypatch: pytest.MonkeyPatch) -> 
     run.assert_called_once()
     assert run.call_args.args[0] == "src.api.main:app"
     assert run.call_args.kwargs["port"] == 9000
-    assert os.environ["RAG_EMBEDDER_BACKEND"] == "sentence_transformers"
+    assert os.environ["RAG_PROFILE"] == "cpu"
     assert os.environ["RAG_QDRANT_URL"] == "path:./qdrant_local"
-    assert os.environ["RAG_RERANKER_MODEL"] == "cross-encoder/ms-marco-MiniLM-L-6-v2"
+    settings = load_settings()
+    assert settings.embedder_backend == "sentence_transformers"
+    assert settings.reranker_model == "cross-encoder/ms-marco-MiniLM-L-6-v2"
 
 
 def test_serve_respects_user_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("RAG_EMBEDDER_BACKEND", "ollama")
     with mock.patch("uvicorn.run"):
         main(["serve"])
-    assert os.environ["RAG_EMBEDDER_BACKEND"] == "ollama"
+    # The profile fills defaults; an explicit env var still wins over it.
+    assert load_settings().embedder_backend == "ollama"
 
 
 def test_serve_overrides_docker_default_qdrant(monkeypatch: pytest.MonkeyPatch) -> None:

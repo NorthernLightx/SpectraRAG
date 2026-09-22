@@ -31,7 +31,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from src.config.settings import load_settings
 from src.embeddings.ollama_bge import OllamaBgeEmbedder
+from src.embeddings.protocol import Embedder
 from src.eval.golden_set import load_golden_set
 from src.eval.judges import LLMJudge
 from src.eval.report import write_run_json, write_run_markdown
@@ -48,11 +50,13 @@ from src.prompts.loader import load_prompt_by_name
 from src.rag.bm25 import Bm25Index
 from src.rag.generate import Generator
 from src.rag.query_expansion import QueryExpander
-from src.rag.rerank import BgeReranker
+from src.rag.retrieval_config import (
+    RetrievalConfig,
+    build_routing_retriever,
+    build_text_retriever,
+)
 from src.rag.retrievers.multi_query import ExpansionMode, MultiQueryRetriever
-from src.rag.retrievers.pipeline import PipelineRetriever
 from src.rag.retrievers.protocol import Retriever
-from src.rag.retrievers.routing import RoutingRetriever
 from src.rag.retrievers.visual import build_visual_retriever
 from src.rag.vectorstore import QdrantVectorStore
 from src.types import Chunk, Paper
@@ -75,6 +79,81 @@ def _build_llm(provider: str, *, ollama_url: str, num_ctx: int | None = None) ->
     raise SystemExit(f"unknown provider: {provider!r} (expected 'openrouter' or 'ollama')")
 
 
+def _build_embedder(backend: str, *, ollama_url: str) -> Embedder:
+    if backend == "sentence_transformers":
+        from src.embeddings.sentence_transformers_bge import SentenceTransformersBgeEmbedder
+
+        return SentenceTransformersBgeEmbedder()
+    return OllamaBgeEmbedder(base_url=ollama_url)
+
+
+# Flags that describe the retrieval stack. `--profile` supplies all of them, so
+# passing one alongside it would be silently ignored; that is an error instead.
+_RETRIEVAL_FLAGS = (
+    "embedder_backend",
+    "rerank",
+    "rerank_model",
+    "rerank_input_size",
+    "rerank_length_norm",
+    "rerank_length_threshold",
+    "rerank_length_penalty",
+    "candidate_pool",
+    "exclude_decoration",
+    "visual_model",
+    "visual_fusion_weight",
+    "router_classifier",
+    "router_classifier_model",
+    "cascade",
+    "cascade_threshold",
+)
+
+
+def retrieval_config_from_args(
+    args: argparse.Namespace, parser: argparse.ArgumentParser
+) -> RetrievalConfig:
+    """The retrieval stack this run measures, from the CLI flags or a profile.
+
+    `--profile cpu` loads src/config/profiles/cpu.yaml through the same
+    `load_settings` the API uses, so the run's fingerprint matches /health on a
+    deploy of that profile. `--router` decides whether the visual leg is built.
+    """
+    if args.profile:
+        conflicts = [
+            "--" + dest.replace("_", "-")
+            for dest in _RETRIEVAL_FLAGS
+            if getattr(args, dest) != parser.get_default(dest)
+        ]
+        if conflicts:
+            parser.error(f"--profile sets the retrieval stack; drop {', '.join(conflicts)}")
+        settings = load_settings(profile=args.profile).model_copy(
+            update={"enable_multimodal": args.router}
+        )
+        return RetrievalConfig.from_settings(settings)
+    if args.cascade:
+        routing_mode = "cascade"
+    elif args.force_route == "hybrid":
+        routing_mode = "hybrid"
+    else:
+        routing_mode = "category"
+    return RetrievalConfig(
+        embedder_backend=args.embedder_backend,
+        reranker_model=args.rerank_model if args.rerank else None,
+        rerank_length_norm=args.rerank_length_norm,
+        rerank_length_threshold=args.rerank_length_threshold,
+        rerank_length_penalty=args.rerank_length_penalty,
+        candidate_pool=args.candidate_pool,
+        rerank_input_size=args.rerank_input_size,
+        exclude_decoration=args.exclude_decoration,
+        visual_model=args.visual_model if args.router else None,
+        routing_mode=routing_mode,  # type: ignore[arg-type]
+        classifier=(
+            f"llm:{args.router_classifier_model}" if args.router_classifier == "llm" else "regex"
+        ),
+        cascade_threshold=args.cascade_threshold,
+        visual_fusion_weight=args.visual_fusion_weight,
+    )
+
+
 async def _main(
     *,
     pdf_paths: list[Path],
@@ -84,15 +163,11 @@ async def _main(
     output_dir: Path,
     top_k: int,
     collection: str,
+    retrieval_config: RetrievalConfig,
+    profile: str | None,
     paper_id_filter: bool = False,
     region_number_boost: bool = False,
-    exclude_decoration: bool = True,
-    rerank_length_norm: bool = False,
-    rerank_length_threshold: int = 300,
-    rerank_length_penalty: float = 0.5,
     vlm_caption_provider: str = "ollama",
-    cascade: bool = False,
-    cascade_threshold: float | None = None,
     contextualize: bool,
     contextualize_provider: str,
     contextualize_model: str,
@@ -107,9 +182,6 @@ async def _main(
     judge_model: str,
     judge_num_ctx: int | None,
     judge_n_samples: int,
-    rerank: bool,
-    rerank_model: str,
-    rerank_input_size: int,
     rerank_device: str | None,
     postgres_dsn: str | None,
     extract_figures: bool,
@@ -121,10 +193,6 @@ async def _main(
     query_expansion_provider: str,
     query_expansion_model: str,
     query_expansion_n: int,
-    router: bool,
-    router_classifier: str,
-    router_classifier_model: str,
-    visual_model: str,
     visual_device: str,
     visual_collection: str | None,
     force_route: str | None,
@@ -144,7 +212,7 @@ async def _main(
         contextualize=contextualize,
     )
 
-    embedder = OllamaBgeEmbedder(base_url=ollama_url)
+    embedder = _build_embedder(retrieval_config.embedder_backend, ollama_url=ollama_url)
     vectorstore = QdrantVectorStore(url=qdrant_url, collection_name=collection, dim=embedder.dim)
     await vectorstore.ensure_collection()
     bm25 = Bm25Index()
@@ -223,33 +291,17 @@ async def _main(
                 with_ctx = sum(1 for c in ingested.chunks if c.context)
                 print(f"Contextualized {with_ctx}/{ingested.chunk_count} chunks")
 
-    reranker_obj: BgeReranker | None = None
-    if rerank:
-        reranker_obj = BgeReranker(
-            model_name=rerank_model,
-            device=rerank_device,
-            length_norm=rerank_length_norm,
-            length_threshold=rerank_length_threshold,
-            length_penalty=rerank_length_penalty,
-        )
-        suffix = (
-            f" + length_norm(threshold={rerank_length_threshold}, penalty={rerank_length_penalty})"
-            if rerank_length_norm
-            else ""
-        )
-        print(
-            f"Reranking top-{rerank_input_size} with {rerank_model} "
-            f"(device={rerank_device or 'auto'}){suffix}"
-        )
-
-    pipeline_retriever = PipelineRetriever(
+    fingerprint = retrieval_config.fingerprint()
+    print(f"Retrieval config {fingerprint}" + (f" (profile {profile})" if profile else ""))
+    for key, value in retrieval_config.as_dict().items():
+        print(f"  {key}: {value}")
+    pipeline_retriever = build_text_retriever(
+        retrieval_config,
         embedder=embedder,
         vectorstore=vectorstore,
         bm25=bm25,
         chunks_by_id=chunks_by_id,
-        reranker=reranker_obj,
-        rerank_input_size=rerank_input_size,
-        exclude_decoration=exclude_decoration,
+        reranker_device=rerank_device,
     )
 
     retriever: Retriever = pipeline_retriever
@@ -289,7 +341,8 @@ async def _main(
             f"(max_subqueries={agentic_max_subqueries})"
         )
 
-    if router:
+    visual_model = retrieval_config.visual_model
+    if visual_model is not None:
         # ADR 0008 router: wrap the text retriever (already query-expanded if
         # requested) with RoutingRetriever so figure/table/multi_hop queries
         # get RRF-fused with the visual leg at page granularity. Render PDF
@@ -376,37 +429,25 @@ async def _main(
         # construction; gemma3:4b loads on first classify(), after ColQwen2 is
         # resident, so it competes with the visual leg on small GPUs).
         classifier_obj: LLMQueryClassifier | None = None
-        if router_classifier == "llm":
+        if retrieval_config.classifier and retrieval_config.classifier.startswith("llm:"):
             from src.rag.retrievers.classifier_llm import LLMQueryClassifier
 
+            classifier_model = retrieval_config.classifier.removeprefix("llm:")
             classifier_obj = LLMQueryClassifier(
                 llm=OllamaChatClient(base_url=ollama_url),
-                model=router_classifier_model,
+                model=classifier_model,
                 prompt=load_prompt_by_name("classify_query"),
             )
-            print(f"Router classifier: llm ({router_classifier_model} via Ollama)")
-        if cascade:
-            if cascade_threshold is None:
-                raise SystemExit("--cascade requires --cascade-threshold (float)")
-            retriever = RoutingRetriever(
-                text=retriever,
-                visual=visual_retriever,
-                classifier=classifier_obj,
-                mode="cascade",
-                cascade_confidence_threshold=cascade_threshold,
-            )
-            print(
-                f"Routing enabled (cascade mode, threshold={cascade_threshold}); text leg "
-                "first; visual leg fires only when text confidence is below the threshold."
-            )
-        else:
-            retriever = RoutingRetriever(
-                text=retriever, visual=visual_retriever, classifier=classifier_obj
-            )
-            print(
-                "Routing enabled (category mode) — text leg + ColQwen2 visual leg fused "
-                "per query category."
-            )
+            print(f"Router classifier: llm ({classifier_model} via Ollama)")
+        if (
+            retrieval_config.routing_mode == "cascade"
+            and retrieval_config.cascade_threshold is None
+        ):
+            raise SystemExit("--cascade requires --cascade-threshold (float)")
+        retriever = build_routing_retriever(
+            retrieval_config, text=retriever, visual=visual_retriever, classifier=classifier_obj
+        )
+        print(f"Routing enabled ({retrieval_config.routing_mode} mode).")
 
     if region_number_boost:
         from src.rag.retrievers.region_boost import RegionNumberBoostRetriever
@@ -457,12 +498,16 @@ async def _main(
         judge=judge_obj,
         top_k=top_k,
         paper_id_filter=paper_id_filter,
-        force_route=force_route,  # type: ignore[arg-type]  # argparse choices match the Literal
+        # The hybrid arm is a routing mode now, not a per-query override.
+        force_route=None if force_route == "hybrid" else force_route,  # type: ignore[arg-type]
         config={
             "retriever": "pipeline",
-            "rerank": rerank,
-            "rerank_model": rerank_model if rerank else None,
-            "rerank_input_size": rerank_input_size if rerank else None,
+            "profile": profile,
+            "retrieval_config": retrieval_config.as_dict(),
+            "retrieval_fingerprint": fingerprint,
+            "rerank": retrieval_config.reranker_model is not None,
+            "rerank_model": retrieval_config.reranker_model,
+            "rerank_input_size": retrieval_config.rerank_input_size,
             "top_k": top_k,
             "paper_ids": paper_ids,
             "embedding_model": "bge-m3",
@@ -489,22 +534,19 @@ async def _main(
             "query_expansion_mode": query_expansion_mode if query_expansion else None,
             "query_expansion_model": query_expansion_model if query_expansion else None,
             "query_expansion_n": query_expansion_n if query_expansion else None,
-            "router": router,
-            "router_classifier": router_classifier if router else None,
+            "router": visual_model is not None,
+            "router_classifier": retrieval_config.classifier,
             "force_route": force_route,
-            "router_classifier_model": (
-                router_classifier_model if router and router_classifier == "llm" else None
-            ),
-            "visual_model": visual_model if router else None,
-            "visual_device": visual_device if router else None,
+            "visual_model": visual_model,
+            "visual_device": visual_device if visual_model else None,
             "paper_id_filter": paper_id_filter,
             "region_number_boost": region_number_boost,
-            "exclude_decoration": exclude_decoration,
-            "rerank_length_norm": rerank_length_norm,
-            "rerank_length_threshold": rerank_length_threshold if rerank_length_norm else None,
-            "rerank_length_penalty": rerank_length_penalty if rerank_length_norm else None,
-            "cascade": cascade,
-            "cascade_threshold": cascade_threshold if cascade else None,
+            "exclude_decoration": retrieval_config.exclude_decoration,
+            "rerank_length_norm": retrieval_config.rerank_length_norm,
+            "rerank_length_threshold": retrieval_config.rerank_length_threshold,
+            "rerank_length_penalty": retrieval_config.rerank_length_penalty,
+            "cascade": retrieval_config.routing_mode == "cascade",
+            "cascade_threshold": retrieval_config.cascade_threshold,
             "agentic": agentic,
             "agentic_provider": agentic_provider if agentic else None,
             "agentic_model": agentic_model if agentic else None,
@@ -530,7 +572,7 @@ async def _main(
     log.info("eval_cli.done", run_id=run.run_id, json=str(json_path))
 
 
-if __name__ == "__main__":
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run a golden-set evaluation end-to-end.")
     parser.add_argument(
         "--pdf",
@@ -545,6 +587,33 @@ if __name__ == "__main__":
     parser.add_argument("--output-dir", type=Path, default=Path("data/eval/runs"))
     parser.add_argument("--top-k", type=int, default=10)
     parser.add_argument("--collection", default="eval_phase1")
+    parser.add_argument(
+        "--profile",
+        default=None,
+        help=(
+            "Measure a served retrieval stack: load src/config/profiles/<name>.yaml "
+            "through the same settings path the API uses (`cpu` is what the Cloud Run "
+            "image and `spectrarag serve` run). Replaces the individual retrieval flags."
+        ),
+    )
+    parser.add_argument(
+        "--embedder-backend",
+        choices=("ollama", "sentence_transformers"),
+        default="ollama",
+        help="Query/ingest embedder for bge-m3: Ollama, or in-process sentence-transformers.",
+    )
+    parser.add_argument(
+        "--candidate-pool",
+        type=int,
+        default=50,
+        help="Candidates each of dense and BM25 return before RRF (Settings.rerank_top_k).",
+    )
+    parser.add_argument(
+        "--visual-fusion-weight",
+        type=float,
+        default=1.0,
+        help="ADR 0023 visual-leg weight in the page-level RRF. Requires --router.",
+    )
     parser.add_argument(
         "--contextualize",
         action="store_true",
@@ -695,7 +764,9 @@ if __name__ == "__main__":
         default=0.5,
         help=(
             "Maximum length penalty (subtracted from raw rerank score at len=0). "
-            "0.5 is calibrated for bge-reranker-v2-m3's [-5, 5] logit range."
+            "Applied in the reranker's native score space: 0.5 was tuned on "
+            "bge-reranker-v2-m3, whose sentence-transformers scores are sigmoid "
+            "probabilities in [0, 1]."
         ),
     )
     parser.add_argument(
@@ -967,6 +1038,11 @@ if __name__ == "__main__":
             "the in-project trigger; see CONTRIBUTING 'Scripts layout'."
         ),
     )
+    return parser
+
+
+if __name__ == "__main__":
+    parser = build_parser()
     args = parser.parse_args()
 
     _provider_default_model = {
@@ -988,6 +1064,7 @@ if __name__ == "__main__":
     configure_logging(level="INFO", env="local", log_file=log_file)
     print(f"Logging JSON to {log_file}")
 
+    retrieval_config = retrieval_config_from_args(args, parser)
     asyncio.run(
         _main(
             pdf_paths=args.pdf,
@@ -997,15 +1074,11 @@ if __name__ == "__main__":
             output_dir=args.output_dir,
             top_k=args.top_k,
             collection=args.collection,
+            retrieval_config=retrieval_config,
+            profile=args.profile,
             paper_id_filter=args.paper_id_filter,
             region_number_boost=args.region_number_boost,
-            exclude_decoration=args.exclude_decoration,
-            rerank_length_norm=args.rerank_length_norm,
-            rerank_length_threshold=args.rerank_length_threshold,
-            rerank_length_penalty=args.rerank_length_penalty,
             vlm_caption_provider=args.vlm_caption_provider,
-            cascade=args.cascade,
-            cascade_threshold=args.cascade_threshold,
             contextualize=args.contextualize,
             contextualize_provider=args.contextualize_provider,
             contextualize_model=contextualize_model,
@@ -1020,9 +1093,6 @@ if __name__ == "__main__":
             judge_model=judge_model,
             judge_num_ctx=args.judge_num_ctx,
             judge_n_samples=args.judge_n_samples,
-            rerank=args.rerank,
-            rerank_model=args.rerank_model,
-            rerank_input_size=args.rerank_input_size,
             rerank_device=args.rerank_device,
             postgres_dsn=args.postgres_dsn or None,
             extract_figures=args.extract_figures,
@@ -1034,10 +1104,6 @@ if __name__ == "__main__":
             query_expansion_provider=args.query_expansion_provider,
             query_expansion_model=query_expansion_model,
             query_expansion_n=args.query_expansion_n,
-            router=args.router,
-            router_classifier=args.router_classifier,
-            router_classifier_model=args.router_classifier_model,
-            visual_model=args.visual_model,
             visual_collection=args.visual_collection,
             force_route=args.force_route,
             visual_device=args.visual_device,

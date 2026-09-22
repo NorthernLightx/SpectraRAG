@@ -97,6 +97,33 @@ def _compute_deltas(
     return deltas
 
 
+def config_note(baseline: dict[str, Any], candidate: dict[str, Any]) -> str | None:
+    """Say so when the two runs measured different retrieval stacks.
+
+    Not a failure: comparing stacks is what an experiment does. A gate run is
+    only a regression check when the fingerprints match; otherwise a drop may
+    be the config change the candidate was meant to test.
+    """
+    b_cfg = (baseline.get("config") or {}).get("retrieval_config")
+    c_cfg = (candidate.get("config") or {}).get("retrieval_config")
+    b_fp = (baseline.get("config") or {}).get("retrieval_fingerprint")
+    c_fp = (candidate.get("config") or {}).get("retrieval_fingerprint")
+    if b_fp is None or c_fp is None:
+        missing = "baseline" if b_fp is None else "candidate"
+        return f"note: the {missing} run records no retrieval fingerprint (older run)."
+    if b_fp == c_fp:
+        return None
+    changed = sorted(
+        key
+        for key in set(b_cfg or {}) | set(c_cfg or {})
+        if (b_cfg or {}).get(key) != (c_cfg or {}).get(key)
+    )
+    detail = ", ".join(
+        f"{key}: {(b_cfg or {}).get(key)!r} -> {(c_cfg or {}).get(key)!r}" for key in changed
+    )
+    return f"note: different retrieval stacks ({b_fp} -> {c_fp}). {detail}"
+
+
 def _format_table(deltas: list[MetricDelta]) -> str:
     header = (
         f"{'metric':<22}{'baseline':>12}{'candidate':>12}{'delta abs':>10}{'delta rel':>10}  status"
@@ -104,12 +131,12 @@ def _format_table(deltas: list[MetricDelta]) -> str:
     rows = [header, "-" * len(header)]
     for d in deltas:
         if d.baseline is None or d.candidate is None:
-            rows.append(f"{d.name:<22}{'—':>12}{'—':>12}{'—':>10}{'—':>10}  not-applicable")
+            rows.append(f"{d.name:<22}{'n/a':>12}{'n/a':>12}{'n/a':>10}{'n/a':>10}  not-applicable")
             continue
         b = f"{d.baseline:.4f}"
         c = f"{d.candidate:.4f}"
-        da = f"{d.delta_abs:+.4f}" if d.delta_abs is not None else "—"
-        dr = f"{(d.delta_rel * 100):+.2f}%" if d.delta_rel is not None else "—"
+        da = f"{d.delta_abs:+.4f}" if d.delta_abs is not None else "n/a"
+        dr = f"{(d.delta_rel * 100):+.2f}%" if d.delta_rel is not None else "n/a"
         status = "FAIL" if d.regressed else "ok"
         rows.append(f"{d.name:<22}{b:>12}{c:>12}{da:>10}{dr:>10}  {status}")
     return "\n".join(rows)
@@ -144,6 +171,10 @@ def main() -> None:
         print("error: both files must have a 'per_query' field", file=sys.stderr)
         sys.exit(2)
 
+    note = config_note(baseline, candidate)
+    if note:
+        print(note)
+        print()
     deltas = _compute_deltas(baseline, candidate, tuple(args.metrics), args.threshold)
     print(_format_table(deltas))
     print()

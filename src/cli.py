@@ -22,10 +22,12 @@ def _run_module(module: str, args: list[str]) -> int:
 
 def _serve(ns: argparse.Namespace) -> int:
     # Self-contained defaults so `spectrarag serve` works after a clone with no
-    # external services: in-process sentence-transformers bge-m3 (no Ollama) and
-    # the committed embedded Qdrant snapshot (no Qdrant server). setdefault only
-    # fills these when the user hasn't set them via the shell or .env.
-    os.environ.setdefault("RAG_EMBEDDER_BACKEND", "sentence_transformers")
+    # external services: the `cpu` profile (in-process sentence-transformers
+    # bge-m3, no Ollama; the MiniLM reranker, CPU-feasible and non-inferior on
+    # the eval sets per ADR 0012) and the committed embedded Qdrant snapshot (no
+    # Qdrant server). setdefault only fills these when the user hasn't set them
+    # via the shell or .env.
+    os.environ.setdefault("RAG_PROFILE", "cpu")
     # `.env` (copied from `.env.example`) ships RAG_QDRANT_URL=http://localhost:6333,
     # the docker-compose default, and `src/__init__` loads it before this runs.
     # That would point the self-contained serve at a Qdrant server that isn't up,
@@ -34,10 +36,6 @@ def _serve(ns: argparse.Namespace) -> int:
     _docker_qdrant = "http://localhost:6333"
     if os.environ.get("RAG_QDRANT_URL", _docker_qdrant) == _docker_qdrant:
         os.environ["RAG_QDRANT_URL"] = "path:./qdrant_local"
-    # bge-reranker-v2-m3 (the default) reranks the candidate pool in minutes per
-    # query on CPU; the small MiniLM cross-encoder the Cloud Run image uses is
-    # CPU-feasible and non-inferior on the eval sets (ADR 0012).
-    os.environ.setdefault("RAG_RERANKER_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2")
     if os.path.isdir("data/pages"):
         os.environ.setdefault("RAG_PAGES_DIR", "data/pages")
 
