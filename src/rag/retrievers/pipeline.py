@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+
 from src.embeddings.protocol import Embedder
 from src.observability.logging import get_logger, timed_event
 from src.rag.bm25 import Bm25Index
@@ -50,8 +52,12 @@ class PipelineRetriever:
             dense_hits = await self._vectorstore.search(
                 vector, top_k=self._candidate_pool, paper_filter=paper_filter
             )
-            sparse_hits = self._bm25.search(
-                query.text, top_k=self._candidate_pool, paper_filter=paper_filter
+            # BM25 scoring and the cross-encoder below are synchronous CPU work.
+            # Run in a worker thread so one query can't stall every other request
+            # on the single-worker deploy (and so the hybrid path's visual leg
+            # actually overlaps with the text leg).
+            sparse_hits = await asyncio.to_thread(
+                self._bm25.search, query.text, self._candidate_pool, paper_filter=paper_filter
             )
             ctx["dense_hits"] = len(dense_hits)
             ctx["sparse_hits"] = len(sparse_hits)
@@ -78,7 +84,9 @@ class PipelineRetriever:
                 chunks_to_rerank = [
                     self._chunks_by_id[item.id] for item in rrf_top if item.id in self._chunks_by_id
                 ]
-                reranked = self._reranker.rerank(query.text, chunks_to_rerank, top_k=query.top_k)
+                reranked = await asyncio.to_thread(
+                    self._reranker.rerank, query.text, chunks_to_rerank, query.top_k
+                )
                 results = [
                     self._make_result(self._chunks_by_id[hit.chunk_id], hit.rerank_score)
                     for hit in reranked

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import threading
 from dataclasses import dataclass
 
 from rank_bm25 import BM25Okapi
@@ -25,18 +26,24 @@ class Bm25Hit:
 
 
 class Bm25Index:
-    """Mutable BM25 index. `add()` invalidates the cached BM25 model; rebuilt on search."""
+    """Mutable BM25 index. `add()` invalidates the cached BM25 model; rebuilt on search.
+
+    Searches run in worker threads while POST /ingest can `add()` concurrently,
+    so the chunk list and the cached model are guarded by one lock.
+    """
 
     def __init__(self) -> None:
         self._chunks: list[Chunk] = []
         self._tokenized: list[list[str]] = []
         self._model: BM25Okapi | None = None
+        self._lock = threading.Lock()
 
     def add(self, chunks: list[Chunk]) -> None:
-        for chunk in chunks:
-            self._chunks.append(chunk)
-            self._tokenized.append(_tokenize(chunk.indexed_text))
-        self._model = None
+        tokenized = [_tokenize(chunk.indexed_text) for chunk in chunks]
+        with self._lock:
+            self._chunks.extend(chunks)
+            self._tokenized.extend(tokenized)
+            self._model = None
 
     def _ensure_model(self) -> BM25Okapi | None:
         if not self._chunks:
@@ -53,16 +60,18 @@ class Bm25Index:
         whose origin paper is known in the golden labels. Production callers
         pass `None` (no filter) since they have no paper hint.
         """
-        model = self._ensure_model()
-        if model is None:
-            return []
         tokens = _tokenize(query)
         if not tokens:
             return []
+        with self._lock:
+            model = self._ensure_model()
+            if model is None:
+                return []
+            chunks = list(self._chunks)
         scores = model.get_scores(tokens)
         if paper_filter is not None:
-            allowed = [i for i, c in enumerate(self._chunks) if c.paper_id == paper_filter]
+            allowed = [i for i, c in enumerate(chunks) if c.paper_id == paper_filter]
         else:
-            allowed = list(range(len(self._chunks)))
+            allowed = list(range(len(chunks)))
         ranked = sorted(allowed, key=lambda i: scores[i], reverse=True)[:top_k]
-        return [Bm25Hit(chunk_id=self._chunks[i].chunk_id, score=float(scores[i])) for i in ranked]
+        return [Bm25Hit(chunk_id=chunks[i].chunk_id, score=float(scores[i])) for i in ranked]

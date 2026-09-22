@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import threading
 from collections.abc import Callable
 from dataclasses import dataclass
 
@@ -88,6 +89,9 @@ class BgeReranker:
         self._model_name = model_name
         self._device = device
         self._ce: object | None = None
+        # rerank() runs in worker threads; concurrent first calls must not each
+        # load the model.
+        self._load_lock = threading.Lock()
         self._length_norm = length_norm
         self._length_threshold = length_threshold
         self._length_penalty = length_penalty
@@ -95,11 +99,12 @@ class BgeReranker:
     def _resolve_scorer(self) -> ScorerFn:
         if self._injected_scorer is not None:
             return self._injected_scorer
-        if self._ce is None:
-            from sentence_transformers import CrossEncoder
+        with self._load_lock:
+            if self._ce is None:
+                from sentence_transformers import CrossEncoder
 
-            device = self._device if self._device is not None else _autodetect_device()
-            self._ce = CrossEncoder(self._model_name, device=device)
+                device = self._device if self._device is not None else _autodetect_device()
+                self._ce = CrossEncoder(self._model_name, device=device)
         ce = self._ce
 
         def _score(pairs: list[tuple[str, str]]) -> list[float]:

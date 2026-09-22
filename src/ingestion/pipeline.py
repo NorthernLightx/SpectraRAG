@@ -7,6 +7,7 @@ the text chunks in the same embedding + BM25 + Qdrant pipeline.
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -96,7 +97,9 @@ async def ingest_paper(
             from src.ingestion.docling_chunker import chunk_with_docling, paper_text_from_docling
             from src.ingestion.docling_parser import convert_with_docling
 
-            docling_doc = convert_with_docling(paper.pdf_path)
+            # Docling's layout + OCR pass takes seconds to minutes of CPU. Off the
+            # event loop so POST /ingest doesn't freeze every other request.
+            docling_doc = await asyncio.to_thread(convert_with_docling, paper.pdf_path)
             chunks = chunk_with_docling(
                 paper.paper_id,
                 docling_doc,
@@ -120,7 +123,8 @@ async def ingest_paper(
         if use_docling and (extract_figures_enabled or extract_tables_enabled):
             from src.ingestion.docling_parser import parse_with_docling
 
-            docling_figs, docling_tabs = parse_with_docling(
+            docling_figs, docling_tabs = await asyncio.to_thread(
+                parse_with_docling,
                 paper.paper_id,
                 paper.pdf_path,
                 out_dir=figures_out_dir,

@@ -52,3 +52,14 @@ objects the wired retriever already reads, so the change is visible immediately:
   per-session collection, TTL eviction, and a lock, deliberately out of scope.
 - Uploaded vectors persist in the active Qdrant collection (no auto-eviction), so
   a local corpus grows across uploads, which is the intended behaviour.
+
+## Amendment (2026-09-23): the upload no longer blocks the server
+
+Two of the caveats above are closed. The Docling conversion and figure/table
+parse run in a worker thread, as do BM25 scoring and the cross-encoder rerank
+on the query path, so an upload in flight no longer freezes `/health` and
+`/query` on the single-worker deploy. `Bm25Index.add` and `search` share a
+lock, so a query that races an upload sees either the old corpus or the new
+one, never a half-appended list. The route still has no auth or rate limit of
+its own, and a public multi-user upload would still need per-session
+collections and eviction.
