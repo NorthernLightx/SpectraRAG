@@ -96,3 +96,44 @@ def test_429_response_is_json_with_detail() -> None:
     assert r.headers.get("content-type", "").startswith("application/json")
     body = r.json()
     assert "error" in body or "detail" in body
+
+
+def _burn_answer_bucket(client: TestClient, **headers: str) -> int:
+    for _ in range(10):
+        client.post("/answer", json={"text": "anything"}, headers=headers)
+    status: int = client.post("/answer", json={"text": "anything"}, headers=headers).status_code
+    return status
+
+
+def test_on_cloud_run_each_forwarded_client_gets_its_own_bucket(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Every request reaches the container from Google's front end, so keying
+    on the socket peer would share one bucket across all visitors."""
+    monkeypatch.setenv("K_SERVICE", "spectrarag")
+    client = TestClient(_wire_app())
+    assert _burn_answer_bucket(client, **{"X-Forwarded-For": "203.0.113.1"}) == 429
+    r = client.post("/answer", json={"text": "x"}, headers={"X-Forwarded-For": "203.0.113.2"})
+    assert r.status_code == 200
+
+
+def test_a_client_supplied_forwarded_for_does_not_open_a_new_bucket(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The front end appends the real address after anything the client sent,
+    so rotating the client-supplied entry changes nothing."""
+    monkeypatch.setenv("K_SERVICE", "spectrarag")
+    client = TestClient(_wire_app())
+    assert _burn_answer_bucket(client, **{"X-Forwarded-For": "1.1.1.1, 203.0.113.1"}) == 429
+    r = client.post(
+        "/answer", json={"text": "x"}, headers={"X-Forwarded-For": "9.9.9.9, 203.0.113.1"}
+    )
+    assert r.status_code == 429
+
+
+def test_off_cloud_run_the_header_is_ignored(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("K_SERVICE", raising=False)
+    client = TestClient(_wire_app())
+    assert _burn_answer_bucket(client, **{"X-Forwarded-For": "203.0.113.1"}) == 429
+    r = client.post("/answer", json={"text": "x"}, headers={"X-Forwarded-For": "203.0.113.2"})
+    assert r.status_code == 429
