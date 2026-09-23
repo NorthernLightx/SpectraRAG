@@ -12,7 +12,7 @@
 
 **▶ Live demo: <https://spectrarag-demo.web.app>**
 
-![Asking what Figure 1 shows: the router sends the query to the visual retriever, and the answer cites the page image it came from](docs/assets/demo.gif)
+![Asking what the blue and red curves in a paper's Figure 1 show: the answer cites the figure, and its source opens on the page with the figure region boxed](docs/assets/demo.webp)
 
 ## The problem
 
