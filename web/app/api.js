@@ -24,10 +24,10 @@
   // OpenRouter withdraws models, so the menu shows only pins the live catalog
   // still lists (livePins) and replaces a withdrawn selection (usableModel).
   const PINNED = [
-    { id: "openai/gpt-4o-mini", note: "vision · cheapest" },
+    { id: "qwen/qwen3-vl-32b-instruct", note: "vision · open · low cost" },
+    { id: "openai/gpt-4o-mini", note: "vision" },
     { id: "anthropic/claude-sonnet-4.6", note: "vision" },
     { id: "openai/gpt-4o", note: "vision" },
-    { id: "qwen/qwen3-vl-32b-instruct", note: "vision · open" },
     { id: "google/gemma-4-26b-a4b-it:free", note: "vision · free" },
   ];
 

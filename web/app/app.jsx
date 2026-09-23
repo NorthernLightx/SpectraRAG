@@ -379,7 +379,7 @@ function App() {
   // Provider + model survive reloads, with one remembered model per provider
   // so switching back doesn't clobber the other side's choice.
   const modelStoreKey = (p) => (p === "ollama" ? "sr-ollama-model" : "sr-or-model");
-  const defaultModel = (p) => (p === "ollama" ? "" : "openai/gpt-4o-mini");
+  const defaultModel = (p) => (p === "ollama" ? "" : "qwen/qwen3-vl-32b-instruct");
   // A persisted "ollama" pick is ignored on hosted pages (toggle is hidden there).
   const storedProvider = () => (HOSTED ? "openrouter" : localStorage.getItem("sr-provider") || "openrouter");
   const [provider, setProviderRaw] = useState(storedProvider);
