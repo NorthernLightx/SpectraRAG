@@ -22,7 +22,6 @@ on:
       - "Dockerfile"
       - ".dockerignore"
       - "src/**"
-      - "web/**"
       - "data/pages/**"
       - "qdrant_local/**"
       - "pyproject.toml"

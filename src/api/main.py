@@ -8,14 +8,13 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
-from starlette.responses import Response
-from starlette.types import Scope
 
 from src.api.auth import make_api_key_middleware
 from src.api.bootstrap import (
@@ -32,25 +31,6 @@ from src.observability.langfuse import make_langfuse_client
 from src.observability.logging import configure_logging, get_logger
 from src.observability.otel import configure_otel
 from src.observability.sentry import configure_sentry
-
-
-class _NoCacheStatic(StaticFiles):
-    """StaticFiles that forces revalidation of the no-build SPA's assets.
-
-    The frontend ships its source directly: index.html plus app/*.jsx
-    transpiled in-browser and *.css, none content-hash-named. With only
-    ETag / Last-Modified the browser applies heuristic caching (often
-    hours) and after an edit or deploy serves a stale mix of old and new
-    files (for example a new figures.jsx against an old shared.jsx). Setting
-    `Cache-Control: no-cache` forces a revalidation on every load; the
-    server still returns a cheap 304 when the file is unchanged. Page
-    images use the separate /pages mount and keep normal caching.
-    """
-
-    async def get_response(self, path: str, scope: Scope) -> Response:
-        response = await super().get_response(path, scope)
-        response.headers["Cache-Control"] = "no-cache"
-        return response
 
 
 def create_app(*, log_file: Path | None = Path("logs/api.log")) -> FastAPI:
@@ -158,19 +138,10 @@ def create_app(*, log_file: Path | None = Path("logs/api.log")) -> FastAPI:
     if settings.pages_dir is not None and settings.pages_dir.is_dir():
         app.mount("/pages", StaticFiles(directory=settings.pages_dir), name="pages")
 
-    # Static frontend mounted LAST at "/" so it doesn't shadow API routes;
-    # FastAPI matches explicit routes before mounted apps. `html=True` makes
-    # GET / serve index.html (instead of a directory listing). When the web/
-    # directory isn't present (for example a stripped runtime image) the mount
-    # silently skips so the API still boots.
-    #
-    # `Cache-Control: no-cache` is set on HTML responses so browsers
-    # revalidate on every reload (cheap 304 via ETag) instead of serving
-    # stale HTML after a deploy. Without this, the FastAPI static handler's
-    # default heuristic caching keeps old UIs visible for hours.
-    web_dir = Path(__file__).resolve().parents[2] / "web"
-    if web_dir.is_dir():
-        app.mount("/", _NoCacheStatic(directory=web_dir, html=True), name="web")
+    # A browser opening the root lands on the interactive API docs.
+    @app.get("/", include_in_schema=False)
+    async def root() -> RedirectResponse:
+        return RedirectResponse("/docs")
 
     # Auto-instrumentation must run after routers are added so per-route
     # spans are named correctly. HTTPXClientInstrumentor is a singleton

@@ -29,5 +29,3 @@ tests
 .claude
 htmlcov
 .worktrees
-web-dist
-web-build/node_modules

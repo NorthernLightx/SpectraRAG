@@ -78,18 +78,12 @@ def test_query_returns_503_when_retriever_unset() -> None:
     assert "ingest a corpus" in response.json()["detail"].lower()
 
 
-def test_root_serves_bundled_frontend() -> None:
-    """`/` is mounted to web/index.html via StaticFiles so the same container
-    serves API + UI. Verifies the mount is wired correctly and the HTML is
-    actually shipped (not stripped by some runtime image build)."""
+def test_root_redirects_to_api_docs() -> None:
+    """The repo ships no UI, so `/` points a browser at the interactive API docs."""
     client = _make_client()
-    response = client.get("/")
-    assert response.status_code == 200
-    assert response.headers["content-type"].startswith("text/html")
-    body = response.text
-    assert "SpectraRAG" in body
-    # Sanity: the static mount didn't shadow /docs (FastAPI matches explicit
-    # routes before the catch-all StaticFiles mount).
+    response = client.get("/", follow_redirects=False)
+    assert response.status_code in (302, 307)
+    assert response.headers["location"] == "/docs"
     assert client.get("/docs").status_code == 200
 
 

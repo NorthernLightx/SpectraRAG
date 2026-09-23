@@ -103,6 +103,9 @@ flowchart LR
 
 ## Quickstart
 
+This repo is the backend and its evaluation. The [live demo](https://spectrarag-demo.web.app)
+is a separate web client of the same API.
+
 Fastest path: serve the bundled demo corpus self-contained, with no Docker or
 Ollama (in-process bge-m3 + the committed Qdrant snapshot). The first run
 downloads the bge-m3 weights.
@@ -114,12 +117,21 @@ uv sync --extra dev
 uv run spectrarag serve
 ```
 
-Open <http://localhost:8000/> and query the bundled demo corpus with text
-retrieval. The visual leg's page index is not in the repo: build it on a GPU
-with `uv run spectrarag fetch` and `uv run python -m scripts.build_visual_index`,
-then set `RAG_ENABLE_MULTIMODAL=true`. To generate answers, pick a provider in the
-top-right model menu: your OpenRouter key, or a local Ollama vision model.
-For your own PDFs, see [Bring your own PDFs](#bring-your-own-pdfs).
+The API serves the bundled demo corpus with text retrieval at
+<http://localhost:8000>; `/docs` has the interactive reference. Query it:
+
+```bash
+curl -s localhost:8000/query -H "Content-Type: application/json" \
+    -d '{"text": "What does Figure 1 in HERMES++ illustrate?", "top_k": 5}'
+```
+
+Retrieval needs no model provider. For answers with citations, set
+`RAG_OPENROUTER_API_KEY` in `.env` and send the same body to `/answer`; the
+model is `RAG_DEFAULT_CHAT_MODEL`. The visual leg's page index is not in the
+repo: build it on a GPU with `uv run spectrarag fetch` and
+`uv run python -m scripts.build_visual_index`, then set
+`RAG_ENABLE_MULTIMODAL=true`. For your own PDFs, see
+[Bring your own PDFs](#bring-your-own-pdfs).
 
 For the full local stack (Docker Qdrant + Ollama, plus ingesting your own PDFs):
 
@@ -134,44 +146,28 @@ uv run python -m scripts.bootstrap_corpus --pdf-dir data/papers
 uv run uvicorn src.api.main:app --reload --port 8000
 ```
 
-Then open <http://localhost:8000/>. It's a single-page app with five tabs:
+Then query <http://localhost:8000> the same way.
 
-- **Chat** re-retrieves on every turn (with a condense step on follow-ups). The
-  panel beside the answer shows which legs ran, the ranked chunks, and the page
-  images it read.
-- **Inspection** traces one query through routing, retrieval, and rerank.
-- **Papers** and **Figures** browse the indexed corpus. Figures are bbox-cropped
-  thumbnails with caption search.
-- **Why multimodal?** walks through real MMLongBench questions where text-only
-  retrieval misses the page the answer is on and the router finds it.
-
-Chat's Advanced panel picks the search (both legs, text only, pages only, the
-classifier router, or agentic), sets top-K, and filters by paper; Inspection
-uses the same settings. The agentic option (DCI) has an LLM agent grep the corpus
-with terminal-style tools instead of vector search. It's off by default, text-only,
-and slower, so treat it as a demo of the approach, not the default path.
-
-Generation runs on a provider you pick in the model menu (ADR 0031). With an
-OpenRouter key, the chat call goes browser-direct to OpenRouter and the server
-never sees, logs, or stores the key; the model list is fetched live and
-filtered to vision-capable models. With a local Ollama, the browser talks to
-`localhost:11434` directly, lists your installed vision models, and can pull
-a suggested one (qwen2.5vl, granite3.2-vision, minicpm-v, llama3.2-vision)
-straight from the menu. The one exception is the opt-in
-DCI mode, whose agent runs server-side on your OpenRouter key: held in memory
-for that request only, never stored or logged. Retrieval needs no provider at
-all. Models receive the retrieved page PNGs as image blocks when
-`RAG_PAGES_DIR` is set; populate it with
+The opt-in agentic search (DCI) has an LLM agent grep the corpus with
+terminal-style tools instead of vector search: `POST /query/dci` with your
+OpenRouter key in the `X-OpenRouter-Key` header, held in memory for that
+request only. It's text-only and slower, so treat it as a demo of the approach,
+not the default path. `/answer` sends the retrieved page PNGs to the model as
+image blocks when `RAG_PAGES_DIR` is set; populate it with
 `python -m scripts.render_pages --pdf-dir data/papers`.
 
 API surface:
 
 - `/health`: component-wiring check (status, version, env, `pages_available`,
   and the fingerprint of the retrieval stack that was wired)
-- `/query`: retrieval only, no generation
-- `/context`: the reader's messages for one chat turn, which the browser sends
-  to the visitor's provider ([ADR 0033](./docs/decisions/0033-one-reader-context.md))
-- `/answer`: full server-side generation with a configured key
+- `/query`: retrieval only, no generation. `force_route` (`text` or
+  `visual`) or `routing_mode: "category"` (the classifier router) changes which
+  legs run; `filters.paper_id` scopes it to one paper
+- `/context`: the reader's messages for one turn, for a client that calls its
+  own model provider ([ADR 0033](./docs/decisions/0033-one-reader-context.md))
+- `/answer`: retrieval plus generation on the server's OpenRouter key
+- `/papers`, `/figures`: the indexed corpus; `/pages/...`: page images when
+  `RAG_PAGES_DIR` is set
 
 ## Bring your own PDFs
 
@@ -186,11 +182,11 @@ uv run python -m scripts.bootstrap_corpus \
 ```
 
 Set `RAG_CORPUS_COLLECTION=my_corpus` in `.env`, restart `uvicorn`, and the
-corpus is queryable through `/query` and the UI. The eval harness works
+corpus is queryable through `/query` and `/answer`. The eval harness works
 against any collection; write a golden set at `data/golden/<name>.yaml`.
 
-For a single document, set `RAG_ENABLE_UPLOAD=true` and use the Papers tab's
-**Add PDF** button (or `POST /ingest`): the PDF is ingested into the live corpus
+For a single document, set `RAG_ENABLE_UPLOAD=true` and `POST /ingest` it:
+the PDF is ingested into the live corpus
 and text-retrievable on the next query, no restart. Keep the flag off on any
 shared deploy. The route carries no auth or rate limit of its own.
 
@@ -272,8 +268,8 @@ compares to other document-RAG tools, see
   arXiv set has few figure or table answers, so the visual lift you
   see here is small. The retrieval numbers above come from MMDocIR and
   MMLongBench, not from these papers.
-- **Generation needs a provider.** Chat answers require an OpenRouter key or
-  a local Ollama vision model; retrieval works with neither.
+- **Generation needs a provider.** `/answer` needs an OpenRouter key;
+  retrieval works without one.
 - **The LLM judge under-rates pixel answers.** When the answer is in the
   image (for example *"the line is red"*) and the judge sees only text,
   faithfulness is scored low. For generation quality, trust gold-answer
@@ -303,7 +299,6 @@ visual leg with `RAG_ENABLE_MULTIMODAL=false`.
 ```
 src/        FastAPI app, retrievers, ingestion, eval, observability
 scripts/    CLI entry points (bootstrap, render, eval, regression)
-web/        web UI (React), served by the API as is; web-build/ compiles it for deploys
 data/       gitignored except curated_demo/papers.txt, eval baselines,
             golden sets, and the committed demo page renders
 docs/       ADRs, eval methodology, results
@@ -320,9 +315,9 @@ tests/      unit + integration suites, mirrors src/
 - **Document parsing**: [Docling](https://github.com/docling-project/docling)
   (layout, tables, figure classification), [PyMuPDF](https://github.com/pymupdf/PyMuPDF)
   (page rendering)
-- **Models**: [OpenRouter](https://openrouter.ai/) for cloud generation
-  (browser-side, your key), [Ollama](https://ollama.com/) for local chat
-  generation, embeddings, and the routing classifier
+- **Models**: [OpenRouter](https://openrouter.ai/) for cloud generation,
+  [Ollama](https://ollama.com/) for local generation, embeddings, and the
+  routing classifier
 - **API**: [FastAPI](https://fastapi.tiangolo.com/),
   [Pydantic v2](https://docs.pydantic.dev/), [uv](https://docs.astral.sh/uv/)
 - **Observability**: [OpenTelemetry](https://opentelemetry.io/),
