@@ -116,9 +116,10 @@ uv sync --extra dev
 uv run spectrarag serve
 ```
 
-Open <http://localhost:8000/> and query the bundled demo corpus (text
-retrieval; set `RAG_ENABLE_MULTIMODAL=true` to also run the visual router over
-the committed page index). To generate answers, pick a provider in the
+Open <http://localhost:8000/> and query the bundled demo corpus with text
+retrieval. The visual leg's page index is not in the repo: build it on a GPU
+with `uv run spectrarag fetch` and `uv run python -m scripts.build_visual_index`,
+then set `RAG_ENABLE_MULTIMODAL=true`. To generate answers, pick a provider in the
 top-right model menu: your OpenRouter key, or a local Ollama vision model.
 For your own PDFs, see [Bring your own PDFs](#bring-your-own-pdfs).
 

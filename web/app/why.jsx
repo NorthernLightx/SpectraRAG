@@ -137,7 +137,7 @@ function WhyView({ setTab, routingAvailable }) {
             {routingAvailable === false ? (
               <React.Fragment>
                 <h2 className="serif">See the retrieval pipeline live.</h2>
-                <p>This deployment runs text-side (the router needs a GPU), but every stage (retrieval, reranking, evidence) traces in real time. Figure questions still read the page images.</p>
+                <p>This server runs text-side (the visual leg is off), but every stage (retrieval, reranking, evidence) traces in real time. The retrieved pages still reach the model as images.</p>
               </React.Fragment>
             ) : (
               <React.Fragment>

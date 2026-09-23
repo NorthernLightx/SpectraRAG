@@ -39,11 +39,11 @@ function citedSources(citations) {
 }
 
 function AdvancedPanel({ settings, set, papers, routingAvailable }) {
-  // When the server runs without the multimodal router (no GPU visual leg),
+  // When the server runs without the multimodal router (no visual leg),
   // force_route/routing_mode are no-ops, so grey them out rather than offering
   // switches that silently do nothing. "agentic" stays: DCI is its own path.
   const noRouter = routingAvailable === false;
-  const offTitle = "Needs the multimodal router (GPU visual leg), not available on this deployment";
+  const offTitle = "Needs the visual leg, which is off on this server";
   return (
     <div className="adv-panel rise">
       <div className="field">
@@ -54,7 +54,7 @@ function AdvancedPanel({ settings, set, papers, routingAvailable }) {
             { value: "hybrid", label: "hybrid", disabled: noRouter, disabledTitle: offTitle },
             { value: "agentic", label: "agentic" }]} />
         {noRouter &&
-        <span className="field-note">visual routing is off, enable it with RAG_ENABLE_MULTIMODAL=true (offline: +35% recall over text-only); figure questions still work via page images</span>
+        <span className="field-note">visual retrieval is off: it needs the page index (scripts/build_visual_index.py) and RAG_ENABLE_MULTIMODAL=true. Retrieved pages still reach the model as images.</span>
         }
       </div>
       <div className="field">
@@ -64,7 +64,7 @@ function AdvancedPanel({ settings, set, papers, routingAvailable }) {
             { value: "hybrid", label: "hybrid", disabled: noRouter, disabledTitle: offTitle },
             { value: "category", label: "category", disabled: noRouter, disabledTitle: offTitle },
             { value: "cascade", label: "cascade", disabled: noRouter, disabledTitle: offTitle }]} />
-        <span className="field-note">the default runs both legs on every query</span>
+        {!noRouter && <span className="field-note">the default runs both legs on every query</span>}
       </div>
       <div className="field">
         <label>Context budget</label>
@@ -298,7 +298,7 @@ function RetrievalPanel({ turn, highlight, settings, paperTitle, routingAvailabl
           <h4>Routing decision</h4>
           {routingAvailable === false ? (
             <div className="route-card">
-              <span className="cand-src">visual router off (set RAG_ENABLE_MULTIMODAL=true to turn it on). Offline it measures <b>+35% recall</b> over text-only retrieval on MMLongBench (<a href="https://github.com/NorthernLightx/SpectraRAG/blob/main/docs/results.md" target="_blank" rel="noopener">results</a>). Every turn retrieves text-side; figure questions read the page images at generation.</span>
+              <span className="cand-src">visual retrieval off: every turn retrieves text-side, and the pages it finds reach the model as images. Turning it on takes the page index (scripts/build_visual_index.py) and RAG_ENABLE_MULTIMODAL=true. On MMDocIR, fusing the visual leg raised recall@10 from <b>0.46 to 0.78</b> (<a href="https://github.com/NorthernLightx/SpectraRAG/blob/main/docs/results.md#mmdocir-where-routing-stops-paying" target="_blank" rel="noopener">results</a>).</span>
             </div>
           ) : (
             <div className="route-card">

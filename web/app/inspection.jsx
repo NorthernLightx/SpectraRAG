@@ -172,7 +172,7 @@ function InspectionView({ settings, papers, routingAvailable }) {
                 {visCands.length
               ? visCands.map((c, i) => <InspRow key={i} c={c} onOpen={setPageItem} scoreMin={scoreMin} scoreMax={scoreMax} />)
               : <div className="retr-empty">{routingAvailable === false
-                ? <span>Not built on this deployment: the visual leg needs a GPU. Offline it measures +35% recall@10 over text-only retrieval (<a href="https://github.com/NorthernLightx/SpectraRAG/blob/main/docs/results.md" target="_blank" rel="noopener">results</a>); here retrieval runs text-side and figure questions are answered from page images at generation time.</span>
+                ? <span>Off on this server: the visual leg needs the page index (scripts/build_visual_index.py) and RAG_ENABLE_MULTIMODAL=true. On MMDocIR, fusing it raised recall@10 from 0.46 to 0.78 (<a href="https://github.com/NorthernLightx/SpectraRAG/blob/main/docs/results.md#mmdocir-where-routing-stops-paying" target="_blank" rel="noopener">results</a>). Here retrieval runs text-side, and the retrieved pages reach the model as images.</span>
                 : "No visual candidates passed the gate for this query."}</div>}
               </div>
             </div>
