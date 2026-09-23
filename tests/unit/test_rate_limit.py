@@ -15,10 +15,11 @@ from collections.abc import Iterator
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from starlette.requests import Request
 
 from src.api.deps import _GeneratorState, _RetrieverState, get_generator, get_retriever
 from src.api.main import create_app
-from src.api.rate_limit import limiter
+from src.api.rate_limit import client_key, limiter
 from src.types import Answer, RetrievalResult
 from tests.fakes import FakeRetriever
 
@@ -129,6 +130,30 @@ def test_a_client_supplied_forwarded_for_does_not_open_a_new_bucket(
         "/answer", json={"text": "x"}, headers={"X-Forwarded-For": "9.9.9.9, 203.0.113.1"}
     )
     assert r.status_code == 429
+
+
+def _request(*forwarded_for: str, peer: str = "10.0.0.1") -> Request:
+    headers = [(b"x-forwarded-for", value.encode()) for value in forwarded_for]
+    return Request({"type": "http", "headers": headers, "client": (peer, 1234)})
+
+
+def test_on_cloud_run_a_second_forwarded_for_line_does_not_hide_the_appended_hop(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Repeated header lines are one comma-joined list, and the front end's hop
+    is the last entry of it."""
+    monkeypatch.setenv("K_SERVICE", "spectrarag")
+    assert client_key(_request("9.9.9.9", "1.1.1.1, 203.0.113.1")) == "203.0.113.1"
+
+
+def test_ipv6_clients_share_one_bucket_per_64(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A client holds a whole /64 and can rotate addresses inside it freely."""
+    monkeypatch.setenv("K_SERVICE", "spectrarag")
+    first = client_key(_request("2001:db8:1:2::1"))
+    assert first == client_key(_request("2001:db8:1:2:ffff::9"))
+    assert first != client_key(_request("2001:db8:1:3::1"))
+    monkeypatch.delenv("K_SERVICE")
+    assert client_key(_request(peer="2001:db8:1:2::1")) == first
 
 
 def test_off_cloud_run_the_header_is_ignored(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -1,4 +1,4 @@
-"""Per-client rate limiter for /answer and /query.
+"""Per-client rate limiter for the routes that run models (`@limiter.limit`).
 
 Module-level Limiter instance imported by both the route decorator and
 `create_app()` (where it gets registered as `app.state.limiter` and the
@@ -10,6 +10,7 @@ Reset state between tests with `limiter.reset()` (see tests/unit/test_rate_limit
 
 from __future__ import annotations
 
+import ipaddress
 import os
 
 from fastapi import Request
@@ -25,14 +26,25 @@ def client_key(request: Request) -> str:
     bucket. The front end appends the address it received the request from to
     `X-Forwarded-For`; that rightmost entry is the one a client cannot forge,
     while anything to its left is whatever the client sent. Off Cloud Run the
-    header is untrusted and the socket peer is the client.
+    header is untrusted and the socket peer is the client. Repeated header lines
+    form one list in order, so all of them are read.
+
+    An IPv6 client holds a whole /64 and can rotate addresses inside it, so its
+    bucket is the /64.
     """
+    address = get_remote_address(request)
     if os.environ.get("K_SERVICE"):
-        hops = [h.strip() for h in request.headers.get("x-forwarded-for", "").split(",")]
-        hops = [h for h in hops if h]
+        joined = ",".join(request.headers.getlist("x-forwarded-for"))
+        hops = [h.strip() for h in joined.split(",") if h.strip()]
         if hops:
-            return hops[-1]
-    return get_remote_address(request)
+            address = hops[-1]
+    try:
+        ip = ipaddress.ip_address(address)
+    except ValueError:
+        return address
+    if ip.version == 6:
+        return str(ipaddress.ip_network(f"{ip}/64", strict=False))
+    return address
 
 
 # headers_enabled is left at the default False because slowapi's header
