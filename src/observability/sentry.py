@@ -43,6 +43,9 @@ def configure_sentry() -> bool:
         # /query/dci takes the visitor's OpenRouter key in this header (ADR 0031);
         # the SDK's default header filter does not cover it.
         event_scrubber=EventScrubber(denylist=[*DEFAULT_DENYLIST, "x-openrouter-key"]),
+        # Frame locals hold that key too (the route's `key`, the client's headers),
+        # and the scrubber matches only exact names.
+        include_local_variables=False,
     )
     _configured = True
     _log.info("sentry.configured", environment=os.environ.get("SENTRY_ENVIRONMENT", "local"))

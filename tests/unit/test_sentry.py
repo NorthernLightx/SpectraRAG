@@ -7,6 +7,9 @@ from typing import Any
 from unittest.mock import patch
 
 import pytest
+import sentry_sdk
+from sentry_sdk.envelope import Envelope
+from sentry_sdk.transport import Transport
 
 import src.observability.sentry as sentry_mod
 from src.observability.sentry import configure_sentry
@@ -51,6 +54,40 @@ def test_configure_sentry_scrubs_the_visitors_openrouter_key(
 
     assert headers["x-openrouter-key"] != "sk-or-v1-visitor"
     assert headers["content-type"] == "application/json"
+
+
+class _CapturingTransport(Transport):
+    def __init__(self) -> None:
+        super().__init__()
+        self.sent = b""
+
+    def capture_envelope(self, envelope: Envelope) -> None:
+        self.sent += envelope.serialize()
+
+
+def test_configure_sentry_keeps_a_key_in_a_local_variable_out_of_events(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("SENTRY_DSN", "https://abc@example.ingest.sentry.io/1")
+    transport = _CapturingTransport()
+    real_init = sentry_sdk.init
+    monkeypatch.setattr(sentry_sdk, "init", lambda **kw: real_init(transport=transport, **kw))
+    configure_sentry()
+    # Built at runtime: events carry source lines, and a key never sits in source.
+    secret = "-".join(["sk", "or", "v1", "visitor"])
+
+    def call_provider(key: str) -> None:
+        raise RuntimeError(f"rejected {len(key)}-char key")
+
+    try:
+        call_provider(secret)
+    except RuntimeError:
+        sentry_sdk.capture_exception()
+    sentry_sdk.flush()
+    sentry_sdk.get_client().close()
+
+    assert b"rejected" in transport.sent
+    assert secret.encode() not in transport.sent
 
 
 def test_configure_sentry_idempotent(monkeypatch: pytest.MonkeyPatch) -> None:

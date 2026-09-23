@@ -59,9 +59,10 @@ machine, and any script that runs on the page can read it.
 
 "Never touches the server" held for chat but not for agentic search:
 `/query/dci` receives the key in the `X-OpenRouter-Key` header and spends it
-on that request. The server does not store or log it, and the Sentry event
-scrubber filters that header, which the SDK's default header filter does not
-cover. The key menu says so and asks for a key with a credit limit.
+on that request. The server does not store or log it. Sentry events filter that
+header, which the SDK's default header filter does not cover, and carry no
+local variables, since the route and the OpenRouter client hold the key in
+locals. The key menu says so and asks for a key with a credit limit.
 
 The production build (`web-build/build.mjs`) gives the page a
 Content-Security-Policy: scripts other than the listed ones do not run, and
