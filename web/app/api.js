@@ -210,11 +210,19 @@
     }
   }
 
+  const WARMING_STATUS = "Server is warming up after a cold start. The first query can take a minute or two. Retrying automatically…";
+
   // Poll /health until the backend answers. A cold start takes about two
   // minutes, and meanwhile Cloud Run's front end rejects requests with a 5xx or
   // the connection fails; neither says what the backend serves once it is up.
-  // Resolves null only after `deadlineMs`.
-  async function waitForHealth(deadlineMs = 300000) {
+  // Resolves null only after `deadlineMs`. One poll per page: queries await the
+  // same promise.
+  let _health = null;
+  function waitForHealth(deadlineMs = 300000) {
+    if (!_health) _health = pollHealth(deadlineMs);
+    return _health;
+  }
+  async function pollHealth(deadlineMs) {
     const start = performance.now();
     for (let wait = 2000; ; wait = Math.min(wait * 1.5, 10000)) {
       try {
@@ -256,6 +264,15 @@
     if (routingMode) body.routing_mode = routingMode;
     if (paperId) body.filters = { paper_id: paperId };
 
+    // Hold the query until /health has answered. During a cold start Cloud Run
+    // holds requests and drops them at the service's 120 s request timeout,
+    // which a cold start also takes.
+    if (_health) {
+      const notice = setTimeout(() => onStatus && onStatus(WARMING_STATUS), 300);
+      await _health;
+      clearTimeout(notice);
+    }
+
     // Agentic search (DCI) runs the agent server-side: the key goes in a header,
     // not the body (bodies are logged). No warm-up retry; a 503 here means
     // "no key", not "warming up".
@@ -282,7 +299,6 @@
     // but say which one is happening; give the permanent case a short budget.
     // A cold start also shows up as a failed connection or as Cloud Run's front
     // end answering with a non-JSON 5xx; the app's own errors are JSON.
-    const warmingStatus = "Server is warming up after a cold start. The first query can take a minute or two. Retrying automatically…";
     const start = performance.now();
     while (true) {
       let res;
@@ -291,10 +307,13 @@
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
+          // Past the service's 120 s request timeout: a hung request surfaces.
+          signal: AbortSignal.timeout(150000),
         });
       } catch (err) {
+        if (err && err.name === "TimeoutError") throw new Error("The server did not answer within 150 s.");
         if (performance.now() - start >= 120000) throw err;
-        onStatus && onStatus(warmingStatus);
+        onStatus && onStatus(WARMING_STATUS);
         await new Promise((r) => setTimeout(r, 3000));
         continue;
       }
@@ -310,7 +329,7 @@
         onStatus &&
           onStatus(noCorpus
             ? "The server reports no corpus is loaded. Retrying briefly in case it is still starting…"
-            : warmingStatus);
+            : WARMING_STATUS);
         await new Promise((r) => setTimeout(r, 3000));
         continue;
       }
