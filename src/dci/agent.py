@@ -13,6 +13,7 @@ combines lexical clues across turns.
 
 from __future__ import annotations
 
+import asyncio
 import re
 from dataclasses import dataclass, field
 from typing import Literal
@@ -76,7 +77,7 @@ def _system_prompt(
         "  ACTION: GREP <regex>            find exact lines matching a regex\n"
         "  ACTION: READ <doc_id> <start> <end>   read lines start..end of a document\n"
         "  ACTION: SCRIPT <python>        run a mini script; helpers search(q),grep(p),count(t),text(id),\n"
-        "                                 all_ids, re; assign `result` (e.g. set-intersect two searches)\n"
+        "                                 all_ids, re; assign `result` (for example, set-intersect two searches)\n"
     )
     strategy = (
         "Strategy: SEARCH broadly, then FILTER on 2-3 discriminative terms to pin the docs that satisfy\n"
@@ -119,7 +120,8 @@ class DciAgent:
         grep_k: int = 12,
         temperature: float = 0.0,
         max_tokens: int = 512,
-        toolset: Toolset = "fullbash",
+        # "fullbash" adds SCRIPT, which runs model-written Python: offline only.
+        toolset: Toolset = "readgrep",
         exemplars: str = "",
     ) -> None:
         self._tools = tools
@@ -194,7 +196,8 @@ class DciAgent:
                 )
             else:
                 repeats = 0
-                obs = self._execute(verb, arg, discovered)
+                # Corpus scans are CPU-bound; keep them off the server's event loop.
+                obs = await asyncio.to_thread(self._execute, verb, arg, discovered)
             last_key = key
             # Force convergence: many models explore until the budget runs out and
             # never RANK. Demand a final answer in the last couple of turns.

@@ -7,7 +7,11 @@ ranking logic are verified deterministically without Ollama.
 from __future__ import annotations
 
 import asyncio
+import contextlib
+import time
 from typing import Any
+
+import pytest
 
 from src.dci.agent import DciAgent
 from src.dci.tools import CorpusTools
@@ -58,6 +62,21 @@ def test_grep_fixed_and_regex() -> None:
     assert {h.doc_id for h in fixed} == {"paris", "builder"}
     regex = tools.grep(r"\b18\d\d\b")
     assert regex and regex[0].doc_id == "paris" and regex[0].line == 2
+
+
+def test_grep_survives_a_backtracking_pattern() -> None:
+    # Exponential under `re`: about 20 s for this line, doubling per added token.
+    tools = CorpusTools({"doc": "a1 " * 26 + "!"})
+    started = time.perf_counter()
+    with contextlib.suppress(ValueError):
+        tools.grep(r"^(\w+\s?)*\d{9}$")
+    assert time.perf_counter() - started < 3.0
+
+
+def test_grep_over_its_time_budget_raises_value_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("src.dci.tools.GREP_SECONDS", 0.0)
+    with pytest.raises(ValueError, match="too long"):
+        CorpusTools(_DOCS).grep(r"\b18\d\d\b")
 
 
 def test_read_bounds_and_missing() -> None:

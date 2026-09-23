@@ -15,11 +15,17 @@ from __future__ import annotations
 import builtins
 import re
 import threading
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+import regex
+
 _TERM_RE = re.compile(r"[A-Za-z0-9]+")
+# GREP runs a model-written pattern, which a visitor can steer. `regex` takes a
+# timeout and matches without holding the GIL, where `re` can backtrack for hours.
+GREP_SECONDS = 2.0
 _MAX_PATTERN_TERMS = 24  # cap alternation so a verbose query can't build a huge regex
 
 # Whitelisted builtins for the SCRIPT sandbox. No __import__, open, exec, eval,
@@ -116,15 +122,23 @@ class CorpusTools:
         """Exact pattern grep. `fixed=True` treats `pattern` as a literal string
         (phrase / exact-constraint search); else it's a regex. Returns matching
         lines with doc id + line number, capped at `top_k`."""
-        flags = re.IGNORECASE if ignore_case else 0
+        flags = regex.IGNORECASE if ignore_case else 0
         try:
-            rx = re.compile(re.escape(pattern) if fixed else pattern, flags)
-        except re.error as exc:
+            rx = regex.compile(regex.escape(pattern) if fixed else pattern, flags)
+        except regex.error as exc:
             raise ValueError(f"bad regex: {exc}") from exc
+        deadline = time.monotonic() + GREP_SECONDS
         hits: list[LineHit] = []
         for doc_id in sorted(self._lines):
             for i, ln in enumerate(self._lines[doc_id], start=1):
-                if rx.search(ln):
+                remaining = deadline - time.monotonic()
+                try:
+                    if remaining <= 0:
+                        raise TimeoutError
+                    matched = rx.search(ln, concurrent=True, timeout=remaining)
+                except TimeoutError as exc:
+                    raise ValueError(f"pattern took too long (over {GREP_SECONDS:g} s)") from exc
+                if matched:
                     hits.append(LineHit(doc_id=doc_id, line=i, text=ln.strip()[:300]))
                     if len(hits) >= top_k:
                         return hits
