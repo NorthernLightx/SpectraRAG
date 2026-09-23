@@ -1,8 +1,8 @@
 # SpectraRAG
 
 > Question answering over PDFs whose answers live in figures, charts, and
-> tables, where text-only search comes up short. Two retrievers, a per-query
-> router, and an eval behind every change.
+> tables, where text-only search comes up short. Two retrievers fused on
+> every question, and an eval behind every change.
 
 [![ci](https://github.com/NorthernLightx/spectrarag/actions/workflows/ci.yml/badge.svg)](https://github.com/NorthernLightx/spectrarag/actions/workflows/ci.yml)
 [![docker](https://github.com/NorthernLightx/spectrarag/actions/workflows/docker.yml/badge.svg)](https://github.com/NorthernLightx/spectrarag/actions/workflows/docker.yml)
@@ -23,8 +23,8 @@ chart's pixels, not the text. The same blind spot covers plot geometry,
 screenshots, and image-only diagrams.
 
 SpectraRAG runs a text retriever and a visual retriever over rendered page
-images, and a per-query classifier decides which to use. When a question is
-visual, the page image is sent to a vision model at answer time. The corpus
+images on every question and fuses their results. The retrieved page images go
+to a vision model at answer time. The corpus
 here is scientific PDFs and MMLongBench-Doc, but nothing is domain-specific:
 point the ingester at any folder of `.pdf` files.
 
@@ -76,9 +76,8 @@ which fixes died under measurement), see
 flowchart LR
     PDF[PDFs] -->|Docling ingest| TXTIDX[(Qdrant + BM25<br/>text/figure/table chunks)]
     PDF -->|build page index| VISIDX[(Qdrant<br/>ColQwen2<br/>page multi-vectors)]
-    Q[User query] --> CLF{Classifier}
-    CLF --> TXT[Text leg<br/>BM25 + BGE-M3 + rerank]
-    CLF -->|hybrid route| VIS[Visual leg<br/>ColQwen2 MaxSim]
+    Q[User query] --> TXT[Text leg<br/>BM25 + BGE-M3 + rerank]
+    Q --> VIS[Visual leg<br/>ColQwen2 MaxSim]
     TXTIDX --> TXT
     VISIDX --> VIS
     TXT --> LLM[Vision LLM]
@@ -93,14 +92,13 @@ flowchart LR
    twice: BGE-M3 dense vectors in Qdrant and a BM25 sparse index in process.
    Pages are rendered to PNG, and ColQwen2 embeds each page into a
    multi-vector page index persisted in Qdrant (built offline; ADR 0028).
-2. **Classify.** A per-query classifier routes to text-only or text+visual.
-   The default is an LLM zero-shot classifier (`gemma3:4b` over Ollama, no
-   API key); a regex classifier is the fallback.
-3. **Retrieve.** The text leg (BM25 + BGE-M3 dense + reciprocal-rank fusion +
-   BGE-reranker-v2-m3) always runs. On hybrid routes the visual leg
-   (ColQwen2 late-interaction MaxSim over page images) also runs, and the two
-   fuse at page granularity.
-4. **Generate.** A vision-capable model reads the retrieved chunks and their
+2. **Retrieve.** Both legs run on every question (ADR 0032): the text leg
+   (BM25 + BGE-M3 dense + reciprocal-rank fusion + BGE-reranker-v2-m3) and the
+   visual leg (ColQwen2 late-interaction MaxSim over page images), fused at
+   page granularity. A per-query classifier (`gemma3:4b` zero-shot over Ollama,
+   with a regex fallback) can pick one leg instead. It exists to save work,
+   but on this hardware it saves none and costs recall, so it is off by default.
+3. **Generate.** A vision-capable model reads the retrieved chunks and their
    page images and returns an answer with chunk-level citations.
 
 ## Quickstart
@@ -139,17 +137,17 @@ uv run uvicorn src.api.main:app --reload --port 8000
 Then open <http://localhost:8000/>. It's a single-page app with five tabs:
 
 - **Chat** re-retrieves on every turn (with a condense step on follow-ups). The
-  panel beside the answer shows the route the server picked, the ranked chunks,
-  and the page images it read.
+  panel beside the answer shows which legs ran, the ranked chunks, and the page
+  images it read.
 - **Inspection** traces one query through routing, retrieval, and rerank.
 - **Papers** and **Figures** browse the indexed corpus. Figures are bbox-cropped
   thumbnails with caption search.
 - **Why multimodal?** walks through real MMLongBench questions where text-only
   retrieval misses the page the answer is on and the router finds it.
 
-Chat and Inspection both carry an Advanced panel to force the route, switch intent
-vs cascade routing, set top-K, and filter by paper. Chat's routing also has an
-agentic option (DCI): an LLM agent greps the corpus
+Chat's Advanced panel picks the search (both legs, text only, pages only, the
+classifier router, or agentic), sets top-K, and filters by paper; Inspection
+uses the same settings. The agentic option (DCI) has an LLM agent grep the corpus
 with terminal-style tools instead of vector search. It's off by default, text-only,
 and slower, so treat it as a demo of the approach, not the default path.
 
@@ -270,7 +268,7 @@ compares to other document-RAG tools, see
 
 ## Limitations
 
-- **The demo corpus is text-heavy.** Visual routing is on, but the baked
+- **The demo corpus is text-heavy.** The visual leg is on, but the baked
   arXiv set has few figure or table answers, so the visual lift you
   see here is small. The retrieval numbers above come from MMDocIR and
   MMLongBench, not from these papers.
