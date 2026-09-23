@@ -18,7 +18,11 @@ from starlette.responses import Response
 from starlette.types import Scope
 
 from src.api.auth import make_api_key_middleware
-from src.api.bootstrap import _wire_generator_from_settings, _wire_retriever_from_settings
+from src.api.bootstrap import (
+    _warm_retriever,
+    _wire_generator_from_settings,
+    _wire_retriever_from_settings,
+)
 from src.api.deps import set_tracer
 from src.api.middleware import request_context_middleware
 from src.api.rate_limit import limiter
@@ -91,6 +95,7 @@ def create_app(*, log_file: Path | None = Path("logs/api.log")) -> FastAPI:
         # same contract as before. Tests using TestClient(app) without `with`
         # skip lifespan and inject a retriever via dependency_overrides.
         retriever_on = await _wire_retriever_from_settings(settings)
+        await _warm_retriever()
         log.info("api.lifespan.startup", retriever=retriever_on)
         yield
 

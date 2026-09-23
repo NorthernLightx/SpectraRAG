@@ -20,6 +20,7 @@ import pytest
 from src.api.bootstrap import (
     _build_classifier_from_settings,
     _collect_pages_from_dir,
+    _warm_retriever,
     _wire_generator_from_settings,
     _wire_retriever_from_settings,
 )
@@ -526,3 +527,58 @@ def test_auto_refusal_threshold_is_off_for_an_uncalibrated_reranker() -> None:
     assert _wire_generator_from_settings(settings) is True
     assert _GeneratorState.instance is not None
     assert _GeneratorState.instance._refusal_score_threshold is None
+
+
+class _RecordingRetriever:
+    def __init__(self, error: Exception | None = None) -> None:
+        self.queries: list[Query] = []
+        self._error = error
+
+    async def retrieve(self, query: Query) -> list[RetrievalResult]:
+        self.queries.append(query)
+        if self._error is not None:
+            raise self._error
+        return []
+
+
+@pytest.mark.asyncio
+async def test_warm_retriever_runs_one_query_through_both_legs() -> None:
+    retriever = _RecordingRetriever()
+    _RetrieverState.instance = retriever
+
+    await _warm_retriever()
+
+    assert [q.force_route for q in retriever.queries] == ["hybrid"]
+
+
+@pytest.mark.asyncio
+async def test_warm_retriever_does_not_fail_startup() -> None:
+    retriever = _RecordingRetriever(error=RuntimeError("model OOM"))
+    _RetrieverState.instance = retriever
+
+    await _warm_retriever()
+
+    assert len(retriever.queries) == 1
+
+
+@pytest.mark.asyncio
+async def test_warm_retriever_without_a_corpus_is_a_no_op() -> None:
+    await _warm_retriever()
+
+
+def test_startup_warms_the_retriever_before_serving(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The first query after a cold start ran past Cloud Run's request timeout
+    while /health already answered: startup must pay the first-call cost."""
+    from fastapi.testclient import TestClient
+
+    from src.api import main
+
+    retriever = _RecordingRetriever()
+
+    async def wire(_: Settings) -> bool:
+        _RetrieverState.instance = retriever
+        return True
+
+    monkeypatch.setattr(main, "_wire_retriever_from_settings", wire)
+    with TestClient(main.create_app(log_file=None)):
+        assert len(retriever.queries) == 1

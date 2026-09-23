@@ -11,12 +11,14 @@ from __future__ import annotations
 
 import asyncio
 import re
+import time
 from dataclasses import replace
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from src.api.deps import (
     peek_figures,
+    peek_retriever,
     set_chunks,
     set_corpus_handles,
     set_generator,
@@ -41,6 +43,7 @@ from src.rag.retrieval_config import (
 )
 from src.rag.retrievers.protocol import Retriever
 from src.rag.vectorstore import QdrantVectorStore
+from src.types import Query
 
 if TYPE_CHECKING:
     from qdrant_client import AsyncQdrantClient
@@ -345,3 +348,26 @@ async def _wire_retriever_from_settings(
         retrieval_fingerprint=config.fingerprint(),
     )
     return True
+
+
+async def _warm_retriever() -> None:
+    """Run one hybrid query through the wired retriever.
+
+    Loading the models does not make them fast: the first query on a fresh
+    Cloud Run instance spends minutes on first-call costs (first bge-m3 and
+    ColQwen2 forward passes, the lazily loaded cross-encoder) and outlives the
+    service's 120 s request timeout. Paying that during startup keeps it
+    inside the startup-cpu-boost window, and a /health answer then means
+    queries are fast. A failure only logs: the models load again per query.
+    """
+    retriever = peek_retriever()
+    if retriever is None:
+        return
+    log = get_logger(__name__)
+    start = time.perf_counter()
+    try:
+        await retriever.retrieve(Query(text="warm-up", top_k=1, force_route="hybrid"))
+    except Exception as exc:
+        log.warning("api.retriever.warmup_failed", error=str(exc), error_type=type(exc).__name__)
+        return
+    log.info("api.retriever.warm", seconds=round(time.perf_counter() - start, 1))
