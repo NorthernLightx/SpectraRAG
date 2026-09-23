@@ -210,12 +210,19 @@
     }
   }
 
-  async function loadHealth() {
-    try {
-      const r = await fetchRetry(`${API}/health`);
-      return r.ok ? await r.json() : {};
-    } catch {
-      return {};
+  // Poll /health until the backend answers. A cold start takes about two
+  // minutes, and meanwhile Cloud Run's front end rejects requests with a 5xx or
+  // the connection fails; neither says what the backend serves once it is up.
+  // Resolves null only after `deadlineMs`.
+  async function waitForHealth(deadlineMs = 300000) {
+    const start = performance.now();
+    for (let wait = 2000; ; wait = Math.min(wait * 1.5, 10000)) {
+      try {
+        const r = await fetch(`${API}/health`);
+        if (r.ok) return await r.json();
+      } catch { /* not reachable yet */ }
+      if (performance.now() - start + wait > deadlineMs) return null;
+      await new Promise((f) => setTimeout(f, wait));
     }
   }
 
@@ -273,13 +280,24 @@
     // "Retriever not configured", a corpus that failed to load, which no
     // amount of waiting fixes. Retry both briefly (transient 503s are real),
     // but say which one is happening; give the permanent case a short budget.
+    // A cold start also shows up as a failed connection or as Cloud Run's front
+    // end answering with a non-JSON 5xx; the app's own errors are JSON.
+    const warmingStatus = "Server is warming up after a cold start. The first query can take a minute or two. Retrying automatically…";
     const start = performance.now();
     while (true) {
-      const res = await fetch(`${API}/query`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
+      let res;
+      try {
+        res = await fetch(`${API}/query`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+      } catch (err) {
+        if (performance.now() - start >= 120000) throw err;
+        onStatus && onStatus(warmingStatus);
+        await new Promise((r) => setTimeout(r, 3000));
+        continue;
+      }
       if (res.ok) {
         const data = await res.json();
         return { results: data.results || [], routing: data.routing || null, trace: null };
@@ -287,11 +305,12 @@
       const detail = await res.text();
       const noCorpus = detail.includes("Retriever not configured");
       const budget = noCorpus ? 20000 : 120000;
-      if (res.status === 503 && performance.now() - start < budget) {
+      const frontEnd5xx = res.status >= 500 && !(res.headers.get("content-type") || "").includes("application/json");
+      if ((res.status === 503 || frontEnd5xx) && performance.now() - start < budget) {
         onStatus &&
           onStatus(noCorpus
             ? "The server reports no corpus is loaded. Retrying briefly in case it is still starting…"
-            : "Server is warming up after a cold start. The first query can take a minute or two. Retrying automatically…");
+            : warmingStatus);
         await new Promise((r) => setTimeout(r, 3000));
         continue;
       }
@@ -697,7 +716,7 @@
     figThumbUrl,
     absPage,
     loadPapers,
-    loadHealth,
+    waitForHealth,
     loadFigures,
     ingestPdf,
     retrieve,
