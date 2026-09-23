@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -34,6 +35,22 @@ def test_configure_sentry_initialises_with_dsn(monkeypatch: pytest.MonkeyPatch) 
         assert kwargs["dsn"] == "https://abc@example.ingest.sentry.io/1"
         assert kwargs["environment"] == "test"
         assert kwargs["traces_sample_rate"] == 0.25
+
+
+def test_configure_sentry_scrubs_the_visitors_openrouter_key(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("SENTRY_DSN", "https://abc@example.ingest.sentry.io/1")
+    with patch("src.observability.sentry.sentry_sdk.init") as init:
+        configure_sentry()
+    scrubber = init.call_args.kwargs["event_scrubber"]
+    headers = {"x-openrouter-key": "sk-or-v1-visitor", "content-type": "application/json"}
+    event: Any = {"request": {"headers": headers}}
+
+    scrubber.scrub_event(event)
+
+    assert headers["x-openrouter-key"] != "sk-or-v1-visitor"
+    assert headers["content-type"] == "application/json"
 
 
 def test_configure_sentry_idempotent(monkeypatch: pytest.MonkeyPatch) -> None:

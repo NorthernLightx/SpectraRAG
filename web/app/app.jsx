@@ -83,7 +83,7 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
    (its CORS only allows localhost origins) and the provider toggle is hidden. */
 const HOSTED = !!window.SPECTRARAG_HOSTED;
 
-function ConnectionControl({ apiKey, setApiKey, provider, setProvider, model, setModel }) {
+function ConnectionControl({ apiKey, setApiKey, rememberKey, setRememberKey, provider, setProvider, model, setModel }) {
   const [menu, setMenu] = useState(null); // null | "model" | "key"
   const [orList, setOrList] = useState(undefined); // undefined=unfetched, null=failed, []=vision models
   const [ollama, setOllama] = useState(null); // null=probing, {ok, models}
@@ -299,10 +299,15 @@ function ConnectionControl({ apiKey, setApiKey, provider, setProvider, model, se
           onChange={(e) => setApiKey(e.target.value)} autoFocus />
             <span className={"endpoint-keystat mono" + (keyed ? " ok" : "")}>
               <span className={"endpoint-dot" + (keyed ? " on" : "")}></span>
-              {keyed ? "key stored locally · ready" : "add a key to pick an OpenRouter model"}
+              {keyed ? (rememberKey ? "key saved on this device · ready" : "key kept for this tab · ready") : "add a key to pick an OpenRouter model"}
             </span>
+            <label className="endpoint-keystat">
+              <input type="checkbox" checked={rememberKey} onChange={(e) => setRememberKey(e.target.checked)} />
+              Remember on this device
+            </label>
+            {keyed && <button className="btn ghost sm" style={{ alignSelf: "flex-start" }} onClick={() => setApiKey("")}>Forget key</button>}
             <span className="endpoint-keystat">
-              Your key goes straight to OpenRouter, never to this server.{" "}
+              Chat sends your key straight to OpenRouter. Agentic search sends it to this server, which uses it for that request and does not keep it. Use a key with a credit limit.{" "}
               <a href="https://openrouter.ai/settings/keys" target="_blank" rel="noopener">Create one</a>
             </span>
           </div>
@@ -313,8 +318,8 @@ function ConnectionControl({ apiKey, setApiKey, provider, setProvider, model, se
 }
 
 /* Shown when a turn needs the visitor's own OpenRouter key. Today that's
-   agentic search, which runs server-side on it. The key never touches this
-   server's storage: it lives in localStorage and goes with the request. */
+   agentic search, which runs server-side on it. The server uses the key for
+   that request only; the browser keeps it (ADR 0031 amendment). */
 const KEY_MODAL_COPY = {
   agentic: {
     h: "Agentic search needs your key",
@@ -346,7 +351,7 @@ function KeyModal({ open, onSave, onClose }) {
         <input className="input" type="password" placeholder="sk-or-v1-…" value={val} autoFocus
           onChange={(e) => setVal(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") save(); }} />
-        <p className="km-note">Your key stays in this browser and goes straight to OpenRouter. It never touches this server. No key yet? <a href="https://openrouter.ai/settings/keys" target="_blank" rel="noopener">Creating one</a> takes about a minute.</p>
+        <p className="km-note">This server uses your key for the agent's request and does not keep it; chat sends it straight from this browser to OpenRouter. It lasts for this tab unless you tick "Remember on this device" in the key menu. Use a key with a credit limit. No key yet? <a href="https://openrouter.ai/settings/keys" target="_blank" rel="noopener">Creating one</a> takes about a minute.</p>
         <div className="km-actions">
           <button className="btn ghost" onClick={onClose}>Maybe later</button>
           <button className="btn primary" disabled={!valid} onClick={save}>Use my key</button>
@@ -383,8 +388,17 @@ function App() {
     localStorage.setItem("sr-provider", p);
     setModelRaw(localStorage.getItem(modelStoreKey(p)) || defaultModel(p));
   };
-  const [apiKey, setApiKeyRaw] = useState(() => localStorage.getItem("sr-key") || "");
-  const setApiKey = (v) => {setApiKeyRaw(v);localStorage.setItem("sr-key", v);};
+  // The OpenRouter key lasts for this tab (sessionStorage) unless the visitor
+  // ticks "Remember on this device" (localStorage). ADR 0031 amendment.
+  const [rememberKey, setRememberKeyRaw] = useState(() => !!localStorage.getItem("sr-key"));
+  const [apiKey, setApiKeyRaw] = useState(() => sessionStorage.getItem("sr-key") || localStorage.getItem("sr-key") || "");
+  const storeKey = (v, remember) => {
+    localStorage.removeItem("sr-key");
+    sessionStorage.removeItem("sr-key");
+    if (v) (remember ? localStorage : sessionStorage).setItem("sr-key", v);
+  };
+  const setApiKey = (v) => {setApiKeyRaw(v);storeKey(v, rememberKey);};
+  const setRememberKey = (r) => {setRememberKeyRaw(r);storeKey(apiKey, r);};
   const [settings, setSettings] = useState({ route: "auto", routingMode: "", topk: 5, paper: "" });
   const set = (k, v) => setSettings((s) => ({ ...s, [k]: v }));
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
@@ -466,7 +480,7 @@ function App() {
           </div>
           <div className="topbar-right">
             {(tab === "chat" || tab === "inspection") &&
-            <ConnectionControl apiKey={apiKey} setApiKey={setApiKey} provider={provider} setProvider={setProvider} model={model} setModel={setModel} />
+            <ConnectionControl apiKey={apiKey} setApiKey={setApiKey} rememberKey={rememberKey} setRememberKey={setRememberKey} provider={provider} setProvider={setProvider} model={model} setModel={setModel} />
             }
           </div>
         </div>

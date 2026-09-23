@@ -7,6 +7,7 @@ import os
 import sentry_sdk
 from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk.integrations.starlette import StarletteIntegration
+from sentry_sdk.scrubber import DEFAULT_DENYLIST, EventScrubber
 
 from src.observability.logging import get_logger
 
@@ -39,6 +40,9 @@ def configure_sentry() -> bool:
             StarletteIntegration(transaction_style="endpoint"),
         ],
         send_default_pii=False,
+        # /query/dci takes the visitor's OpenRouter key in this header (ADR 0031);
+        # the SDK's default header filter does not cover it.
+        event_scrubber=EventScrubber(denylist=[*DEFAULT_DENYLIST, "x-openrouter-key"]),
     )
     _configured = True
     _log.info("sentry.configured", environment=os.environ.get("SENTRY_ENVIRONMENT", "local"))

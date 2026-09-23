@@ -49,3 +49,16 @@ the `demo_available` health flag, and every frontend demo-key path.
   reliably than the big hosted ones.
 - The Ollama option only applies where the browser can reach a local Ollama:
   your own machine, not the hosted page.
+
+## Amendment (2026-09-23): where the key lives and where it goes
+
+The key is kept in `sessionStorage`, so it lasts for the tab. "Remember on
+this device" in the key menu moves it to `localStorage`, and "Forget key"
+clears both. A key left in `localStorage` outlives the visit on a shared
+machine, and any script that runs on the page can read it.
+
+"Never touches the server" held for chat but not for agentic search:
+`/query/dci` receives the key in the `X-OpenRouter-Key` header and spends it
+on that request. The server does not store or log it, and the Sentry event
+scrubber filters that header, which the SDK's default header filter does not
+cover. The key menu says so and asks for a key with a credit limit.
