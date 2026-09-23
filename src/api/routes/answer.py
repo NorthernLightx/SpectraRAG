@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Request
+import httpx
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from src.api.deps import get_generator, get_retriever, get_settings, get_tracer
 from src.api.rate_limit import limiter
@@ -56,7 +57,14 @@ async def answer(
 
     with otel_tracer.start_as_current_span("rag.generate") as span:
         span.set_attribute("rag.context.chunks", len(retrieved))
-        result = await generator.answer(payload.text, retrieved)
+        try:
+            result = await generator.answer(payload.text, retrieved)
+        except httpx.HTTPStatusError as exc:
+            # An upstream refusal (revoked key, rate limit), not a fault in this service.
+            raise HTTPException(
+                status.HTTP_502_BAD_GATEWAY,
+                f"The model provider rejected the request (HTTP {exc.response.status_code}).",
+            ) from exc
         span.set_attribute("rag.tokens.in", result.tokens_in)
         span.set_attribute("rag.tokens.out", result.tokens_out)
         span.set_attribute("rag.citations.count", len(result.citations))

@@ -6,6 +6,7 @@ from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
+import httpx
 import pytest
 from fastapi.testclient import TestClient
 
@@ -124,6 +125,30 @@ def test_answer_route_returns_503_when_generator_unset() -> None:
     response = client.post("/answer", json={"text": "x"})
     assert response.status_code == 503
     assert "generator" in response.json()["detail"].lower()
+
+
+class _RejectingGenerator:
+    """Generator stub whose provider call fails with the given HTTP status."""
+
+    def __init__(self, status_code: int) -> None:
+        self._status_code = status_code
+
+    async def answer(self, query: str, retrieved: list[RetrievalResult]) -> Answer:
+        request = httpx.Request("POST", "https://openrouter.ai/api/v1/chat/completions")
+        response = httpx.Response(self._status_code, request=request)
+        raise httpx.HTTPStatusError("provider error", request=request, response=response)
+
+
+@pytest.mark.parametrize("status_code", [401, 429, 500])
+def test_answer_route_returns_502_naming_the_provider_status(status_code: int) -> None:
+    app = create_app(log_file=None)
+    app.dependency_overrides[get_retriever] = lambda: FakeRetriever(results=_retrieved())
+    app.dependency_overrides[get_generator] = lambda: _RejectingGenerator(status_code)
+
+    response = TestClient(app).post("/answer", json={"text": "What is X?"})
+
+    assert response.status_code == 502
+    assert f"HTTP {status_code}" in response.json()["detail"]
 
 
 def test_answer_route_validates_input() -> None:
