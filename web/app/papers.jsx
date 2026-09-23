@@ -2,20 +2,20 @@
    from the figures index and a detail drawer. Only fields the API actually
    serves are shown (no fabricated authors/venue/citations). */
 
-function PaperCard({ p, figCount, onOpen }) {
+function PaperCard({ p, figCount, onOpen, mixed }) {
   // The id chip duplicates the heading whenever there's no real title: the
   // heading falls back to paper_id (data/paper_titles.json unpopulated). Show
   // the chip only when a distinct title exists, so the id appears once.
   const hasTitle = p.title && p.title.trim() && p.title.trim() !== p.paper_id;
   return (
     <button className="paper-card" onClick={() => onOpen(p)}>
-      {(hasTitle || p.is_arxiv) && (
+      {(hasTitle || (mixed && p.is_arxiv)) && (
         <div className="paper-card-top">
           {hasTitle && <span className="mono paper-id">{p.paper_id}</span>}
-          {p.is_arxiv && <span className="paper-venue">arXiv</span>}
+          {mixed && p.is_arxiv && <span className="paper-venue">arXiv</span>}
         </div>
       )}
-      <h3 className="serif paper-title">{p.title || p.paper_id}</h3>
+      <MathText as="h3" className="serif paper-title" text={p.title || p.paper_id} />
       <div className="paper-stats">
         <span className="metric"><Icon name="papers" size={12} /> <b>{p.page_count}</b> pages</span>
         <span className="metric"><Icon name="image" size={12} /> <b>{figCount}</b> figs</span>
@@ -50,7 +50,7 @@ function PaperDrawer({ p, figs, onClose }) {
           <button className="btn ghost sm" onClick={onClose}><Icon name="x" size={15} /></button>
         </div>
         <div className="drawer-body">
-          <h2 className="serif" style={{ margin: "0 0 10px", fontSize: 22, lineHeight: 1.25 }}>{p.title || p.paper_id}</h2>
+          <MathText as="h2" className="serif" style={{ margin: "0 0 10px", fontSize: 22, lineHeight: 1.25 }} text={p.title || p.paper_id} />
           {p.is_arxiv && p.arxiv_url && (
             <div className="paper-venue" style={{ marginBottom: 16 }}>
               <a href={p.arxiv_url} target="_blank" rel="noopener" style={{ color: "var(--accent)" }}>{p.arxiv_url}</a>
@@ -60,7 +60,6 @@ function PaperDrawer({ p, figs, onClose }) {
           <div className="drawer-stats">
             <div className="ds"><span className="dsv mono">{p.page_count}</span><span className="dsk">pages</span></div>
             <div className="ds"><span className="dsv mono">{figs.length}</span><span className="dsk">figures indexed</span></div>
-            <div className="ds"><span className="dsv mono">1024-d</span><span className="dsk">embeddings</span></div>
           </div>
 
           {figs.length > 0 && (
@@ -72,7 +71,7 @@ function PaperDrawer({ p, figs, onClose }) {
                     onClick={() => setPageItem({ chunk_id: f.chunk_id, paper: f.paper_id, page: f.page_number, pages: [f.page_number], kind: "visual", bbox: f.bbox || null, text: f.caption || "", browsed: true })}
                     title="View source region on page">
                     <FigCrop url={window.RAG.absPage(f.page_image_url)} bbox={f.bbox} fallbackH={92} eager thumb={window.RAG.figThumbUrl(f.paper_id, f.chunk_id)} />
-                    <div className="figthumb-meta"><span className="mono">p.{f.page_number}</span> · {clip(drawerCaption(f.caption), 40)}</div>
+                    <div className="figthumb-meta"><span className="mono">p.{f.page_number}</span> · <MathText as="span" text={clip(drawerCaption(f.caption), 40)} /></div>
                   </div>
                 ))}
               </div>
@@ -125,7 +124,7 @@ function PapersView({ setTab, papers, figures, uploadAvailable, onUploaded }) {
 
   const figByPaper = useMemo(() => {
     const m = {};
-    (figures || []).forEach((f) => { m[f.paper_id] = (m[f.paper_id] || 0) + 1; });
+    (figures || []).filter(isBrowsableFigure).forEach((f) => { m[f.paper_id] = (m[f.paper_id] || 0) + 1; });
     return m;
   }, [figures]);
 
@@ -140,7 +139,8 @@ function PapersView({ setTab, papers, figures, uploadAvailable, onUploaded }) {
 
   // Only offer source filters when the corpus actually mixes sources. A
   // permanently empty "other" chip reads as broken.
-  const filters = papers.some((p) => !p.is_arxiv) ? ["all", "arxiv", "other"] : ["all"];
+  const mixed = papers.some((p) => !p.is_arxiv);
+  const filters = mixed ? ["all", "arxiv", "other"] : [];
   const filtered = papers.filter((p) => {
     const okF = filter === "all" || (filter === "arxiv" ? p.is_arxiv : !p.is_arxiv);
     const okQ = !q || ((p.title || "") + " " + p.paper_id).toLowerCase().includes(q.toLowerCase());
@@ -164,11 +164,11 @@ function PapersView({ setTab, papers, figures, uploadAvailable, onUploaded }) {
       </div>
       <div className="content-pad">
         <div className="paper-grid">
-          {filtered.map((p) => <PaperCard key={p.paper_id} p={p} figCount={figByPaper[p.paper_id] || 0} onOpen={setOpen} />)}
+          {filtered.map((p) => <PaperCard key={p.paper_id} p={p} figCount={figByPaper[p.paper_id] || 0} onOpen={setOpen} mixed={mixed} />)}
         </div>
         {papers.length > 0 && filtered.length === 0 && <div className="retr-empty">No papers match this search.</div>}
       </div>
-      <PaperDrawer p={open} figs={open ? (figures || []).filter((f) => f.paper_id === open.paper_id) : []} onClose={() => setOpen(null)} />
+      <PaperDrawer p={open} figs={open ? (figures || []).filter((f) => f.paper_id === open.paper_id && isBrowsableFigure(f)) : []} onClose={() => setOpen(null)} />
     </div>
   );
 }

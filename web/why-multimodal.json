@@ -8,6 +8,7 @@
       "paper_label": "GPT-4V technical report (arXiv 2309.17421)",
       "paper_id": "2309.17421v2",
       "figure_label": "Figure 111",
+      "chip": "keyboard price",
       "gold_pages": [
         141
       ],
@@ -33,6 +34,7 @@
       "paper_label": "GPT-4V technical report (arXiv 2309.17421)",
       "paper_id": "2309.17421v2",
       "figure_label": "Figure 107",
+      "chip": "battery level",
       "gold_pages": [
         137
       ],
@@ -54,6 +56,7 @@
       "paper_label": "West Nile Virus infographic",
       "paper_id": "0e94b4197b10096b1f4c699701570fbf",
       "figure_label": "distance chart",
+      "chip": "distance by colour",
       "gold_pages": [
         10
       ],
@@ -72,6 +75,7 @@
       "paper_label": "Time-use infographic",
       "paper_id": "0e94b4197b10096b1f4c699701570fbf",
       "figure_label": "weekend pie charts",
+      "chip": "family time in 2010",
       "gold_pages": [
         14
       ],
@@ -88,6 +92,7 @@
       "paper_label": "Time-use infographic",
       "paper_id": "0e94b4197b10096b1f4c699701570fbf",
       "figure_label": "weekend pie charts",
+      "chip": "biggest weekend increase",
       "gold_pages": [
         14
       ],
@@ -107,6 +112,7 @@
       "paper_label": "NTU undergraduate prospectus 2024",
       "paper_id": "2024.ug.eprospectus",
       "figure_label": "Top 10 reasons spread",
+      "chip": "NTU campus reasons",
       "gold_pages": [
         3
       ],

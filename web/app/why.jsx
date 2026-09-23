@@ -44,7 +44,7 @@ function WhyView({ setTab, routingAvailable }) {
         <section className="why-hero">
           <span className="why-eyebrow mono">THE PROBLEM</span>
           <h1 className="serif">Most RAG can't read the figure.</h1>
-          <p>A large share of a document's answers live where a text chunker never looks: leaderboard <b>tables</b>, architecture <b>diagrams</b>, values printed inside <b>charts</b>. Embed only the body text and those answers are not in the index. SpectraRAG indexes the page images too and routes each question to the store that actually holds the answer. Every example below is a real MMLongBench question whose answer sits in a figure.</p>
+          <p>Many answers sit in <b>tables</b>, <b>diagrams</b> and values printed inside <b>charts</b>, where a text chunker never looks. SpectraRAG indexes the page images too. Each example below is a real MMLongBench question whose answer is in a figure.</p>
         </section>
 
         {card && (
@@ -57,7 +57,7 @@ function WhyView({ setTab, routingAvailable }) {
               <div className="tag-filters" style={{ margin: "12px 0 4px" }}>
                 {cards.map((c, i) => (
                   <button key={c.id} className={"chip" + (i === active ? " on" : "")} onClick={() => setActive(i)}>
-                    {c.figure_label || c.id}
+                    {c.chip || c.figure_label || c.id}
                   </button>
                 ))}
               </div>
@@ -65,7 +65,7 @@ function WhyView({ setTab, routingAvailable }) {
             <div className="vs-grid">
               <div className="vs-card bad">
                 <div className="vs-head"><span className="vs-tag bad">Text-only retrieval</span><Icon name="x" size={16} /></div>
-                <div style={{ margin: "6px 0 12px" }}>top-10 pages: <PageChips pages={card.text_pages} gold={card.gold_pages} /></div>
+                <div style={{ margin: "6px 0 12px" }}>this paper's pages in the top 10: <PageChips pages={card.text_pages} gold={card.gold_pages} /></div>
                 <p>Gold page <b>p{card.gold_pages[0]}</b> ({card.figure_label}) is <b>not</b> in the text retriever's top hits. The answer is printed in the figure, which never enters the text index. The model has no grounding for it.</p>
                 <div className="vs-verdict bad"><Icon name="x" size={13} /> gold page missed</div>
               </div>
@@ -73,7 +73,7 @@ function WhyView({ setTab, routingAvailable }) {
                 <div className="vs-head"><span className="vs-tag good">SpectraRAG router</span><Icon name="check" size={16} /></div>
                 <img src={"/" + card.image} alt={card.figure_label}
                   style={{ width: "100%", borderRadius: 8, border: "1px solid var(--border, rgba(127,127,127,.2))", marginBottom: 12 }} loading="lazy" />
-                <div style={{ margin: "0 0 10px" }}>top-10 pages: <PageChips pages={card.router_pages} gold={card.gold_pages} /></div>
+                <div style={{ margin: "0 0 10px" }}>this paper's pages in the top 10: <PageChips pages={card.router_pages} gold={card.gold_pages} /></div>
                 <p>The router flagged a figure-bound query, searched the visual store, and pulled gold page <b>p{card.gold_pages[0]}</b>. The model read the answer off the {card.figure_label}.</p>
                 <div className="vs-verdict good"><Icon name="check" size={13} /> grounded · answer: <b>{card.answer}</b></div>
               </div>

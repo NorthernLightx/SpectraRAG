@@ -18,6 +18,21 @@ function citedSources(citations) {
   return out;
 }
 
+// The advanced-settings search choices as the route/routingMode pair /query
+// takes. "both" is the served default (ADR 0032); the old hybrid and cascade
+// options returned the same ranking as the default.
+const SEARCH_MODES = [
+  { value: "both", route: "auto", routingMode: "" },
+  { value: "text", route: "text", routingMode: "" },
+  { value: "pages", route: "visual", routingMode: "", needsVisual: true },
+  { value: "router", route: "auto", routingMode: "category", needsVisual: true },
+  { value: "agentic", route: "agentic", routingMode: "" },
+];
+function searchMode(route, routingMode) {
+  if (routingMode === "category") return "router";
+  return { text: "text", visual: "pages", agentic: "agentic" }[route] || "both";
+}
+
 function AdvancedPanel({ settings, set, papers, routingAvailable }) {
   // When the server runs without the multimodal router (no visual leg),
   // force_route/routing_mode are no-ops, so grey them out rather than offering
@@ -27,24 +42,13 @@ function AdvancedPanel({ settings, set, papers, routingAvailable }) {
   return (
     <div className="adv-panel rise">
       <div className="field">
-        <label>Routing</label>
-        <Segmented value={settings.route} onChange={(v) => set("route", v)}
-          options={[{ value: "auto", label: "auto" }, { value: "text", label: "text" },
-            { value: "visual", label: "visual", disabled: noRouter, disabledTitle: offTitle },
-            { value: "hybrid", label: "hybrid", disabled: noRouter, disabledTitle: offTitle },
-            { value: "agentic", label: "agentic" }]} />
-        {noRouter &&
-        <span className="field-note">visual retrieval is off: it needs the page index (scripts/build_visual_index.py) and RAG_ENABLE_MULTIMODAL=true. Retrieved pages still reach the model as images.</span>
-        }
-      </div>
-      <div className="field">
-        <label>Routing mode</label>
-        <Segmented value={settings.routingMode} onChange={(v) => set("routingMode", v)}
-          options={[{ value: "", label: "default" },
-            { value: "hybrid", label: "hybrid", disabled: noRouter, disabledTitle: offTitle },
-            { value: "category", label: "category", disabled: noRouter, disabledTitle: offTitle },
-            { value: "cascade", label: "cascade", disabled: noRouter, disabledTitle: offTitle }]} />
-        {!noRouter && <span className="field-note">the default runs both legs on every query</span>}
+        <label>Search</label>
+        <Segmented value={searchMode(settings.route, settings.routingMode)}
+          onChange={(v) => { const m = SEARCH_MODES.find((x) => x.value === v); set("route", m.route); set("routingMode", m.routingMode); }}
+          options={SEARCH_MODES.map((m) => ({ value: m.value, label: m.value, disabled: noRouter && m.needsVisual, disabledTitle: offTitle }))} />
+        {noRouter
+          ? <span className="field-note">visual retrieval is off: it needs the page index (scripts/build_visual_index.py) and RAG_ENABLE_MULTIMODAL=true. Retrieved pages still reach the model as images.</span>
+          : <span className="field-note">both searches text and page images on every question; router lets a classifier pick one</span>}
       </div>
       <div className="field">
         <label>Context budget</label>
@@ -91,6 +95,12 @@ function EmptyState({ onAsk, routingAvailable, needsKey, onAddKey }) {
   );
 }
 
+// A streaming answer cites raw chunk ids ("[paper::p2::fig1]"), renumbered to
+// [n] only once it completes; hide them, and a half-streamed one, until then.
+function streamingText(t) {
+  return String(t || "").replace(/\s?\[[^\[\]]*::[^\[\]]*\]/g, "").replace(/\s?\[[^\]\s]*$/, "");
+}
+
 function AiMessage({ msg, onCite, onFig, onAddKey, onShowPanel, paperTitle, pendingLabel }) {
   const done = !msg.streaming;
   const cited = citedSources(msg.citations);
@@ -135,7 +145,7 @@ function AiMessage({ msg, onCite, onFig, onAddKey, onShowPanel, paperTitle, pend
           </span>
         ) : (
           <React.Fragment>
-            <Markdown text={msg.answer} onCite={onCite} maxCite={(msg.citations || []).length} />
+            <Markdown text={done ? msg.answer : streamingText(msg.answer)} onCite={onCite} maxCite={(msg.citations || []).length} />
             {!done && <span className="caret"></span>}
           </React.Fragment>
         )}
@@ -237,10 +247,6 @@ function RetrievalPanel({ turn, highlight, settings, paperTitle, routingAvailabl
     const mx = Math.max(...arr), mn = Math.min(...arr);
     return mx === mn ? 1 : 0.08 + 0.92 * (((c.score || 0) - mn) / (mx - mn));
   };
-  const legRank = (c) => {
-    const arr = legScores[c.kind === "visual" ? "visual" : "text"];
-    return arr.filter((s) => s > (c.score || 0)).length + 1;
-  };
   const total = cands.length;
   // Evidence-mix bars reflect what the answer CITED, not just what was
   // retrieved. On a text route the model can still cite page images attached at
@@ -284,14 +290,14 @@ function RetrievalPanel({ turn, highlight, settings, paperTitle, routingAvailabl
       </div>
       <div className="retr-body">
         <div className="retr-section">
-          <h4>Routing decision</h4>
+          <h4>Searched</h4>
           {routingAvailable === false ? (
             <div className="route-card">
               <span className="cand-src">visual retrieval off: every turn retrieves text-side, and the pages it finds reach the model as images. Turning it on takes the page index (scripts/build_visual_index.py) and RAG_ENABLE_MULTIMODAL=true. On MMDocIR, fusing the visual leg raised recall@10 from <b>0.46 to 0.78</b> (<a href="https://github.com/NorthernLightx/SpectraRAG/blob/main/docs/results.md#mmdocir-where-routing-stops-paying" target="_blank" rel="noopener">results</a>).</span>
             </div>
           ) : (
             <div className="route-card">
-              <div className="gate"><RoutePill route={turn.route || "text"} /><span className="cand-src" style={{ marginLeft: "auto" }}>mode: {turn.mode || settings.route}</span></div>
+              <div className="gate"><RoutePill route={turn.route || "text"} />{turn.mode === "router" && <span className="cand-src" style={{ marginLeft: "auto" }}>picked by the router</span>}</div>
               {cites.length > 0 && (
                 <div className="route-bars">
                   <span className="cand-src">evidence the answer cited</span>
@@ -332,11 +338,6 @@ function RetrievalPanel({ turn, highlight, settings, paperTitle, routingAvailabl
 
         <div className="retr-section">
           <h4>Ranked candidates <span className="n">{total} chunks</span></h4>
-          {legScores.visual.length > 0 && legScores.text.length > 0 && (
-            <div className="cand-src" style={{ marginBottom: 8 }}>
-              text and visual scores aren't comparable, so ranks and bars compare within each
-            </div>
-          )}
           {orderedCands.map((c, i) => {
             const num = citedNum(c);
             const hl = highlight && num && String(num) === String(highlight);
@@ -346,7 +347,7 @@ function RetrievalPanel({ turn, highlight, settings, paperTitle, routingAvailabl
                 <div className="cand-top">
                   <span className={"cand-num" + (c.kind === "visual" ? " visual" : "")}>{num || (c.kind === "visual" ? "IMG" : "·")}</span>
                   <span className="cand-src">{c.paper} · p.{c.page}</span>
-                  <span className="cand-score">{c.kind === "visual" ? "visual" : "text"} #{legRank(c)} · {(c.score || 0).toFixed(2)}</span>
+                  <span className="cand-score" title="Scores and bars compare within a leg only">{c.kind === "visual" ? "visual" : "text"} · {(c.score || 0).toFixed(2)}</span>
                 </div>
                 <ScoreBar score={relScore(c)} kind={c.kind} />
                 {c.kind === "visual" ? (
@@ -451,7 +452,7 @@ function ChatView({ settings, set, apiKey, provider, model, papers, figures, pag
     setTurns((ts) => [
       ...ts,
       { role: "user", text: q },
-      { role: "assistant", q, answer: "", streaming: true, candidates: null, citations: [], route: null, mode: settings.route },
+      { role: "assistant", q, answer: "", streaming: true, candidates: null, citations: [], route: null, mode: searchMode(settings.route, settings.routingMode) },
     ]);
 
     let phase = "prepare";
@@ -644,7 +645,7 @@ function ChatView({ settings, set, apiKey, provider, model, papers, figures, pag
           <button type="button" className={"adv-toggle" + (advOpen ? " open" : "")} aria-expanded={advOpen} onClick={() => setAdvOpen((o) => !o)}>
             <Icon name="chevron" size={14} /> <Icon name="sliders" size={13} /> Advanced retrieval settings
             <span className="mono" style={{ color: "var(--text-faint)", fontSize: 11, marginLeft: 4 }}>
-              {settings.route}{settings.routingMode ? " · " + settings.routingMode : ""} · ctx={settings.topk}
+              {searchMode(settings.route, settings.routingMode)} · ctx={settings.topk}
             </span>
           </button>
           <button className="btn ghost sm" onClick={newChat} title="Clear conversation"><Icon name="plus" size={14} /> New chat</button>

@@ -2,9 +2,14 @@
    Each card crops the source page image to the figure's bbox; the lightbox
    shows the full page with the bbox overlaid. */
 
+// Logos, rules and icons carry role "decoration": indexed, but not figures.
+function isBrowsableFigure(f) {
+  return f.role !== "decoration";
+}
+
 // Render a caption with KaTeX. Captions carry relatex'd math in $...$ or \(...\)
 // (the VLM emits either), so both delimiters are enabled. Caption-only by design.
-function MathText({ text, className, style }) {
+function MathText({ text, className, style, as: Tag = "p" }) {
   const ref = useRef(null);
   // The relatex VLM writes LaTeX-correct `\%` for a literal percent, but KaTeX
   // only renders the math spans, so a prose `\%` shows its backslash. Unescape
@@ -25,7 +30,7 @@ function MathText({ text, className, style }) {
       });
     } catch (_) { /* leave the raw text on a KaTeX error */ }
   }, [cleaned]);
-  return <p ref={ref} className={className} style={style}>{cleaned}</p>;
+  return <Tag ref={ref} className={className} style={style}>{cleaned}</Tag>;
 }
 
 // Drop repeated paragraphs. Table chunks store the caption twice (once as the
@@ -248,7 +253,7 @@ function FiguresView({ figures }) {
   if (!figures) {
     return <div className="scroll-view"><div className="content-pad"><div className="retr-empty">Loading figures…</div></div></div>;
   }
-  const figs = figures;
+  const figs = figures.filter(isBrowsableFigure);
 
   const roles = ["all", ...Array.from(new Set(figs.map(figCategory)))];
   const filtered = figs.filter((f) => {

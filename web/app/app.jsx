@@ -198,21 +198,24 @@ function ConnectionControl({ apiKey, setApiKey, rememberKey, setRememberKey, pro
             <div className="model-list">
               <div className="model-group-label"><span className="label-info">Suggested</span></div>
               {window.RAG.livePins(orList).map(orRow)}
-              <div className="model-group-label">
-                <span className="label-info">
-                  {orList === undefined ? "Loading the full list…"
-                    : orList === null ? "Couldn't load the full list, showing the shortlist"
-                    : `All vision models · ${orList.length}`}
-                </span>
-              </div>
-              {Array.isArray(orList) && orList.length > 0 &&
-              <input className="input model-search" placeholder="Search models…" value={q}
-                onChange={(e) => setQ(e.target.value)} />
-              }
-              {fetched.map(orRow)}
-              {Array.isArray(orList) && query && fetched.length === 0 &&
-              <div className="model-group-label"><span className="label-info">No match for “{q.trim()}”</span></div>
-              }
+              {keyed &&
+              <React.Fragment>
+                <div className="model-group-label">
+                  <span className="label-info">
+                    {orList === undefined ? "Loading the full list…"
+                      : orList === null ? "Couldn't load the full list, showing the shortlist"
+                      : `All vision models · ${orList.length}`}
+                  </span>
+                </div>
+                {Array.isArray(orList) && orList.length > 0 &&
+                <input className="input model-search" placeholder="Search models…" value={q}
+                  onChange={(e) => setQ(e.target.value)} />
+                }
+                {fetched.map(orRow)}
+                {Array.isArray(orList) && query && fetched.length === 0 &&
+                <div className="model-group-label"><span className="label-info">No match for “{q.trim()}”</span></div>
+                }
+              </React.Fragment>}
             </div>
             {!keyed &&
             <button className="btn primary sm endpoint-cta" onClick={() => setMenu("key")}>
@@ -456,7 +459,7 @@ function App() {
   }, []);
 
   const crumb = CRUMB[tab];
-  const stats = { papers: papers.length, figures: figures ? figures.length : 0 };
+  const stats = { papers: papers.length, figures: figures ? figures.filter(isBrowsableFigure).length : 0 };
   // Tapping a nav item also dismisses the mobile drawer.
   const selectTab = (id) => { setTab(id); setNavOpen(false); };
   // Re-fetch the corpus after an upload so the new paper + figures appear.
