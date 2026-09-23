@@ -21,14 +21,28 @@
   // Curated OpenRouter shortlist, pinned above the fetched list in the model
   // menu (and the whole menu when the /models fetch fails). Vision-capable
   // only: the corpus is text+figures and generation attaches page images.
+  // OpenRouter withdraws models, so the menu shows only pins the live catalog
+  // still lists (livePins) and replaces a withdrawn selection (usableModel).
   const PINNED = [
     { id: "openai/gpt-4o-mini", note: "vision · cheapest" },
     { id: "anthropic/claude-sonnet-4.6", note: "vision" },
     { id: "openai/gpt-4o", note: "vision" },
     { id: "qwen/qwen3-vl-32b-instruct", note: "vision · open" },
     { id: "google/gemma-4-26b-a4b-it:free", note: "vision · free" },
-    { id: "nvidia/nemotron-nano-12b-v2-vl:free", note: "vision · free" },
   ];
+
+  // Pins the loaded catalog still lists; every pin while the catalog is unknown.
+  function livePins(catalog) {
+    return Array.isArray(catalog) ? PINNED.filter((p) => catalog.some((m) => m.id === p.id)) : PINNED;
+  }
+
+  // `model` if the catalog lists it, else the first pin it lists, else its
+  // first model. An unknown or empty catalog leaves `model` as it is.
+  function usableModel(model, catalog) {
+    if (!Array.isArray(catalog) || catalog.length === 0 || catalog.some((m) => m.id === model)) return model;
+    const pins = livePins(catalog);
+    return pins.length ? pins[0].id : catalog[0].id;
+  }
 
   // Full OpenRouter catalog, vision-capable only. Public endpoint, no key
   // needed. One in-flight/settled promise per page load: the list is large
@@ -726,6 +740,8 @@
 
   window.RAG = {
     PINNED,
+    livePins,
+    usableModel,
     SUGGESTIONS,
     loadOpenRouterModels,
     loadOllamaModels,

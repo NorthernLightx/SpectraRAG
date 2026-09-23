@@ -115,6 +115,21 @@ function ConnectionControl({ apiKey, setApiKey, rememberKey, setRememberKey, pro
     }
   }, [menu, provider]);
 
+  // Visitors who will generate on OpenRouter get its catalog up front, so a
+  // withdrawn model is replaced before the first question rather than after it
+  // fails. Keyless visitors make no request to OpenRouter.
+  useEffect(() => {
+    if (provider === "openrouter" && keyed && orList === undefined) window.RAG.loadOpenRouterModels().then(setOrList);
+  }, [provider, keyed]);
+
+  // A saved or default OpenRouter model the loaded catalog no longer lists
+  // gives way to a pin it still lists.
+  useEffect(() => {
+    if (provider !== "openrouter") return;
+    const next = window.RAG.usableModel(model, orList);
+    if (next !== model) setModel(next);
+  }, [provider, model, orList]);
+
   // Probe Ollama at mount too (all local calls): a persisted model that was
   // retired upstream since the last visit gets swapped for a usable one
   // before the first ask, not only when the menu happens to open.
@@ -199,7 +214,7 @@ function ConnectionControl({ apiKey, setApiKey, rememberKey, setRememberKey, pro
           <React.Fragment>
             <div className="model-list">
               <div className="model-group-label"><span className="label-info">Suggested</span></div>
-              {window.RAG.PINNED.map(orRow)}
+              {window.RAG.livePins(orList).map(orRow)}
               <div className="model-group-label">
                 <span className="label-info">
                   {orList === undefined ? "Loading the full list…"
