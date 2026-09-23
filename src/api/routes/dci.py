@@ -10,10 +10,12 @@ header, not the request body, so it never lands in the request log.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+import httpx
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from pydantic import BaseModel
 
 from src.api.deps import get_chunks, get_settings
+from src.api.rate_limit import limiter
 from src.config.settings import Settings
 from src.dci.tools import CorpusTools
 from src.llm.openrouter import OpenRouterClient
@@ -48,7 +50,10 @@ class _DciCorpusState:
 
 
 @router.post("/query/dci", response_model=DciQueryResponse)
+# One agentic query is up to a dozen model calls and corpus scans.
+@limiter.limit("5/minute")
 async def query_dci(
+    request: Request,
     payload: Query,
     x_openrouter_key: str | None = Header(default=None, alias="X-OpenRouter-Key"),
     chunks: dict[str, Chunk] = Depends(get_chunks),
@@ -77,7 +82,13 @@ async def query_dci(
         OpenRouterClient(api_key=key),
         settings.dci_model,
     )
-    results, dci_result = await retriever.run(payload)
+    try:
+        results, dci_result = await retriever.run(payload)
+    except httpx.HTTPStatusError as exc:
+        raise HTTPException(
+            status.HTTP_502_BAD_GATEWAY,
+            f"The model provider rejected the request (HTTP {exc.response.status_code}).",
+        ) from exc
     trace = [
         DciTraceStep(action=s.action, arg=s.arg, observation=s.observation)
         for s in dci_result.steps
