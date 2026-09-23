@@ -158,7 +158,6 @@ function Segmented({ options, value, onChange }) {
 /* ---- source-page modal: real page image + cited-region bbox overlay ---- */
 function PageRegionModal({ item, onClose, paperTitle }) {
   const [ov, setOv] = useState(null);     // pixel overlay box, measured off the image
-  const [norm, setNorm] = useState(null); // normalized fractions for the side panel
   const imgRef = useRef(null);
 
   // Place the overlay in pixels off the image's own offset + rendered size. The
@@ -168,12 +167,11 @@ function PageRegionModal({ item, onClose, paperTitle }) {
   const place = useCallback(() => {
     const img = imgRef.current;
     if (!img || !img.naturalWidth || !item || !Array.isArray(item.bbox) || item.bbox.length !== 4) {
-      setOv(null); setNorm(null); return;
+      setOv(null); return;
     }
     const DPI = 150, pW = (img.naturalWidth * 72) / DPI, pH = (img.naturalHeight * 72) / DPI;
     const [x0, y0, x1, y1] = item.bbox;
     const fl = x0 / pW, ft = y0 / pH, fw = (x1 - x0) / pW, fh = (y1 - y0) / pH;
-    setNorm({ left: fl, top: ft, width: fw, height: fh });
     setOv({
       top: img.offsetTop + ft * img.clientHeight,
       left: img.offsetLeft + fl * img.clientWidth,
@@ -182,7 +180,7 @@ function PageRegionModal({ item, onClose, paperTitle }) {
     });
   }, [item]);
 
-  useEffect(() => { setOv(null); setNorm(null); }, [item]);
+  useEffect(() => { setOv(null); }, [item]);
   useEffect(() => {
     if (!item) return;
     const onEsc = (e) => { if (e.key === "Escape") onClose(); };
@@ -220,24 +218,11 @@ function PageRegionModal({ item, onClose, paperTitle }) {
         </div>
         <div className="pm-side">
           <div className="pm-side-head">
-            <span className={"pill " + (isVis ? "visual" : "text")}><span className="dot"></span>{item.page_cite ? "page image" : isVis ? "visual store" : "text store"}</span>
+            <span className={"pill " + (isVis ? "visual" : "text")}><span className="dot"></span>{item.page_cite ? "page image" : item.browsed ? "figure" : isVis ? "visual store" : "text store"}</span>
             <button className="btn ghost sm" onClick={onClose}><Icon name="x" size={15} /></button>
           </div>
           <div className="pm-src mono">{item.paper} · p.{item.page}</div>
           <h3 className="serif pm-paper">{title}</h3>
-
-          {hasBbox && norm && (
-            <div className="pm-bbox">
-              <span className="section-h" style={{ margin: "0 0 9px" }}>Selected region</span>
-              <div className="pm-bbox-grid">
-                <div><span className="bk mono">x</span><span className="bv mono">{norm.left.toFixed(3)}</span></div>
-                <div><span className="bk mono">y</span><span className="bv mono">{norm.top.toFixed(3)}</span></div>
-                <div><span className="bk mono">w</span><span className="bv mono">{norm.width.toFixed(3)}</span></div>
-                <div><span className="bk mono">h</span><span className="bv mono">{norm.height.toFixed(3)}</span></div>
-              </div>
-              <div className="pm-norm mono">normalized page coords · bbox overlay</div>
-            </div>
-          )}
 
           {typeof item.score === "number" && (
             <div className="pm-score">
@@ -254,6 +239,8 @@ function PageRegionModal({ item, onClose, paperTitle }) {
             <Icon name={isVis ? "image" : "text"} size={13} />
             <span>{item.page_cite
               ? "Cited as a page image: the model read this page directly, so the whole page is the evidence."
+              : item.browsed
+              ? "The box marks this figure on its source page."
               : isVis
               ? (hasBbox ? "Retrieved from the visual store over page images; the box marks the figure or table region on the source page." : "Retrieved from the visual store over page images.")
               : (hasBbox ? "Retrieved from the text store by the dense retriever; the box marks the cited passage on the page." : "Retrieved from the text store by the dense retriever. This chunk spans page boundaries, so no single region box is available.")}</span>

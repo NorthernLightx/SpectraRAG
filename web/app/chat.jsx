@@ -64,7 +64,7 @@ function AdvancedPanel({ settings, set, papers, routingAvailable }) {
   );
 }
 
-function EmptyState({ onAsk, routingAvailable }) {
+function EmptyState({ onAsk, routingAvailable, needsKey, onAddKey }) {
   // Without the multimodal router (RAG_ENABLE_MULTIMODAL off) every turn retrieves
   // text-side, so don't advertise per-question routes on the chips.
   const noRouter = routingAvailable === false;
@@ -74,7 +74,12 @@ function EmptyState({ onAsk, routingAvailable }) {
       <h2>Ask across the corpus</h2>
       <p>{noRouter
         ? "20 research papers, indexed by text and figure. Watch retrieval rank the evidence live in the panel on the right."
-        : "20 research papers, indexed by text and figure. Every turn re-retrieves against the right modality. Watch it route in the panel on the right."}</p>
+        : "20 research papers, indexed by text and figure. Each question searches both the text and the page images, and the panel on the right shows what came back."}</p>
+      {needsKey && (
+        <p className="empty-key">Search is free; cited answers need an OpenRouter key.{" "}
+          <button className="btn ghost sm" onClick={onAddKey}><Icon name="key" size={13} /> Add key</button>
+        </p>
+      )}
       <div className="suggest-grid">
         {window.RAG.SUGGESTIONS.map((s, i) => (
           <button key={i} className="suggest" onClick={() => onAsk(s.q)}>
@@ -86,7 +91,7 @@ function EmptyState({ onAsk, routingAvailable }) {
   );
 }
 
-function AiMessage({ msg, onCite, onFig, paperTitle, pendingLabel }) {
+function AiMessage({ msg, onCite, onFig, onAddKey, onShowPanel, paperTitle, pendingLabel }) {
   const done = !msg.streaming;
   const cited = citedSources(msg.citations);
   const tokens = msg.usage ? (msg.usage.prompt_tokens || 0) + (msg.usage.completion_tokens || 0) : 0;
@@ -135,6 +140,9 @@ function AiMessage({ msg, onCite, onFig, paperTitle, pendingLabel }) {
           </React.Fragment>
         )}
       </div>
+      {msg.needKey && onAddKey && (
+        <div className="notice-cta"><button className="btn primary sm" onClick={onAddKey}><Icon name="key" size={13} /> Add a key</button></div>
+      )}
       {done && !msg.error && cited.length > 0 && (
         <div className="answer-sources rise">
           <div className="src-head">Sources</div>
@@ -156,6 +164,7 @@ function AiMessage({ msg, onCite, onFig, paperTitle, pendingLabel }) {
           <span className="metric"><Icon name="route" size={13} /> {msg.candidates.length} ranked{addedN ? ` · ${addedN} added` : ""}{pageCiteN ? ` · ${pageCiteN} page${pageCiteN > 1 ? "s" : ""}` : ""}</span>
           {typeof msg.latencyMs === "number" && <span className="metric"><b>{(msg.latencyMs / 1000).toFixed(2)}s</b></span>}
           {tokens > 0 && <span className="metric"><b>{tokens}</b> tok</span>}
+          {onShowPanel && <button className="btn ghost sm phone-only" onClick={onShowPanel}>View results</button>}
         </div>
       )}
     </div>
@@ -186,12 +195,12 @@ function Composer({ onAsk, busy }) {
 }
 
 /* ---- retrieval panel ---- */
-function RetrievalPanel({ turn, highlight, settings, paperTitle, routingAvailable }) {
+function RetrievalPanel({ turn, highlight, settings, paperTitle, routingAvailable, sheet, onCloseSheet }) {
   const [pageItem, setPageItem] = useState(null);
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem("sr-retr-collapsed") === "1");
   const toggleCollapsed = () =>
     setCollapsed((v) => { localStorage.setItem("sr-retr-collapsed", v ? "0" : "1"); return !v; });
-  if (collapsed) {
+  if (collapsed && !sheet) {
     return (
       <aside className="retr-panel collapsed">
         <button className="retr-rail" onClick={toggleCollapsed} title="Show retrieval panel" aria-label="Show retrieval panel">
@@ -266,12 +275,12 @@ function RetrievalPanel({ turn, highlight, settings, paperTitle, routingAvailabl
     ...cands.filter((c) => citedNum(c) == null),
   ];
   return (
-    <aside className="retr-panel">
+    <aside className={"retr-panel" + (sheet ? " sheet" : "")}>
       <div className="retr-head">
         <Icon name="route" size={15} />
         <h3>Retrieval</h3>
         <span className="live"><span className="dot"></span>live</span>
-        <button className="retr-collapse" onClick={toggleCollapsed} title="Hide retrieval panel" aria-label="Hide retrieval panel"><Icon name="chevron" size={15} /></button>
+        <button className="retr-collapse" onClick={sheet ? onCloseSheet : toggleCollapsed} title="Hide retrieval panel" aria-label="Hide retrieval panel"><Icon name="chevron" size={15} /></button>
       </div>
       <div className="retr-body">
         <div className="retr-section">
@@ -445,6 +454,7 @@ function ChatView({ settings, set, apiKey, provider, model, papers, figures, pag
       { role: "assistant", q, answer: "", streaming: true, candidates: null, citations: [], route: null, mode: settings.route },
     ]);
 
+    let phase = "prepare";
     try {
       // Agentic search can't run keyless: the server-side agent spends the
       // caller's OpenRouter key. Stop before retrieval with a notice instead
@@ -478,6 +488,7 @@ function ChatView({ settings, set, apiKey, provider, model, papers, figures, pag
       upd({ searchedFor: searchQuery });
 
       // Retrieve.
+      phase = "retrieve";
       const t0 = performance.now();
       const { results, routing, trace } = await window.RAG.retrieve(searchQuery, {
         topK: settings.topk,
@@ -490,6 +501,7 @@ function ChatView({ settings, set, apiKey, provider, model, papers, figures, pag
       });
       live(() => setStatus(""));
       const tRetrieve = performance.now() - t0;
+      phase = "generate";
       const candidates = results.map(toCand);
       // With no router on the deployment the route label is always "text",
       // which is noise, not information. Suppress the per-message pill there.
@@ -510,10 +522,10 @@ function ChatView({ settings, set, apiKey, provider, model, papers, figures, pag
       // configured, stop at retrieval with a how-to notice.
       if (!canGenerate) {
         const notice = provider === "ollama"
-          ? "Retrieved the chunks shown on the right. Pick a vision model in the model menu (top-right) to generate a cited answer from them. Retrieval works either way."
-          : "Retrieved the chunks shown on the right. Add your OpenRouter key (top-right) to generate a cited answer from them.";
+          ? "Search found the chunks in the retrieval panel. Pick a vision model in the model menu to get a cited answer from them."
+          : "Search found the chunks in the retrieval panel. Add an OpenRouter key to get a cited answer from them.";
         live(() => setStatus(""));
-        upd({ answer: notice, streaming: false, notice: true, latencyMs: Math.round(tRetrieve) });
+        upd({ answer: notice, streaming: false, notice: true, needKey: provider !== "ollama", latencyMs: Math.round(tRetrieve) });
         return;
       }
 
@@ -565,10 +577,15 @@ function ChatView({ settings, set, apiKey, provider, model, papers, figures, pag
       } else {
         // Keep whatever streamed before the failure. Wiping a half-answer is
         // worse than showing it with an interruption note.
+        const why = String((err && err.message) || err).replace(/\.$/, "");
         upd((prev) => ({
           answer: prev.answer
             ? `${prev.answer}\n\nGeneration interrupted: ${(err && err.message) || err}`
-            : `Request failed: ${String((err && err.message) || err).replace(/\.$/, "")}. Either the server isn't reachable, or the model provider rejected the request.`,
+            : phase === "retrieve"
+            ? `Search failed: ${why}. The server may still be starting up. Try again in a minute.`
+            : phase === "generate"
+            ? `Answer failed: ${why}. The model provider rejected the request or could not be reached. The search results are in the retrieval panel.`
+            : `Request failed: ${why}.`,
           streaming: false,
           error: !prev.answer,
           notice: !!prev.answer,
@@ -609,24 +626,34 @@ function ChatView({ settings, set, apiKey, provider, model, papers, figures, pag
     setHighlight(tag);
   };
   const openFig = (cand) => setPageItem(cand);
+  const needsKey = provider !== "ollama" && !(apiKey && apiKey.trim());
+  // At phone width the side panel is hidden; it opens as a bottom sheet instead.
+  const [sheet, setSheet] = useState(false);
+  const showPanel = () => { if (window.matchMedia("(max-width: 760px)").matches) setSheet(true); };
+  useEffect(() => {
+    if (!sheet) return;
+    const onEsc = (e) => { if (e.key === "Escape") setSheet(false); };
+    document.addEventListener("keydown", onEsc);
+    return () => document.removeEventListener("keydown", onEsc);
+  }, [sheet]);
 
   return (
     <div className="chat-wrap">
       <div className="chat-col">
         <div className="adv-toggle-row">
-          <div className={"adv-toggle" + (advOpen ? " open" : "")} onClick={() => setAdvOpen((o) => !o)}>
+          <button type="button" className={"adv-toggle" + (advOpen ? " open" : "")} aria-expanded={advOpen} onClick={() => setAdvOpen((o) => !o)}>
             <Icon name="chevron" size={14} /> <Icon name="sliders" size={13} /> Advanced retrieval settings
             <span className="mono" style={{ color: "var(--text-faint)", fontSize: 11, marginLeft: 4 }}>
               {settings.route}{settings.routingMode ? " · " + settings.routingMode : ""} · ctx={settings.topk}
             </span>
-          </div>
+          </button>
           <button className="btn ghost sm" onClick={newChat} title="Clear conversation"><Icon name="plus" size={14} /> New chat</button>
         </div>
         {advOpen && <AdvancedPanel settings={settings} set={set} papers={papers} routingAvailable={routingAvailable} />}
 
         <div className="chat-scroll" ref={scrollRef}>
           {turns.length === 0 ? (
-            <EmptyState onAsk={ask} routingAvailable={routingAvailable} />
+            <EmptyState onAsk={ask} routingAvailable={routingAvailable} needsKey={needsKey} onAddKey={() => onNeedKey && onNeedKey("chat")} />
           ) : (
             <div className="chat-inner">
               {turns.map((t, i) =>
@@ -634,6 +661,7 @@ function ChatView({ settings, set, apiKey, provider, model, papers, figures, pag
                   <div className="msg msg-user rise" key={i}><div className="bubble">{t.text}</div></div>
                 ) : (
                   <AiMessage key={i} msg={t} onCite={(tag) => onCite(tag, t)} onFig={openFig} paperTitle={paperTitle}
+                    onAddKey={onNeedKey ? () => onNeedKey("chat") : null} onShowPanel={t === lastAssistant ? showPanel : null}
                     pendingLabel={status || (routingAvailable === false ? "retrieving…" : undefined)} />
                 )
               )}
@@ -645,7 +673,9 @@ function ChatView({ settings, set, apiKey, provider, model, papers, figures, pag
         <Composer onAsk={ask} busy={busy} />
       </div>
 
-      <RetrievalPanel turn={lastAssistant} highlight={highlight} settings={settings} paperTitle={paperTitle} routingAvailable={routingAvailable} />
+      {sheet && <div className="sheet-scrim" onClick={() => setSheet(false)}></div>}
+      <RetrievalPanel turn={lastAssistant} highlight={highlight} settings={settings} paperTitle={paperTitle} routingAvailable={routingAvailable}
+        sheet={sheet} onCloseSheet={() => setSheet(false)} />
       <PageRegionModal item={pageItem} onClose={() => setPageItem(null)} paperTitle={paperTitle} />
     </div>
   );

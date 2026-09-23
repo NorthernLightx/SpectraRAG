@@ -273,6 +273,7 @@ function FiguresView({ figures }) {
         <div className="figure-grid">
           {filtered.map((f) => <FigureCard key={f.chunk_id} f={f} onOpen={setOpen} />)}
         </div>
+        {figs.length > 0 && filtered.length === 0 && <div className="retr-empty">No figures match this search.</div>}
       </div>
       <FigureLightbox f={open} onClose={() => setOpen(null)} />
     </div>

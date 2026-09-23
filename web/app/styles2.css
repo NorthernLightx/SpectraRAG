@@ -141,12 +141,6 @@
 .pm-side-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
 .pm-src { font-size: 11.5px; color: var(--text-faint); margin-bottom: 6px; }
 .pm-paper { font-size: 15px; line-height: 1.32; margin: 0 0 18px; font-weight: 500; }
-.pm-bbox { border: 1px solid var(--border-soft); border-radius: 11px; padding: 13px; background: var(--panel-2); margin-bottom: 14px; }
-.pm-bbox-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.pm-bbox-grid > div { display: flex; align-items: baseline; gap: 8px; padding: 6px 9px; background: var(--panel); border: 1px solid var(--border-soft); border-radius: 7px; }
-.pm-bbox-grid .bk { font-size: 11px; color: var(--text-faint); width: 12px; }
-.pm-bbox-grid .bv { font-size: 13px; color: var(--text); }
-.pm-norm { font-size: 10px; color: var(--text-faint); margin-top: 9px; letter-spacing: .03em; }
 .pm-score { margin-bottom: 14px; }
 .pm-score-row { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 7px; }
 .pm-score-row .isv { font-size: 13px; color: var(--text); }

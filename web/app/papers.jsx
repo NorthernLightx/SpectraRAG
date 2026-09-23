@@ -35,10 +35,10 @@ function PaperDrawer({ p, figs, onClose }) {
   const [pageItem, setPageItem] = useState(null);
   useEffect(() => {
     if (!p) return;
-    const onEsc = (e) => { if (e.key === "Escape") onClose(); };
+    const onEsc = (e) => { if (e.key === "Escape" && !pageItem) onClose(); };
     document.addEventListener("keydown", onEsc);
     return () => document.removeEventListener("keydown", onEsc);
-  }, [p, onClose]);
+  }, [p, onClose, pageItem]);
   if (!p) return null;
   const hasTitle = p.title && p.title.trim() && p.title.trim() !== p.paper_id;
   return (
@@ -69,7 +69,7 @@ function PaperDrawer({ p, figs, onClose }) {
               <div className="fig-grid-2">
                 {figs.map((f) => (
                   <div key={f.chunk_id} className="figthumb figthumb-click"
-                    onClick={() => setPageItem({ chunk_id: f.chunk_id, paper: f.paper_id, page: f.page_number, pages: [f.page_number], kind: "visual", bbox: f.bbox || null, text: f.caption || "" })}
+                    onClick={() => setPageItem({ chunk_id: f.chunk_id, paper: f.paper_id, page: f.page_number, pages: [f.page_number], kind: "visual", bbox: f.bbox || null, text: f.caption || "", browsed: true })}
                     title="View source region on page">
                     <FigCrop url={window.RAG.absPage(f.page_image_url)} bbox={f.bbox} fallbackH={92} eager thumb={window.RAG.figThumbUrl(f.paper_id, f.chunk_id)} />
                     <div className="figthumb-meta"><span className="mono">p.{f.page_number}</span> · {clip(drawerCaption(f.caption), 40)}</div>
@@ -166,6 +166,7 @@ function PapersView({ setTab, papers, figures, uploadAvailable, onUploaded }) {
         <div className="paper-grid">
           {filtered.map((p) => <PaperCard key={p.paper_id} p={p} figCount={figByPaper[p.paper_id] || 0} onOpen={setOpen} />)}
         </div>
+        {papers.length > 0 && filtered.length === 0 && <div className="retr-empty">No papers match this search.</div>}
       </div>
       <PaperDrawer p={open} figs={open ? (figures || []).filter((f) => f.paper_id === open.paper_id) : []} onClose={() => setOpen(null)} />
     </div>

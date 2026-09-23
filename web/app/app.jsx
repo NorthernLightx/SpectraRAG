@@ -16,7 +16,7 @@ function Sidebar({ tab, setTab, theme, setTheme, stats, open }) {
           <div className="brand-mark"></div>
           <span className="brand-name">SpectraRAG</span>
         </div>
-        <p className="brand-tag">Multimodal retrieval over {stats.papers || "the"} research papers. Each turn re-retrieves text <em>and</em> figures against the right context.</p>
+        <p className="brand-tag">Multimodal retrieval over {stats.papers || "the"} research papers.</p>
       </div>
 
       <nav className="nav">
@@ -39,7 +39,7 @@ function Sidebar({ tab, setTab, theme, setTheme, stats, open }) {
         </div>
         <div className="foot-links">
           <a href="https://github.com/NorthernLightx/spectrarag" target="_blank" rel="noopener"><span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Icon name="github" size={13} /> GitHub</span></a>
-          <a href="/docs" target="_blank" rel="noopener">API docs</a>
+          <a href={(window.SPECTRARAG_API_BASE || "") + "/docs"} target="_blank" rel="noopener">API docs</a>
         </div>
       </div>
     </aside>);
@@ -47,7 +47,7 @@ function Sidebar({ tab, setTab, theme, setTheme, stats, open }) {
 }
 
 const CRUMB = {
-  chat: { t: "Chat", s: "Ask follow-up questions; each turn re-retrieves against the right context." },
+  chat: { t: "Chat", s: "Answers cite the passages and pages they came from." },
   inspection: { t: "Inspection", s: "Trace a query through routing, retrieval, and reranking." },
   papers: { t: "Papers", s: "The 20-paper corpus, indexed by text and figure." },
   figures: { t: "Figures", s: "Every figure extracted from the corpus, searchable." },
@@ -319,6 +319,10 @@ function ConnectionControl({ apiKey, setApiKey, rememberKey, setRememberKey, pro
    agentic search, which runs server-side on it. The server uses the key for
    that request only; the browser keeps it (ADR 0031 amendment). */
 const KEY_MODAL_COPY = {
+  chat: {
+    h: "Add a key for cited answers",
+    p: "Search works without a key. With an OpenRouter key, the model you pick reads what search found and writes an answer that cites it.",
+  },
   agentic: {
     h: "Agentic search needs your key",
     p: HOSTED
@@ -470,7 +474,7 @@ function App() {
             <div className="topbar-sub">{crumb.s}</div>
           </div>
           <div className="topbar-right">
-            {(tab === "chat" || tab === "inspection") &&
+            {tab === "chat" &&
             <ConnectionControl apiKey={apiKey} setApiKey={setApiKey} rememberKey={rememberKey} setRememberKey={setRememberKey} provider={provider} setProvider={setProvider} model={model} setModel={setModel} />
             }
           </div>
@@ -492,7 +496,7 @@ function App() {
               destroy the conversation while the chat itself points users at
               the Papers and Figures tabs. */}
           <div style={{ display: tab === "chat" ? "contents" : "none" }}>
-            <ChatView settings={settings} set={set} apiKey={apiKey} provider={provider} model={model} papers={papers} figures={figures} pagesAvailable={pagesAvailable} routingAvailable={routingAvailable} onNeedKey={() => setKeyModalOpen("agentic")} />
+            <ChatView settings={settings} set={set} apiKey={apiKey} provider={provider} model={model} papers={papers} figures={figures} pagesAvailable={pagesAvailable} routingAvailable={routingAvailable} onNeedKey={(kind) => setKeyModalOpen(kind || "agentic")} />
           </div>
           {tab === "inspection" && <InspectionView settings={settings} papers={papers} routingAvailable={routingAvailable} />}
           {tab === "papers" && <PapersView setTab={setTab} papers={papers} figures={figures} uploadAvailable={uploadAvailable} onUploaded={reloadCorpus} />}

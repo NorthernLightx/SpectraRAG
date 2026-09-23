@@ -222,6 +222,7 @@ body {
 /* desktop: no mobile chrome */
 .nav-burger { display: none; }
 .nav-scrim { display: none; }
+.chat-wrap .phone-only, .chat-wrap .sheet-scrim { display: none; }
 
 /* ---------- mobile: sidebar collapses to an off-canvas drawer ---------- */
 @media (max-width: 760px) {
@@ -248,12 +249,21 @@ body {
   .topbar { padding: 0 14px; gap: 11px; }
   .topbar-sub { display: none; }
   .topbar .tag { display: none; }
-  /* Single-column chat: a two-pane split is unusable at phone width, so hide
-     the retrieval side-panel and let the conversation fill. */
   .endpoint-model { white-space: nowrap; }
   .endpoint-keylabel { display: none; }
+  /* Single-column chat: a two-pane split is unusable at phone width, so the
+     retrieval panel opens on demand as a bottom sheet. */
   .chat-wrap .retr-panel { display: none; }
+  .chat-wrap .retr-panel.sheet {
+    display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 95;
+    width: auto; height: 80vh; border-left: 0; border-top: 1px solid var(--border);
+    border-radius: 14px 14px 0 0; box-shadow: var(--shadow);
+  }
+  .chat-wrap .sheet-scrim { display: block; position: fixed; inset: 0; z-index: 94; background: rgba(0,0,0,0.5); }
+  .chat-wrap .phone-only { display: inline-flex; }
   .chat-wrap .chat-col { flex: 1 1 100%; }
+  .adv-toggle .mono { display: none; }
+  .adv-toggle, .adv-toggle-row .btn { white-space: nowrap; }
 }
 
 /* ---------- shared endpoint control (chat + inspection) ---------- */
@@ -452,7 +462,8 @@ body {
 
 .adv-toggle {
   display: inline-flex; align-items: center; gap: 7px; cursor: pointer; user-select: none;
-  font-size: 12px; color: var(--text-dim); padding: 7px 0;
+  font-family: inherit; font-size: 12px; color: var(--text-dim); padding: 7px 0;
+  background: none; border: 0;
 }
 .adv-toggle .ico { transition: transform .15s; }
 .adv-toggle.open .ico { transform: rotate(90deg); }
@@ -481,6 +492,8 @@ body {
 }
 .empty h2 { margin: 4px 0 2px; font-size: 19px; font-weight: 600; letter-spacing: -0.01em; }
 .empty p { margin: 0 0 18px; color: var(--text-dim); font-size: 13.5px; max-width: 420px; }
+.empty .empty-key { margin-top: -8px; font-size: 12.5px; color: var(--text-faint); max-width: none; }
+.notice-cta { margin-top: 10px; }
 .suggest-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; max-width: 600px; }
 .suggest {
   text-align: left; padding: 13px 14px; border-radius: 11px; cursor: pointer;

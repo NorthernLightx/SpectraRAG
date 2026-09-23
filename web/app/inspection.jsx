@@ -19,8 +19,9 @@ function Stage({ icon, label, value, sub, last, selected, onClick }) {
 }
 
 function InspRow({ c, onOpen, scoreMin, scoreMax }) {
-  // Min-max scaled within the result set, since logits carry any sign.
-  const rel = scoreMax === scoreMin ? 1 : ((c.score || 0) - scoreMin) / (scoreMax - scoreMin);
+  // Min-max scaled within the leg, since logits carry any sign; the floor keeps
+  // the lowest row visible, as in the chat panel.
+  const rel = scoreMax === scoreMin ? 1 : 0.08 + 0.92 * (((c.score || 0) - scoreMin) / (scoreMax - scoreMin));
   return (
     <div className="insp-row row-clickable" onClick={() => onOpen(c)} title="View source region on page">
       <div className="insp-row-head">
@@ -34,7 +35,13 @@ function InspRow({ c, onOpen, scoreMin, scoreMax }) {
           <span className="isv mono">{c.score.toFixed(3)}</span>
         </div>
       </div>
-      {c.text && <div className="cand-quote" style={{ marginTop: 6 }}>{clip(c.text, 150)}</div>}
+      {c.kind === "visual" ? (
+        <div className="answer-fig-img" style={{ height: 84, borderRadius: 6, marginTop: 8 }}>
+          <img src={window.RAG.pageImageUrl(c.paper, c.page)} alt={`page ${c.page}`} loading="lazy" />
+        </div>
+      ) : (
+        c.text && <div className="cand-quote" style={{ marginTop: 6 }}>{clip(c.text, 150)}</div>
+      )}
     </div>
   );
 }
@@ -77,11 +84,15 @@ function InspectionView({ settings, papers, routingAvailable }) {
   const cands = result ? result.cands : [];
   const textCands = cands.filter((c) => c.kind === "text");
   const visCands = cands.filter((c) => c.kind === "visual");
-  // Min-max scale within the set: rerank logits carry any sign, and an
-  // all-negative set must not render every bar empty.
-  const allScores = cands.map((c) => c.score || 0);
-  const scoreMax = allScores.length ? Math.max(...allScores) : 0;
-  const scoreMin = allScores.length ? Math.min(...allScores) : 0;
+  // Min-max scale within each leg: rerank logits carry any sign, and text and
+  // visual scores sit on different scales, so one shared range empties the
+  // text bars whenever a visual candidate is present.
+  const span = (list) => {
+    const xs = list.map((c) => c.score || 0);
+    return xs.length ? { scoreMin: Math.min(...xs), scoreMax: Math.max(...xs) } : { scoreMin: 0, scoreMax: 0 };
+  };
+  const textSpan = span(textCands);
+  const visSpan = span(visCands);
   const routeLabel = result ? window.RAG.routeLabel(result.routing) : "text";
 
   const stageInfo = {
@@ -152,12 +163,12 @@ function InspectionView({ settings, papers, routingAvailable }) {
             <div className="insp-stores">
               <div className="insp-store">
                 <h4 className="section-h"><span className="dot-tag"><i style={{ background: "var(--accent)" }}></i>Text store</span><span className="result-count mono">{textCands.length}</span></h4>
-                {textCands.length ? textCands.map((c, i) => <InspRow key={i} c={c} onOpen={setPageItem} scoreMin={scoreMin} scoreMax={scoreMax} />) : <div className="retr-empty">No text candidates.</div>}
+                {textCands.length ? textCands.map((c, i) => <InspRow key={i} c={c} onOpen={setPageItem} {...textSpan} />) : <div className="retr-empty">No text candidates.</div>}
               </div>
               <div className="insp-store">
                 <h4 className="section-h"><span className="dot-tag"><i style={{ background: "var(--visual)" }}></i>Visual store</span><span className="result-count mono">{routingAvailable === false ? "off" : visCands.length}</span></h4>
                 {visCands.length
-              ? visCands.map((c, i) => <InspRow key={i} c={c} onOpen={setPageItem} scoreMin={scoreMin} scoreMax={scoreMax} />)
+              ? visCands.map((c, i) => <InspRow key={i} c={c} onOpen={setPageItem} {...visSpan} />)
               : <div className="retr-empty">{routingAvailable === false
                 ? <span>Off on this server: the visual leg needs the page index (scripts/build_visual_index.py) and RAG_ENABLE_MULTIMODAL=true. On MMDocIR, fusing it raised recall@10 from 0.46 to 0.78 (<a href="https://github.com/NorthernLightx/SpectraRAG/blob/main/docs/results.md#mmdocir-where-routing-stops-paying" target="_blank" rel="noopener">results</a>). Here retrieval runs text-side, and the retrieved pages reach the model as images.</span>
                 : "No visual candidates passed the gate for this query."}</div>}
