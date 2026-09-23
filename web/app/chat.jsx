@@ -588,7 +588,7 @@ function ChatView({ settings, set, resetSignal, apiKey, provider, model, papers,
         upd((prev) => ({
           answer: prev.answer
             ? `${prev.answer}\n\nGeneration interrupted: ${(err && err.message) || err}`
-            : `Request failed: ${(err && err.message) || err}. Either the server isn't reachable, or the model provider rejected the request.`,
+            : `Request failed: ${String((err && err.message) || err).replace(/\.$/, "")}. Either the server isn't reachable, or the model provider rejected the request.`,
           streaming: false,
           error: !prev.answer,
           notice: !!prev.answer,
