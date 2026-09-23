@@ -54,23 +54,6 @@ const CRUMB = {
   why: { t: "Why multimodal?", s: "Where text-only RAG breaks, and what visual retrieval recovers." }
 };
 
-const ACCENTS = {
-  "#3b82f6": { a2: "#2563eb" },
-  "#8b5cf6": { a2: "#7c3aed" },
-  "#14b8a6": { a2: "#0d9488" },
-  "#e0993a": { a2: "#c87f24" }
-};
-function hexToRgba(hex, a) {
-  const n = parseInt(hex.slice(1), 16);
-  return `rgba(${n >> 16 & 255}, ${n >> 8 & 255}, ${n & 255}, ${a})`;
-}
-
-const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
-  "accent": "#3b82f6",
-  "density": "regular",
-  "answerFont": "sans"
-} /*EDITMODE-END*/;
-
 /* Two top-bar pills: model picker and key entry. Separate menus, because
    switching models is a mid-session action and key entry is one-time setup.
    One popover for both autofocused the password field on every model switch.
@@ -416,7 +399,6 @@ function App() {
   const setRememberKey = (r) => {setRememberKeyRaw(r);storeKey(apiKey, r);};
   const [settings, setSettings] = useState({ route: "auto", routingMode: "", topk: 5, paper: "" });
   const set = (k, v) => setSettings((s) => ({ ...s, [k]: v }));
-  const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
   const [papers, setPapers] = useState([]);
   const [figures, setFigures] = useState(null);
   const [pagesAvailable, setPagesAvailable] = useState(false);
@@ -469,17 +451,6 @@ function App() {
     return () => clearTimeout(coldTimer);
   }, []);
 
-  // apply tweaks → CSS
-  useEffect(() => {
-    const root = document.documentElement;
-    const ac = ACCENTS[t.accent] || ACCENTS["#3b82f6"];
-    root.style.setProperty("--accent", t.accent);
-    root.style.setProperty("--accent-2", ac.a2);
-    root.style.setProperty("--accent-soft", hexToRgba(t.accent, theme === "light" ? 0.10 : 0.14));
-    root.style.setProperty("--accent-line", hexToRgba(t.accent, 0.34));
-  }, [t.accent, theme]);
-  useEffect(() => {document.documentElement.setAttribute("data-density", t.density);}, [t.density]);
-  useEffect(() => {document.documentElement.setAttribute("data-answerfont", t.answerFont);}, [t.answerFont]);
   const crumb = CRUMB[tab];
   const stats = { papers: papers.length, figures: figures ? figures.length : 0 };
   // Tapping a nav item also dismisses the mobile drawer.
@@ -531,19 +502,6 @@ function App() {
       </main>
 
       <KeyModal open={keyModalOpen} onClose={() => setKeyModalOpen(false)} onSave={(k) => { setApiKey(k); setKeyModalOpen(false); }} />
-
-      <TweaksPanel>
-        <TweakSection label="Brand" />
-        <TweakColor label="Accent" value={t.accent}
-        options={["#3b82f6", "#8b5cf6", "#14b8a6", "#e0993a"]}
-        onChange={(v) => setTweak("accent", v)} />
-        <TweakSection label="Layout" />
-        <TweakRadio label="Density" value={t.density}
-        options={["compact", "regular", "comfy"]} onChange={(v) => setTweak("density", v)} />
-        <TweakSection label="Reading" />
-        <TweakRadio label="Answer type" value={t.answerFont}
-        options={["sans", "serif"]} onChange={(v) => setTweak("answerFont", v)} />
-      </TweaksPanel>
     </div>);
 
 }

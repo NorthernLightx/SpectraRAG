@@ -19,10 +19,10 @@
   --text:      #e7ebf2;
   --text-dim:  #9aa4b2;
   --text-faint:#646e7d;
-  --accent:    #4d8dff;
-  --accent-2:  #6fa3ff;
-  --accent-soft: rgba(77,141,255,0.13);
-  --accent-line: rgba(77,141,255,0.35);
+  --accent:    #3b82f6;
+  --accent-2:  #2563eb;
+  --accent-soft: rgba(59,130,246,0.14);
+  --accent-line: rgba(59,130,246,0.34);
   --good:      #41c97a;
   --good-soft: rgba(65,201,122,0.13);
   --warn:      #e0a531;
@@ -46,10 +46,10 @@
   --text:      #14171c;
   --text-dim:  #5b6573;
   --text-faint:#929aa7;
-  --accent:    #2563eb;
-  --accent-2:  #1d4ed8;
-  --accent-soft: rgba(37,99,235,0.08);
-  --accent-line: rgba(37,99,235,0.28);
+  --accent:    #3b82f6;
+  --accent-2:  #2563eb;
+  --accent-soft: rgba(59,130,246,0.10);
+  --accent-line: rgba(59,130,246,0.34);
   --good:      #1a9d54;
   --good-soft: rgba(26,157,84,0.10);
   --warn:      #b9770e;
@@ -163,20 +163,6 @@ body {
 
 .sidebar-spacer { flex: 1 1 auto; min-height: 12px; }
 
-.corpus-card {
-  margin: 0 12px 10px; padding: 12px;
-  border: 1px solid var(--border-soft); border-radius: 10px;
-  background: var(--panel-2);
-}
-.corpus-card h4 {
-  margin: 0 0 9px; font-size: 10px; letter-spacing: .12em;
-  text-transform: uppercase; color: var(--text-faint); font-weight: 600;
-}
-.stat-row { display: flex; justify-content: space-between; align-items: baseline; padding: 2.5px 0; }
-.stat-row .k { font-size: 11.5px; color: var(--text-dim); }
-.stat-row .v { font-family: "IBM Plex Mono", monospace; font-size: 12px; color: var(--text); font-weight: 500; }
-.stat-row .v.idx { font-size: 11px; color: var(--accent); }
-
 .sidebar-foot {
   border-top: 1px solid var(--border-soft);
   padding: 10px 12px;
@@ -283,7 +269,6 @@ body {
 .endpoint-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-faint); flex: none; }
 .endpoint-dot.on { background: var(--good); box-shadow: 0 0 0 3px var(--good-soft); }
 .endpoint-model { font-size: 12.5px; color: var(--text); font-weight: 500; }
-.endpoint-sep { width: 1px; height: 16px; background: var(--border); }
 .endpoint-caret { color: var(--text-faint); transition: transform .15s; }
 
 .endpoint-pop {
@@ -389,25 +374,10 @@ body {
 .pill.mixed  { background: var(--good-soft); color: var(--good); }
 .pill .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 
-/* figure placeholder */
-.fig-ph {
-  position: relative; border-radius: 8px; overflow: hidden;
-  background:
-    repeating-linear-gradient(135deg, var(--panel-3) 0 9px, var(--panel-2) 9px 18px);
-  border: 1px solid var(--border-soft);
-  display: grid; place-items: center; color: var(--text-faint);
-}
-.fig-ph .fig-kind {
-  font-family: "IBM Plex Mono", monospace; font-size: 10.5px; letter-spacing: .1em;
-  text-transform: uppercase; padding: 3px 8px; border-radius: 5px;
-  background: var(--panel); border: 1px solid var(--border); color: var(--text-dim);
-}
-
 /* score bar */
 .scorebar { height: 5px; border-radius: 3px; background: var(--panel-3); overflow: hidden; }
 .scorebar > i { display: block; height: 100%; border-radius: 3px; background: var(--accent); }
 .scorebar.visual > i { background: var(--visual); }
-.scorebar.dropped > i { background: var(--text-faint); opacity: .55; }
 
 .divider { height: 1px; background: var(--border-soft); border: 0; margin: 0; }
 
@@ -471,31 +441,12 @@ body {
 .figthumb-meta { font-size: 10.5px; color: var(--text-faint); }
 .figthumb-meta .mono { color: var(--text-dim); }
 
-/* tooltip */
-.tt { position: relative; }
-.tt::after {
-  content: attr(data-tt); position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
-  background: var(--raise); color: var(--text); border: 1px solid var(--border);
-  font-size: 11px; padding: 5px 8px; border-radius: 6px; white-space: nowrap;
-  opacity: 0; pointer-events: none; transition: opacity .12s; box-shadow: var(--shadow); z-index: 50;
-  font-family: "IBM Plex Sans", sans-serif; font-weight: 400;
-}
-.tt:hover::after { opacity: 1; }
-
 /* ============================================================
    CHAT VIEW
    ============================================================ */
 .chat-wrap { display: flex; flex: 1; min-width: 0; }
 .chat-col { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; min-height: 0; }
 
-/* config strip */
-.config-strip {
-  display: flex; align-items: flex-end; gap: 12px; padding: 14px 24px;
-  border-bottom: 1px solid var(--border-soft); flex: none; flex-wrap: wrap;
-}
-.config-strip .field { min-width: 0; }
-.config-strip .field.key { flex: 1 1 280px; max-width: 380px; }
-.config-strip .field.model { flex: 0 1 280px; }
 .label-info { display: inline-flex; align-items: center; gap: 5px; }
 .label-info .ico { color: var(--text-faint); }
 
@@ -560,15 +511,6 @@ body {
 .ai-body .md p, .ai-body .md li { color: var(--text); }
 .ai-body.err .md p, .ai-body.err .md li { color: #e0716f; }
 
-/* inline figure cards inside answer */
-.answer-figs { display: flex; gap: 10px; margin: 14px 0 2px; flex-wrap: wrap; }
-.answer-fig {
-  width: 168px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
-  background: var(--panel); cursor: pointer; transition: border-color .12s;
-}
-.answer-fig:hover { border-color: var(--accent-line); }
-.answer-fig .cap { padding: 8px 10px; font-size: 11px; color: var(--text-dim); line-height: 1.4; }
-.answer-fig .cap b { color: var(--visual); font-family: "IBM Plex Mono", monospace; font-size: 10px; }
 .answer-fig-img { overflow: hidden; background: #fdfdfb; }
 .answer-fig-img img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
 
@@ -590,7 +532,6 @@ body {
 .ai-foot { display: flex; align-items: center; gap: 8px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border-soft); }
 .metric { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-faint); }
 .metric b { font-family: "IBM Plex Mono", monospace; color: var(--text-dim); font-weight: 500; }
-.ai-foot .acts { margin-left: auto; display: flex; gap: 4px; }
 
 /* composer */
 .composer-wrap { flex: none; padding: 14px 24px 18px; border-top: 1px solid var(--border); background: var(--panel); }
@@ -659,7 +600,6 @@ body {
 /* candidate / evidence rows */
 .cand { padding: 11px; border: 1px solid var(--border-soft); border-radius: 10px; margin-bottom: 8px; background: var(--panel-2); transition: border-color .12s; }
 .cand.hl { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
-.cand.dropped { opacity: .62; }
 .cand-top { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .cand-num { font-family: "IBM Plex Mono", monospace; font-size: 10px; font-weight: 600; color: var(--accent); background: var(--accent-soft); border: 1px solid var(--accent-line); border-radius: 5px; padding: 1px 6px; }
 .cand-num.visual { color: var(--visual); background: var(--visual-soft); border-color: color-mix(in srgb, var(--visual) 40%, transparent); }
@@ -668,22 +608,3 @@ body {
 .cand-quote { font-family: "IBM Plex Serif", serif; font-size: 12.5px; line-height: 1.55; color: var(--text-dim); margin: 6px 0 8px; padding-left: 9px; border-left: 2px solid var(--border); }
 .cand-meta { display: flex; align-items: center; gap: 8px; margin-top: 7px; }
 .pin-note { font-size: 10.5px; color: var(--text-faint); line-height: 1.45; white-space: normal; }
-.cand-status { font-family: "IBM Plex Mono", monospace; font-size: 10px; letter-spacing: .04em; }
-.cand-status.kept { color: var(--good); }
-.cand-status.dropped { color: var(--text-faint); }
-
-/* ---------- tweak-driven variants ---------- */
-[data-density="compact"] body, body[data-density] { }
-[data-density="compact"] .chat-inner { padding: 18px 24px 18px; }
-[data-density="compact"] .msg { margin-bottom: 18px; }
-[data-density="compact"] .ai-body, [data-density="compact"] .msg-user .bubble { font-size: 13px; }
-[data-density="compact"] .content-pad { padding: 16px 24px 40px; }
-[data-density="compact"] .paper-grid, [data-density="compact"] .figure-grid { gap: 11px; }
-
-[data-density="comfy"] .chat-inner { padding: 40px 24px 28px; max-width: 800px; }
-[data-density="comfy"] .msg { margin-bottom: 34px; }
-[data-density="comfy"] .ai-body, [data-density="comfy"] .msg-user .bubble { font-size: 15px; }
-[data-density="comfy"] .content-pad { padding: 32px 32px 56px; }
-[data-density="comfy"] .paper-grid, [data-density="comfy"] .figure-grid { gap: 18px; }
-
-[data-answerfont="serif"] .ai-body .md { font-family: "IBM Plex Serif", Georgia, serif; font-size: 14.5px; line-height: 1.62; }

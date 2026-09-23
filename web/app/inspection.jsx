@@ -4,19 +4,6 @@
    each stage with real values; stages the backend doesn't expose internals for
    (embedding, the gate distribution) are described, not fabricated. */
 
-function inspToCand(c) {
-  const pages = c.page_numbers || [];
-  return {
-    chunk_id: c.chunk_id,
-    paper: c.paper_id,
-    page: pages[0],
-    score: typeof c.score === "number" ? c.score : 0,
-    kind: c.source === "visual" ? "visual" : "text",
-    bbox: (c.metadata && c.metadata.bbox) || null,
-    text: c.text || "",
-  };
-}
-
 function Stage({ icon, label, value, sub, last, selected, onClick }) {
   return (
     <React.Fragment>
@@ -78,7 +65,7 @@ function InspectionView({ settings, papers, routingAvailable }) {
         onStatus: setStatus,
       });
       setStatus("");
-      setResult({ query: v, cands: results.map(inspToCand), routing });
+      setResult({ query: v, cands: results.map(toCand), routing });
     } catch (err) {
       setStatus(`Trace failed: ${(err && err.message) || err}`);
       setResult(null);

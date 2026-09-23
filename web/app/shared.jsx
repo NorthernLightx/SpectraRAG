@@ -7,6 +7,21 @@ function clip(s, n) {
   return t.length > n ? t.slice(0, n).trim() + "…" : t;
 }
 
+// A real RetrievalResult chunk → the flat shape the panel/cards render.
+function toCand(c) {
+  const pages = c.page_numbers || [];
+  return {
+    chunk_id: c.chunk_id,
+    paper: c.paper_id,
+    page: pages[0],
+    pages,
+    score: typeof c.score === "number" ? c.score : 0,
+    kind: c.source === "visual" ? "visual" : "text",
+    bbox: (c.metadata && c.metadata.bbox) || null,
+    text: c.text || "",
+  };
+}
+
 /* ---- icons (simple stroke set) ---- */
 const PATHS = {
   chat: "M21 11.5a8.38 8.38 0 0 1-8.5 8.5 9 9 0 0 1-4-1L3 20l1-4.5a8.5 8.5 0 1 1 17-4Z",
@@ -17,13 +32,11 @@ const PATHS = {
   sun: "M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10ZM12 1v3M12 20v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M1 12h3M20 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1",
   moon: "M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z",
   github: "M9 19c-5 1.5-5-2.5-7-3m14 6v-3.9a3.4 3.4 0 0 0-.9-2.6c3-.3 6.2-1.5 6.2-6.7A5.2 5.2 0 0 0 20 4.8 4.8 4.8 0 0 0 19.9 1S18.7.6 16 2.5a13.4 13.4 0 0 0-7 0C6.3.6 5.1 1 5.1 1A4.8 4.8 0 0 0 5 4.8 5.2 5.2 0 0 0 3.7 8.3c0 5.2 3.2 6.4 6.2 6.7a3.4 3.4 0 0 0-.9 2.6V21",
-  api: "M16 18l6-6-6-6M8 6l-6 6 6 6",
   server: "M3 4h18v6H3zM3 14h18v6H3zM7 7h.01M7 17h.01M11 7h6M11 17h6",
   arrowRight: "M5 12h14M13 6l6 6-6 6",
   search: "M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM21 21l-4.3-4.3",
   send: "M22 2 11 13M22 2l-7 20-4-9-9-4 20-7Z",
   plus: "M12 5v14M5 12h14",
-  info: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM12 16v-4M12 8h.01",
   chevron: "M9 6l6 6-6 6",
   sliders: "M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6",
   check: "M20 6 9 17l-5-5",
@@ -33,11 +46,9 @@ const PATHS = {
   layers: "M12 2 2 7l10 5 10-5-10-5ZM2 17l10 5 10-5M2 12l10 5 10-5",
   image: "M3 5h18v14H3zM8.5 11a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3ZM21 16l-5-5L5 21",
   text: "M4 6h16M4 12h16M4 18h10",
-  copy: "M9 9h11v11H9zM5 15H4V4h11v1",
   spark: "M12 2v6M12 16v6M2 12h6M16 12h6M5 5l3 3M16 16l3 3M19 5l-3 3M8 16l-3 3",
   filter: "M3 4h18l-7 8v7l-4-2v-5L3 4Z",
   key: "M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4",
-  external: "M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14 21 3",
 };
 function Icon({ name, size = 16, className = "", strokeWidth = 1.7, fill = false, style }) {
   const d = PATHS[name] || "";
@@ -56,8 +67,8 @@ function RoutePill({ route }) {
   return <span className={"pill " + cls}><span className="dot"></span>{label}</span>;
 }
 
-function ScoreBar({ score, kind = "text", dropped = false }) {
-  const cls = ["scorebar", kind === "visual" ? "visual" : "", dropped ? "dropped" : ""].join(" ");
+function ScoreBar({ score, kind = "text" }) {
+  const cls = kind === "visual" ? "scorebar visual" : "scorebar";
   // Clamp both ends: a negative width is invalid CSS, gets dropped, and the
   // display:block fill then defaults to width:auto, a FULL bar on the worst
   // scores. Callers normalize logits; this is the backstop.
@@ -142,10 +153,6 @@ function Segmented({ options, value, onChange }) {
       ))}
     </div>
   );
-}
-
-function Tooltip({ label, children }) {
-  return <span className="tt" data-tt={label}>{children}</span>;
 }
 
 /* ---- source-page modal: real page image + cited-region bbox overlay ---- */
@@ -259,7 +266,7 @@ function PageRegionModal({ item, onClose, paperTitle }) {
 }
 
 Object.assign(window, {
-  Icon, RoutePill, ScoreBar, Markdown, inlineNodes, Segmented, Tooltip,
+  toCand, Icon, RoutePill, ScoreBar, Markdown, inlineNodes, Segmented,
   PageRegionModal,
   useState, useEffect, useRef, useMemo, useCallback,
 });

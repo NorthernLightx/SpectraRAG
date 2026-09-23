@@ -3,26 +3,6 @@
    BYOK stream → renumbered citations. The retrieval panel reflects the actual
    chunks the server returned. */
 
-// A real RetrievalResult chunk → the flat shape the panel/cards render.
-function toCand(c) {
-  const pages = c.page_numbers || [];
-  return {
-    chunk_id: c.chunk_id,
-    paper: c.paper_id,
-    page: pages[0],
-    pages,
-    score: typeof c.score === "number" ? c.score : 0,
-    kind: c.source === "visual" ? "visual" : "text",
-    bbox: (c.metadata && c.metadata.bbox) || null,
-    text: c.text || "",
-  };
-}
-
-function previewQuote(raw, max = 180) {
-  const t = String(raw || "").replace(/\s+/g, " ").trim();
-  return t.length > max ? t.slice(0, max).trim() + "…" : t;
-}
-
 // The sources shown under an answer are exactly what the answer CITED: text
 // AND visual, nothing it didn't use. Deduped by page so one source is one tile.
 function citedSources(citations) {
@@ -165,7 +145,7 @@ function AiMessage({ msg, onCite, onFig, paperTitle, pendingLabel }) {
                 kind: c.kind, bbox: c.bbox || null, text: c.quote || "", page_cite: !!c.page_cite,
               })}>
               <span className="src-n">[{c.n}]</span>
-              <span className="src-title">{previewQuote(paperTitle ? paperTitle(c.paper) : c.paper, 80)}</span>
+              <span className="src-title">{clip(paperTitle ? paperTitle(c.paper) : c.paper, 80)}</span>
               <span className="src-page">{c.kind === "visual" && <Icon name="image" size={11} />} p.{c.page}</span>
             </button>
           ))}
@@ -331,7 +311,7 @@ function RetrievalPanel({ turn, highlight, settings, paperTitle, routingAvailabl
                     <span className="cand-src">{f.paperId} · p.{f.page}</span>
                     <span className="cand-score">added</span>
                   </div>
-                  {f.caption && <div className="cand-quote">{previewQuote(f.caption)}</div>}
+                  {f.caption && <div className="cand-quote">{clip(f.caption, 180)}</div>}
                   <div className="cand-meta">
                     <span className="pin-note">your question names this figure, so its caption joined the evidence directly</span>
                   </div>
@@ -365,10 +345,10 @@ function RetrievalPanel({ turn, highlight, settings, paperTitle, routingAvailabl
                     <img src={window.RAG.pageImageUrl(c.paper, c.page)} alt={`page ${c.page}`} loading="lazy" />
                   </div>
                 ) : (
-                  c.text && <div className="cand-quote">{previewQuote(c.text)}</div>
+                  c.text && <div className="cand-quote">{clip(c.text, 180)}</div>
                 )}
                 <div className="cand-meta">
-                  <span className="tag">{previewQuote(paperTitle(c.paper), 30)}</span>
+                  <span className="tag">{clip(paperTitle(c.paper), 30)}</span>
                   <span className="view-region"><Icon name="search" size={11} /> region</span>
                 </div>
               </div>
@@ -402,7 +382,7 @@ function RetrievalPanel({ turn, highlight, settings, paperTitle, routingAvailabl
   );
 }
 
-function ChatView({ settings, set, resetSignal, apiKey, provider, model, papers, figures, pagesAvailable, routingAvailable, onNeedKey }) {
+function ChatView({ settings, set, apiKey, provider, model, papers, figures, pagesAvailable, routingAvailable, onNeedKey }) {
   const [turns, setTurns] = useState([]);
   const [busy, setBusy] = useState(false);
   const [advOpen, setAdvOpen] = useState(false);
@@ -559,10 +539,10 @@ function ChatView({ settings, set, resetSignal, apiKey, provider, model, papers,
           // Injected figure/table caption (buildMessages adds it when the
           // question names the element). Resolve through the figure index.
           const fg = (figures || []).find((g) => g.chunk_id === id);
-          if (fg) return { n: i + 1, id, paper: fg.paper_id, page: fg.page_number, quote: previewQuote(fg.caption || ""), kind: "visual", fig_cite: true, bbox: fg.bbox || null };
+          if (fg) return { n: i + 1, id, paper: fg.paper_id, page: fg.page_number, quote: clip(fg.caption || "", 180), kind: "visual", fig_cite: true, bbox: fg.bbox || null };
         }
         const pages = c ? c.page_numbers || [] : [];
-        return { n: i + 1, id, paper: c ? c.paper_id : id, page: pages[0], quote: c ? previewQuote(c.text) : null, kind: c && c.source === "visual" ? "visual" : "text" };
+        return { n: i + 1, id, paper: c ? c.paper_id : id, page: pages[0], quote: c ? clip(c.text, 180) : null, kind: c && c.source === "visual" ? "visual" : "text" };
       });
       upd({
         answer: newText,
@@ -629,12 +609,6 @@ function ChatView({ settings, set, resetSignal, apiKey, provider, model, papers,
     setHighlight(tag);
   };
   const openFig = (cand) => setPageItem(cand);
-
-  const firstReset = useRef(true);
-  useEffect(() => {
-    if (firstReset.current) { firstReset.current = false; return; }
-    newChat();
-  }, [resetSignal]);
 
   return (
     <div className="chat-wrap">
