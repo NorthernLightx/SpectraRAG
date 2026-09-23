@@ -62,3 +62,12 @@ machine, and any script that runs on the page can read it.
 on that request. The server does not store or log it, and the Sentry event
 scrubber filters that header, which the SDK's default header filter does not
 cover. The key menu says so and asks for a key with a credit limit.
+
+The production build (`web-build/build.mjs`) gives the page a
+Content-Security-Policy: scripts other than the listed ones do not run, and
+fetches and image loads reach only the listed origins. It does not stop a script
+that does run from navigating away with the key, so it narrows the risk rather
+than removing it. Scripts are allowed by exact URL, because a CDN host such as
+unpkg.com would admit any package published there. Connections are limited to
+the page's own origin, the API origin passed with `--api-base`, OpenRouter, and
+a local Ollama unless `--hosted`. The no-build dev page has no policy.
