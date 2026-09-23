@@ -18,7 +18,8 @@ ScoreKind = Literal["rerank", "rrf", "maxsim", "other"]
 class Query(BaseModel):
     """A user query against the RAG system."""
 
-    text: str = Field(min_length=1)
+    # Retrieval cost grows with query length; the cap matches /context's question.
+    text: str = Field(min_length=1, max_length=4000)
     top_k: int = Field(default=5, ge=1, le=100)
     filters: dict[str, Any] = Field(default_factory=dict)
     # ADR 0008: optional override that bypasses the routing classifier.

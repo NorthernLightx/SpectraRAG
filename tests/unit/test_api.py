@@ -63,6 +63,14 @@ def test_query_validates_input() -> None:
     assert response.status_code == 422
 
 
+def test_query_rejects_text_longer_than_the_context_question_cap() -> None:
+    # BM25 and ColQwen2 cost grows with query length; one huge body would pin the
+    # single serving instance.
+    client = _make_client(retriever=FakeRetriever(results=[]))
+    assert client.post("/query", json={"text": "a" * 4000}).status_code == 200
+    assert client.post("/query", json={"text": "a" * 4001}).status_code == 422
+
+
 def test_query_returns_503_when_retriever_unset() -> None:
     client = TestClient(create_app(log_file=None))
     response = client.post("/query", json={"text": "x"})
