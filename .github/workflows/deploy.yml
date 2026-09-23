@@ -90,7 +90,9 @@ jobs:
           # fp32 ~8GB) alongside bge-m3; Cloud Run requires >=4 vCPU at 16Gi.
           # RAG_ENABLE_MULTIMODAL turns the visual leg on (it stays inert unless
           # the visual collection is populated in the baked Qdrant snapshot).
-          flags: --port=8000 --memory=16Gi --cpu=4 --cpu-boost --min-instances=0 --max-instances=1 --timeout=120 --allow-unauthenticated --update-env-vars=RAG_ENABLE_DCI=true,RAG_ENABLE_MULTIMODAL=true
+          # Startup loads the models before the port opens, up to ~4 min; the
+          # default probe allows one 240 s attempt, so allow 60 x 10 s.
+          flags: --port=8000 --memory=16Gi --cpu=4 --cpu-boost --min-instances=0 --max-instances=1 --timeout=120 --startup-probe=tcpSocket.port=8000,timeoutSeconds=10,periodSeconds=10,failureThreshold=60 --allow-unauthenticated --update-env-vars=RAG_ENABLE_DCI=true,RAG_ENABLE_MULTIMODAL=true
 
       - name: Check the visual leg survived the deploy
         env:
