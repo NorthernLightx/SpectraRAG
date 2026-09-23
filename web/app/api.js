@@ -309,8 +309,18 @@
         role: "system",
         content:
           "Rewrite the user's latest message into a single standalone search query " +
-          "for a corpus of research papers. Resolve pronouns and references using " +
-          "the conversation history. Output only the query — no quotes, no preamble.",
+          "for a corpus of research papers. If the latest message already makes sense " +
+          "on its own, return it unchanged, even when it changes the subject. Only when " +
+          "it refers back to the conversation (a pronoun such as \"it\" or \"they\", a " +
+          "phrase such as \"that figure\" or \"the paper\", or a follow-up such as \"what " +
+          "about X?\"), replace each reference with the subject it points to. Never add " +
+          "a paper, method or term from earlier turns that the latest message does not " +
+          "refer to. Do not answer the message. Output only the query, with no quotes " +
+          "and no preamble.\n\n" +
+          "Examples, after a conversation about ResNet:\n" +
+          "\"How deep is it?\" becomes: How deep is ResNet?\n" +
+          "\"What about its Table 4?\" becomes: What does Table 4 of the ResNet paper show?\n" +
+          "\"Which datasets does the BLEU paper use?\" stays: Which datasets does the BLEU paper use?",
       },
       {
         role: "user",
