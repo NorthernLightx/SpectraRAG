@@ -224,15 +224,15 @@
     }
   }
 
-  const WARMING_STATUS = "Server is warming up after a cold start. The first query can take a minute or two. Retrying automatically…";
+  const WARMING_STATUS = "Server is warming up after a cold start. Waking it takes a few minutes; your question runs as soon as it is up…";
 
-  // Poll /health until the backend answers. A cold start takes about two
+  // Poll /health until the backend answers. A cold start takes 2 to 5
   // minutes, and meanwhile Cloud Run's front end rejects requests with a 5xx or
   // the connection fails; neither says what the backend serves once it is up.
   // Resolves null only after `deadlineMs`. One poll per page: queries await the
   // same promise.
   let _health = null;
-  function waitForHealth(deadlineMs = 300000) {
+  function waitForHealth(deadlineMs = 600000) {
     if (!_health) _health = pollHealth(deadlineMs);
     return _health;
   }

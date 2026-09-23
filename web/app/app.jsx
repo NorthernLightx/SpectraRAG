@@ -440,7 +440,7 @@ function App() {
   // defaults (empty list, no images) keep the UI working.
   useEffect(() => {
     // The API scales to zero, and a cold instance answers /health only after
-    // startup init (model loading), about 2 minutes. Until then requests fail
+    // startup init (model loading), 2 to 5 minutes. Until then requests fail
     // or come back as 5xx from Cloud Run's front end. No reply within a few
     // seconds means a cold start is in progress, so show the banner instead of
     // silently empty tabs, and keep polling until the backend answers.
@@ -508,7 +508,7 @@ function App() {
         {backendWarm === "cold" &&
         <div className="warmup" role="status">
           <span className="warmup-dot"></span>
-          <span>The backend is waking up. Loading the retrieval models takes a minute or two. The page fills in on its own.</span>
+          <span>The backend is waking up. Loading the retrieval models takes a few minutes. The page fills in on its own.</span>
         </div>}
         {backendWarm === "down" &&
         <div className="warmup" role="status">
