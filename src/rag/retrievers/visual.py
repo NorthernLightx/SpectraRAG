@@ -163,6 +163,14 @@ class VisualRetriever:
         return rows
 
 
+# Processor settings a model card evaluates at, over its shipped
+# processor_config.json. The Vultron card evaluates at 1792 visual tokens and
+# ships a 1280 cap; the ADR 0007 receipt was built at 1792.
+_PROCESSOR_KWARGS: dict[str, dict[str, Any]] = {
+    "vultr/VultronRetrieverFlash-Qwen3.5-0.8B": {"max_num_visual_tokens": 1792},
+}
+
+
 def _select_col_classes(model_name: str) -> tuple[Any, Any]:
     """Pick the colpali-engine model + processor pair for a given HF model id.
 
@@ -183,9 +191,11 @@ def _select_col_classes(model_name: str) -> tuple[Any, Any]:
     )
 
     # Order matters: the point-release names contain the base name as a
-    # substring, so the more specific prefix has to be tested first.
+    # substring, so the more specific prefix has to be tested first. Vultron's
+    # retrievers are ColQwen3_5 checkpoints whose ids name no colpali family
+    # (ADR 0007).
     name = model_name.lower()
-    if "colqwen3.5" in name:
+    if "colqwen3.5" in name or "vultronretriever" in name:
         return ColQwen3_5, ColQwen3_5Processor
     if "colqwen3" in name:
         return ColQwen3, ColQwen3Processor
@@ -218,7 +228,7 @@ async def load_visual_model(
     def _load() -> tuple[Any, Any]:
         m = model_cls.from_pretrained(model_name, torch_dtype=dtype, device_map=device)
         m.train(False)  # set inference mode
-        p = processor_cls.from_pretrained(model_name)
+        p = processor_cls.from_pretrained(model_name, **_PROCESSOR_KWARGS.get(model_name, {}))
         return m, p
 
     return await asyncio.to_thread(_load)
