@@ -1,8 +1,8 @@
 # SpectraRAG
 
-> Question answering over PDFs whose answers live in figures, charts, and
-> tables, where text-only search comes up short. Two retrievers fused on
-> every question, and an eval behind every change.
+> A multimodal RAG system for PDFs whose answers live in figures, charts, and
+> tables. It searches every page as an image as well as text, and each
+> retrieval setting is measured on a public benchmark.
 
 [![ci](https://github.com/NorthernLightx/spectrarag/actions/workflows/ci.yml/badge.svg)](https://github.com/NorthernLightx/spectrarag/actions/workflows/ci.yml)
 [![docker](https://github.com/NorthernLightx/spectrarag/actions/workflows/docker.yml/badge.svg)](https://github.com/NorthernLightx/spectrarag/actions/workflows/docker.yml)
@@ -14,102 +14,95 @@
 
 ![Asking what the blue and red curves in a paper's Figure 1 show: the answer cites the figure, and its source opens on the page with the figure region boxed](docs/assets/demo.webp)
 
-## The problem
+## Why
 
-A PDF's text layer is only half the document. Ask an ordinary RAG system
-*"in Figure 5, what colour is the line with no intersections?"* and it will
-tell you the answer isn't in the context. It's right: the colour lives in the
-chart's pixels, not the text. The same blind spot covers plot geometry,
-screenshots, and image-only diagrams.
+A PDF's text layer is only half the document. Ask a text-only RAG system *"in
+Figure 5, what colour is the line with no intersections?"* and it answers that
+the context doesn't say. It's right: the colour is in the chart's pixels, not
+the text. Plot geometry, screenshots and image-only diagrams have the same
+problem.
 
-SpectraRAG runs a text retriever and a visual retriever over rendered page
-images on every question and fuses their results. The retrieved page images go
-to a vision model at answer time. The corpus
-here is scientific PDFs and MMLongBench-Doc, but nothing is domain-specific:
-point the ingester at any folder of `.pdf` files.
+SpectraRAG indexes every page twice: as text chunks, and as a rendered image
+that a late-interaction model (ColQwen2) searches directly. A vision model reads
+the retrieved pages and answers with citations. Nothing is domain-specific:
+point the ingester at any folder of PDFs.
 
-## Result
+## Results
 
-Page-level retrieval on [MMDocIR](https://arxiv.org/abs/2501.08828): 1,127
-queries over 218 documents and 4,837 pages, with page and bounding-box evidence
-labels. Numbers are reported on the 1,029 queries whose documents are absent
-from the older MMLongBench corpus. The metric is recall@10 over retrieved pages,
-scored paper-aware (a page counts only if it is the gold paper's), so it is
-independent of any generator.
+Page retrieval on [MMDocIR](https://arxiv.org/abs/2501.08828), 1,029 questions
+over the benchmark's long documents (the 98 questions on documents that also
+appear in MMLongBench-Doc are left out). Recall counts a gold page only when it
+comes from the right document, so no generator is involved.
 
-| retrieval | recall@10 | median latency |
+| retrieval | recall@5 | recall@10 |
 |---|---|---|
-| text-only | 0.460 ±0.030 | 4,265 ms |
-| classifier router | 0.621 ±0.030 | 5,860 ms |
-| **text + visual on every query** | **0.784 ±0.025** | 5,843 ms |
-| visual-only | 0.800 ±0.024 | 983 ms |
+| text only | 0.415 | 0.460 |
+| text and visual, fused | 0.703 | 0.788 |
+| visual only | **0.753** | **0.800** |
 
-Running both legs beats the per-query classifier by 0.163 recall@10 at the same
-median latency, so the classifier is a cost switch rather than an accuracy one.
-That reversed this project's earlier conclusion, which rested on a 107-query set
-too small to separate the two: [ADR 0032](./docs/decisions/0032-routing-is-a-cost-lever.md)
-supersedes [0013](./docs/decisions/0013-routing-is-the-accuracy-lever.md). Three
-ways the result could have been an artefact (query mix, corpus text density,
-page budget) were each tested, and none of them explains it.
+All three rows come from one recorded run
+([`data/eval/mmdocir-depth50-legs.json.gz`](./data/eval/mmdocir-depth50-legs.json.gz));
+the text leg there reranks with bge-reranker-v2-m3. On these documents the
+page image carries the answer, and fusing in the text leg's results costs 0.05
+recall@5. On the text-heavy arXiv papers of the demo corpus the text leg ranks
+figure captions better, so the balance is a setting per corpus:
+`RAG_VISUAL_FUSION_WEIGHT` (1 by default; above about 1.15 the top results are
+the visual leg's pages).
 
-The earlier MMLongBench-Doc measurement stands on its own terms: over 107
-in-corpus queries the router scores 0.7461 recall@10 against text-only's 0.5545,
-a 35 % lift, and 0.5111 to 0.7578 on the figure subset. Those runs are committed
-under [`data/eval/`](./data/eval/) as `baseline-mmlongbench-text.json` and
-`baseline-mmlongbench-router.json`. The regression gate pins the larger MMDocIR
-set, on the always-hybrid arm that production now serves.
+**Most failures happen in reading, not retrieval.** On a 150-question sample
+read by `gemma-4-26b`, when the gold page was retrieved the reader refused
+nearly half the time, answered about a quarter correctly, and got the rest
+wrong or partly right. What else the measurements showed:
 
-**Retrieval is no longer the binding constraint. Reading is.** Handed the right
-page, the reader answers roughly a third of queries correctly. Of the 110 to
-120 queries whose gold page was retrieved, about 46 % were refused and 12 to 29 %
-were answered wrongly (the judge's partial grades decide where in that range),
-so refusal outnumbers misreading. Prompting past those
-refusals lifts the coverage metric and produces more wrong answers: one variant
-went from 44 wrong answers to 57 of 150. No prompt variant shipped. Full
-methodology and failure modes are in [`docs/results.md`](./docs/results.md). For
-how measuring the end-to-end path overturned this project's own assumptions (and
-which fixes died under measurement), see
-[`docs/finding-the-bottleneck.md`](./docs/finding-the-bottleneck.md).
+- Prompting the reader past its refusals raised the score and the wrong
+  answers with it (44 to 57 of 150), so no prompt change shipped.
+- A bigger reader doesn't read better. A 31B model, a 235B model and
+  gemini-2.5-pro read the gold pages of MMLongBench-Doc within a point of each
+  other.
+- Where a document fits the model's context, feeding the whole document beats
+  top-5 retrieval by about 0.12.
+- Measured and not adopted: GraphRAG, agentic query decomposition, a per-query
+  router that picks one retriever, a smaller 2026 visual retriever (a tie), and
+  a page-image reranker that adds 0.03 recall@5 but is too slow to serve on CPU.
+
+Method and full numbers are in [`docs/results.md`](./docs/results.md). The
+design decisions, each with the measurement behind it, are in
+[`docs/decisions/`](./docs/decisions/README.md).
 
 ## How it works
 
 ```mermaid
 flowchart LR
-    PDF[PDFs] -->|Docling ingest| TXTIDX[(Qdrant + BM25<br/>text/figure/table chunks)]
-    PDF -->|build page index| VISIDX[(Qdrant<br/>ColQwen2<br/>page multi-vectors)]
-    Q[User query] --> TXT[Text leg<br/>BM25 + BGE-M3 + rerank]
+    PDF[PDFs] -->|Docling| TXTIDX[(Text index<br/>BGE-M3 + BM25)]
+    PDF -->|render pages| VISIDX[(Page index<br/>ColQwen2 multi-vector)]
+    Q[Question] --> TXT[Text leg<br/>BM25 + BGE-M3 + rerank]
     Q --> VIS[Visual leg<br/>ColQwen2 MaxSim]
     TXTIDX --> TXT
     VISIDX --> VIS
-    TXT --> LLM[Vision LLM]
-    VIS --> LLM
+    TXT --> FUSE[Fuse per page<br/>weighted RRF]
+    VIS --> FUSE
+    FUSE --> LLM[Vision LLM]
     LLM --> A[Answer + citations]
 ```
 
-1. **Ingest.** Each PDF goes through [Docling](https://github.com/docling-project/docling)
-   for layout-aware, section-attributed text chunks plus figure and table
-   extraction, with a figure-role classifier separating real figures from
-   page decoration. Text, figure, and table chunks are indexed
-   twice: BGE-M3 dense vectors in Qdrant and a BM25 sparse index in process.
-   Pages are rendered to PNG, and ColQwen2 embeds each page into a
-   multi-vector page index persisted in Qdrant (built offline; ADR 0028).
-2. **Retrieve.** Both legs run on every question (ADR 0032): the text leg
-   (BM25 + BGE-M3 dense + reciprocal-rank fusion + BGE-reranker-v2-m3) and the
-   visual leg (ColQwen2 late-interaction MaxSim over page images), fused at
-   page granularity. A per-query classifier (`gemma3:4b` zero-shot over Ollama,
-   with a regex fallback) can pick one leg instead. It exists to save work,
-   but on this hardware it saves none and costs recall, so it is off by default.
-3. **Generate.** A vision-capable model reads the retrieved chunks and their
-   page images and returns an answer with chunk-level citations.
+1. **Ingest.** [Docling](https://github.com/docling-project/docling) splits
+   each PDF into section-attributed text, figure and table chunks, and a
+   classifier marks page decoration so retrieval can skip it. Chunks are
+   indexed as BGE-M3 vectors in
+   Qdrant and in an in-process BM25 index. Pages are rendered to PNG and
+   ColQwen2 embeds each one into a multi-vector page index, built offline on a
+   GPU.
+2. **Retrieve.** Both legs run on every question. The text leg fuses BM25 and
+   BGE-M3 and reranks with a cross-encoder (MiniLM when serving on CPU). The
+   visual leg scores page images with ColQwen2's MaxSim. The two are fused per
+   page with weighted reciprocal-rank fusion.
+3. **Answer.** A vision-capable model reads the retrieved chunks and their
+   page images and answers with chunk-level citations.
 
 ## Quickstart
 
-This repo is the backend and its evaluation. The [live demo](https://spectrarag-demo.web.app)
-is a separate web client of the same API.
-
-Fastest path: serve the bundled demo corpus self-contained, with no Docker or
-Ollama (in-process bge-m3 + the committed Qdrant snapshot). The first run
-downloads the bge-m3 weights.
+Serve the bundled demo corpus with no Docker or Ollama (in-process bge-m3 and
+a committed Qdrant snapshot). The first run downloads the bge-m3 weights.
 
 ```bash
 git clone https://github.com/NorthernLightx/spectrarag
@@ -118,8 +111,8 @@ uv sync --extra dev
 uv run spectrarag serve
 ```
 
-The API serves the bundled demo corpus with text retrieval at
-<http://localhost:8000>; `/docs` has the interactive reference. Query it:
+The API runs at <http://localhost:8000>, with the interactive reference at
+`/docs`. Query it:
 
 ```bash
 curl -s localhost:8000/query -H "Content-Type: application/json" \
@@ -128,13 +121,30 @@ curl -s localhost:8000/query -H "Content-Type: application/json" \
 
 Retrieval needs no model provider. For answers with citations, set
 `RAG_OPENROUTER_API_KEY` in `.env` and send the same body to `/answer`; the
-model is `RAG_DEFAULT_CHAT_MODEL`. The visual leg's page index is not in the
-repo: build it on a GPU with `uv run spectrarag fetch` and
-`uv run python -m scripts.build_visual_index`, then set
-`RAG_ENABLE_MULTIMODAL=true`. For your own PDFs, see
-[Bring your own PDFs](#bring-your-own-pdfs).
+model is `RAG_DEFAULT_CHAT_MODEL`.
 
-For the full local stack (Docker Qdrant + Ollama, plus ingesting your own PDFs):
+<details>
+<summary>Turn on the visual leg</summary>
+
+The page index is not in the repo. Build it on a CUDA GPU (ColQwen2 fits an
+8 GB card), then serve on CPU:
+
+```bash
+uv run spectrarag fetch
+uv run python -m scripts.build_visual_index
+```
+
+Set `RAG_ENABLE_MULTIMODAL=true`. For `/answer` to send page images to the
+model, render them and set `RAG_PAGES_DIR`:
+
+```bash
+uv run python -m scripts.render_pages --pdf-dir data/papers
+```
+
+</details>
+
+<details>
+<summary>Full local stack (Docker Qdrant and Ollama)</summary>
 
 ```bash
 cp .env.example .env
@@ -147,53 +157,41 @@ uv run python -m scripts.bootstrap_corpus --pdf-dir data/papers
 uv run uvicorn src.api.main:app --reload --port 8000
 ```
 
-Then query <http://localhost:8000> the same way.
+</details>
 
-The opt-in agentic search (DCI) has an LLM agent grep the corpus with
-terminal-style tools instead of vector search: `POST /query/dci` with your
-OpenRouter key in the `X-OpenRouter-Key` header, held in memory for that
-request only. It's text-only and slower, so treat it as a demo of the approach,
-not the default path. `/answer` sends the retrieved page PNGs to the model as
-image blocks when `RAG_PAGES_DIR` is set; populate it with
-`python -m scripts.render_pages --pdf-dir data/papers`.
+## Usage
 
-API surface:
+### API
 
-- `/health`: component-wiring check (status, version, env, `pages_available`,
-  and the fingerprint of the retrieval stack that was wired)
-- `/query`: retrieval only, no generation. `force_route` (`text` or
-  `visual`) or `routing_mode: "category"` (the classifier router) changes which
-  legs run; `filters.paper_id` scopes it to one paper
-- `/context`: the reader's messages for one turn, for a client that calls its
-  own model provider ([ADR 0033](./docs/decisions/0033-one-reader-context.md))
-- `/answer`: retrieval plus generation on the server's OpenRouter key
-- `/papers`, `/figures`: the indexed corpus; `/pages/...`: page images when
-  `RAG_PAGES_DIR` is set
+| route | what it does |
+|---|---|
+| `GET /health` | component status and the fingerprint of the retrieval stack in use |
+| `POST /query` | retrieval only; `filters.paper_id` scopes it to one paper |
+| `POST /context` | the reader's messages for one turn, for a client that calls its own model |
+| `POST /answer` | retrieval plus generation, on the server's OpenRouter key |
+| `POST /ingest` | add one PDF to the live corpus (only with `RAG_ENABLE_UPLOAD=true`) |
+| `GET /papers`, `GET /figures` | the indexed corpus |
+| `GET /pages/...` | page images, when `RAG_PAGES_DIR` is set |
+| `POST /query/dci` | experimental: an LLM agent greps the corpus instead of vector search (text only, your key in `X-OpenRouter-Key`) |
 
-## Bring your own PDFs
+The live demo is a separate web client of this API.
 
-The bundled demo corpus is a fixed set of arXiv papers
-(`data/curated_demo/papers.txt`). Point the ingester at any directory to
-replace it:
+### Your own PDFs
+
+Point the ingester at a directory:
 
 ```bash
-mkdir mydocs                                # drop your .pdf files here
-uv run python -m scripts.bootstrap_corpus \
-    --pdf-dir ./mydocs --collection my_corpus
+mkdir mydocs   # drop your .pdf files here
+uv run python -m scripts.bootstrap_corpus --pdf-dir ./mydocs --collection my_corpus
 ```
 
-Set `RAG_CORPUS_COLLECTION=my_corpus` in `.env`, restart `uvicorn`, and the
-corpus is queryable through `/query` and `/answer`. The eval harness works
-against any collection; write a golden set at `data/golden/<name>.yaml`.
+Set `RAG_CORPUS_COLLECTION=my_corpus` in `.env` and restart. The corpus is then
+queryable through `/query` and `/answer`. `POST /ingest` adds a single document
+without a restart; it has no auth or rate limit, so keep `RAG_ENABLE_UPLOAD`
+off on any shared deploy.
 
-For a single document, set `RAG_ENABLE_UPLOAD=true` and `POST /ingest` it:
-the PDF is ingested into the live corpus
-and text-retrievable on the next query, no restart. Keep the flag off on any
-shared deploy. The route carries no auth or rate limit of its own.
-
-The visual leg needs a CUDA GPU to *build* the page index (ColQwen2-v1.0 fits
-an 8 GB card); serving it then runs on CPU. Build the persisted index and point
-the app at it:
+To add the visual leg for your corpus, build its page index and point the app
+at it:
 
 ```bash
 uv run python -m scripts.build_visual_index --pdf-dir ./mydocs \
@@ -207,177 +205,93 @@ RAG_VISUAL_COLLECTION=my_corpus_visual
 RAG_PAGES_DIR=data/pages
 ```
 
+If answers live mostly in figures and scanned pages, try
+`RAG_VISUAL_FUSION_WEIGHT=2`; for text-heavy documents keep the default.
+
 ## Evaluation
 
-`scripts/eval_run.py` replays retrieval (and optionally generation + an LLM
-judge) against a golden YAML and writes a run JSON. `scripts/check_regression.py`
-is the gate: it compares a run against a committed baseline and fails on any
-metric that drops more than 5 %. It pins `baseline-mmdocir-hybrid.json`, the arm
-production serves. The older MMLongBench baselines need a page-level rescore
-through `scripts/rescore_mmlb_pages.py` first; MMDocIR runs do not.
+`scripts/eval_run.py` runs retrieval (and optionally generation and an LLM
+judge) over a golden YAML and writes a run JSON. `scripts/check_regression.py`
+compares a run with a committed baseline and fails on any metric that drops
+more than 5 %.
 
-Every retrieval knob (chunk size, fusion weights, rerank cutoff, router
-classifier) is measured in isolation, so a recall change traces to one knob
-rather than a framework default. See [`docs/evals.md`](./docs/evals.md) for the golden schema and
-metric definitions.
-
-## What the evaluation found (end-to-end)
-
-Beyond retrieval, the project pins down where end-to-end answer accuracy actually
-tops out, and part of the apparent ceiling turned out to be the scorer rather than
-the model.
-
-- **It's a RAG ↔ long-context tradeoff.** Where a document fits the model's
-  context, feeding the *whole* document beats a top-5 retrieval cut by ~0.12
-  (tables +0.18); past context, retrieval is required. We measured both directions
-  and shipped route-by-fit as an opt-in eval policy (ADR
-  [0024](./docs/decisions/)). It is deliberately not wired into the corpus-wide
-  demo, which would first have to identify the target document.
-- **The strict scorer understated accuracy by ~0.11, and we caught it.** The
-  standard extract-then-match step marks terse-but-correct answers as "Not
-  answerable" (even GPT-4o does this). A strictness-checked re-grade lifts the
-  oracle read from ~0.45 to ~0.55. The measured ceiling is ~0.55; the published SOTA
-  is ~0.62 (whole document, full 1082-query set).
-- **Scaling the model doesn't move the reading.** A 31B, a 235B, and frontier
-  gemini-2.5-pro read the gold pages within a point of each other; the bottleneck
-  is fine-grained figure and table reading, not model size.
-- **Changing what the reader sees helps where a bigger model doesn't.** The
-  bottleneck is reading figures and tables, so this lever works on the input rather
-  than the model: transcribe a page's tables and charts to text offline and feed it
-  to the reader alongside the page image. On the post-retrieval failure set that
-  adds about 0.12, but on too few cases to call significant yet. The extractor can
-  be a local 1.2B model (MinerU2.5) instead of a cloud one: it matches
-  qwen3-vl-235b on extraction recall, a tie rather than a win. The backend selector
-  is in place (`RAG_EXTRACTOR_BACKEND`, default off); the ingest-time path that
-  would feed it to the reader waits until the result holds up
-  (ADR [0025](./docs/decisions/)).
-- **Negatives are measured, not assumed.** GraphRAG lost to plain RAG (ADR
-  [0018](./docs/decisions/), 5-1 on global synthesis); agentic query-decomposition
-  did not transfer and hurt retrieval on this corpus (ADR
-  [0019](./docs/decisions/)); text rerankers were a wash (ADR
-  [0012](./docs/decisions/)); and direct-corpus-interaction (a grep-tool agent) is
-  off the reading bottleneck here, so it ships as an experimental opt-in, not a
-  default (ADR [0026](./docs/decisions/)).
-
-Full methodology in [`docs/results.md`](./docs/results.md). For how SpectraRAG
-compares to other document-RAG tools, see
-[`docs/comparison.md`](./docs/comparison.md).
+CI runs the served stack over the demo corpus on every push: the text arm and
+the fused arm against `data/eval/baseline_retrieval.json` and
+`data/eval/baseline_retrieval_hybrid.json`, and it also fails if any single
+query loses recall@10. The visual leg replays from a recorded fixture, since
+the runner has no GPU. Golden-set schema, metrics and how to reproduce the
+MMDocIR numbers are in [`docs/evals.md`](./docs/evals.md).
 
 ## Limitations
 
-- **The demo corpus is text-heavy.** The visual leg is on, but the baked
-  arXiv set has few figure or table answers, so the visual lift you
-  see here is small. The retrieval numbers above come from MMDocIR and
-  MMLongBench, not from these papers.
+- **The demo corpus is text-heavy.** The baked arXiv set has few figure or
+  table answers, so the visual leg adds little there. The numbers above come
+  from MMDocIR, not from these papers.
 - **Generation needs a provider.** `/answer` needs an OpenRouter key;
   retrieval works without one.
-- **The LLM judge under-rates pixel answers.** When the answer is in the
-  image (for example *"the line is red"*) and the judge sees only text,
-  faithfulness is scored low. For generation quality, trust gold-answer
-  match, not the judge.
+- **Building the page index needs a GPU.** Serving the visual leg runs on CPU.
+- **The LLM judge under-rates pixel answers.** When the answer is in the image
+  (*"the line is red"*) and the judge sees only text, it scores faithfulness
+  low. For generation quality, trust gold-answer match, not the judge.
+- **One corpus at a time.** No accounts, shared collections or connectors.
 
 ## Development
 
 ```bash
 uv run ruff check . && uv run ruff format --check .
 uv run mypy src tests scripts          # strict
-uv run pytest -v                       # unit + integration
+uv run pytest -q -m "not slow and not integration"
 ```
 
-CI runs the same set on every push and PR. To run it locally before each push
-(plus a gitleaks scan), enable the in-tree hook once: `git config core.hooksPath .githooks`.
-Local setup, commit conventions, and the leakage rules are in
-[`CONTRIBUTING.md`](./CONTRIBUTING.md).
-
-Common setup issues: `model 'bge-m3' not found` means Ollama hasn't pulled it
-(`docker exec rag-ollama ollama pull bge-m3`); `expected 1024, got 768` means
-the collection was built with a different embedder (re-ingest with `--force`);
-a ColQwen2 `OutOfMemoryError` means the GPU is below ~8 GB, so disable the
-visual leg with `RAG_ENABLE_MULTIMODAL=false`.
-
-## Project layout
+CI runs the same checks plus the slow and integration suites. To run them
+before each push, with a gitleaks scan, enable the in-tree hooks once:
+`git config core.hooksPath .githooks`. Setup, commit conventions and the
+leakage rules are in [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 
 ```
 src/        FastAPI app, retrievers, ingestion, eval, observability
-scripts/    CLI entry points (bootstrap, render, eval, regression)
-data/       gitignored except curated_demo/papers.txt, eval baselines,
-            golden sets, and the committed demo page renders
-docs/       ADRs, eval methodology, results
-tests/      unit + integration suites, mirrors src/
+scripts/    CLI entry points: bootstrap, render, eval, regression
+data/       eval baselines, golden sets, the demo manifest and page renders
+docs/       results, eval method, design decisions
+tests/      unit and integration suites, mirroring src/
 ```
-
-## Built with
-
-- **Retrieval**: [Qdrant](https://qdrant.tech/),
-  [BGE-M3](https://huggingface.co/BAAI/bge-m3),
-  [BGE-reranker-v2-m3](https://huggingface.co/BAAI/bge-reranker-v2-m3),
-  [rank-bm25](https://github.com/dorianbrown/rank_bm25)
-- **Visual retrieval**: [ColQwen2](https://huggingface.co/vidore/colqwen2-v1.0) (vidore)
-- **Document parsing**: [Docling](https://github.com/docling-project/docling)
-  (layout, tables, figure classification), [PyMuPDF](https://github.com/pymupdf/PyMuPDF)
-  (page rendering)
-- **Models**: [OpenRouter](https://openrouter.ai/) for cloud generation,
-  [Ollama](https://ollama.com/) for local generation, embeddings, and the
-  routing classifier
-- **API**: [FastAPI](https://fastapi.tiangolo.com/),
-  [Pydantic v2](https://docs.pydantic.dev/), [uv](https://docs.astral.sh/uv/)
-- **Observability**: [OpenTelemetry](https://opentelemetry.io/),
-  [Sentry](https://sentry.io/), [Langfuse](https://langfuse.com/)
-- **Deploy**: Cloud Run via GitHub Actions with Workload Identity Federation
-- **Eval benchmarks**: [MMDocIR](https://arxiv.org/abs/2501.08828), [MMLongBench-Doc](https://arxiv.org/abs/2407.01523)
-
-## References
-
-Papers and benchmarks this project builds on or measures against:
-
-- **ColPali: Efficient Document Retrieval with Vision Language Models** (Faysse
-  et al., [arXiv:2407.01449](https://arxiv.org/abs/2407.01449)). The
-  late-interaction visual-retrieval architecture; the deployed visual leg runs
-  ColQwen2 from this line.
-- **BGE M3-Embedding** (Chen et al.,
-  [arXiv:2402.03216](https://arxiv.org/abs/2402.03216)). The dense and sparse
-  text embeddings behind the text leg.
-- **Docling Technical Report** (Auer et al., IBM,
-  [arXiv:2408.09869](https://arxiv.org/abs/2408.09869)). Layout-aware PDF parsing
-  for the structure-attributed chunker.
-- **MMDocIR: Benchmarking Multi-Modal Retrieval for Long Documents**
-  ([arXiv:2501.08828](https://arxiv.org/abs/2501.08828)). Page and
-  bounding-box evidence labels over 1,127 queries; the benchmark behind the
-  headline retrieval result and behind ADR 0032.
-- **MMLongBench-Doc** ([arXiv:2407.01523](https://arxiv.org/abs/2407.01523)).
-  The long-document multimodal benchmark behind the earlier router measurement
-  and the committed regression gate.
-- **BRIGHT: A Realistic and Challenging Benchmark for Reasoning-Intensive
-  Retrieval** (Su et al., [arXiv:2407.12883](https://arxiv.org/abs/2407.12883)).
-  Retrieval that needs reasoning rather than surface similarity; the benchmark
-  the Agentic search experiment is scored on.
-- **Beyond Semantic Similarity: Rethinking Retrieval for Agentic Search via
-  Direct Corpus Interaction** ([arXiv:2605.05242](https://arxiv.org/abs/2605.05242)).
-  The grep-the-raw-corpus agent behind the experimental Agentic search toggle
-  (ADR [0026](./docs/decisions/)).
 
 ## FAQ
 
 **Why not LlamaIndex or LangChain?**
-Both would have shipped faster. The cost is opacity: every retrieval choice
-becomes a knob inside someone else's abstraction, and a +2 % recall change is
-hard to attribute. This repo measures each choice against a committed baseline
-instead. The retrievers conform to a small protocol if you later want to wrap
-them in a framework.
+Either would have shipped faster, but every retrieval choice would sit inside
+someone else's abstraction, and a two-point recall change would be hard to
+attribute. Here each choice is measured against a committed baseline. The
+retrievers follow a small protocol if you want to wrap them in a framework.
 
-**Why visual retrieval instead of OCR-ing the figures?**
-OCR recovers figure-internal text and captions, which PyMuPDF often already
-extracts from modern PDFs. It cannot recover what isn't text: chart colours,
-geometric layout, screenshot contents, axis positions relative to data. Visual
-retrieval over rendered pages keeps all of that. The canonical example is
-`mmlb_0008`: *"what colour is the line with no intersections?"*, gold answer
-`red`, a fact that exists only in the pixels.
+**Why search page images instead of OCR-ing the figures?**
+OCR recovers text inside a figure, which PDF extraction often has already. It
+can't recover what isn't text: chart colours, layout, screenshot contents, where
+a point sits on an axis. Searching the rendered page keeps all of that.
 
-**Why MMLongBench-Doc?**
-The in-repo golden set is too easy to separate text from visual retrieval. 
-MMLongBench-Doc is the harder regime: long documents, ~22 % unanswerable
-queries (useful for the refusal gate), and it isn't saturated (GPT-4o tops out
-near 45 % F1). Being published, its numbers can be cross-referenced.
+**How does it compare with other document-RAG tools?**
+See [`docs/comparison.md`](./docs/comparison.md).
+
+## Acknowledgements
+
+Models and libraries: [ColQwen2](https://huggingface.co/vidore/colqwen2-v1.0)
+from the ColPali line ([arXiv:2407.01449](https://arxiv.org/abs/2407.01449)),
+[BGE-M3](https://huggingface.co/BAAI/bge-m3)
+([arXiv:2402.03216](https://arxiv.org/abs/2402.03216)),
+[BGE-reranker-v2-m3](https://huggingface.co/BAAI/bge-reranker-v2-m3),
+[Docling](https://github.com/docling-project/docling)
+([arXiv:2408.09869](https://arxiv.org/abs/2408.09869)),
+[Qdrant](https://qdrant.tech/), [rank-bm25](https://github.com/dorianbrown/rank_bm25),
+[PyMuPDF](https://github.com/pymupdf/PyMuPDF),
+[FastAPI](https://fastapi.tiangolo.com/), [OpenRouter](https://openrouter.ai/)
+and [Ollama](https://ollama.com/). Observability through
+[OpenTelemetry](https://opentelemetry.io/), [Sentry](https://sentry.io/) and
+[Langfuse](https://langfuse.com/).
+
+Benchmarks: [MMDocIR](https://arxiv.org/abs/2501.08828),
+[MMLongBench-Doc](https://arxiv.org/abs/2407.01523), and
+[BRIGHT](https://arxiv.org/abs/2407.12883) for the agentic search endpoint,
+which follows [arXiv:2605.05242](https://arxiv.org/abs/2605.05242).
 
 ## License
 
