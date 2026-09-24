@@ -20,11 +20,11 @@ Run:
 from __future__ import annotations
 
 import argparse
-import json
 import random
 from math import comb
 from pathlib import Path
-from typing import Any
+
+from scripts.derive_arms import read_run
 
 _BOOTSTRAP_ROUNDS = 10_000
 # Fixed so a rerun reproduces the interval; the point estimate and the sign
@@ -34,7 +34,7 @@ _SEED = 20260917
 
 def _scores(path: Path, metric: str) -> dict[str, float]:
     """query_id -> metric, over queries that carry it."""
-    run: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
+    run = read_run(path)
     out: dict[str, float] = {}
     for q in run["per_query"]:
         for container in (q.get("retrieval") or {}, q.get("generation") or {}):

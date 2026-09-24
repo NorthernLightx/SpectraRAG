@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import gzip
+import json
+from pathlib import Path
+
 import pytest
 
-from scripts.derive_arms import derive, hybrid_ids
+from scripts.derive_arms import derive, hybrid_ids, read_run, run_stem
 from src.eval.runner import evaluate
 from src.rag.retrievers.routing import (
     RoutingRetriever,
@@ -129,6 +133,18 @@ async def test_runner_records_leg_rankings_and_arms_derive_from_them() -> None:
     assert hybrid_ids_recorded == [
         r.chunk_id for r in await router.retrieve(Query(text="q", top_k=10))
     ]
+
+
+def test_read_run_accepts_a_gzipped_receipt(tmp_path: Path) -> None:
+    """Committed leg recordings are gzipped to stay under the repo's size cap."""
+    run = {"run_id": "r", "per_query": [{"query_id": "q1", "leg_chunk_ids": {"text": []}}]}
+    plain = tmp_path / "run.json"
+    plain.write_text(json.dumps(run), encoding="utf-8")
+    packed = tmp_path / "run.json.gz"
+    packed.write_bytes(gzip.compress(json.dumps(run).encode("utf-8")))
+
+    assert read_run(plain) == read_run(packed) == run
+    assert run_stem(plain) == run_stem(packed) == "run"
 
 
 def test_derive_refuses_queries_missing_a_leg() -> None:

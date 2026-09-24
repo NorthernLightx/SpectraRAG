@@ -29,6 +29,7 @@ visual-only run instead (`--legs-from TEXT VISUAL`), with that leg noise.
 from __future__ import annotations
 
 import argparse
+import gzip
 import json
 from pathlib import Path
 from typing import Any
@@ -153,6 +154,25 @@ def _mean(run: dict[str, Any], metric: str) -> float | None:
     return sum(values) / len(values) if values else None
 
 
+def read_run(path: Path) -> dict[str, Any]:
+    """A run JSON, plain or gzipped. Committed leg recordings are gzipped: at
+    fusion depth 50 they exceed the repo's 1 MB cap on added files."""
+    raw = path.read_bytes()
+    if path.suffix == ".gz":
+        raw = gzip.decompress(raw)
+    run: dict[str, Any] = json.loads(raw.decode("utf-8"))
+    return run
+
+
+def run_stem(path: Path) -> str:
+    """The file name without `.json` or `.json.gz`."""
+    name = path.name
+    for suffix in (".json.gz", ".json"):
+        if name.endswith(suffix):
+            return name[: -len(suffix)]
+    return path.stem
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     source = parser.add_mutually_exclusive_group(required=True)
@@ -176,15 +196,12 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.run is not None:
-        run = json.loads(args.run.read_text(encoding="utf-8"))
-        stem = args.run.stem
+        run = read_run(args.run)
+        stem = run_stem(args.run)
     else:
         text_path, visual_path = args.legs_from
-        run = legs_from_runs(
-            json.loads(text_path.read_text(encoding="utf-8")),
-            json.loads(visual_path.read_text(encoding="utf-8")),
-        )
-        stem = f"{text_path.stem}+{visual_path.stem}"
+        run = legs_from_runs(read_run(text_path), read_run(visual_path))
+        stem = f"{run_stem(text_path)}+{run_stem(visual_path)}"
     golden = yaml.safe_load(args.golden.read_text(encoding="utf-8"))
     arms = derive(run, golden, top_k=args.top_k, weights=args.weight or [1.0])
 
