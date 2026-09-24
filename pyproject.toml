@@ -46,7 +46,8 @@ dependencies = [
   "sentry-sdk[fastapi]>=2.18",
   "torch>=2.6",
   "torchvision>=0.21",
-  "colpali-engine>=0.3.15",
+  # Older releases leave ColQwen2 weights unbound under transformers>=5.10 (ADR 0007).
+  "colpali-engine>=0.3.18",
   "slowapi>=0.1.9",
   "datasets>=4.8.5",
   "huggingface-hub>=1.12.0",
@@ -90,11 +91,10 @@ environments = [
   "sys_platform == 'win32'",
   "sys_platform == 'linux'",
 ]
-# Force peft to >=0.19.1 even though colpali-engine 0.3.15 declares peft<0.19.
-# Reason: transformers 5.x's load_adapter path imports
+# Floor peft at 0.19.1, which colpali-engine (peft>=0.18) would otherwise allow
+# below. transformers 5.x's load_adapter path imports
 # `_maybe_shard_state_dict_for_tp` from `peft.utils.save_and_load`, a function
 # added in peft 0.19. With peft 0.18 the visual eval fails with ImportError.
-# Empirically, colpali-engine still imports + runs cleanly under peft 0.19.1.
 override-dependencies = [
   "peft>=0.19.1",
 ]

@@ -268,3 +268,14 @@ swap costs a rebuilt demo index, a re-recorded CI fixture and a table
 regression, on a retriever that is no longer the binding constraint (ADR 0032).
 The loader maps Vultron's ids to `ColQwen3_5` and passes the card's
 1,792-token budget, so the receipt can be rebuilt.
+
+## Amendment (2026-09-24): transformers 5.10 and later need colpali-engine 0.3.18
+
+The Qwen2-VL module paths changed between transformers 5.6.2 and 5.10. Under
+colpali-engine 0.3.15, ColQwen2 on 5.17 loads with `embed_tokens` and `norm`
+newly initialised, and on 5.10 with its LoRA weights unbound too, while nothing
+raises.
+colpali-engine 0.3.18 maps the new paths: with transformers 5.17 it returns
+query embeddings bit-identical to the 5.6.2 stack. `pyproject.toml` floors
+colpali-engine at 0.3.18, and `tests/unit/test_visual_model_load.py` fails
+when a checkpoint's weights do not bind.
