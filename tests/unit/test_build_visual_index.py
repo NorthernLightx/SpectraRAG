@@ -16,6 +16,7 @@ from pathlib import Path
 
 import pytest
 import torch
+from qdrant_client.http.models import VectorParams
 
 import scripts.build_visual_index as bvi
 import src.ingestion.visual as ingestion_visual
@@ -97,3 +98,45 @@ async def test_build_scopes_to_corpus_and_reopens_cleanly(
     await vs.close()
     assert count == 1
     assert {h.paper_id for h in hits} == {"paperA"}
+
+
+async def test_pages_only_build_sizes_the_collection_from_the_encoder(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The collection takes the per-token dim the encoder emitted (320 for
+    Vultron), not ColQwen2's 128. Pins the build's existing sizing now that the
+    store has no default dim to fall back on."""
+    paper_dir = tmp_path / "pages" / "paperA"
+    paper_dir.mkdir(parents=True)
+    (paper_dir / "paperA_p1.jpg").write_bytes(b"not decoded: the encoder is stubbed")
+
+    async def _fake_build(
+        pages_by_paper: dict[str, list[tuple[int, Path]]], *, model_name: str, device: str
+    ) -> _StubRetriever:
+        return _StubRetriever(
+            {"paperA::p1::page": torch.ones((3, 320))}, {"paperA::p1::page": ("paperA", 1)}
+        )
+
+    monkeypatch.setattr(bvi, "build_visual_retriever", _fake_build)
+    qurl = f"path:{tmp_path / 'q'}"
+
+    await bvi._main(
+        pdf_dir=tmp_path,
+        pdfs=None,
+        qdrant_url=qurl,
+        collection="pages_visual",
+        corpus_collection="rag_corpus",
+        pages_dir=tmp_path / "pages",
+        visual_model="stub",
+        device="cpu",
+        dpi=150,
+        force=False,
+        pages_only=True,
+    )
+
+    vs = QdrantVisualStore(url=qurl, collection_name="pages_visual")
+    info = await vs._client.get_collection("pages_visual")
+    await vs.close()
+    vectors = info.config.params.vectors
+    assert isinstance(vectors, VectorParams)
+    assert vectors.size == 320

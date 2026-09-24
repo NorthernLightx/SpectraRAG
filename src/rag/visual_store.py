@@ -11,8 +11,9 @@ embedded ``path:`` mode supports it as of 1.17).
 
 Kept separate from ``QdrantVectorStore`` (the single-vector bge-m3 text store) so
 the baked text collection schema is untouched: this collection is page-granular,
-multivector, and 128-dim where the text one is chunk-granular, single-vector, and
-1024-dim. Both live in the same embedded ``qdrant_local`` directory. ADR 0028.
+multivector, and sized to the visual encoder's per-token dim (128 for ColQwen2)
+where the text one is chunk-granular, single-vector, and 1024-dim. Both live in
+the same embedded ``qdrant_local`` directory. ADR 0028.
 """
 
 from __future__ import annotations
@@ -23,9 +24,11 @@ from qdrant_client import AsyncQdrantClient
 from qdrant_client.http import models as qdrant_models
 from qdrant_client.http.models import (
     Distance,
+    HnswConfigDiff,
     MultiVectorComparator,
     MultiVectorConfig,
     PointStruct,
+    SearchParams,
     VectorParams,
 )
 
@@ -35,10 +38,6 @@ from src.types import RetrievalResult
 # RoutingRetriever's page-level RRF fusion merges both legs on the same page
 # (src/rag/retrievers/routing.py `_to_page_id`).
 _PAGE_CHUNK_FMT = "{paper_id}::p{page_no}::page"
-
-# ColQwen2-v1.0 emits 128-dim per-patch vectors. Only used to create the
-# collection (offline build); the serve path queries an existing collection.
-_COLQWEN2_DIM = 128
 
 
 class QdrantVisualStore:
@@ -54,10 +53,12 @@ class QdrantVisualStore:
         url: str,
         collection_name: str,
         *,
-        dim: int = _COLQWEN2_DIM,
+        dim: int | None = None,
         client: AsyncQdrantClient | None = None,
     ) -> None:
         self._collection = collection_name
+        # The encoder's per-token dim; only collection creation reads it, so the
+        # serve and eval paths, which query an existing collection, omit it.
         self._dim = dim
         # Embedded path-mode allows one client per on-disk path per process, and
         # the serve path already holds one open for the text store. So the serve
@@ -82,7 +83,16 @@ class QdrantVisualStore:
         colpali's ``score_multi_vector`` exactly, which scores raw dot products
         (``einsum(...).max().sum()``) with no per-vector normalization, so COSINE
         would diverge from the offline eval's ranking on non-unit vectors.
+
+        ``on_disk`` and ``m=0`` only change a Qdrant server; embedded mode keeps
+        vectors in memory and scores every page regardless. A server fixes
+        ``on_disk`` at creation, and without it holds every page vector in RAM.
+        ``m=0`` skips building an HNSW graph that exact search never reads.
         """
+        if self._dim is None:
+            raise ValueError(
+                f"creating {self._collection!r} needs the visual encoder's per-token dim"
+            )
         existing = await self._client.get_collections()
         if any(c.name == self._collection for c in existing.collections):
             return
@@ -92,6 +102,8 @@ class QdrantVisualStore:
                 size=self._dim,
                 distance=Distance.DOT,
                 multivector_config=MultiVectorConfig(comparator=MultiVectorComparator.MAX_SIM),
+                on_disk=True,
+                hnsw_config=HnswConfigDiff(m=0),
             ),
         )
 
@@ -163,6 +175,11 @@ class QdrantVisualStore:
         MAX_SIM comparator. Results are mapped to the same ``RetrievalResult``
         shape the in-memory leg emits (``source="visual"``, the ``::page``
         chunk-id), so RoutingRetriever fuses them identically.
+
+        ``exact`` makes a server score every page, as embedded mode and
+        colpali's ``score_multi_vector`` do, instead of walking an HNSW graph
+        that a collection created before ``m=0`` may carry. Approximate search
+        moved committed MMDocIR runs (ADR 0032, 2026-09-24 amendment).
         """
         qdrant_filter: qdrant_models.Filter | None = None
         if paper_filter is not None:
@@ -179,6 +196,7 @@ class QdrantVisualStore:
             query=query_multivector,
             limit=top_k,
             query_filter=qdrant_filter,
+            search_params=SearchParams(exact=True),
         )
         results: list[RetrievalResult] = []
         for point in response.points:
