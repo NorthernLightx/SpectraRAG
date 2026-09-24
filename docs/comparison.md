@@ -19,15 +19,13 @@ where a text-only index misses the page entirely.
   ColQwen2 (ColPali-family) multi-vector index over rendered pages and scores it
   with MaxSim, so a chart with no useful text layer is still retrievable. On
   figure/chart pages that's the difference between finding the page and not.
-- **Both retrieval legs on every query, after the router was measured and
-  dropped.** A classifier used to send each query to the text leg or to
-  text+visual, and a 107-query benchmark showed it capturing the available lift.
-  A 1,127-query set carrying page and bounding-box labels reversed that: fusing
-  both legs reaches 0.784 recall@10 where the classifier reaches 0.621, at the
-  same median latency (ADR 0032, superseding 0013). The classifier survives as a
-  cost switch. Peers that always run one path (always-ColPali, or always-text)
-  don't make that decision; this repo made it, measured it again with more
-  power, and overturned its own answer.
+- **Both retrieval legs, with the balance set per corpus.** On MMDocIR's
+  visually rich documents the visual leg alone reaches 0.80 recall@10 against
+  0.46 for text alone, and fusing in the text leg costs 0.05 recall@5. On
+  text-heavy papers the text leg ranks figure captions better. One setting,
+  `RAG_VISUAL_FUSION_WEIGHT`, moves the balance, and its effect was measured on
+  both kinds of corpus (ADR 0023, ADR 0032). Always-ColPali and always-text
+  tools fix that choice in advance.
 - **An eval behind every change, including the negatives.** Committed golden
   sets, a >5% regression gate, and a wall of *measured* dead ends (GraphRAG lost
   to plain RAG, agentic decomposition hurt retrieval, rerankers were a wash) plus
