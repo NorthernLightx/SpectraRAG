@@ -60,9 +60,10 @@ under [`data/eval/`](./data/eval/) as `baseline-mmlongbench-text.json` and
 set, on the always-hybrid arm that production now serves.
 
 **Retrieval is no longer the binding constraint. Reading is.** Handed the right
-page, the reader answers roughly a third of queries correctly. Of 120 queries
-whose correct evidence reached it, 46 % were refused and 11 % were answered
-wrongly, so refusal outnumbers misreading four to one. Prompting past those
+page, the reader answers roughly a third of queries correctly. Of the 110 to
+120 queries whose gold page was retrieved, about 46 % were refused and 12 to 29 %
+were answered wrongly (the judge's partial grades decide where in that range),
+so refusal outnumbers misreading. Prompting past those
 refusals lifts the coverage metric and produces more wrong answers: one variant
 went from 44 wrong answers to 57 of 150. No prompt variant shipped. Full
 methodology and failure modes are in [`docs/results.md`](./docs/results.md). For

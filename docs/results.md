@@ -291,8 +291,9 @@ receipts under `data/eval/baseline-mmdocir-*.json`.
 
 Answering is a separate ceiling. On a 150-query subset read by `gemma-4-26b`, the
 retrieval gain converts only where routing changes what is retrieved (n=18: 0.333
-against 0.000, p=0.016). Of the queries whose gold evidence did reach the reader,
-46 % were refused and 11 % answered wrongly, and rendering pages at 150 DPI
+against 0.000, p=0.016). Of the queries whose gold page was retrieved, about
+46 % were refused and 12 to 29 % answered wrongly (the judge's partial grades
+decide where in that range), and rendering pages at 150 DPI
 instead of the 72 DPI MMDocIR ships moved that +0.023. Prompting the reader to
 treat page images as context lifts the metric but turns correct refusals into
 wrong answers, so no prompt change shipped.
