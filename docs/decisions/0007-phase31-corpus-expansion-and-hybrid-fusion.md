@@ -234,3 +234,37 @@ classifier signals figure / table / multi-hop.
   colpali-engine / peft conflict.
 - `tests/unit/test_logging.py::test_stdout_handler_handles_non_cp1252_chars_without_crashing`
   (regression test for the Windows cp1252 logger crash).
+
+## Amendment (2026-09-24): a smaller 2026 retriever ties ColQwen2
+
+The 8 GB ceiling above left every newer retriever untested.
+VultronRetrieverFlash-Qwen3.5-0.8B fits under it: 0.85 B parameters,
+Apache-2.0, 320-dim late-interaction vectors, loaded as colpali-engine's
+`ColQwen3_5`. It was measured against ColQwen2-v1.0 on all 1,127 MMDocIR
+queries, with the same 72 DPI page renders, exact MaxSim, and the 1,792
+visual-token budget its model card evaluates at. Receipt:
+`data/eval/mmdocir-visual-vultron.json.gz`, paired against
+`data/eval/baseline-mmdocir-visual.json`. The receipt's `dpi` field records an
+unused command-line default; the pages are the 72 DPI renders in
+`data/mmdocir/pages`.
+
+- Recall ties: recall@10 +0.005 (95 % CI [-0.010, +0.020]), recall@5 -0.003.
+- Ranking is slightly worse: nDCG@5 -0.013 (CI [-0.028, +0.001], 139 better
+  and 202 worse, p = 0.0008), MRR -0.014 (p = 0.055). Tables carry the loss,
+  nDCG@5 -0.045 (CI [-0.076, -0.015], n = 243), and it grows with how dense
+  the gold page is. At 72 DPI its 32-pixel patches give a page about a fifth
+  fewer tokens than ColQwen2's 28-pixel ones; that is the likely cause, not
+  tested.
+- Fused with the committed text leg at w=1, the two retrievers tie overall.
+- Cost splits. On CPU, as served, it encodes a query in 436 ms against 987 ms,
+  from 3.4 GB of fp32 weights against 9.0 GB. The page index doubles (2.8
+  against 1.4 GiB of vectors) and exact search over 4,837 pages slows from 273
+  to 356 ms. On GPU it is slower both ways, running without the
+  flash-linear-attention and causal-conv1d kernels, which are not installed
+  here.
+
+ColQwen2-v1.0 stays. The CPU saving is the one argument for a swap, and the
+swap costs a rebuilt demo index, a re-recorded CI fixture and a table
+regression, on a retriever that is no longer the binding constraint (ADR 0032).
+The loader maps Vultron's ids to `ColQwen3_5` and passes the card's
+1,792-token budget, so the receipt can be rebuilt.
