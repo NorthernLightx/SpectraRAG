@@ -135,3 +135,35 @@ v3 deterministic sweep (whose corpus, `data/papers/`, was correct) and
 the falsified ~5.5 s latency premise, not on the MMLongBench arm, which
 the decision never depended on. Finding 2 should be read as void; Findings
 1, 3, 4, 5 and the decision stand.
+
+## Amendment (2026-09-24): a page-image reranker lifts the visual leg, eval only
+
+The cross-encoders above read text chunks. A page-image reranker reads the page
+the visual leg retrieved. Qwen3-VL-Reranker-2B (Apache-2.0) reranked the visual
+leg's top 20 pages for all 1,127 MMDocIR queries, taken from the ADR 0032
+depth-50 receipt (`data/eval/mmdocir-depth50-legs.json.gz`). Pages were capped
+at the 1.31 megapixels its reference scorer ships with, and the score is
+logit(yes) minus logit(no), projected in fp32 so bf16 rounding does not tie
+pages. Instrument: `scripts/experiments/visual_rerank_probe.py`, which also
+writes the ColQwen2-order control from the same candidates. Receipt:
+`data/eval/mmdocir-visual-rerank20.json.gz`.
+
+| | ColQwen2 order | reranked | delta (95 % CI) |
+|---|---|---|---|
+| recall@5 | 0.749 | 0.776 | +0.027 [0.013, 0.041] |
+| nDCG@5 | 0.686 | 0.710 | +0.024 [0.010, 0.037] |
+| MRR | 0.689 | 0.710 | +0.020 [0.004, 0.035] |
+| recall@10 | 0.796 | 0.814 | +0.017 [0.006, 0.028] |
+
+Figures carry the gain: recall@5 +0.054 and nDCG@5 +0.050 (n = 395). Factual
+queries show a borderline gain of about 0.02 on both. Tables, already at 0.92
+recall@5 in ColQwen2's order, do not move. A perfect reorder of these 20
+candidates would add 0.089 recall@5, and this one takes 31 % of that.
+
+It does not serve. On an RTX 3070 a pair costs 0.21 s (p95 0.57 s), so 4.3 s
+per query for 20 pages, at 4.4 GiB of VRAM; on Cloud Run's CPU the same work
+would take minutes a query. What it shows is headroom in the page ranking
+itself, figure queries first, for any visual scorer that fits the serving
+budget. MonoQwen2-VL's thrashing on this card in May most likely came from
+uncapped page resolution (about 2,700 tokens per 150 DPI page), not from its
+size.
