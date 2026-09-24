@@ -28,7 +28,7 @@ _MODEL = "vidore/colqwen2-v1.0"
 # ColQwen2 is a LoRA adapter over this base; both must already be cached.
 _REQUIRED_CACHE_DIRS = (
     "models--vidore--colqwen2-v1.0",
-    "models--Qwen--Qwen2-VL-2B-Instruct",
+    "models--vidore--colqwen2-base",
 )
 
 
