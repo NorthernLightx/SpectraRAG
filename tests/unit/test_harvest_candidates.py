@@ -6,7 +6,7 @@ import pytest
 from pydantic import ValidationError
 
 from scripts.harvest_candidates import _flag_reasons, _is_refusal, _to_candidate
-from scripts.promote_candidates import NotLabeledError, _validate_candidate
+from scripts.promote_candidates import NotLabeledError, _merge, _validate_candidate
 
 
 def _pq(
@@ -141,3 +141,14 @@ def test_validate_rejects_facts_without_evidence() -> None:
     }
     with pytest.raises(NotLabeledError):
         _validate_candidate(no_spans)
+
+
+def test_merge_skips_queries_already_promoted() -> None:
+    # Promoting a candidates file again after labelling more of it must not
+    # append the earlier entries a second time.
+    existing = [{"query_id": "mcif_QA_1_1", "text": "edited in the golden"}]
+    accepted = [{"query_id": "mcif_QA_1_1", "text": "stale"}, {"query_id": "mcif_QA_1_2"}]
+    merged, skipped = _merge(existing, accepted)
+    assert [q["query_id"] for q in merged] == ["mcif_QA_1_1", "mcif_QA_1_2"]
+    assert merged[0]["text"] == "edited in the golden"
+    assert skipped == ["mcif_QA_1_1"]

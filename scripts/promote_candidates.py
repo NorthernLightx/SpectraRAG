@@ -50,6 +50,24 @@ def _validate_candidate(d: dict[str, Any]) -> GoldenQuery:
     return q
 
 
+def _merge(
+    existing: list[dict[str, Any]], accepted: list[dict[str, Any]]
+) -> tuple[list[dict[str, Any]], list[str]]:
+    """Append accepted queries whose id the set lacks. An id already in the set
+    is skipped, not replaced: a correction made in the golden wins over a stale
+    candidate."""
+    have = {q.get("query_id") for q in existing}
+    merged = list(existing)
+    skipped: list[str] = []
+    for q in accepted:
+        if q["query_id"] in have:
+            skipped.append(q["query_id"])
+            continue
+        have.add(q["query_id"])
+        merged.append(q)
+    return merged, skipped
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description="Promote filled golden candidates.")
     ap.add_argument("--candidates", type=Path, required=True)
@@ -75,12 +93,15 @@ def main() -> None:
         sys.exit(1)
 
     doc = yaml.safe_load(args.into.read_text(encoding="utf-8"))
-    doc.setdefault("queries", []).extend(accepted)
+    doc["queries"], skipped = _merge(doc.get("queries") or [], accepted)
     args.into.write_text(
         yaml.safe_dump(doc, sort_keys=False, allow_unicode=True, width=100),
         encoding="utf-8",
     )
-    print(f"promoted {len(accepted)} into {args.into}; rejected {len(rejected)} unlabeled/invalid.")
+    print(
+        f"promoted {len(accepted) - len(skipped)} into {args.into}; "
+        f"{len(skipped)} already there; rejected {len(rejected)} unlabeled/invalid."
+    )
 
 
 if __name__ == "__main__":
