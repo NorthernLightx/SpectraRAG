@@ -21,6 +21,16 @@ from src.ingestion.captioner import (
 from src.ingestion.chunking import chunk_pages, figure_to_chunk, table_to_chunk
 from src.ingestion.contextualize import contextualize_chunks
 from src.ingestion.figures import extract_figures
+from src.ingestion.media import (
+    MediaManifest,
+    SegmentationParams,
+    Transcriber,
+    load_words,
+    save_words,
+    segment_video,
+    transcript_chunks,
+    write_manifest,
+)
 from src.ingestion.pdf import extract_pages
 from src.ingestion.tables import extract_tables
 from src.llm.protocol import LLMClient
@@ -194,13 +204,66 @@ async def ingest_paper(
             )
         ctx["contextualized"] = contextualized
 
-        embeddings = await embedder.embed_texts([c.indexed_text for c in chunks])
-        await vectorstore.upsert_chunks(chunks, embeddings)
-        bm25.add(chunks)
-        ctx["embedding_dim"] = len(embeddings[0]) if embeddings else 0
+        ctx["embedding_dim"] = await _index_chunks(chunks, embedder, vectorstore, bm25)
         return IngestedPaper(
             paper_id=paper.paper_id,
             chunk_count=len(chunks),
             chunks=chunks,
             failed_pages=failed_pages,
         )
+
+
+async def _index_chunks(
+    chunks: list[Chunk], embedder: Embedder, vectorstore: QdrantVectorStore, bm25: Bm25Index
+) -> int:
+    """Embed, upsert and BM25-index `chunks`; returns the embedding dim."""
+    embeddings = await embedder.embed_texts([c.indexed_text for c in chunks])
+    await vectorstore.upsert_chunks(chunks, embeddings)
+    bm25.add(chunks)
+    return len(embeddings[0]) if embeddings else 0
+
+
+async def ingest_media(
+    *,
+    doc_id: str,
+    media_path: Path,
+    embedder: Embedder,
+    vectorstore: QdrantVectorStore,
+    bm25: Bm25Index,
+    transcriber: Transcriber,
+    pages_dir: Path = Path("data/pages"),
+    params: SegmentationParams | None = None,
+    target_chars: int = 1200,
+) -> IngestedPaper:
+    """A recorded talk as a document whose pages are its slide segments.
+
+    Writes one keyframe per segment as the page image and the segment manifest
+    beside it, then indexes the transcript chunks like any text chunk. Decoding
+    and transcription take minutes of CPU, so both run off the event loop.
+    """
+    params = params or SegmentationParams()
+    with timed_event(_log, "ingest_media.done", doc_id=doc_id, media_path=str(media_path)) as ctx:
+        segments = await asyncio.to_thread(segment_video, media_path, doc_id, pages_dir, params)
+        words = load_words(pages_dir, doc_id, transcriber.name)
+        if words is None:
+            words = await asyncio.to_thread(transcriber.transcribe, media_path)
+            save_words(pages_dir, doc_id, transcriber.name, words)
+        chunks = transcript_chunks(doc_id, segments, words, target_chars=target_chars)
+        write_manifest(
+            pages_dir,
+            MediaManifest(
+                doc_id=doc_id,
+                source=media_path.name,
+                duration_s=segments[-1].end_s,
+                transcriber=transcriber.name,
+                segmentation=params.as_dict(),
+                segments=segments,
+            ),
+        )
+        ctx["segments"] = len(segments)
+        ctx["words"] = len(words)
+        ctx["chunks"] = len(chunks)
+        ctx["empty_pages"] = len(segments) - len({c.page_numbers[0] for c in chunks})
+        if chunks:
+            ctx["embedding_dim"] = await _index_chunks(chunks, embedder, vectorstore, bm25)
+        return IngestedPaper(paper_id=doc_id, chunk_count=len(chunks), chunks=chunks)

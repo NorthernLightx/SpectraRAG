@@ -33,7 +33,7 @@ jobs:
           version: "0.5.4"
 
       - name: Install dependencies
-        run: uv sync --extra dev --frozen
+        run: uv sync --extra dev --extra media --frozen
 
       - name: Ruff lint
         run: uv run ruff check .

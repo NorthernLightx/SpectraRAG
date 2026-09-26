@@ -67,6 +67,11 @@ dev = [
   "types-pyyaml",
 ]
 
+# Build-time transcription of recorded talks; the serve image does not install it.
+media = [
+  "faster-whisper>=1.2",
+]
+
 # PyTorch wheels: cu126 on Windows for local 8 GB GPU dev (cross-encoder rerank).
 # Linux (CI / cloud) keeps the default PyPI wheel (CPU-only) since the
 # regression-gate / unit suite doesn't need GPU. `explicit = true` keeps this index
@@ -138,7 +143,7 @@ plugins = ["pydantic.mypy"]
 exclude = "scripts/(experiments|legacy)/"
 
 [[tool.mypy.overrides]]
-module = ["rank_bm25", "rank_bm25.*", "regex", "regex.*", "ollama", "ollama.*", "langfuse", "langfuse.*", "fitz", "fitz.*", "sentence_transformers", "sentence_transformers.*", "PIL", "PIL.*", "colpali_engine", "colpali_engine.*", "torch", "torch.*", "torchvision", "torchvision.*", "datasets", "datasets.*", "huggingface_hub", "huggingface_hub.*", "networkx", "networkx.*", "docling", "docling.*"]
+module = ["rank_bm25", "rank_bm25.*", "regex", "regex.*", "ollama", "ollama.*", "langfuse", "langfuse.*", "fitz", "fitz.*", "sentence_transformers", "sentence_transformers.*", "PIL", "PIL.*", "colpali_engine", "colpali_engine.*", "torch", "torch.*", "torchvision", "torchvision.*", "datasets", "datasets.*", "huggingface_hub", "huggingface_hub.*", "networkx", "networkx.*", "docling", "docling.*", "av", "av.*", "faster_whisper", "faster_whisper.*"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
