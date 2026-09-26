@@ -18,11 +18,12 @@ is decoded or transcribed.
 from __future__ import annotations
 
 import glob
+import itertools
 import json
 from collections.abc import Iterable, Iterator, Sequence
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Protocol
+from typing import TYPE_CHECKING, Any, Literal, Protocol
 
 import numpy as np
 from pydantic import BaseModel
@@ -279,6 +280,9 @@ class MediaManifest(BaseModel):
     transcriber: str
     segmentation: dict[str, Any]
     segments: list[MediaSegment]
+    # A video's pages have keyframes; an audio recording's pages are time
+    # windows with transcript only.
+    kind: Literal["video", "audio"] = "video"
 
 
 def manifest_path(pages_dir: Path, doc_id: str) -> Path:
@@ -319,3 +323,60 @@ def load_words(pages_dir: Path, doc_id: str, transcriber: str) -> list[Word] | N
     if payload.get("transcriber") != transcriber:
         return None
     return [Word(start_s=float(a), end_s=float(b), text=str(t)) for a, b, t in payload["words"]]
+
+
+def probe_media(path: Path) -> tuple[bool, float]:
+    """Whether `path` holds moving video, and its duration in seconds. Cover art
+    in an audio file is a one-picture video stream, flagged as attached, and
+    does not count."""
+    import av
+
+    container: Any = av.open(str(path))
+    try:
+        still = av.stream.Disposition.attached_pic | av.stream.Disposition.still_image
+        has_video = any(not (s.disposition & still) for s in container.streams.video)
+        if container.duration is not None:
+            duration_s = container.duration / 1_000_000
+        else:
+            stream = container.streams[0]
+            duration_s = float(stream.duration * stream.time_base) if stream.duration else 0.0
+        return has_video, float(duration_s)
+    finally:
+        container.close()
+
+
+@dataclass(frozen=True)
+class AudioSegmentationParams:
+    """Time windows for a recording with no slides to cut on. A window closes at
+    the first sentence end past `min_segment_s`, or at the first word past
+    `max_segment_s` when no sentence ends, so a window never splits a sentence
+    unless the speech runs on."""
+
+    min_segment_s: float = 45.0
+    max_segment_s: float = 90.0
+
+    def as_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+def segment_words(
+    words: Sequence[Word], *, duration_s: float, params: AudioSegmentationParams
+) -> list[MediaSegment]:
+    """Contiguous windows over [0, duration_s) cut at word ends. Silence after
+    the last word joins the last window instead of becoming an empty page."""
+    cuts: list[float] = []
+    start, has_words = 0.0, False
+    for word in words:
+        has_words = True
+        elapsed = word.end_s - start
+        sentence_end = word.text.rstrip().endswith((".", "?", "!"))
+        if (sentence_end and elapsed >= params.min_segment_s) or elapsed >= params.max_segment_s:
+            cuts.append(word.end_s)
+            start, has_words = word.end_s, False
+    if cuts and not has_words:
+        cuts.pop()
+    bounds = [0.0, *cuts, max(duration_s, cuts[-1] + 1e-3 if cuts else 1e-3)]
+    return [
+        MediaSegment(page=n, start_s=a, end_s=b)
+        for n, (a, b) in enumerate(itertools.pairwise(bounds), start=1)
+    ]

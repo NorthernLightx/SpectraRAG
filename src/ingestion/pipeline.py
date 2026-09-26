@@ -10,8 +10,10 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 from src.embeddings.protocol import Embedder
+from src.ingestion import media
 from src.ingestion.captioner import (
     _Captioner,
     caption_figures,
@@ -21,16 +23,6 @@ from src.ingestion.captioner import (
 from src.ingestion.chunking import chunk_pages, figure_to_chunk, table_to_chunk
 from src.ingestion.contextualize import contextualize_chunks
 from src.ingestion.figures import extract_figures
-from src.ingestion.media import (
-    MediaManifest,
-    SegmentationParams,
-    Transcriber,
-    load_words,
-    save_words,
-    segment_video,
-    transcript_chunks,
-    write_manifest,
-)
 from src.ingestion.pdf import extract_pages
 from src.ingestion.tables import extract_tables
 from src.llm.protocol import LLMClient
@@ -230,36 +222,51 @@ async def ingest_media(
     embedder: Embedder,
     vectorstore: QdrantVectorStore,
     bm25: Bm25Index,
-    transcriber: Transcriber,
+    transcriber: media.Transcriber,
     pages_dir: Path = Path("data/pages"),
-    params: SegmentationParams | None = None,
+    params: media.SegmentationParams | None = None,
+    audio_params: media.AudioSegmentationParams | None = None,
     target_chars: int = 1200,
 ) -> IngestedPaper:
-    """A recorded talk as a document whose pages are its slide segments.
+    """A recording as a document whose pages are its time segments.
 
-    Writes one keyframe per segment as the page image and the segment manifest
-    beside it, then indexes the transcript chunks like any text chunk. Decoding
+    A video's pages are its slide segments, each with a keyframe written as the
+    page image. An audio recording's pages are time windows over its
+    transcript, with no image. Either way the segment manifest goes beside the
+    pages and the transcript chunks are indexed like any text chunk. Decoding
     and transcription take minutes of CPU, so both run off the event loop.
     """
-    params = params or SegmentationParams()
+    params = params or media.SegmentationParams()
+    audio_params = audio_params or media.AudioSegmentationParams()
     with timed_event(_log, "ingest_media.done", doc_id=doc_id, media_path=str(media_path)) as ctx:
-        segments = await asyncio.to_thread(segment_video, media_path, doc_id, pages_dir, params)
-        words = load_words(pages_dir, doc_id, transcriber.name)
+        has_video, duration_s = await asyncio.to_thread(media.probe_media, media_path)
+        words = media.load_words(pages_dir, doc_id, transcriber.name)
         if words is None:
             words = await asyncio.to_thread(transcriber.transcribe, media_path)
-            save_words(pages_dir, doc_id, transcriber.name, words)
-        chunks = transcript_chunks(doc_id, segments, words, target_chars=target_chars)
-        write_manifest(
+            media.save_words(pages_dir, doc_id, transcriber.name, words)
+        segmentation: dict[str, Any]
+        if has_video:
+            segments = await asyncio.to_thread(
+                media.segment_video, media_path, doc_id, pages_dir, params
+            )
+            segmentation = params.as_dict()
+        else:
+            segments = media.segment_words(words, duration_s=duration_s, params=audio_params)
+            segmentation = audio_params.as_dict()
+        chunks = media.transcript_chunks(doc_id, segments, words, target_chars=target_chars)
+        media.write_manifest(
             pages_dir,
-            MediaManifest(
+            media.MediaManifest(
                 doc_id=doc_id,
                 source=media_path.name,
                 duration_s=segments[-1].end_s,
                 transcriber=transcriber.name,
-                segmentation=params.as_dict(),
+                segmentation=segmentation,
                 segments=segments,
+                kind="video" if has_video else "audio",
             ),
         )
+        ctx["kind"] = "video" if has_video else "audio"
         ctx["segments"] = len(segments)
         ctx["words"] = len(words)
         ctx["chunks"] = len(chunks)

@@ -1,9 +1,9 @@
-"""Ingest recorded talks: slide segments as pages, keyframes, transcript chunks.
+"""Ingest recordings: talk videos and audio, as documents of time segments.
 
-Each video becomes a document whose pages are its slide segments
-(src/ingestion/media.py). Keyframes and the segment manifest go under
-`--pages-dir`; transcript chunks go into `--collection`, embedded by the same
-builder the eval uses for the chosen profile.
+A video's pages are its slide segments, each with a keyframe; an audio file's
+pages are time windows over its transcript (src/ingestion/media.py). Keyframes
+and the segment manifest go under `--pages-dir`; transcript chunks go into
+`--collection`, embedded by the same builder the eval uses for the profile.
 
 Usage:
     uv run python -m scripts.ingest_media \\
@@ -26,15 +26,29 @@ from src.rag.bm25 import Bm25Index
 from src.rag.retrieval_config import RetrievalConfig, build_embedder
 from src.rag.vectorstore import QdrantVectorStore
 
-_VIDEO_SUFFIXES = {".mp4", ".mov", ".mkv", ".webm"}
+_MEDIA_SUFFIXES = {
+    ".mp4",
+    ".mov",
+    ".mkv",
+    ".webm",
+    ".mp3",
+    ".wav",
+    ".m4a",
+    ".flac",
+    ".ogg",
+    ".opus",
+    ".aac",
+}
 
 
 async def main(args: argparse.Namespace) -> None:
-    videos = sorted(p for p in args.media_dir.iterdir() if p.suffix.lower() in _VIDEO_SUFFIXES)
+    videos = sorted(p for p in args.media_dir.iterdir() if p.suffix.lower() in _MEDIA_SUFFIXES)
     if args.only:
         videos = [p for p in videos if p.stem in set(args.only)]
     todo = [p for p in videos if args.fresh or not manifest_path(args.pages_dir, p.stem).exists()]
-    print(f"{len(videos)} videos, {len(videos) - len(todo)} already ingested, {len(todo)} to go")
+    print(
+        f"{len(videos)} recordings, {len(videos) - len(todo)} already ingested, {len(todo)} to go"
+    )
     if not todo:
         return
 

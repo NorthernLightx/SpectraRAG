@@ -3,7 +3,8 @@
 Derives the catalogue from the on-disk `pages_dir` layout
 (`<pages_dir>/<paper_id>/<paper_id>_p<N>.png`) so the result tracks
 whatever's actually been baked into the deployed image, with no separate
-manifest to drift out of sync.
+manifest to drift out of sync. An audio recording has pages but no page
+images; its segment manifest beside them gives the count.
 
 Titles are read from `data/paper_titles.json` (mapping paper_id → title)
 when present. Populate the file via `scripts/fetch_paper_titles.py`. When
@@ -22,6 +23,7 @@ from pydantic import BaseModel
 
 from src.api.deps import get_settings
 from src.config.settings import Settings
+from src.ingestion.media import load_manifest, manifest_path
 
 router = APIRouter()
 
@@ -73,6 +75,8 @@ def list_papers(settings: Settings = Depends(get_settings)) -> list[PaperInfo]:
             continue
         paper_id = subdir.name
         page_count = sum(1 for _ in subdir.glob(f"{paper_id}_p*.png"))
+        if page_count == 0 and manifest_path(pages_dir, paper_id).exists():
+            page_count = len(load_manifest(pages_dir, paper_id).segments)
         if page_count == 0:
             continue
         is_arxiv = bool(_ARXIV_RE.match(paper_id))

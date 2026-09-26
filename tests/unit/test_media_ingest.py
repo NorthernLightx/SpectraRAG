@@ -167,6 +167,7 @@ async def test_ingest_media_indexes_chunks_off_the_event_loop(
         return iter(frames), 20.0
 
     monkeypatch.setattr(media, "iter_video_frames", fake_frames)
+    monkeypatch.setattr(media, "probe_media", lambda path: (True, 20.0))
     transcriber = _FakeTranscriber()
     vectorstore = QdrantVectorStore(url=":memory:", collection_name="media", dim=8)
     await vectorstore.ensure_collection()
@@ -236,6 +237,7 @@ async def test_reingest_reuses_the_cached_transcript(
         return iter([(float(t), _thumb(0.0), image) for t in range(10)]), 10.0
 
     monkeypatch.setattr(media, "iter_video_frames", fake_frames)
+    monkeypatch.setattr(media, "probe_media", lambda path: (True, 10.0))
     vectorstore = QdrantVectorStore(url=":memory:", collection_name="media", dim=8)
     await vectorstore.ensure_collection()
     runs = []
@@ -274,3 +276,117 @@ def test_resegmenting_removes_keyframes_of_pages_that_no_longer_exist(
     segments = media.segment_video(tmp_path / "talk.mp4", "talk", tmp_path / "pages", PARAMS)
     assert [s.page for s in segments] == [1]
     assert sorted(p.name for p in stale.parent.glob("*.png")) == ["talk_p1.png"]
+
+
+AUDIO = media.AudioSegmentationParams()
+
+
+def _sentence(start: float, end: float, n: int = 5) -> list[Word]:
+    """`n` words spread over [start, end), the last one ending a sentence."""
+    step = (end - start) / n
+    words = [Word(start + i * step, start + (i + 1) * step - 0.05, f" w{i}") for i in range(n)]
+    last = words[-1]
+    return [*words[:-1], Word(last.start_s, last.end_s, " end.")]
+
+
+def test_audio_windows_cut_at_the_first_sentence_end_after_the_minimum() -> None:
+    words = _sentence(0, 20) + _sentence(20, 50) + _sentence(50, 80) + _sentence(80, 100)
+    segments = media.segment_words(words, duration_s=100.0, params=AUDIO)
+    # 50 s is the first sentence end past 45 s; the rest never reaches 45 s again.
+    assert [(s.page, s.start_s, round(s.end_s, 2)) for s in segments] == [
+        (1, 0.0, 49.95),
+        (2, 49.95, 100.0),
+    ]
+
+
+def test_audio_windows_force_a_cut_at_the_maximum_without_a_sentence_end() -> None:
+    words = [Word(float(t), t + 0.5, " on") for t in range(0, 200)]
+    segments = media.segment_words(words, duration_s=200.0, params=AUDIO)
+    assert [s.end_s for s in segments][:2] == [90.5, 180.5]
+    assert segments[-1].end_s == 200.0
+
+
+def test_silence_after_the_last_word_joins_the_last_window() -> None:
+    words = _sentence(0, 50) + _sentence(50, 70)
+    segments = media.segment_words(words, duration_s=300.0, params=AUDIO)
+    assert [s.page for s in segments] == [1, 2]
+    assert segments[-1].end_s == 300.0
+
+
+def test_a_recording_without_words_is_one_window() -> None:
+    segments = media.segment_words([], duration_s=42.0, params=AUDIO)
+    assert [(s.start_s, s.end_s) for s in segments] == [(0.0, 42.0)]
+
+
+async def test_ingest_media_indexes_audio_without_keyframes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from src.ingestion.pipeline import ingest_media
+
+    class _Talker:
+        name = "fake"
+
+        def transcribe(self, path: Path) -> list[Word]:
+            return _sentence(0, 50) + _sentence(50, 100)
+
+    monkeypatch.setattr(media, "probe_media", lambda path: (False, 100.0))
+    vectorstore = QdrantVectorStore(url=":memory:", collection_name="media", dim=8)
+    await vectorstore.ensure_collection()
+    result = await ingest_media(
+        doc_id="call",
+        media_path=tmp_path / "call.mp3",
+        embedder=FakeEmbedder(dim=8),
+        vectorstore=vectorstore,
+        bm25=Bm25Index(),
+        transcriber=_Talker(),
+        pages_dir=tmp_path / "pages",
+    )
+    manifest = load_manifest(tmp_path / "pages", "call")
+    assert manifest.kind == "audio"
+    assert [s.page for s in manifest.segments] == [1, 2]
+    assert [c.page_numbers for c in result.chunks] == [[1], [2]]
+    assert not list((tmp_path / "pages" / "call").glob("*.png"))
+
+
+def test_probe_media_tells_audio_from_video(tmp_path: Path) -> None:
+    av = pytest.importorskip("av")
+    path = tmp_path / "tone.wav"
+    with av.open(str(path), "w") as container:
+        stream = container.add_stream("pcm_s16le", rate=16000)
+        samples = (np.sin(np.arange(16000 * 3) * 0.05) * 8000).astype(np.int16)
+        frame = av.AudioFrame.from_ndarray(samples.reshape(1, -1), format="s16", layout="mono")
+        frame.sample_rate = 16000
+        for packet in stream.encode(frame):
+            container.mux(packet)
+        for packet in stream.encode(None):
+            container.mux(packet)
+    has_video, duration = media.probe_media(path)
+    assert has_video is False
+    assert duration == pytest.approx(3.0, abs=0.1)
+
+
+def test_cover_art_does_not_make_an_audio_file_a_video(tmp_path: Path) -> None:
+    # Podcasts and phone exports carry cover art as a one-picture video stream;
+    # taking it for video would segment the recording as one slide.
+    av = pytest.importorskip("av")
+    path = tmp_path / "episode.mp4"
+    with av.open(str(path), "w") as container:
+        audio = container.add_stream("aac", rate=16000)
+        cover = container.add_stream("mjpeg", rate=1)
+        cover.width, cover.height, cover.pix_fmt = 64, 64, "yuvj420p"
+        cover.disposition = av.stream.Disposition.attached_pic
+        for packet in cover.encode(av.VideoFrame.from_image(Image.new("RGB", (64, 64), "red"))):
+            container.mux(packet)
+        for packet in cover.encode(None):
+            container.mux(packet)
+        tone = (np.sin(np.arange(16000 * 2) * 0.05) * 0.2).astype(np.float32).reshape(1, -1)
+        frame = av.AudioFrame.from_ndarray(tone, format="fltp", layout="mono")
+        frame.sample_rate = 16000
+        for packet in audio.encode(frame):
+            container.mux(packet)
+        for packet in audio.encode(None):
+            container.mux(packet)
+    with av.open(str(path)) as check:
+        assert len(check.streams.video) == 1
+    has_video, _ = media.probe_media(path)
+    assert has_video is False
