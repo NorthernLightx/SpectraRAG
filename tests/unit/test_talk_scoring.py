@@ -82,3 +82,20 @@ def test_score_query_compares_with_random_at_the_same_depth() -> None:
     assert s["random_mrr"] == pytest.approx(
         random_reciprocal_rank(n_pages=10, n_relevant=1, depth=2)
     )
+
+
+def test_score_query_buckets_evidence_by_how_many_pages_it_covers() -> None:
+    # Wide evidence is easy even for a random ranking, so results are split by it.
+    def width(start: float, end: float) -> str:
+        q = GoldenQuery(
+            query_id="q",
+            text="?",
+            paper_id="talk",
+            category="factual",
+            relevant_spans=[TimeSpan(start_s=start, end_s=end)],
+        )
+        return str(score_query(q, SEGMENTS, ["talk::p1::c0"])["width"])
+
+    assert width(31.0, 39.0) == "1 page"
+    assert width(12.0, 38.0) == "2-3 pages"
+    assert width(0.0, 100.0) == "4+ pages"

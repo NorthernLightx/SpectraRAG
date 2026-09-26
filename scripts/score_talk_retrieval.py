@@ -53,6 +53,7 @@ def score_query(
         "query_id": q.query_id,
         "category": q.category,
         "origin": _origin(q.note),
+        "width": _width(len(pages)),
         "relevant_pages": pages,
         "n_pages": n,
         "depth": depth,
@@ -63,6 +64,13 @@ def score_query(
         "random_recall_at_3": random_recall_at_k(n_pages=n, k=min(3, depth)),
         "random_mrr": random_reciprocal_rank(n_pages=n, n_relevant=max(1, len(pages)), depth=depth),
     }
+
+
+def _width(n_pages: int) -> str:
+    """Evidence width, the main driver of the random baseline."""
+    if n_pages <= 1:
+        return "1 page"
+    return "2-3 pages" if n_pages <= 3 else "4+ pages"
 
 
 def _origin(note: str | None) -> str:
@@ -143,7 +151,7 @@ def main() -> None:
         if not rows:
             raise SystemExit(f"{path.name}: no span-labelled query of the golden set is in it")
         groups: dict[str, list[dict[str, Any]]] = {"all": rows}
-        for key in ("category", "origin"):
+        for key in ("width", "category", "origin"):
             for r in rows:
                 groups.setdefault(f"{key}={r[key]}", []).append(r)
         summaries = {name: summarize(g) for name, g in groups.items()}
