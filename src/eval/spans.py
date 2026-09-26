@@ -7,6 +7,7 @@ numbers every page-level scorer already reads.
 
 from __future__ import annotations
 
+import math
 from collections.abc import Iterable, Sequence
 
 from src.types import MediaSegment
@@ -33,3 +34,18 @@ def pages_for_spans(
             if overlap > 0 and overlap >= needed:
                 pages.add(seg.page)
     return sorted(pages)
+
+
+def random_recall_at_k(*, n_pages: int, k: int) -> float:
+    """Expected recall@k of a uniformly random ranking of `n_pages` pages: each
+    relevant page lands in the top k with probability k / n."""
+    return min(k, n_pages) / n_pages
+
+
+def random_reciprocal_rank(*, n_pages: int, n_relevant: int, depth: int | None = None) -> float:
+    """Expected reciprocal rank of the first relevant page in a uniformly
+    random ranking of `n_pages` pages, `n_relevant` of them relevant, counting
+    only the first `depth` ranks (all of them when None)."""
+    total = math.comb(n_pages, n_relevant)
+    last = n_pages - n_relevant + 1 if depth is None else min(depth, n_pages - n_relevant + 1)
+    return sum(math.comb(n_pages - i, n_relevant - 1) / total / i for i in range(1, last + 1))
