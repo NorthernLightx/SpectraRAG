@@ -38,10 +38,15 @@ def _validate_candidate(d: dict[str, Any]) -> GoldenQuery:
     q = GoldenQuery.model_validate(d)
     if q.paper_id in ("", "TODO"):
         raise NotLabeledError(f"{q.query_id}: paper_id unset")
+    # An unanswerable query's truth is the absence of facts and evidence.
+    if q.category == "out_of_corpus":
+        return q
     if not q.expected_facts:
         raise NotLabeledError(f"{q.query_id}: expected_facts empty")
-    if not (q.relevant_chunk_ids or q.relevant_pages):
-        raise NotLabeledError(f"{q.query_id}: no relevant_chunk_ids / relevant_pages")
+    if not (q.relevant_chunk_ids or q.relevant_pages or q.relevant_spans):
+        raise NotLabeledError(
+            f"{q.query_id}: no relevant_chunk_ids / relevant_pages / relevant_spans"
+        )
     return q
 
 

@@ -1,6 +1,6 @@
 """Public types shared across modules."""
 
-from src.types.documents import Bbox, Chunk, Figure, Page, Paper, Table
+from src.types.documents import Bbox, Chunk, Figure, MediaSegment, Page, Paper, Table
 from src.types.eval import (
     EvalRun,
     GenerationMetrics,
@@ -43,6 +43,7 @@ __all__ = [
     "GoldenSet",
     "GraphEntity",
     "GraphRelation",
+    "MediaSegment",
     "Page",
     "Paper",
     "PerQueryResult",

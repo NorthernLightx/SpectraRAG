@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 QueryCategory = Literal[
     "factual",
@@ -17,6 +17,21 @@ QueryCategory = Literal[
 ]
 
 
+class TimeSpan(BaseModel):
+    """A stretch of a recording, in seconds from its start."""
+
+    model_config = ConfigDict(frozen=True)
+
+    start_s: float = Field(ge=0)
+    end_s: float
+
+    @model_validator(mode="after")
+    def _check_ordering(self) -> TimeSpan:
+        if self.end_s <= self.start_s:
+            raise ValueError(f"TimeSpan: end_s ({self.end_s}) must be > start_s ({self.start_s})")
+        return self
+
+
 class GoldenQuery(BaseModel):
     """A single labeled evaluation query."""
 
@@ -26,6 +41,9 @@ class GoldenQuery(BaseModel):
     category: QueryCategory
     relevant_chunk_ids: list[str] = Field(default_factory=list)
     relevant_pages: list[int] = Field(default_factory=list)
+    # Evidence in a recording, labelled in seconds so a re-segmentation never
+    # invalidates it; src/eval/spans.py maps it onto the current segment pages.
+    relevant_spans: list[TimeSpan] = Field(default_factory=list)
     expected_facts: list[str] = Field(default_factory=list)
     note: str | None = None
 

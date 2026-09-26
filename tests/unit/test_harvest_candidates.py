@@ -105,3 +105,39 @@ def test_validate_accepts_fully_labeled() -> None:
     q = _validate_candidate(good)
     assert q.query_id == "cand_q1"
     assert q.expected_facts == ["The value is 42."]
+
+
+def test_validate_accepts_time_span_labels() -> None:
+    labeled = {
+        "query_id": "mcif_QA_13_135",
+        "text": "What are the main data sources for language models?",
+        "paper_id": "ICWfTnUMio",
+        "category": "factual",
+        "relevant_spans": [{"start_s": 12.0, "end_s": 31.5}],
+        "expected_facts": ["Web-crawled data, especially news."],
+    }
+    assert _validate_candidate(labeled).relevant_spans[0].end_s == 31.5
+
+
+def test_validate_accepts_out_of_corpus_without_evidence() -> None:
+    # An unanswerable query's truth is the absence of evidence.
+    ooc = {
+        "query_id": "mcif_QA_1_1",
+        "text": "Which GPU did the authors use?",
+        "paper_id": "ICWfTnUMio",
+        "category": "out_of_corpus",
+    }
+    assert _validate_candidate(ooc).category == "out_of_corpus"
+
+
+def test_validate_rejects_facts_without_evidence() -> None:
+    no_spans = {
+        "query_id": "mcif_QA_13_135",
+        "text": "What are the main data sources for language models?",
+        "paper_id": "ICWfTnUMio",
+        "category": "factual",
+        "relevant_spans": [],
+        "expected_facts": ["Web-crawled data, especially news."],
+    }
+    with pytest.raises(NotLabeledError):
+        _validate_candidate(no_spans)
