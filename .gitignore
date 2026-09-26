@@ -101,6 +101,7 @@ data/figures/
 data/pages_dpi*/
 data/mmlongbench/
 data/mmdocir/
+data/mcif/
 data/dci/
 data/ingestion_study/
 data/tiny_figures_inspect/
