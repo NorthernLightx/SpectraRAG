@@ -13,12 +13,17 @@ the question's origin stay in `note`.
 Usage:
     uv run python -m scripts.build_mcif_golden \\
         --candidates data/golden/_candidates/mcif-v1.yaml \\
-        --golden data/golden/mcif-v1.yaml
+        --golden data/golden/mcif-v1.yaml [--spans data/mcif/label/mcif-spans.json]
+
+`--spans` takes the export of the labelling page (`build_label_sheet`): spans
+per query id, or "none" where the labeller could not locate the evidence.
+Those questions stay unlabelled, so promotion rejects them.
 """
 
 from __future__ import annotations
 
 import argparse
+import json
 from collections import Counter
 from collections.abc import Mapping, Sequence
 from pathlib import Path
@@ -27,7 +32,7 @@ import pyarrow.parquet as pq
 import yaml
 
 from scripts.fetch_mcif import QUESTIONS_FILE, McifSample, download, load_qa_samples
-from src.types.eval import GoldenQuery, GoldenSet, QueryCategory
+from src.types.eval import GoldenQuery, GoldenSet, QueryCategory, TimeSpan
 
 # Every long-form question in the fixed-prompt split carries this preamble.
 _PROMPT_PREFIX = "Answer the following question concisely given the English content: "
@@ -74,12 +79,34 @@ def to_candidates(samples: Sequence[McifSample], prompts: Mapping[str, str]) -> 
     return candidates
 
 
+def apply_spans(
+    candidates: Sequence[GoldenQuery], spans: Mapping[str, list[list[float]] | str]
+) -> tuple[list[GoldenQuery], list[str]]:
+    """Candidates with the labeller's spans filled in, and the ids marked
+    "none". An id the candidates lack raises: the export is for another set."""
+    by_id = {q.query_id: q for q in candidates}
+    unknown = sorted(set(spans) - set(by_id))
+    if unknown:
+        raise KeyError(f"spans for unknown queries: {unknown[:5]}")
+    unlocatable = [qid for qid, v in spans.items() if v == "none"]
+    labelled: list[GoldenQuery] = []
+    for q in candidates:
+        value = spans.get(q.query_id)
+        if isinstance(value, list):
+            q = q.model_copy(
+                update={"relevant_spans": [TimeSpan(start_s=a, end_s=b) for a, b in value]}
+            )
+        labelled.append(q)
+    return labelled, unlocatable
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--candidates", type=Path, default=Path("data/golden/_candidates/mcif-v1.yaml")
     )
     parser.add_argument("--golden", type=Path, default=Path("data/golden/mcif-v1.yaml"))
+    parser.add_argument("--spans", type=Path, help="mcif-spans.json from the labelling page")
     args = parser.parse_args()
 
     rows = pq.read_table(  # type: ignore[no-untyped-call]
@@ -87,6 +114,10 @@ def main() -> None:
     ).to_pylist()
     prompts = {str(r["id"]): str(r["prompt_en"]) for r in rows}
     candidates = to_candidates(load_qa_samples(), prompts)
+    unlocatable: list[str] = []
+    if args.spans:
+        spans = json.loads(args.spans.read_text(encoding="utf-8"))
+        candidates, unlocatable = apply_spans(candidates, spans)
 
     args.candidates.parent.mkdir(parents=True, exist_ok=True)
     body = yaml.safe_dump(
@@ -107,6 +138,9 @@ def main() -> None:
     categories = Counter(c.category for c in candidates)
     print(f"Wrote {len(candidates)} candidates over {len({c.paper_id for c in candidates})} talks")
     print(f"  categories: {dict(categories.most_common())}")
+    print(f"  with spans: {sum(1 for c in candidates if c.relevant_spans)}")
+    if unlocatable:
+        print(f"  could not be located: {len(unlocatable)}")
     print(f"  -> {args.candidates}")
 
 

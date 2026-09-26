@@ -87,3 +87,26 @@ def test_unanswerable_candidate_has_no_facts() -> None:
 def test_candidates_fail_loudly_on_a_missing_question() -> None:
     with pytest.raises(KeyError):
         to_candidates(qa_samples(_XML), {"0": _PROMPTS["0"]})
+
+
+def test_apply_spans_fills_labels_and_leaves_unlocatable_empty() -> None:
+    from scripts.build_mcif_golden import apply_spans
+
+    candidates = to_candidates(qa_samples(_XML), _PROMPTS)
+    labelled, unlocatable = apply_spans(
+        candidates, {"mcif_QA_13_135": [[12.0, 31.5], [40.0, 45.0]], "mcif_QA_20_203": "none"}
+    )
+    by_id = {q.query_id: q for q in labelled}
+    assert [(s.start_s, s.end_s) for s in by_id["mcif_QA_13_135"].relevant_spans] == [
+        (12.0, 31.5),
+        (40.0, 45.0),
+    ]
+    assert by_id["mcif_QA_20_203"].relevant_spans == []
+    assert unlocatable == ["mcif_QA_20_203"]
+
+
+def test_apply_spans_fails_loudly_on_an_unknown_query() -> None:
+    from scripts.build_mcif_golden import apply_spans
+
+    with pytest.raises(KeyError):
+        apply_spans(to_candidates(qa_samples(_XML), _PROMPTS), {"mcif_QA_99_999": [[1.0, 2.0]]})
