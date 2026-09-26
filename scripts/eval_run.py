@@ -408,7 +408,11 @@ async def _main(
             from src.rag.visual_store import QdrantVisualStore
 
             _vis_model, _vis_processor = await load_visual_model(visual_model, visual_device)
-            visual_store = QdrantVisualStore(url=qdrant_url, collection_name=visual_collection)
+            # Shares the text store's client: embedded path-mode allows one
+            # client per on-disk store per process.
+            visual_store = QdrantVisualStore(
+                url=qdrant_url, collection_name=visual_collection, client=vectorstore.client
+            )
             n_visual_pages = await visual_store.count()
             if n_visual_pages == 0:
                 raise SystemExit(f"Visual collection {visual_collection!r} is empty")
