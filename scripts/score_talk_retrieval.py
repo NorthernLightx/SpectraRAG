@@ -22,14 +22,20 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
+from scripts.derive_arms import read_run
 from src.eval.golden_set import load_golden_set
 from src.eval.metrics_retrieval import recall_at_k, reciprocal_rank
-from src.eval.spans import pages_for_spans, random_recall_at_k, random_reciprocal_rank
+from src.eval.spans import (
+    pages_for_spans,
+    random_hit_at_k,
+    random_recall_at_k,
+    random_reciprocal_rank,
+)
 from src.ingestion.media import load_manifest
 from src.types import MediaSegment
 from src.types.eval import GoldenQuery
 
-_METRICS = ("recall_at_1", "recall_at_3", "mrr")
+_METRICS = ("hit_at_1", "hit_at_3", "recall_at_1", "recall_at_3", "mrr")
 _BOOTSTRAP = 2000
 
 
@@ -57,9 +63,19 @@ def score_query(
         "relevant_pages": pages,
         "n_pages": n,
         "depth": depth,
+        # A hit counts evidence spread over several pages in full, where
+        # recall@1 can reach only 1/len(pages).
+        "hit_at_1": float(bool(set(relevant) & set(ranked[:1]))),
+        "hit_at_3": float(bool(set(relevant) & set(ranked[:3]))),
         "recall_at_1": recall_at_k(relevant, ranked, k=1),
         "recall_at_3": recall_at_k(relevant, ranked, k=3),
         "mrr": reciprocal_rank(relevant, ranked),
+        "random_hit_at_1": random_hit_at_k(
+            n_pages=n, n_relevant=max(1, len(pages)), k=min(1, depth)
+        ),
+        "random_hit_at_3": random_hit_at_k(
+            n_pages=n, n_relevant=max(1, len(pages)), k=min(3, depth)
+        ),
         "random_recall_at_1": random_recall_at_k(n_pages=n, k=min(1, depth)),
         "random_recall_at_3": random_recall_at_k(n_pages=n, k=min(3, depth)),
         "random_mrr": random_reciprocal_rank(n_pages=n, n_relevant=max(1, len(pages)), depth=depth),
@@ -145,9 +161,7 @@ def main() -> None:
 
     golden = {q.query_id: q for q in load_golden_set(args.golden).queries if q.relevant_spans}
     for path in args.run:
-        rows = score_run(
-            json.loads(path.read_text(encoding="utf-8")), golden, args.pages_dir, args.leg
-        )
+        rows = score_run(read_run(path), golden, args.pages_dir, args.leg)
         if not rows:
             raise SystemExit(f"{path.name}: no span-labelled query of the golden set is in it")
         groups: dict[str, list[dict[str, Any]]] = {"all": rows}

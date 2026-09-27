@@ -99,3 +99,26 @@ def test_score_query_buckets_evidence_by_how_many_pages_it_covers() -> None:
     assert width(31.0, 39.0) == "1 page"
     assert width(12.0, 38.0) == "2-3 pages"
     assert width(0.0, 100.0) == "4+ pages"
+
+
+def test_random_hit_is_the_chance_that_any_relevant_page_makes_the_top_k() -> None:
+    from src.eval.spans import random_hit_at_k
+
+    assert random_hit_at_k(n_pages=10, n_relevant=1, k=1) == pytest.approx(0.1)
+    assert random_hit_at_k(n_pages=10, n_relevant=2, k=3) == pytest.approx(1 - 56 / 120)
+    assert random_hit_at_k(n_pages=3, n_relevant=1, k=5) == 1.0
+
+
+def test_score_query_reports_hits_for_wide_evidence() -> None:
+    # Evidence over pages 4-6: recall@1 can reach only 1/3, a hit counts in full.
+    q = GoldenQuery(
+        query_id="q",
+        text="?",
+        paper_id="talk",
+        category="factual",
+        relevant_spans=[TimeSpan(start_s=31.0, end_s=59.0)],
+    )
+    s = score_query(q, SEGMENTS, ["talk::p5::c0", "talk::p1::c1", "talk::p9::c2"])
+    assert s["relevant_pages"] == [4, 5, 6]
+    assert s["recall_at_1"] == pytest.approx(1 / 3)
+    assert (s["hit_at_1"], s["hit_at_3"]) == (1.0, 1.0)

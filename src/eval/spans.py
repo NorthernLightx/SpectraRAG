@@ -49,3 +49,10 @@ def random_reciprocal_rank(*, n_pages: int, n_relevant: int, depth: int | None =
     total = math.comb(n_pages, n_relevant)
     last = n_pages - n_relevant + 1 if depth is None else min(depth, n_pages - n_relevant + 1)
     return sum(math.comb(n_pages - i, n_relevant - 1) / total / i for i in range(1, last + 1))
+
+
+def random_hit_at_k(*, n_pages: int, n_relevant: int, k: int) -> float:
+    """Chance that a uniformly random ranking puts at least one of `n_relevant`
+    relevant pages among its first `k` of `n_pages`."""
+    k = min(k, n_pages)
+    return 1.0 - math.comb(n_pages - n_relevant, k) / math.comb(n_pages, k)
