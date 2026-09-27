@@ -25,8 +25,10 @@ from pydantic import BaseModel
 from src.api.deps import get_settings
 from src.config.settings import Settings
 from src.ingestion.media import load_manifest, manifest_path
+from src.observability.logging import get_logger
 
 router = APIRouter()
+_log = get_logger(__name__)
 
 
 # arXiv preprint IDs look like `YYMM.NNNNN[vN]` (post-2007 format). Older
@@ -79,11 +81,14 @@ def list_papers(settings: Settings = Depends(get_settings)) -> list[PaperInfo]:
             continue
         paper_id = subdir.name
         page_count = sum(1 for _ in subdir.glob(f"{paper_id}_p*.png"))
-        manifest = (
-            load_manifest(pages_dir, paper_id)
-            if manifest_path(pages_dir, paper_id).exists()
-            else None
-        )
+        manifest = None
+        if manifest_path(pages_dir, paper_id).exists():
+            # One unreadable manifest must not take the whole catalogue down.
+            try:
+                manifest = load_manifest(pages_dir, paper_id)
+            except (OSError, ValueError) as exc:
+                _log.warning("papers.manifest_unreadable", paper_id=paper_id, error=str(exc))
+                continue
         if page_count == 0 and manifest is not None:
             page_count = len(manifest.segments)
         if page_count == 0:

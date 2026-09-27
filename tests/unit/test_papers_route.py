@@ -55,3 +55,14 @@ def test_papers_tell_recordings_from_pdfs(tmp_path: Path) -> None:
     papers = {p.paper_id: p for p in list_papers(settings=Settings(pages_dir=tmp_path))}
     assert (papers["doc"].kind, papers["doc"].duration_s) == ("pdf", None)
     assert (papers["call"].kind, papers["call"].duration_s) == ("audio", 121.0)
+
+
+def test_one_unreadable_manifest_does_not_take_down_the_list(tmp_path: Path) -> None:
+    (tmp_path / "doc").mkdir()
+    Image.new("RGB", (4, 4)).save(tmp_path / "doc" / "doc_p1.png")
+    (tmp_path / "broken").mkdir()
+    (tmp_path / "broken" / "broken_media.json").write_text(
+        '{"doc_id": "broken", "segm', encoding="utf-8"
+    )
+    papers = [p.paper_id for p in list_papers(settings=Settings(pages_dir=tmp_path))]
+    assert papers == ["doc"]

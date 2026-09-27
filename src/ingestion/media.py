@@ -349,9 +349,13 @@ def manifest_path(pages_dir: Path, doc_id: str) -> Path:
 
 
 def write_manifest(pages_dir: Path, manifest: MediaManifest) -> None:
+    """Write the manifest whole or not at all: readers such as GET /papers and
+    the ingest script's skip test must never see a truncated one."""
     path = manifest_path(pages_dir, manifest.doc_id)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(manifest.model_dump_json(indent=1), encoding="utf-8")
+    tmp = path.with_suffix(".json.tmp")
+    tmp.write_text(manifest.model_dump_json(indent=1), encoding="utf-8")
+    tmp.replace(path)
 
 
 def load_manifest(pages_dir: Path, doc_id: str) -> MediaManifest:
