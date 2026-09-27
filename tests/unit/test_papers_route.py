@@ -35,3 +35,23 @@ def test_papers_lists_page_images_and_audio_recordings(tmp_path: Path) -> None:
     )
     papers = {p.paper_id: p.page_count for p in list_papers(settings=Settings(pages_dir=tmp_path))}
     assert papers == {"call": 3, "doc": 2}
+
+
+def test_papers_tell_recordings_from_pdfs(tmp_path: Path) -> None:
+    (tmp_path / "doc").mkdir()
+    Image.new("RGB", (4, 4)).save(tmp_path / "doc" / "doc_p1.png")
+    write_manifest(
+        tmp_path,
+        MediaManifest(
+            doc_id="call",
+            source="call.mp3",
+            duration_s=121.0,
+            transcriber="fake",
+            segmentation={},
+            segments=[MediaSegment(page=1, start_s=0.0, end_s=121.0)],
+            kind="audio",
+        ),
+    )
+    papers = {p.paper_id: p for p in list_papers(settings=Settings(pages_dir=tmp_path))}
+    assert (papers["doc"].kind, papers["doc"].duration_s) == ("pdf", None)
+    assert (papers["call"].kind, papers["call"].duration_s) == ("audio", 121.0)
