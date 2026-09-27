@@ -26,7 +26,7 @@ from src.ingestion.media import (
 )
 from src.rag.bm25 import Bm25Index
 from src.rag.vectorstore import QdrantVectorStore
-from src.types import MediaSegment
+from src.types import Chunk, MediaSegment
 from tests.fakes import FakeEmbedder
 
 PARAMS = SegmentationParams()
@@ -513,3 +513,68 @@ def test_a_failed_decode_keeps_the_previous_pages(
     with pytest.raises(RuntimeError):
         media.segment_video(tmp_path / "talk.mp4", "talk", pages, PARAMS)
     assert sorted(p.name for p in (pages / "talk").iterdir()) == ["talk_p1.png"]
+
+
+def _audio_probe(path: Path) -> media.MediaProbe:
+    return media.MediaProbe(has_video=False, has_audio=True, duration_s=100.0)
+
+
+class _Speaker:
+    name = "fake"
+
+    def __init__(self, words: list[Word]) -> None:
+        self.words = words
+
+    def transcribe(self, path: Path) -> list[Word]:
+        return self.words
+
+
+class _BrokenStore(QdrantVectorStore):
+    async def upsert_chunks(self, chunks: list[Chunk], vectors: list[list[float]]) -> None:
+        raise ConnectionError("qdrant went away")
+
+
+async def test_the_manifest_is_written_only_once_the_chunks_are_indexed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # The batch script skips any recording with a manifest; one written before
+    # a failed index would leave the recording unsearchable for good.
+    from src.ingestion.pipeline import ingest_media
+
+    monkeypatch.setattr(media, "probe_media", _audio_probe)
+    store = _BrokenStore(url=":memory:", collection_name="media", dim=8)
+    await store.ensure_collection()
+    with pytest.raises(ConnectionError):
+        await ingest_media(
+            doc_id="call",
+            media_path=_recording(tmp_path / "call.mp3"),
+            embedder=FakeEmbedder(dim=8),
+            vectorstore=store,
+            bm25=Bm25Index(),
+            transcriber=_Speaker(_sentence(0, 50)),
+            pages_dir=tmp_path / "pages",
+        )
+    assert not media.manifest_path(tmp_path / "pages", "call").exists()
+
+
+async def test_reingesting_a_recording_replaces_its_old_chunks(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from src.ingestion.pipeline import ingest_media
+
+    monkeypatch.setattr(media, "probe_media", _audio_probe)
+    store = QdrantVectorStore(url=":memory:", collection_name="media", dim=8)
+    await store.ensure_collection()
+    recording = _recording(tmp_path / "call.mp3")
+    for words in (_sentence(0, 50) + _sentence(50, 100), _sentence(0, 50)):
+        recording.write_bytes(str(len(words)).encode())  # a new take: new transcript
+        await ingest_media(
+            doc_id="call",
+            media_path=recording,
+            embedder=FakeEmbedder(dim=8),
+            vectorstore=store,
+            bm25=Bm25Index(),
+            transcriber=_Speaker(words),
+            pages_dir=tmp_path / "pages",
+        )
+    assert [c.chunk_id for c in await store.scroll_chunks()] == ["call::p1::c0"]

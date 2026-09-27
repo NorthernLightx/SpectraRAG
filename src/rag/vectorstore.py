@@ -143,6 +143,23 @@ class QdrantVectorStore:
         ]
         await self._client.upsert(collection_name=self._collection, points=points)
 
+    async def delete_paper(self, paper_id: str) -> None:
+        """Drop every chunk of one document. Chunk ids follow the chunking, so
+        a re-ingest that chunks differently would otherwise leave the old
+        chunks searchable beside the new ones."""
+        await self._client.delete(
+            collection_name=self._collection,
+            points_selector=qdrant_models.FilterSelector(
+                filter=qdrant_models.Filter(
+                    must=[
+                        qdrant_models.FieldCondition(
+                            key="paper_id", match=qdrant_models.MatchValue(value=paper_id)
+                        )
+                    ]
+                )
+            ),
+        )
+
     async def count(self) -> int:
         """Return the number of points in the collection; 0 if it doesn't exist.
 

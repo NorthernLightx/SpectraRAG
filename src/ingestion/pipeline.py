@@ -259,6 +259,20 @@ async def ingest_media(
             segmentation = audio_params.as_dict()
         segments = media.cover_words(segments, words)
         chunks = media.transcript_chunks(doc_id, segments, words, target_chars=target_chars)
+        ctx["kind"] = "video" if probe.has_video else "audio"
+        ctx["segments"] = len(segments)
+        per_minute = len(segments) / max(segments[-1].end_s / 60, 1e-9)
+        ctx["segments_per_min"] = round(per_minute, 2)
+        ctx["words"] = len(words)
+        ctx["chunks"] = len(chunks)
+        ctx["empty_pages"] = len(segments) - len({c.page_numbers[0] for c in chunks})
+        # The manifest marks a recording as done, so it goes last: a failure
+        # before it leaves no marker and the next run retries. The old chunks
+        # go first, since a new segmentation changes their ids.
+        media.manifest_path(pages_dir, doc_id).unlink(missing_ok=True)
+        await vectorstore.delete_paper(doc_id)
+        if chunks:
+            ctx["embedding_dim"] = await _index_chunks(chunks, embedder, vectorstore, bm25)
         media.write_manifest(
             pages_dir,
             media.MediaManifest(
@@ -271,13 +285,4 @@ async def ingest_media(
                 kind="video" if probe.has_video else "audio",
             ),
         )
-        ctx["kind"] = "video" if probe.has_video else "audio"
-        ctx["segments"] = len(segments)
-        per_minute = len(segments) / max(segments[-1].end_s / 60, 1e-9)
-        ctx["segments_per_min"] = round(per_minute, 2)
-        ctx["words"] = len(words)
-        ctx["chunks"] = len(chunks)
-        ctx["empty_pages"] = len(segments) - len({c.page_numbers[0] for c in chunks})
-        if chunks:
-            ctx["embedding_dim"] = await _index_chunks(chunks, embedder, vectorstore, bm25)
         return IngestedPaper(paper_id=doc_id, chunk_count=len(chunks), chunks=chunks)
