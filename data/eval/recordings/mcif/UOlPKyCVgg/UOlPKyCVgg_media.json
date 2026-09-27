@@ -2,7 +2,7 @@
  "doc_id": "UOlPKyCVgg",
  "source": "UOlPKyCVgg.mp4",
  "duration_s": 299.17833333333334,
- "transcriber": "faster-whisper/large-v3-turbo/int8",
+ "transcriber": "faster-whisper/large-v3-turbo/int8/en",
  "segmentation": {
   "sample_fps": 1.0,
   "thumb_width": 64,

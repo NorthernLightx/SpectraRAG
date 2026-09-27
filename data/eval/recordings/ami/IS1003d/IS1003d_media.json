@@ -2,7 +2,7 @@
  "doc_id": "IS1003d",
  "source": "IS1003d.wav",
  "duration_s": 2100.5,
- "transcriber": "faster-whisper/large-v3-turbo/int8",
+ "transcriber": "faster-whisper/large-v3-turbo/int8/en",
  "segmentation": {
   "min_segment_s": 45.0,
   "max_segment_s": 90.0

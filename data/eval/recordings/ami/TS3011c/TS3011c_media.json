@@ -2,7 +2,7 @@
  "doc_id": "TS3011c",
  "source": "TS3011c.wav",
  "duration_s": 2395.0,
- "transcriber": "faster-whisper/large-v3-turbo/int8",
+ "transcriber": "faster-whisper/large-v3-turbo/int8/en",
  "segmentation": {
   "min_segment_s": 45.0,
   "max_segment_s": 90.0

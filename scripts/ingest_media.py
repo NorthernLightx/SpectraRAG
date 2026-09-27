@@ -6,8 +6,9 @@ and the segment manifest go under `--pages-dir`; transcript chunks go into
 `--collection`, embedded by the same builder the eval uses for the profile.
 
 A recording's document id is its file name without the extension, sanitised
-like an upload's. One recording that fails to ingest is reported and the batch
-goes on; the exit status is non-zero when any failed.
+like an upload's. A recording whose manifest records the current transcriber
+and segmentation is skipped. One recording that fails to ingest is reported and
+the batch goes on; the exit status is non-zero when any failed.
 
 Usage:
     uv run python -m scripts.ingest_media \\
@@ -21,12 +22,19 @@ import argparse
 import asyncio
 import importlib.util
 import time
+from collections import Counter
 from collections.abc import Awaitable, Callable, Iterable, Mapping
 from pathlib import Path
 
 import src  # noqa: F401  -- loads .env
 from src.config.settings import load_settings
-from src.ingestion.media import WhisperTranscriber, manifest_path
+from src.ingestion.media import (
+    AudioSegmentationParams,
+    SegmentationParams,
+    WhisperTranscriber,
+    load_manifest,
+    manifest_path,
+)
 from src.ingestion.pipeline import document_id, ingest_media
 from src.rag.bm25 import Bm25Index
 from src.rag.retrieval_config import RetrievalConfig, build_embedder
@@ -67,6 +75,23 @@ def plan(paths: Iterable[Path]) -> dict[str, Path]:
     return out
 
 
+def stale_reason(pages_dir: Path, doc_id: str, transcriber: str) -> str | None:
+    """Why `doc_id` needs ingesting with these settings, or None when its
+    manifest shows it was ingested with them."""
+    if not manifest_path(pages_dir, doc_id).exists():
+        return "new"
+    try:
+        manifest = load_manifest(pages_dir, doc_id)
+    except ValueError:
+        return "unreadable manifest"
+    if manifest.transcriber != transcriber:
+        return f"transcribed by {manifest.transcriber}"
+    params = SegmentationParams() if manifest.kind == "video" else AudioSegmentationParams()
+    if manifest.segmentation != params.as_dict():
+        return "segmented with other parameters"
+    return None
+
+
 def missing_media_modules() -> list[str]:
     """Modules of the `media` extra that are not installed."""
     return [name for name in ("av", "faster_whisper") if importlib.util.find_spec(name) is None]
@@ -91,12 +116,12 @@ async def main(args: argparse.Namespace) -> int:
     items = plan(found)
     if args.only:
         items = {d: p for d, p in items.items() if d in set(args.only)}
-    todo = {
-        d: p
-        for d, p in items.items()
-        if args.fresh or not manifest_path(args.pages_dir, d).exists()
-    }
+    transcriber = WhisperTranscriber(args.asr_model, threads=args.threads, language=args.language)
+    reasons = {d: stale_reason(args.pages_dir, d, transcriber.name) for d in items}
+    todo = {d: p for d, p in items.items() if args.fresh or reasons[d] is not None}
     print(f"{len(items)} recordings, {len(items) - len(todo)} already ingested, {len(todo)} to go")
+    for reason, n in Counter(r for r in reasons.values() if r not in (None, "new")).items():
+        print(f"  {n} {reason}")
     if not todo:
         return 0
     if missing := missing_media_modules():
@@ -107,12 +132,13 @@ async def main(args: argparse.Namespace) -> int:
     vectorstore = QdrantVectorStore(
         url=args.qdrant, collection_name=args.collection, dim=embedder.dim
     )
-    # Chunk ids depend on the segmentation, so a re-ingest starts from an empty
-    # collection rather than leaving the old segmentation's chunks behind.
     if args.fresh:
+        # A manifest marks its recording done, so each goes before the chunks
+        # do: an interrupted run then re-ingests what it did not reach.
+        for doc_id in todo:
+            manifest_path(args.pages_dir, doc_id).unlink(missing_ok=True)
         await vectorstore.delete_collection()
     await vectorstore.ensure_collection()
-    transcriber = WhisperTranscriber(args.asr_model, threads=args.threads, language=args.language)
 
     async def ingest_one(doc_id: str, path: Path) -> None:
         started = time.monotonic()

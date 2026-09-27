@@ -2,7 +2,7 @@
  "doc_id": "JhbtCwcsWY",
  "source": "JhbtCwcsWY.mp4",
  "duration_s": 357.53333333333336,
- "transcriber": "faster-whisper/large-v3-turbo/int8",
+ "transcriber": "faster-whisper/large-v3-turbo/int8/en",
  "segmentation": {
   "sample_fps": 1.0,
   "thumb_width": 64,

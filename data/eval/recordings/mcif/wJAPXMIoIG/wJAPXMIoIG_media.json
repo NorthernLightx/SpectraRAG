@@ -2,7 +2,7 @@
  "doc_id": "wJAPXMIoIG",
  "source": "wJAPXMIoIG.mp4",
  "duration_s": 333.1333333333333,
- "transcriber": "faster-whisper/large-v3-turbo/int8",
+ "transcriber": "faster-whisper/large-v3-turbo/int8/en",
  "segmentation": {
   "sample_fps": 1.0,
   "thumb_width": 64,

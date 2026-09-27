@@ -2,7 +2,7 @@
  "doc_id": "rxrToXvRyM",
  "source": "rxrToXvRyM.mp4",
  "duration_s": 425.7893666666667,
- "transcriber": "faster-whisper/large-v3-turbo/int8",
+ "transcriber": "faster-whisper/large-v3-turbo/int8/en",
  "segmentation": {
   "sample_fps": 1.0,
   "thumb_width": 64,
