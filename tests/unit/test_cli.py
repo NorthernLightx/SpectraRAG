@@ -86,3 +86,52 @@ def test_ingest_invokes_bootstrap(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_no_subcommand_errors() -> None:
     with pytest.raises(SystemExit):
         main([])
+
+
+def _snapshot(root: "os.PathLike[str]") -> None:
+    snap = os.path.join(root, "qdrant_local", "collection")
+    os.makedirs(snap)
+    with open(os.path.join(snap, "storage.sqlite"), "w") as fh:
+        fh.write("committed")
+
+
+def test_serve_with_uploads_uses_a_working_copy_of_the_snapshot(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: "os.PathLike[str]"
+) -> None:
+    # Uploads write into the store; the committed snapshot must stay clean.
+    _snapshot(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("RAG_QDRANT_URL", raising=False)
+    monkeypatch.setenv("RAG_ENABLE_UPLOAD", "true")
+    with mock.patch("uvicorn.run"):
+        main(["serve"])
+    assert os.environ["RAG_QDRANT_URL"] == "path:./qdrant_uploads"
+    assert os.path.isfile(os.path.join(tmp_path, "qdrant_uploads", "collection", "storage.sqlite"))
+
+
+def test_serve_keeps_an_existing_working_copy(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: "os.PathLike[str]"
+) -> None:
+    _snapshot(tmp_path)
+    os.makedirs(os.path.join(tmp_path, "qdrant_uploads"))
+    with open(os.path.join(tmp_path, "qdrant_uploads", "uploaded.txt"), "w") as fh:
+        fh.write("earlier upload")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("RAG_QDRANT_URL", raising=False)
+    monkeypatch.setenv("RAG_ENABLE_UPLOAD", "1")
+    with mock.patch("uvicorn.run"):
+        main(["serve"])
+    assert os.path.isfile(os.path.join(tmp_path, "qdrant_uploads", "uploaded.txt"))
+
+
+def test_serve_without_uploads_reads_the_snapshot_directly(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: "os.PathLike[str]"
+) -> None:
+    _snapshot(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("RAG_QDRANT_URL", raising=False)
+    monkeypatch.delenv("RAG_ENABLE_UPLOAD", raising=False)
+    with mock.patch("uvicorn.run"):
+        main(["serve"])
+    assert os.environ["RAG_QDRANT_URL"] == "path:./qdrant_local"
+    assert not os.path.exists(os.path.join(tmp_path, "qdrant_uploads"))

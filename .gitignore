@@ -103,6 +103,7 @@ data/mmlongbench/
 data/mmdocir/
 data/mcif/
 data/ami/
+qdrant_uploads/
 data/dci/
 data/ingestion_study/
 data/tiny_figures_inspect/
