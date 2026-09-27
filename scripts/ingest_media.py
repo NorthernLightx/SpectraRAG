@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import importlib.util
 import re
 import time
 from collections.abc import Awaitable, Callable, Iterable, Mapping
@@ -68,6 +69,11 @@ def plan(paths: Iterable[Path]) -> dict[str, Path]:
     return out
 
 
+def missing_media_modules() -> list[str]:
+    """Modules of the `media` extra that are not installed."""
+    return [name for name in ("av", "faster_whisper") if importlib.util.find_spec(name) is None]
+
+
 async def ingest_all(
     items: Mapping[str, Path], ingest_one: Callable[[str, Path], Awaitable[None]]
 ) -> list[str]:
@@ -95,6 +101,8 @@ async def main(args: argparse.Namespace) -> int:
     print(f"{len(items)} recordings, {len(items) - len(todo)} already ingested, {len(todo)} to go")
     if not todo:
         return 0
+    if missing := missing_media_modules():
+        raise SystemExit(f"{', '.join(missing)} not installed: run `uv sync --extra media`")
 
     config = RetrievalConfig.from_settings(load_settings(profile=args.profile))
     embedder = await asyncio.to_thread(build_embedder, config, ollama_url=args.ollama)

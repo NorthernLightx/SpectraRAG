@@ -41,3 +41,15 @@ async def test_one_failed_recording_does_not_stop_the_batch() -> None:
     )
     assert done == ["first", "last"]
     assert failures == ["broken: RuntimeError: corrupt container"]
+
+
+def test_a_missing_media_extra_is_named_before_any_model_loads(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import sys
+
+    from scripts.ingest_media import missing_media_modules
+
+    assert missing_media_modules() == []
+    monkeypatch.setitem(sys.modules, "av", None)
+    assert missing_media_modules() == ["av"]
