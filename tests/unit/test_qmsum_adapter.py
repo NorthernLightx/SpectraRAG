@@ -112,3 +112,20 @@ def test_only_specific_queries_become_golden_queries() -> None:
     assert q.relevant_spans == [TimeSpan(start_s=3.0, end_s=8.0)]
     assert q.expected_facts == ["Too expensive."]
     assert q.note is not None and "split=test" in q.note and "turns=1" in q.note
+
+
+def test_a_speaker_resyncs_after_a_long_unmatched_turn() -> None:
+    # A long turn that fails to match leaves the speaker's position where it
+    # was; the next turn sits hundreds of words ahead and must still be found.
+    long_turn = [TimedWord(text=f"w{i}", start_s=float(i), end_s=i + 0.5) for i in range(600)]
+    stream = {"A": [*long_turn, TimedWord("done", 700.0, 700.4), TimedWord(".", 700.4, 700.4)]}
+    turns = [
+        {
+            "speaker": "User Interface",
+            "content": " ".join(["w0", "w1", "w2", "x"] + [f"w{i}" for i in range(4, 600)]),
+        },
+        {"speaker": "User Interface", "content": "Done ."},
+    ]
+    times, _ = turn_times(turns, stream, {"User Interface": "A"})
+    assert times[0] is None
+    assert times[1] == (700.0, 700.4)

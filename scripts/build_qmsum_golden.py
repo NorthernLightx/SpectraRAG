@@ -43,8 +43,10 @@ _ROLES = {
 # incomplete (TS3009c), audio starting minutes after the transcript (TS3011d).
 _EXCLUDED = {"TS3009c", "TS3011d"}
 # A turn is located when its first words appear this close after the previous
-# match in the speaker's stream.
-_SEARCH_WINDOW = 200
+# match in the speaker's stream. An unmatched turn leaves the position where it
+# was, so the next turn can sit a long turn's length ahead; wide enough for
+# that, and still in order: the speaker's stream is consumed forward only.
+_SEARCH_WINDOW = 2000
 _ANCHOR_WORDS = 3
 _NITE = "{http://nite.sourceforge.net/}"
 
@@ -150,6 +152,23 @@ def query_spans(
     return out
 
 
+def evidence_loss(
+    qmsum: Mapping[str, Any], times: Sequence[tuple[float, float] | None]
+) -> tuple[int, int]:
+    """(spans narrowed because an end turn is untimed, queries left with no
+    timed turn at all), for the build report."""
+    narrowed = dropped = 0
+    for q in qmsum["specific_query_list"]:
+        located_any = False
+        for first, last in q["relevant_text_span"]:
+            inside = times[int(first) : int(last) + 1]
+            if any(t is not None for t in inside):
+                located_any = True
+                narrowed += inside[0] is None or inside[-1] is None
+        dropped += not located_any
+    return narrowed, dropped
+
+
 def to_queries(
     meeting: str, split: str, qmsum: Mapping[str, Any], times: Sequence[tuple[float, float] | None]
 ) -> list[GoldenQuery]:
@@ -193,6 +212,7 @@ def main() -> None:
     queries: list[GoldenQuery] = []
     dropped: list[str] = []
     rates: list[float] = []
+    narrowed = lost = 0
     for path in files:
         meeting = path.stem
         if meeting in _EXCLUDED:
@@ -210,6 +230,9 @@ def main() -> None:
             dropped.append(f"{meeting} (match {stats.rate:.2f})")
             continue
         queries.extend(to_queries(meeting, args.split, qmsum, times))
+        spans_narrowed, query_lost = evidence_loss(qmsum, times)
+        narrowed += spans_narrowed
+        lost += query_lost
 
     output = args.output or Path(f"data/golden/qmsum-ami-{args.split}-v1.yaml")
     golden = GoldenSet(name="qmsum-ami", version=f"{args.split}-v1", queries=queries)
@@ -230,6 +253,9 @@ def main() -> None:
             f"p25 {seconds[len(seconds) // 4]:.0f}, median {seconds[len(seconds) // 2]:.0f}, "
             f"p75 {seconds[3 * len(seconds) // 4]:.0f}"
         )
+    print(
+        f"  spans narrowed at an untimed end turn: {narrowed}; queries with no timed turn: {lost}"
+    )
     for d in dropped:
         print(f"  dropped {d}")
 
