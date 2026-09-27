@@ -35,6 +35,9 @@ from src.types.eval import TimeSpan
 _PROBE_S = 3.0
 # A copy cut from the talk correlates near 1; anything else sits far below.
 _MIN_SCORE = 0.9
+# A joined clip skips the pauses between its segments, so its span in the talk
+# can exceed its own length by those pauses, never by a whole stretch of talk.
+_MAX_GAP_S = 10.0
 _SHORT_REFERENCES = "MCIF.short.en.ref.xml.gz"
 
 
@@ -55,12 +58,16 @@ def _best_offset(probe: NDArray[np.float32], talk: NDArray[np.float32]) -> tuple
 
 def locate_clip(clip: NDArray[np.float32], talk: NDArray[np.float32], rate: int) -> TimeSpan | None:
     """The span of `talk` that `clip` was cut from, first sample to last, or
-    None when either end does not match or the ends contradict the clip."""
+    None when either end does not match or the ends contradict the clip: a span
+    shorter than the clip, or longer by more than the pauses a join can skip."""
     n = min(len(clip), int(_PROBE_S * rate))
     head, head_score = _best_offset(clip[:n], talk)
     tail, tail_score = _best_offset(clip[-n:], talk)
     start, end = head / rate, (tail + n) / rate
-    if min(head_score, tail_score) < _MIN_SCORE or end - start < len(clip) / rate - 0.5:
+    clip_s = len(clip) / rate
+    if min(head_score, tail_score) < _MIN_SCORE:
+        return None
+    if not clip_s - 0.5 <= end - start <= clip_s + _MAX_GAP_S:
         return None
     return TimeSpan(start_s=start, end_s=end)
 

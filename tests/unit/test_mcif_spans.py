@@ -50,3 +50,13 @@ def test_a_rescaled_copy_is_still_found() -> None:
     clip = (0.5 * talk[200 * RATE : 212 * RATE] + 0.01 * _talk(12)).astype(np.float32)
     span = locate_clip(clip, talk, RATE)
     assert span is not None and span.start_s == pytest.approx(200.0, abs=0.01)
+
+
+def test_a_span_much_longer_than_its_clip_is_rejected() -> None:
+    # The clip's opening also plays 60 s earlier (a jingle, a repeated phrase):
+    # matching the head there would stretch a 16 s clip over 80 s.
+    talk = _talk(300)
+    talk[40 * RATE : 43 * RATE] = talk[100 * RATE : 103 * RATE]
+    clip = talk[100 * RATE : 116 * RATE].copy()
+    talk[100 * RATE : 103 * RATE] = 0.2 * _talk(3)[: 3 * RATE]
+    assert locate_clip(clip, talk, RATE) is None
