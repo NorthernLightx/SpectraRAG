@@ -621,3 +621,52 @@ def test_a_truncated_transcript_cache_is_a_miss(tmp_path: Path) -> None:
     path = media.words_path(tmp_path, "call")
     path.write_text(path.read_text(encoding="utf-8")[:20], encoding="utf-8")
     assert media.load_words(tmp_path, "call", "fake", source="abc") is None
+
+
+def _late_video(path: Path, *, with_audio: bool) -> Path:
+    """8 s of red then 8 s of blue, timestamped from 3 s, with silent audio
+    from 3 s when `with_audio`."""
+    from fractions import Fraction
+
+    av = pytest.importorskip("av")
+    with av.open(str(path), "w") as out:
+        video = out.add_stream("mpeg4", rate=5)
+        video.width, video.height, video.pix_fmt = 64, 48, "yuv420p"
+        if with_audio:
+            audio = out.add_stream("aac", rate=16000, layout="mono")
+            for i in range(16 * 16000 // 1024):
+                samples = av.AudioFrame.from_ndarray(
+                    np.zeros((1, 1024), np.float32), format="fltp", layout="mono"
+                )
+                samples.sample_rate = 16000
+                samples.pts, samples.time_base = 3 * 16000 + i * 1024, Fraction(1, 16000)
+                out.mux(audio.encode(samples))
+            out.mux(audio.encode(None))
+        for i, color in enumerate([(255, 0, 0)] * 40 + [(0, 0, 255)] * 40):
+            frame = av.VideoFrame.from_image(Image.new("RGB", (64, 48), color))
+            frame.pts, frame.time_base = 15 + i, Fraction(1, 5)
+            out.mux(video.encode(frame))
+        out.mux(video.encode(None))
+    return path
+
+
+@pytest.mark.parametrize("with_audio", [False, True])
+def test_a_video_timestamped_from_a_late_start_counts_from_zero(
+    tmp_path: Path, with_audio: bool
+) -> None:
+    # Transcript word times count from the first audio sample, whatever the
+    # container's timestamps say.
+    path = _late_video(tmp_path / "late.mkv", with_audio=with_audio)
+    segments = media.segment_video(path, "late", tmp_path / "pages", PARAMS)
+    assert segments[0].start_s == 0.0
+    assert segments[1].start_s == pytest.approx(8.0, abs=1.0)
+    assert segments[-1].end_s == pytest.approx(16.0, abs=1.0)
+
+
+def test_words_before_the_first_segment_join_it() -> None:
+    # A video whose first frame comes after its audio starts.
+    segments = [MediaSegment(page=1, start_s=3.0, end_s=10.0)]
+    covered = media.cover_words(segments, [Word(0.5, 1.2, " Hello."), Word(4.0, 4.5, " Slides.")])
+    assert covered[0].start_s == 0.0
+    chunks = transcript_chunks("talk", covered, [Word(0.5, 1.2, " Hello.")])
+    assert chunks[0].text == "Hello."

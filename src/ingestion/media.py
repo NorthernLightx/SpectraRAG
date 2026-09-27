@@ -136,6 +136,12 @@ def segment_frames[T](
     ]
 
 
+def _start_s(stream: Any) -> float:
+    if stream.start_time is None or stream.time_base is None:
+        return 0.0
+    return float(stream.start_time * stream.time_base)
+
+
 def iter_video_frames(
     path: Path, params: SegmentationParams
 ) -> tuple[Iterator[tuple[float, NDArray[np.float32], Image.Image]], float]:
@@ -148,6 +154,10 @@ def iter_video_frames(
     container: Any = av.open(str(path))
     stream = container.streams.video[0]
     stream.thread_type = "AUTO"
+    # faster-whisper counts word times from the first audio sample, ignoring
+    # timestamps, so frame times count from the audio's start (a silent video's
+    # from its own).
+    origin = _start_s(container.streams.audio[0] if container.streams.audio else stream)
     if stream.duration is not None and stream.time_base is not None:
         duration_s = float(stream.duration * stream.time_base)
     else:
@@ -158,13 +168,14 @@ def iter_video_frames(
         next_t = 0.0
         try:
             for frame in container.decode(stream):
-                if frame.time is None or frame.time < next_t:
+                if frame.time is None or frame.time - origin < next_t:
                     continue
-                next_t = frame.time + step
+                t = float(frame.time - origin)
+                next_t = t + step
                 thumb = frame.reformat(
                     width=params.thumb_width, height=params.thumb_height, format="gray"
                 ).to_ndarray()
-                yield float(frame.time), thumb.astype(np.float32), frame.to_image()
+                yield t, thumb.astype(np.float32), frame.to_image()
         finally:
             container.close()
 
@@ -200,14 +211,18 @@ def segment_video(
         image.save(staging / keyframe_path(pages_dir, doc_id, page).name)
         segments.append(MediaSegment(page=page, start_s=start_s, end_s=end_s))
 
+    last_t = 0.0
     try:
         for t, thumb, image in frames:
+            last_t = t
             closed = cutter.push(t, thumb, image)
             if closed is not None:
                 keep(closed)
         if not cutter.started:
             raise ValueError("no video frames to segment")
-        keep(cutter.finish(duration_s))
+        # A container's duration can count from timestamp 0 rather than from
+        # the first frame (Matroska), so the frames bound it.
+        keep(cutter.finish(min(duration_s, last_t + 1.0 / params.sample_fps)))
     except BaseException:
         shutil.rmtree(staging, ignore_errors=True)
         raise
@@ -414,10 +429,13 @@ def load_words(pages_dir: Path, doc_id: str, transcriber: str, *, source: str) -
 
 
 def cover_words(segments: Sequence[MediaSegment], words: Sequence[Word]) -> list[MediaSegment]:
-    """`segments` with the last one stretched to the last word's end. A video's
-    audio can outlast its last frame, and a word whose midpoint falls after
-    every segment would otherwise belong to no page."""
+    """`segments` with the first one started at 0 and the last one stretched to
+    the last word's end. A video's audio can start before its first frame and
+    outlast its last, and a word whose midpoint falls outside every segment
+    would otherwise belong to no page."""
     out = list(segments)
+    if out and out[0].start_s > 0:
+        out[0] = MediaSegment(page=out[0].page, start_s=0.0, end_s=out[0].end_s)
     last_end = max((w.end_s for w in words), default=0.0)
     if out and last_end >= out[-1].end_s:
         tail = out[-1]
