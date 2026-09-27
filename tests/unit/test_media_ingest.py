@@ -578,3 +578,35 @@ async def test_reingesting_a_recording_replaces_its_old_chunks(
             pages_dir=tmp_path / "pages",
         )
     assert [c.chunk_id for c in await store.scroll_chunks()] == ["call::p1::c0"]
+
+
+async def test_audio_without_speech_fails_and_keeps_the_previous_index(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # An audio recording's only pages are its transcript: with no words there
+    # is nothing to search, and the manifest would mark it done anyway.
+    from src.ingestion.pipeline import ingest_media
+
+    monkeypatch.setattr(media, "probe_media", _audio_probe)
+    store = QdrantVectorStore(url=":memory:", collection_name="media", dim=8)
+    await store.ensure_collection()
+    recording = _recording(tmp_path / "call.mp3")
+    pages = tmp_path / "pages"
+    for take, words in enumerate((_sentence(0, 50), [])):
+        recording.write_bytes(f"take {take}".encode())
+        run = ingest_media(
+            doc_id="call",
+            media_path=recording,
+            embedder=FakeEmbedder(dim=8),
+            vectorstore=store,
+            bm25=Bm25Index(),
+            transcriber=_Speaker(words),
+            pages_dir=pages,
+        )
+        if words:
+            await run
+        else:
+            with pytest.raises(ValueError, match="no speech"):
+                await run
+    assert [c.chunk_id for c in await store.scroll_chunks()] == ["call::p1::c0"]
+    assert media.manifest_path(pages, "call").exists()

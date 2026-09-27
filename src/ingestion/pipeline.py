@@ -259,6 +259,10 @@ async def ingest_media(
             segmentation = audio_params.as_dict()
         segments = media.cover_words(segments, words)
         chunks = media.transcript_chunks(doc_id, segments, words, target_chars=target_chars)
+        if not chunks and not probe.has_video:
+            # An audio document is only its transcript; checked before the old
+            # chunks go, so a failed re-ingest keeps the previous index.
+            raise ValueError(f"no speech found in {media_path.name}")
         ctx["kind"] = "video" if probe.has_video else "audio"
         ctx["segments"] = len(segments)
         per_minute = len(segments) / max(segments[-1].end_s / 60, 1e-9)
