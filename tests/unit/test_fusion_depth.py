@@ -177,3 +177,26 @@ def test_derive_refuses_queries_missing_a_leg() -> None:
     }
     with pytest.raises(SystemExit, match="1 queries lack"):
         derive(run, golden, top_k=10, weights=[1.0])
+
+
+def test_derived_arms_keep_the_collections_the_run_searched() -> None:
+    run = {
+        "run_id": "r",
+        "started_at": "2026-01-01T00:00:00Z",
+        "finished_at": "2026-01-01T00:00:00Z",
+        "golden_set_name": "g",
+        "golden_set_version": "v1",
+        "config": {"collection": "talks", "visual_collection": "talks_visual"},
+        "per_query": [
+            {
+                "query_id": "q1",
+                "category": "figure",
+                "text": "q",
+                "leg_chunk_ids": {"text": ["d::p1::c0"], "visual": ["d::p1::page"]},
+            }
+        ],
+    }
+    golden = {"queries": [{"query_id": "q1", "paper_id": "d", "relevant_pages": [1]}]}
+    for arm in derive(run, golden, top_k=10, weights=[1.0]).values():
+        assert arm["config"]["collection"] == "talks"
+        assert arm["config"]["visual_collection"] == "talks_visual"

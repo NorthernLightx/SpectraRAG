@@ -514,6 +514,8 @@ async def _main(
             "profile": profile,
             "retrieval_config": retrieval_config.as_dict(),
             "retrieval_fingerprint": fingerprint,
+            "collection": collection,
+            "visual_collection": visual_collection,
             "rerank": retrieval_config.reranker_model is not None,
             "rerank_model": retrieval_config.reranker_model,
             "rerank_input_size": retrieval_config.rerank_input_size,

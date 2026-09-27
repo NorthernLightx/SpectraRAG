@@ -137,6 +137,8 @@ def derive(
                 "top_k": top_k,
                 "retrieval_fingerprint": source_config.get("retrieval_fingerprint"),
                 "retrieval_config": source_config.get("retrieval_config"),
+                "collection": source_config.get("collection"),
+                "visual_collection": source_config.get("visual_collection"),
             },
             "per_query": per_query,
         }

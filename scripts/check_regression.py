@@ -142,22 +142,33 @@ def config_note(baseline: dict[str, Any], candidate: dict[str, Any]) -> str | No
     only a regression check when the fingerprints match; otherwise a drop may
     be the config change the candidate was meant to test.
     """
-    b_cfg = (baseline.get("config") or {}).get("retrieval_config")
-    c_cfg = (candidate.get("config") or {}).get("retrieval_config")
-    b_fp = (baseline.get("config") or {}).get("retrieval_fingerprint")
-    c_fp = (candidate.get("config") or {}).get("retrieval_fingerprint")
+    b_run = baseline.get("config") or {}
+    c_run = candidate.get("config") or {}
+    b_cfg = b_run.get("retrieval_config")
+    c_cfg = c_run.get("retrieval_config")
+    b_fp = b_run.get("retrieval_fingerprint")
+    c_fp = c_run.get("retrieval_fingerprint")
     if b_fp is None or c_fp is None:
         missing = "baseline" if b_fp is None else "candidate"
         return f"note: the {missing} run records no retrieval fingerprint (older run)."
+    # The fingerprint leaves the corpus out; runs record the collections they searched.
+    corpus = ", ".join(
+        f"{key}: {b_run[key]!r} -> {c_run[key]!r}"
+        for key in ("collection", "visual_collection")
+        if None not in (b_run.get(key), c_run.get(key)) and b_run[key] != c_run[key]
+    )
     if b_fp == c_fp:
-        return None
+        return (
+            f"note: the same retrieval stack on different collections. {corpus}" if corpus else None
+        )
     changed = sorted(
         key
         for key in set(b_cfg or {}) | set(c_cfg or {})
         if (b_cfg or {}).get(key) != (c_cfg or {}).get(key)
     )
     detail = ", ".join(
-        f"{key}: {(b_cfg or {}).get(key)!r} -> {(c_cfg or {}).get(key)!r}" for key in changed
+        [f"{key}: {(b_cfg or {}).get(key)!r} -> {(c_cfg or {}).get(key)!r}" for key in changed]
+        + ([corpus] if corpus else [])
     )
     return f"note: different retrieval stacks ({b_fp} -> {c_fp}). {detail}"
 
