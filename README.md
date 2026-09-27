@@ -78,7 +78,9 @@ share of correct pages in the top 5 and top 10 results.
 | text and page images | 0.70 | 0.79 |
 | page images only | **0.75** | **0.80** |
 
-Method and full numbers: [`docs/results.md`](./docs/results.md).
+Method and full numbers: [`docs/results.md`](./docs/results.md). Where answer
+accuracy is lost, and the fixes that did not help:
+[`docs/finding-the-bottleneck.md`](./docs/finding-the-bottleneck.md).
 
 Recordings: each question is searched within its own recording, against a
 random order of that recording's segments.

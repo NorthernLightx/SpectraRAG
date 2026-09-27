@@ -7,8 +7,8 @@ this is the reasoning.
 
 ## The assumption
 
-The headline result here is a retrieval win: routing figure and table queries
-to a visual retriever lifts page recall by 35 %. The natural next step was more
+The first headline result here was a retrieval win: routing figure and table
+queries to a visual retriever lifted page recall by 35 %. The natural next step was more
 of the same: better fusion, better reranking, better routing. For months the
 working theory was that the system was *retrieval-bound*: find the right page
 more often and the answers follow.
