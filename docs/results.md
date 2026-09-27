@@ -289,6 +289,12 @@ corpus text density and page budget were each tested as alternative explanations
 and none holds. See [ADR 0032](./decisions/0032-routing-is-a-cost-lever.md);
 receipts under `data/eval/baseline-mmdocir-*.json`.
 
+The README's table takes all three arms from one later run that recorded both
+legs ([`mmdocir-depth50-legs.json.gz`](../data/eval/mmdocir-depth50-legs.json.gz),
+the ADR 0032 amendment of 2026-09-24), so its arms share one set of leg outputs.
+There always-hybrid reads 0.788 on these 1,029 queries; text-only and visual-only
+match this table.
+
 Answering is a separate ceiling. On a 150-query subset read by `gemma-4-26b`, the
 retrieval gain converts only where routing changes what is retrieved (n=18: 0.333
 against 0.000, p=0.016). Of the queries whose gold page was retrieved, about
