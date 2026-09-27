@@ -42,8 +42,15 @@ def _serve(ns: argparse.Namespace) -> int:
     # which holds the uploads across restarts.
     uploads = os.environ.get("RAG_ENABLE_UPLOAD", "").strip().lower() in {"1", "true", "yes", "on"}
     if uploads and os.environ["RAG_QDRANT_URL"] == "path:./qdrant_local":
+        # The marker outlives an interrupted copy, which is then made again.
+        copying = os.path.join("qdrant_uploads", ".copying")
+        if os.path.exists(copying):
+            shutil.rmtree("qdrant_uploads")
         if not os.path.isdir("qdrant_uploads") and os.path.isdir("qdrant_local"):
-            shutil.copytree("qdrant_local", "qdrant_uploads")
+            os.makedirs("qdrant_uploads")
+            open(copying, "w").close()
+            shutil.copytree("qdrant_local", "qdrant_uploads", dirs_exist_ok=True)
+            os.remove(copying)
         os.environ["RAG_QDRANT_URL"] = "path:./qdrant_uploads"
         print(
             "Uploads are on: serving ./qdrant_uploads, a copy of the snapshot. Delete it to start over."

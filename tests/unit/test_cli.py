@@ -135,3 +135,24 @@ def test_serve_without_uploads_reads_the_snapshot_directly(
         main(["serve"])
     assert os.environ["RAG_QDRANT_URL"] == "path:./qdrant_local"
     assert not os.path.exists(os.path.join(tmp_path, "qdrant_uploads"))
+
+
+def test_serve_redoes_an_interrupted_working_copy(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: "os.PathLike[str]"
+) -> None:
+    # A half-copied store would otherwise be served on every later start.
+    _snapshot(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("RAG_QDRANT_URL", raising=False)
+    monkeypatch.setenv("RAG_ENABLE_UPLOAD", "true")
+
+    def dies(src: str, dst: str, **kwargs: object) -> None:
+        os.makedirs(dst, exist_ok=True)
+        raise KeyboardInterrupt
+
+    with mock.patch("src.cli.shutil.copytree", dies), pytest.raises(KeyboardInterrupt):
+        main(["serve"])
+    with mock.patch("uvicorn.run"):
+        main(["serve"])
+    assert os.path.isfile(os.path.join(tmp_path, "qdrant_uploads", "collection", "storage.sqlite"))
+    assert os.listdir(os.path.join(tmp_path, "qdrant_uploads")) == ["collection"]
