@@ -121,12 +121,18 @@ build: PyPI's Linux torch wheel is built against CUDA and pulls 15 `nvidia-*`
 wheels and triton, 3.2 GB compressed, into an image that runs on CPU. The
 Python environment was a 4.5 GB compressed layer of the 11.7 GB image.
 `pyproject.toml` now resolves Linux torch and torchvision from the PyTorch CPU
-index at the versions the image ran (2.10.0 and 0.25.0), and the environment
-installs to 1.8 GB with no `nvidia-*` package.
+index at the versions the image ran (2.10.0 and 0.25.0). The environment
+installs to 1.8 GB with no `nvidia-*` package, and the image published from
+`main` went from 11.7 to 7.7 GB compressed.
 
 One cold start of the visual image, from its logs: 16 s to import the app, 61 s
 to the first model load (importing sentence-transformers, which imports torch),
 55 s to load the models and open the index, and 2.5 minutes for the warm-up
 query, most of it the first forward passes. Cloud Run streams image bytes as
 they are first read, so these phases track how much of the image startup
-touches. Whether the CPU build shortens them is not measured yet.
+touches.
+
+Seven starts of the CUDA image took 240 to 283 s, 44 to 61 s of it importing
+torch. The first two starts of the CPU image took 245 and 180 s, 37 and 28 s of
+it importing torch. The import is shorter in both; two starts are too few to
+size the change in the total.
