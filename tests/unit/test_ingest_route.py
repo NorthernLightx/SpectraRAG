@@ -66,6 +66,28 @@ def test_ingest_happy_path_appends_chunks(monkeypatch: pytest.MonkeyPatch) -> No
     assert len(chunks) == 2
 
 
+def test_an_upload_id_never_names_a_parent_directory(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Pages and figures are written under `<dir>/<paper_id>/`.
+    client = _app(enable_upload=True)
+    seen: list[str] = []
+
+    async def fake_ingest(**kwargs: object) -> mock.Mock:
+        seen.append(kwargs["paper"].paper_id)  # type: ignore[attr-defined]
+        return mock.Mock(chunk_count=0, chunks=[], failed_pages=[])
+
+    monkeypatch.setattr(
+        "src.api.routes.ingest.get_corpus_handles",
+        lambda: (mock.Mock(), mock.Mock(), mock.Mock()),
+    )
+    monkeypatch.setattr("src.api.routes.ingest.get_chunks", dict)
+    monkeypatch.setattr("src.api.routes.ingest.ingest_paper", fake_ingest)
+
+    for name in ("...pdf", "..pdf", ".hidden.pdf"):
+        resp = client.post("/ingest", files={"file": (name, b"%PDF stub", "application/pdf")})
+        assert resp.status_code == 200, resp.text
+    assert seen == ["upload", "upload", "hidden"]
+
+
 def test_ingest_parse_failure_returns_generic_message(monkeypatch: pytest.MonkeyPatch) -> None:
     client = _app(enable_upload=True)
 

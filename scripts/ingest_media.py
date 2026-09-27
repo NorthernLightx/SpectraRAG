@@ -20,7 +20,6 @@ from __future__ import annotations
 import argparse
 import asyncio
 import importlib.util
-import re
 import time
 from collections.abc import Awaitable, Callable, Iterable, Mapping
 from pathlib import Path
@@ -28,7 +27,7 @@ from pathlib import Path
 import src  # noqa: F401  -- loads .env
 from src.config.settings import load_settings
 from src.ingestion.media import WhisperTranscriber, manifest_path
-from src.ingestion.pipeline import ingest_media
+from src.ingestion.pipeline import document_id, ingest_media
 from src.rag.bm25 import Bm25Index
 from src.rag.retrieval_config import RetrievalConfig, build_embedder
 from src.rag.vectorstore import QdrantVectorStore
@@ -49,9 +48,8 @@ _MEDIA_SUFFIXES = {
 
 
 def doc_id_for(path: Path) -> str:
-    """The document id of a recording: its stem, restricted to the characters
-    an uploaded PDF's id may hold (src/api/routes/ingest.py)."""
-    return re.sub(r"[^A-Za-z0-9._-]", "_", path.stem) or "recording"
+    """The document id of a recording, derived like an uploaded PDF's."""
+    return document_id(path.name, fallback="recording")
 
 
 def plan(paths: Iterable[Path]) -> dict[str, Path]:

@@ -12,6 +12,9 @@ from scripts.ingest_media import doc_id_for, ingest_all, plan
 def test_doc_ids_are_sanitised_like_uploads() -> None:
     assert doc_id_for(Path("My Talk (final).mp4")) == "My_Talk__final_"
     assert doc_id_for(Path("ES2004a.wav")) == "ES2004a"
+    # A dot-only stem would name pages_dir itself or its parent.
+    assert doc_id_for(Path("...mp4")) == "recording"
+    assert doc_id_for(Path("..mp4")) == "recording"
 
 
 def test_recordings_that_share_a_doc_id_are_refused() -> None:

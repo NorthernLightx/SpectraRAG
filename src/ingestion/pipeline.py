@@ -8,6 +8,7 @@ the text chunks in the same embedding + BM25 + Qdrant pipeline.
 from __future__ import annotations
 
 import asyncio
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -32,6 +33,13 @@ from src.rag.vectorstore import QdrantVectorStore
 from src.types import Chunk, Paper
 
 _log = get_logger(__name__)
+
+
+def document_id(filename: str, *, fallback: str) -> str:
+    """A document id from a file name: the stem, with characters outside
+    `[A-Za-z0-9._-]` replaced. Leading dots go, since pages and figures are
+    written under `<dir>/<id>/` and `.` or `..` would name the dir or its parent."""
+    return re.sub(r"[^A-Za-z0-9._-]", "_", Path(filename).stem).lstrip(".") or fallback
 
 
 @dataclass(frozen=True)

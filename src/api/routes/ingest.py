@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import re
 import tempfile
 from pathlib import Path
 
@@ -11,7 +10,7 @@ from pydantic import BaseModel
 
 from src.api.deps import get_chunks, get_corpus_handles, get_settings
 from src.config.settings import Settings
-from src.ingestion.pipeline import ingest_paper
+from src.ingestion.pipeline import document_id, ingest_paper
 from src.observability.logging import get_logger
 from src.types import Paper
 
@@ -66,7 +65,7 @@ async def ingest(
 
     embedder, vectorstore, bm25 = get_corpus_handles()
     chunks_by_id = get_chunks()
-    paper_id = re.sub(r"[^A-Za-z0-9._-]", "_", Path(filename).stem) or "upload"
+    paper_id = document_id(filename, fallback="upload")
 
     with tempfile.TemporaryDirectory() as tmp:
         pdf_path = Path(tmp) / f"{paper_id}.pdf"
