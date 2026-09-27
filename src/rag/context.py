@@ -86,6 +86,24 @@ class ReaderContext:
     context_ids: list[str] = field(default_factory=list)
 
 
+def _clock(seconds: float) -> str:
+    total = int(seconds)
+    hours, rest = divmod(total, 3600)
+    minutes, secs = divmod(rest, 60)
+    return f"{hours}:{minutes:02d}:{secs:02d}" if hours else f"{minutes}:{secs:02d}"
+
+
+def _time_range(r: RetrievalResult) -> str:
+    """` time=m:ss-m:ss` for a recording's transcript chunk (ADR 0034), so the
+    reader can say when something was said; empty for every other chunk."""
+    start, end = r.metadata.get("start_s"), r.metadata.get("end_s")
+    if r.metadata.get("kind") != "transcript":
+        return ""
+    if not isinstance(start, (int, float)) or not isinstance(end, (int, float)):
+        return ""
+    return f" time={_clock(start)}-{_clock(end)}"
+
+
 def page_image_id(paper_id: str, page: int) -> str:
     return f"{paper_id}::p{page}::page"
 
@@ -200,7 +218,9 @@ def build_reader_context(
     n_images = 0
     for r in retrieved:
         pages = ",".join(str(p) for p in r.page_numbers)
-        block = f"[chunk {r.chunk_id}] paper={r.paper_id} pages={pages}\n{r.text or ''}"
+        block = (
+            f"[chunk {r.chunk_id}] paper={r.paper_id} pages={pages}{_time_range(r)}\n{r.text or ''}"
+        )
         if budget is not None and used and spent + len(block) > budget:
             break
         spent += len(block)

@@ -298,3 +298,18 @@ async def test_ollama_joins_text_and_keeps_image_order(tmp_path: Path) -> None:
         base64.b64encode(b"png-bytes").decode(),
         base64.b64encode(b"jpg-bytes").decode(),
     ]
+
+
+def test_transcript_chunks_show_their_time_in_the_recording() -> None:
+    talk = _result("talk", 3, text="the plastic case")
+    talk.metadata.update({"kind": "transcript", "start_s": 83.2, "end_s": 3725.9})
+    ctx = build_reader_context(
+        "q", [talk, _result("paper", 2)], prompt=_PROMPT, include_images=False
+    )
+    content = ctx.messages[-1].content
+    assert isinstance(content, list)
+    headers = [p.text.splitlines()[0] for p in content if isinstance(p, TextPart)][:2]
+    assert headers == [
+        "[chunk talk::p3::c0] paper=talk pages=3 time=1:23-1:02:05",
+        "[chunk paper::p2::c0] paper=paper pages=2",
+    ]
