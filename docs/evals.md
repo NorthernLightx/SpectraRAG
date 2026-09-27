@@ -25,7 +25,8 @@ A recording's pages are its time segments (ADR 0034), and its gold evidence is
 | Set | Queries | Recordings | Source |
 |---|---|---|---|
 | `mcif-v1` | 217 (192 with spans, 25 unanswerable) | 21 ACL talks | MCIF, answer locations recovered from its short-form clips |
-| `qmsum-ami-test-v1` | 117 | 18 AMI meetings | QMSum test split, turn spans converted to seconds with AMI word timings |
+| `qmsum-ami-test-v2` | 123 | 19 AMI meetings | QMSum test split, turn spans converted to seconds with AMI word timings |
+| `qmsum-ami-test-v1` | 117 | 18 AMI meetings | the same before the aligner fix (ADR 0034 amendment), kept for its runs |
 
 `scripts/score_talk_retrieval.py` scores each question within its own
 recording: hit@k, recall@k and MRR, each beside a random ranking of that
@@ -39,8 +40,8 @@ uv run python -m scripts.derive_arms --run data/eval/mcif-talks-legs.json.gz \
     --golden data/golden/mcif-v1.yaml --out-dir data/eval/runs/mcif-arms --weight 1 --top-k 10
 uv run python -m scripts.score_talk_retrieval --run data/eval/runs/mcif-arms/*.json \
     --golden data/golden/mcif-v1.yaml --pages-dir data/eval/recordings/mcif
-uv run python -m scripts.score_talk_retrieval --run data/eval/ami-meetings-text.json.gz \
-    --golden data/golden/qmsum-ami-test-v1.yaml --pages-dir data/eval/recordings/ami
+uv run python -m scripts.score_talk_retrieval --run data/eval/ami-meetings-text-v2.json.gz \
+    --golden data/golden/qmsum-ami-test-v2.yaml --pages-dir data/eval/recordings/ami
 ```
 
 To rebuild from the media (`uv sync --extra media`; about 25 minutes of CPU

@@ -148,3 +148,61 @@ Golden sets: [`data/golden/mcif-v1.yaml`](../../data/golden/mcif-v1.yaml),
   4.0, with the prompt preamble removed and time spans added. QMSum queries and
   answers are MIT, Copyright (c) 2021 Yale-LILY, with only specific queries kept
   and turn spans converted to seconds using AMI word timings (CC BY 4.0).
+
+## Amendment (2026-09-27): meeting labels v2, and checks that changed nothing
+
+**Stacks.** The talk runs above are not the served stack. They add the
+ColQwen2 leg, hybrid routing and a fusion depth of 50 to it, set by flags
+because `--profile cpu` refuses `--fusion-depth`; their fingerprint is
+`a3ccfc9428b3`. The meeting runs are the served stack, `c898a7415fec`.
+
+**Meeting labels v2.** The 131 of 137 above was an aligner fault. An unmatched
+turn leaves its speaker's position where it was, and the aligner searched only
+200 words past it, so after one long unmatched turn that speaker could stop
+matching for the rest of the meeting. With a 2,000-word window all 135 meetings AMI does not flag match at
+98.8 % or better (mean 99.9 %), 835 specific queries across the splits. The
+test split is now
+[`data/golden/qmsum-ami-test-v2.yaml`](../../data/golden/qmsum-ami-test-v2.yaml):
+19 meetings (ES2004b is back) and 123 queries. v1 stays for the runs above.
+
+| v2, served text leg | hit@1 | hit@3 | MRR |
+|---|---|---|---|
+| served | 0.46 | 0.75 | 0.64 |
+| random | 0.17 | 0.39 | 0.32 |
+
+On evidence of two or three pages, hit@1 is 0.39 against 0.08 at random; on
+four or more, 0.52 against 0.26. Receipt:
+[`data/eval/ami-meetings-text-v2.json.gz`](../../data/eval/ami-meetings-text-v2.json.gz).
+
+**Title slides.** The scorer also reports a ranking that lists a recording's
+pages in time order. On talks it gets hit@1 0.33 overall, against 0.57 fused.
+On the 62 questions MCIF files as General (authors, affiliations, speaker), it
+gets 0.98, against 0.66 for the visual leg and 0.55 fused. Slide text does not
+close that gap. Docling OCR of every keyframe, added as one text chunk per
+page (299 chunks), moved fused hit@1 by -0.02 (-0.06 to +0.02) and General
+hit@1 by -0.05 (-0.15 to +0.05). The names are in the OCR text, but "How many
+authors are involved in the paper?" shares no words with a list of names: the
+title slide's chunk ranked first in the text leg on 3 of the 62. Slide text is
+not indexed. Receipt:
+[`data/eval/mcif-talks-legs-slidetext.json.gz`](../../data/eval/mcif-talks-legs-slidetext.json.gz).
+
+**Checks that changed nothing.**
+
+- A visual fusion weight of 1.5 or 2 moves talk hit@3 by +0.02 (-0.02 to
+  +0.05) and hit@1 by 0.00. The weight stays 1.
+- Turning the reranker's length norm off moves fused talk hit@1 by -0.005
+  (-0.03 to +0.02). Receipt:
+  [`data/eval/mcif-talks-legs-nolengthnorm.json.gz`](../../data/eval/mcif-talks-legs-nolengthnorm.json.gz).
+- Against AMI's manual words, meeting transcripts have a median 27 % word
+  error, mostly deletions. A third of the deleted words are fillers, and 5 %
+  fall in 19 skips of 20 words or more. Receipt:
+  [`data/eval/ami-meetings-asr-wer.json`](../../data/eval/ami-meetings-asr-wer.json).
+- Slide-cut segmentation on camera footage cuts on movement. An AMI close-up
+  camera cuts 3.9 times a minute and a slide talk 5.1; two AMI cameras are
+  still 57 % and 80 % of the time, two slide talks 88 % and 95 %. Neither
+  measure leaves a margin to detect camera footage by, so a filmed meeting is
+  indexed from its audio track. Receipt:
+  [`data/eval/segmentation-camera-vs-slides.json`](../../data/eval/segmentation-camera-vs-slides.json).
+
+The reader now sees each transcript chunk's time range as `time=m:ss-m:ss`
+([`src/rag/context.py`](../../src/rag/context.py)).

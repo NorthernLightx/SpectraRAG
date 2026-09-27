@@ -198,7 +198,7 @@ def main() -> None:
     parser.add_argument("--data-dir", type=Path, default=Path("data/ami"))
     parser.add_argument("--split", choices=("train", "val", "test", "all"), default="test")
     parser.add_argument("--min-match", type=float, default=0.95)
-    parser.add_argument("--output", type=Path, help="default data/golden/qmsum-ami-<split>-v1.yaml")
+    parser.add_argument("--output", type=Path, help="default data/golden/qmsum-ami-<split>-v2.yaml")
     args = parser.parse_args()
 
     ann = args.data_dir / "annotations"
@@ -234,8 +234,9 @@ def main() -> None:
         narrowed += spans_narrowed
         lost += query_lost
 
-    output = args.output or Path(f"data/golden/qmsum-ami-{args.split}-v1.yaml")
-    golden = GoldenSet(name="qmsum-ami", version=f"{args.split}-v1", queries=queries)
+    output = args.output or Path(f"data/golden/qmsum-ami-{args.split}-v2.yaml")
+    # A change to which turns align changes the labels: bump the version (ADR 0034).
+    golden = GoldenSet(name="qmsum-ami", version=f"{args.split}-v2", queries=queries)
     output.write_text(
         yaml.safe_dump(
             golden.model_dump(mode="json"), sort_keys=False, allow_unicode=True, width=100
