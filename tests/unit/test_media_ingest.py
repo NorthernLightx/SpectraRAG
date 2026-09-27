@@ -610,3 +610,14 @@ async def test_audio_without_speech_fails_and_keeps_the_previous_index(
                 await run
     assert [c.chunk_id for c in await store.scroll_chunks()] == ["call::p1::c0"]
     assert media.manifest_path(pages, "call").exists()
+
+
+def test_a_truncated_transcript_cache_is_a_miss(tmp_path: Path) -> None:
+    # A run killed mid-write must not make every later ingest of the recording fail.
+    words = [Word(start_s=0.0, end_s=0.4, text=" Hello.")]
+    media.save_words(tmp_path, "call", "fake", words, source="abc")
+    assert media.load_words(tmp_path, "call", "fake", source="abc") == words
+    assert [p.name for p in (tmp_path / "call").iterdir()] == ["call_words.json"]
+    path = media.words_path(tmp_path, "call")
+    path.write_text(path.read_text(encoding="utf-8")[:20], encoding="utf-8")
+    assert media.load_words(tmp_path, "call", "fake", source="abc") is None

@@ -391,17 +391,23 @@ def save_words(
         "source": source,
         "words": [[w.start_s, w.end_s, w.text] for w in words],
     }
-    path.write_text(json.dumps(payload), encoding="utf-8")
+    tmp = path.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(payload), encoding="utf-8")
+    tmp.replace(path)
 
 
 def load_words(pages_dir: Path, doc_id: str, transcriber: str, *, source: str) -> list[Word] | None:
     """The cached transcript of `doc_id`, or None unless it came from this
     transcriber and this recording (`media_fingerprint`). Segmentation never
-    changes the words, so a re-segmentation reuses them."""
+    changes the words, so a re-segmentation reuses them. An unreadable cache is
+    a miss."""
     path = words_path(pages_dir, doc_id)
     if not path.exists():
         return None
-    payload = json.loads(path.read_text(encoding="utf-8"))
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return None
     if payload.get("transcriber") != transcriber or payload.get("source") != source:
         return None
     return [Word(start_s=float(a), end_s=float(b), text=str(t)) for a, b, t in payload["words"]]
