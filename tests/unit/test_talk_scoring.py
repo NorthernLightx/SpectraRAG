@@ -50,6 +50,7 @@ def test_score_query_projects_chunks_to_pages_and_scores_them() -> None:
     )
     ranked = ["talk::p2::c3", "talk::p2::c4", "talk::p4::c7", "talk::p9::c12"]
     s = score_query(q, SEGMENTS, ranked)
+    assert s is not None
     assert s["relevant_pages"] == [4]
     assert (s["recall_at_1"], s["recall_at_3"], s["mrr"]) == (0.0, 1.0, 0.5)
     assert s["random_recall_at_1"] == pytest.approx(0.1)
@@ -77,6 +78,7 @@ def test_score_query_compares_with_random_at_the_same_depth() -> None:
         relevant_spans=[TimeSpan(start_s=31.0, end_s=39.0)],
     )
     s = score_query(q, SEGMENTS, ["talk::p1::c0", "talk::p2::c1"])
+    assert s is not None
     assert s["depth"] == 2
     assert s["random_recall_at_3"] == pytest.approx(0.2)
     assert s["random_mrr"] == pytest.approx(
@@ -94,7 +96,9 @@ def test_score_query_buckets_evidence_by_how_many_pages_it_covers() -> None:
             category="factual",
             relevant_spans=[TimeSpan(start_s=start, end_s=end)],
         )
-        return str(score_query(q, SEGMENTS, ["talk::p1::c0"])["width"])
+        s = score_query(q, SEGMENTS, ["talk::p1::c0"])
+        assert s is not None
+        return str(s["width"])
 
     assert width(31.0, 39.0) == "1 page"
     assert width(12.0, 38.0) == "2-3 pages"
@@ -119,6 +123,43 @@ def test_score_query_reports_hits_for_wide_evidence() -> None:
         relevant_spans=[TimeSpan(start_s=31.0, end_s=59.0)],
     )
     s = score_query(q, SEGMENTS, ["talk::p5::c0", "talk::p1::c1", "talk::p9::c2"])
+    assert s is not None
     assert s["relevant_pages"] == [4, 5, 6]
     assert s["recall_at_1"] == pytest.approx(1 / 3)
     assert (s["hit_at_1"], s["hit_at_3"]) == (1.0, 1.0)
+
+
+def _q(start: float, end: float) -> GoldenQuery:
+    return GoldenQuery(
+        query_id="q",
+        text="?",
+        paper_id="talk",
+        category="factual",
+        relevant_spans=[TimeSpan(start_s=start, end_s=end)],
+    )
+
+
+def test_a_query_with_no_page_is_not_scored_as_a_miss() -> None:
+    assert score_query(_q(200.0, 210.0), SEGMENTS, ["talk::p1::c0"]) is None
+
+
+def test_a_ranking_from_another_recording_is_refused() -> None:
+    with pytest.raises(ValueError, match="other recordings"):
+        score_query(_q(31.0, 39.0), SEGMENTS, ["talk::p4::c0", "other::p2::c9"])
+
+
+def test_a_ranked_page_missing_from_the_manifest_is_refused() -> None:
+    # The run and the manifests come from different segmentations.
+    with pytest.raises(ValueError, match="manifest"):
+        score_query(_q(31.0, 39.0), SEGMENTS, ["talk::p4::c0", "talk::p12::c30"])
+
+
+def test_the_in_order_baseline_ranks_pages_by_time() -> None:
+    # Always answering with the first pages scores well on title-slide questions.
+    ranked = [f"talk::p{p}::c{p}" for p in (9, 8, 7, 6, 5)]
+    s = score_query(_q(31.0, 39.0), SEGMENTS, ranked)  # page 4
+    assert s is not None
+    assert s["in_order_mrr"] == pytest.approx(0.25)
+    assert s["in_order_hit_at_3"] == 0.0
+    s = score_query(_q(1.0, 9.0), SEGMENTS, ranked)  # page 1
+    assert s is not None and s["in_order_hit_at_1"] == 1.0

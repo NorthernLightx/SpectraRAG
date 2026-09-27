@@ -66,3 +66,12 @@ def test_golden_query_reads_spans_from_yaml_shape() -> None:
     )
     assert q.relevant_spans == [TimeSpan(start_s=12.0, end_s=31.5)]
     assert GoldenQuery.model_validate({**q.model_dump(), "relevant_spans": []}).relevant_spans == []
+
+
+def test_a_short_span_across_a_cut_maps_to_the_segment_it_overlaps_most() -> None:
+    assert pages_for_spans([TimeSpan(start_s=19.2, end_s=20.9)], SEGMENTS) == [2]
+    assert pages_for_spans([TimeSpan(start_s=19.6, end_s=20.4)], SEGMENTS) == [1, 2]
+
+
+def test_a_span_outside_the_recording_maps_to_no_page() -> None:
+    assert pages_for_spans([TimeSpan(start_s=70.0, end_s=80.0)], SEGMENTS) == []

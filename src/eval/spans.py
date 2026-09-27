@@ -25,14 +25,25 @@ def pages_for_spans(
     *,
     min_overlap_s: float = MIN_OVERLAP_S,
 ) -> list[int]:
-    """Sorted pages of the segments that overlap any span enough to count."""
+    """Sorted pages of the segments that overlap any span enough to count.
+
+    A span too short to meet the rule on either side of a cut takes the
+    segment it overlaps most, both on a tie, so a short label never maps to
+    no page while it lies inside the recording."""
     pages: set[int] = set()
     for span in spans:
+        counted: set[int] = set()
+        best, best_pages = 0.0, []
         for seg in segments:
             overlap = min(span.end_s, seg.end_s) - max(span.start_s, seg.start_s)
             needed = min(min_overlap_s, span.end_s - span.start_s, seg.end_s - seg.start_s)
             if overlap > 0 and overlap >= needed:
-                pages.add(seg.page)
+                counted.add(seg.page)
+            if overlap > best + 1e-9:
+                best, best_pages = overlap, [seg.page]
+            elif overlap > 0 and abs(overlap - best) <= 1e-9:
+                best_pages.append(seg.page)
+        pages |= counted or set(best_pages)
     return sorted(pages)
 
 
