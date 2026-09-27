@@ -21,6 +21,7 @@ import glob
 import hashlib
 import itertools
 import json
+import shutil
 from collections.abc import Iterable, Iterator, Sequence
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -67,6 +68,44 @@ def _diff(a: NDArray[np.float32], b: NDArray[np.float32]) -> float:
     return float(np.abs(a - b).mean())
 
 
+class _SlideCutter[T]:
+    """The cut rule of `segment_frames`, one sample at a time, so a caller can
+    act on each segment as soon as it closes."""
+
+    def __init__(self, params: SegmentationParams) -> None:
+        self._params = params
+        self.started = False
+        self._start_s = 0.0
+        self._ref: NDArray[np.float32] | None = None
+        self._prev: NDArray[np.float32] | None = None
+        self._key: T | None = None
+
+    def push(
+        self, t: float, thumb: NDArray[np.float32], payload: T
+    ) -> tuple[float, float, T] | None:
+        """Take one sample; return the segment it closes, if any."""
+        if not self.started:
+            self.started = True
+            self._start_s, self._ref, self._prev, self._key = t, thumb, thumb, payload
+            return None
+        assert self._ref is not None and self._prev is not None
+        elapsed = t - self._start_s
+        changed = _diff(thumb, self._ref) > self._params.cut_threshold
+        if (
+            changed and elapsed >= self._params.min_segment_s
+        ) or elapsed >= self._params.max_segment_s:
+            closed = (self._start_s, t, self._key)
+            self._start_s, self._ref, self._prev, self._key = t, thumb, thumb, payload
+            return closed  # type: ignore[return-value]
+        if _diff(thumb, self._prev) <= self._params.stable_eps:
+            self._ref, self._key = thumb, payload
+        self._prev = thumb
+        return None
+
+    def finish(self, duration_s: float) -> tuple[float, float, T]:
+        return (self._start_s, max(duration_s, self._start_s + 1e-3), self._key)  # type: ignore[return-value]
+
+
 def segment_frames[T](
     frames: Iterable[tuple[float, NDArray[np.float32], T]],
     *,
@@ -83,24 +122,15 @@ def segment_frames[T](
     sample between two slides, and that ghost must not become the page image
     or the reference the next frames are compared with.
     """
-    it = iter(frames)
-    first = next(it, None)
-    if first is None:
-        raise ValueError("no video frames to segment")
-    start_s, ref, key = first
-    prev = ref
+    cutter: _SlideCutter[T] = _SlideCutter(params)
     out: list[tuple[float, float, T]] = []
-    for t, thumb, payload in it:
-        elapsed = t - start_s
-        changed = _diff(thumb, ref) > params.cut_threshold
-        if (changed and elapsed >= params.min_segment_s) or elapsed >= params.max_segment_s:
-            out.append((start_s, t, key))
-            start_s, ref, key, prev = t, thumb, payload, thumb
-            continue
-        if _diff(thumb, prev) <= params.stable_eps:
-            ref, key = thumb, payload
-        prev = thumb
-    out.append((start_s, max(duration_s, start_s + 1e-3), key))
+    for t, thumb, payload in frames:
+        closed = cutter.push(t, thumb, payload)
+        if closed is not None:
+            out.append(closed)
+    if not cutter.started:
+        raise ValueError("no video frames to segment")
+    out.append(cutter.finish(duration_s))
     return [
         (MediaSegment(page=n, start_s=a, end_s=b), k) for n, (a, b, k) in enumerate(out, start=1)
     ]
@@ -148,19 +178,45 @@ def keyframe_path(pages_dir: Path, doc_id: str, page: int) -> Path:
 def segment_video(
     path: Path, doc_id: str, pages_dir: Path, params: SegmentationParams
 ) -> list[MediaSegment]:
-    """Segment `path` and write each segment's keyframe as its page image,
-    replacing the keyframes of any earlier segmentation."""
+    """Segment `path` and write each segment's keyframe as its page image.
+
+    Keyframes go to disk as their segment closes, so memory does not grow with
+    the length of the footage. They are staged beside the pages and replace the
+    previous keyframes only once the whole video has decoded: a failed decode
+    keeps the old pages, and none is left from a segmentation with more pages,
+    which the page index would read as a page that no longer exists.
+    """
     frames, duration_s = iter_video_frames(path, params)
-    segmented = segment_frames(frames, duration_s=duration_s, params=params)
     doc_dir = pages_dir / doc_id
-    doc_dir.mkdir(parents=True, exist_ok=True)
-    # The page index reads every keyframe on disk; one left from a segmentation
-    # with more pages would be indexed as a page that no longer exists.
+    staging = doc_dir / ".staging"
+    shutil.rmtree(staging, ignore_errors=True)
+    staging.mkdir(parents=True)
+    cutter: _SlideCutter[Image.Image] = _SlideCutter(params)
+    segments: list[MediaSegment] = []
+
+    def keep(closed: tuple[float, float, Image.Image]) -> None:
+        start_s, end_s, image = closed
+        page = len(segments) + 1
+        image.save(staging / keyframe_path(pages_dir, doc_id, page).name)
+        segments.append(MediaSegment(page=page, start_s=start_s, end_s=end_s))
+
+    try:
+        for t, thumb, image in frames:
+            closed = cutter.push(t, thumb, image)
+            if closed is not None:
+                keep(closed)
+        if not cutter.started:
+            raise ValueError("no video frames to segment")
+        keep(cutter.finish(duration_s))
+    except BaseException:
+        shutil.rmtree(staging, ignore_errors=True)
+        raise
     for old in doc_dir.glob(f"{glob.escape(doc_id)}_p*.png"):
         old.unlink()
-    for segment, image in segmented:
-        image.save(keyframe_path(pages_dir, doc_id, segment.page))
-    return [segment for segment, _ in segmented]
+    for new in staging.iterdir():
+        new.replace(doc_dir / new.name)
+    staging.rmdir()
+    return segments
 
 
 @dataclass(frozen=True)

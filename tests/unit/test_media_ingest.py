@@ -473,3 +473,43 @@ async def test_video_without_audio_is_indexed_without_transcribing(
 def test_transcriber_cache_key_carries_the_language() -> None:
     assert media.WhisperTranscriber().name.endswith("/auto")
     assert media.WhisperTranscriber(language="en").name.endswith("/en")
+
+
+def test_keyframes_reach_disk_while_the_video_is_still_decoding(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Holding every keyframe until the end costs gigabytes on long footage.
+    pages = tmp_path / "pages"
+    staged_midway: list[int] = []
+
+    def frames() -> Iterator[tuple[float, np.ndarray, Image.Image]]:
+        for t in range(40):
+            if t == 31:  # frame 30 has closed the third slide
+                staged_midway.append(len(list((pages / "talk").rglob("*.png"))))
+            yield float(t), _thumb(100.0 * (t // 10)), Image.new("RGB", (8, 8), "red")
+
+    monkeypatch.setattr(media, "iter_video_frames", lambda path, params: (frames(), 40.0))
+    segments = media.segment_video(tmp_path / "talk.mp4", "talk", pages, PARAMS)
+    assert [s.page for s in segments] == [1, 2, 3, 4]
+    assert staged_midway == [3]
+    assert sorted(p.name for p in (pages / "talk").iterdir()) == [
+        f"talk_p{n}.png" for n in (1, 2, 3, 4)
+    ]
+
+
+def test_a_failed_decode_keeps_the_previous_pages(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    pages = tmp_path / "pages"
+    (pages / "talk").mkdir(parents=True)
+    Image.new("RGB", (4, 4)).save(pages / "talk" / "talk_p1.png")
+
+    def broken() -> Iterator[tuple[float, np.ndarray, Image.Image]]:
+        for t in range(25):
+            yield float(t), _thumb(100.0 * (t // 10)), Image.new("RGB", (8, 8), "red")
+        raise RuntimeError("corrupt stream")
+
+    monkeypatch.setattr(media, "iter_video_frames", lambda path, params: (broken(), 40.0))
+    with pytest.raises(RuntimeError):
+        media.segment_video(tmp_path / "talk.mp4", "talk", pages, PARAMS)
+    assert sorted(p.name for p in (pages / "talk").iterdir()) == ["talk_p1.png"]

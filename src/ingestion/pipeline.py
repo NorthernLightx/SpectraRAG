@@ -273,6 +273,8 @@ async def ingest_media(
         )
         ctx["kind"] = "video" if probe.has_video else "audio"
         ctx["segments"] = len(segments)
+        per_minute = len(segments) / max(segments[-1].end_s / 60, 1e-9)
+        ctx["segments_per_min"] = round(per_minute, 2)
         ctx["words"] = len(words)
         ctx["chunks"] = len(chunks)
         ctx["empty_pages"] = len(segments) - len({c.page_numbers[0] for c in chunks})
