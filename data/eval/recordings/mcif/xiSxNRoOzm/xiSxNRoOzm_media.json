@@ -1,0 +1,127 @@
+{
+ "doc_id": "xiSxNRoOzm",
+ "source": "xiSxNRoOzm.mp4",
+ "duration_s": 350.6235,
+ "transcriber": "faster-whisper/large-v3-turbo/int8",
+ "segmentation": {
+  "sample_fps": 1.0,
+  "thumb_width": 64,
+  "thumb_height": 36,
+  "cut_threshold": 4.0,
+  "stable_eps": 1.0,
+  "min_segment_s": 5.0,
+  "max_segment_s": 90.0
+ },
+ "segments": [
+  {
+   "page": 1,
+   "start_s": 0.0,
+   "end_s": 19.0
+  },
+  {
+   "page": 2,
+   "start_s": 19.0,
+   "end_s": 32.0
+  },
+  {
+   "page": 3,
+   "start_s": 32.0,
+   "end_s": 47.0
+  },
+  {
+   "page": 4,
+   "start_s": 47.0,
+   "end_s": 67.0
+  },
+  {
+   "page": 5,
+   "start_s": 67.0,
+   "end_s": 78.0
+  },
+  {
+   "page": 6,
+   "start_s": 78.0,
+   "end_s": 85.0
+  },
+  {
+   "page": 7,
+   "start_s": 85.0,
+   "end_s": 94.0
+  },
+  {
+   "page": 8,
+   "start_s": 94.0,
+   "end_s": 104.0
+  },
+  {
+   "page": 9,
+   "start_s": 104.0,
+   "end_s": 134.0
+  },
+  {
+   "page": 10,
+   "start_s": 134.0,
+   "end_s": 154.0
+  },
+  {
+   "page": 11,
+   "start_s": 154.0,
+   "end_s": 170.0
+  },
+  {
+   "page": 12,
+   "start_s": 170.0,
+   "end_s": 183.0
+  },
+  {
+   "page": 13,
+   "start_s": 183.0,
+   "end_s": 220.0
+  },
+  {
+   "page": 14,
+   "start_s": 220.0,
+   "end_s": 235.0
+  },
+  {
+   "page": 15,
+   "start_s": 235.0,
+   "end_s": 252.0
+  },
+  {
+   "page": 16,
+   "start_s": 252.0,
+   "end_s": 259.0
+  },
+  {
+   "page": 17,
+   "start_s": 259.0,
+   "end_s": 279.0
+  },
+  {
+   "page": 18,
+   "start_s": 279.0,
+   "end_s": 304.0
+  },
+  {
+   "page": 19,
+   "start_s": 304.0,
+   "end_s": 320.0
+  },
+  {
+   "page": 20,
+   "start_s": 320.0,
+   "end_s": 340.0
+  },
+  {
+   "page": 21,
+   "start_s": 340.0,
+   "end_s": 348.0
+  },
+  {
+   "page": 22,
+   "start_s": 348.0,
+   "end_s": 350.6235
+  }
+ ]
+}

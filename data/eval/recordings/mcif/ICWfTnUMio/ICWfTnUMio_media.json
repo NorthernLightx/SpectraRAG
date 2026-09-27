@@ -1,0 +1,82 @@
+{
+ "doc_id": "ICWfTnUMio",
+ "source": "ICWfTnUMio.mp4",
+ "duration_s": 347.8,
+ "transcriber": "faster-whisper/large-v3-turbo/int8",
+ "segmentation": {
+  "sample_fps": 1.0,
+  "thumb_width": 64,
+  "thumb_height": 36,
+  "cut_threshold": 4.0,
+  "stable_eps": 1.0,
+  "min_segment_s": 5.0,
+  "max_segment_s": 90.0
+ },
+ "segments": [
+  {
+   "page": 1,
+   "start_s": 0.0,
+   "end_s": 13.0
+  },
+  {
+   "page": 2,
+   "start_s": 13.0,
+   "end_s": 50.0
+  },
+  {
+   "page": 3,
+   "start_s": 50.0,
+   "end_s": 79.0
+  },
+  {
+   "page": 4,
+   "start_s": 79.0,
+   "end_s": 94.0
+  },
+  {
+   "page": 5,
+   "start_s": 94.0,
+   "end_s": 113.0
+  },
+  {
+   "page": 6,
+   "start_s": 113.0,
+   "end_s": 133.0
+  },
+  {
+   "page": 7,
+   "start_s": 133.0,
+   "end_s": 154.0
+  },
+  {
+   "page": 8,
+   "start_s": 154.0,
+   "end_s": 189.0
+  },
+  {
+   "page": 9,
+   "start_s": 189.0,
+   "end_s": 253.0
+  },
+  {
+   "page": 10,
+   "start_s": 253.0,
+   "end_s": 266.0
+  },
+  {
+   "page": 11,
+   "start_s": 266.0,
+   "end_s": 303.0
+  },
+  {
+   "page": 12,
+   "start_s": 303.0,
+   "end_s": 336.0
+  },
+  {
+   "page": 13,
+   "start_s": 336.0,
+   "end_s": 347.8
+  }
+ ]
+}

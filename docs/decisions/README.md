@@ -37,3 +37,4 @@ kept on purpose.
 - [0031](./0031-provider-menu-byok-or-ollama.md): Provider menu: generation on the visitor's own provider (OpenRouter BYOK or local Ollama)
 - [0032](./0032-routing-is-a-cost-lever.md): Routing is a cost lever, not an accuracy lever (supersedes 0013)
 - [0033](./0033-one-reader-context.md): One reader context for the chat, /answer and the eval
+- [0034](./0034-recordings-as-time-segment-documents.md): Recordings are documents whose pages are time segments

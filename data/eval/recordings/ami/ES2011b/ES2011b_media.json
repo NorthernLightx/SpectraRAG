@@ -1,0 +1,173 @@
+{
+ "doc_id": "ES2011b",
+ "source": "ES2011b.wav",
+ "duration_s": 1581.269375,
+ "transcriber": "faster-whisper/large-v3-turbo/int8",
+ "segmentation": {
+  "min_segment_s": 45.0,
+  "max_segment_s": 90.0
+ },
+ "segments": [
+  {
+   "page": 1,
+   "start_s": 0.0,
+   "end_s": 55.98
+  },
+  {
+   "page": 2,
+   "start_s": 55.98,
+   "end_s": 108.44
+  },
+  {
+   "page": 3,
+   "start_s": 108.44,
+   "end_s": 158.28
+  },
+  {
+   "page": 4,
+   "start_s": 158.28,
+   "end_s": 204.02
+  },
+  {
+   "page": 5,
+   "start_s": 204.02,
+   "end_s": 254.34
+  },
+  {
+   "page": 6,
+   "start_s": 254.34,
+   "end_s": 311.38
+  },
+  {
+   "page": 7,
+   "start_s": 311.38,
+   "end_s": 381.14
+  },
+  {
+   "page": 8,
+   "start_s": 381.14,
+   "end_s": 430.4
+  },
+  {
+   "page": 9,
+   "start_s": 430.4,
+   "end_s": 475.68
+  },
+  {
+   "page": 10,
+   "start_s": 475.68,
+   "end_s": 525.38
+  },
+  {
+   "page": 11,
+   "start_s": 525.38,
+   "end_s": 587.42
+  },
+  {
+   "page": 12,
+   "start_s": 587.42,
+   "end_s": 633.24
+  },
+  {
+   "page": 13,
+   "start_s": 633.24,
+   "end_s": 684.2
+  },
+  {
+   "page": 14,
+   "start_s": 684.2,
+   "end_s": 731.3
+  },
+  {
+   "page": 15,
+   "start_s": 731.3,
+   "end_s": 779.12
+  },
+  {
+   "page": 16,
+   "start_s": 779.12,
+   "end_s": 826.2
+  },
+  {
+   "page": 17,
+   "start_s": 826.2,
+   "end_s": 872.14
+  },
+  {
+   "page": 18,
+   "start_s": 872.14,
+   "end_s": 917.28
+  },
+  {
+   "page": 19,
+   "start_s": 917.28,
+   "end_s": 962.74
+  },
+  {
+   "page": 20,
+   "start_s": 962.74,
+   "end_s": 1007.92
+  },
+  {
+   "page": 21,
+   "start_s": 1007.92,
+   "end_s": 1054.8
+  },
+  {
+   "page": 22,
+   "start_s": 1054.8,
+   "end_s": 1100.46
+  },
+  {
+   "page": 23,
+   "start_s": 1100.46,
+   "end_s": 1147.34
+  },
+  {
+   "page": 24,
+   "start_s": 1147.34,
+   "end_s": 1204.64
+  },
+  {
+   "page": 25,
+   "start_s": 1204.64,
+   "end_s": 1252.58
+  },
+  {
+   "page": 26,
+   "start_s": 1252.58,
+   "end_s": 1300.08
+  },
+  {
+   "page": 27,
+   "start_s": 1300.08,
+   "end_s": 1345.3
+  },
+  {
+   "page": 28,
+   "start_s": 1345.3,
+   "end_s": 1391.46
+  },
+  {
+   "page": 29,
+   "start_s": 1391.46,
+   "end_s": 1438.98
+  },
+  {
+   "page": 30,
+   "start_s": 1438.98,
+   "end_s": 1486.54
+  },
+  {
+   "page": 31,
+   "start_s": 1486.54,
+   "end_s": 1547.68
+  },
+  {
+   "page": 32,
+   "start_s": 1547.68,
+   "end_s": 1581.269375
+  }
+ ],
+ "kind": "audio"
+}

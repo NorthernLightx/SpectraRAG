@@ -1,0 +1,77 @@
+{
+ "doc_id": "miPjvjWOvI",
+ "source": "miPjvjWOvI.mp4",
+ "duration_s": 361.08,
+ "transcriber": "faster-whisper/large-v3-turbo/int8",
+ "segmentation": {
+  "sample_fps": 1.0,
+  "thumb_width": 64,
+  "thumb_height": 36,
+  "cut_threshold": 4.0,
+  "stable_eps": 1.0,
+  "min_segment_s": 5.0,
+  "max_segment_s": 90.0
+ },
+ "segments": [
+  {
+   "page": 1,
+   "start_s": 0.0,
+   "end_s": 18.0
+  },
+  {
+   "page": 2,
+   "start_s": 18.0,
+   "end_s": 74.0
+  },
+  {
+   "page": 3,
+   "start_s": 74.0,
+   "end_s": 100.0
+  },
+  {
+   "page": 4,
+   "start_s": 100.0,
+   "end_s": 162.0
+  },
+  {
+   "page": 5,
+   "start_s": 162.0,
+   "end_s": 212.0
+  },
+  {
+   "page": 6,
+   "start_s": 212.0,
+   "end_s": 243.0
+  },
+  {
+   "page": 7,
+   "start_s": 243.0,
+   "end_s": 249.0
+  },
+  {
+   "page": 8,
+   "start_s": 249.0,
+   "end_s": 269.0
+  },
+  {
+   "page": 9,
+   "start_s": 269.0,
+   "end_s": 285.0
+  },
+  {
+   "page": 10,
+   "start_s": 285.0,
+   "end_s": 298.0
+  },
+  {
+   "page": 11,
+   "start_s": 298.0,
+   "end_s": 359.0
+  },
+  {
+   "page": 12,
+   "start_s": 359.0,
+   "end_s": 361.08
+  }
+ ]
+}

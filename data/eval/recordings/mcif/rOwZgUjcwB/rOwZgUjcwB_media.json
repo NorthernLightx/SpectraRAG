@@ -1,0 +1,67 @@
+{
+ "doc_id": "rOwZgUjcwB",
+ "source": "rOwZgUjcwB.mp4",
+ "duration_s": 349.2723162723163,
+ "transcriber": "faster-whisper/large-v3-turbo/int8",
+ "segmentation": {
+  "sample_fps": 1.0,
+  "thumb_width": 64,
+  "thumb_height": 36,
+  "cut_threshold": 4.0,
+  "stable_eps": 1.0,
+  "min_segment_s": 5.0,
+  "max_segment_s": 90.0
+ },
+ "segments": [
+  {
+   "page": 1,
+   "start_s": 0.0,
+   "end_s": 21.48302148302148
+  },
+  {
+   "page": 2,
+   "start_s": 21.48302148302148,
+   "end_s": 74.67900867900867
+  },
+  {
+   "page": 3,
+   "start_s": 74.67900867900867,
+   "end_s": 118.66801966801967
+  },
+  {
+   "page": 4,
+   "start_s": 118.66801966801967,
+   "end_s": 150.38101838101838
+  },
+  {
+   "page": 5,
+   "start_s": 150.38101838101838,
+   "end_s": 193.34702834702836
+  },
+  {
+   "page": 6,
+   "start_s": 193.34702834702836,
+   "end_s": 214.83001683001683
+  },
+  {
+   "page": 7,
+   "start_s": 214.83001683001683,
+   "end_s": 247.56601656601657
+  },
+  {
+   "page": 8,
+   "start_s": 247.56601656601657,
+   "end_s": 291.55502755502755
+  },
+  {
+   "page": 9,
+   "start_s": 291.55502755502755,
+   "end_s": 337.5900075900076
+  },
+  {
+   "page": 10,
+   "start_s": 337.5900075900076,
+   "end_s": 349.2723162723163
+  }
+ ]
+}

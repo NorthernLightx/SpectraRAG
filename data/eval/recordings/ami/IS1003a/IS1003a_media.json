@@ -1,0 +1,98 @@
+{
+ "doc_id": "IS1003a",
+ "source": "IS1003a.wav",
+ "duration_s": 913.493313,
+ "transcriber": "faster-whisper/large-v3-turbo/int8",
+ "segmentation": {
+  "min_segment_s": 45.0,
+  "max_segment_s": 90.0
+ },
+ "segments": [
+  {
+   "page": 1,
+   "start_s": 0.0,
+   "end_s": 59.64
+  },
+  {
+   "page": 2,
+   "start_s": 59.64,
+   "end_s": 109.06
+  },
+  {
+   "page": 3,
+   "start_s": 109.06,
+   "end_s": 156.54
+  },
+  {
+   "page": 4,
+   "start_s": 156.54,
+   "end_s": 209.36
+  },
+  {
+   "page": 5,
+   "start_s": 209.36,
+   "end_s": 258.5
+  },
+  {
+   "page": 6,
+   "start_s": 258.5,
+   "end_s": 308.58
+  },
+  {
+   "page": 7,
+   "start_s": 308.58,
+   "end_s": 354.9
+  },
+  {
+   "page": 8,
+   "start_s": 354.9,
+   "end_s": 400.74
+  },
+  {
+   "page": 9,
+   "start_s": 400.74,
+   "end_s": 447.42
+  },
+  {
+   "page": 10,
+   "start_s": 447.42,
+   "end_s": 495.06
+  },
+  {
+   "page": 11,
+   "start_s": 495.06,
+   "end_s": 541.92
+  },
+  {
+   "page": 12,
+   "start_s": 541.92,
+   "end_s": 590.62
+  },
+  {
+   "page": 13,
+   "start_s": 590.62,
+   "end_s": 638.66
+  },
+  {
+   "page": 14,
+   "start_s": 638.66,
+   "end_s": 691.44
+  },
+  {
+   "page": 15,
+   "start_s": 691.44,
+   "end_s": 746.9
+  },
+  {
+   "page": 16,
+   "start_s": 746.9,
+   "end_s": 838.5
+  },
+  {
+   "page": 17,
+   "start_s": 838.5,
+   "end_s": 913.493313
+  }
+ ],
+ "kind": "audio"
+}

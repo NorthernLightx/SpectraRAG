@@ -1,0 +1,97 @@
+{
+ "doc_id": "ERmKpJPPDc",
+ "source": "ERmKpJPPDc.mp4",
+ "duration_s": 340.36,
+ "transcriber": "faster-whisper/large-v3-turbo/int8",
+ "segmentation": {
+  "sample_fps": 1.0,
+  "thumb_width": 64,
+  "thumb_height": 36,
+  "cut_threshold": 4.0,
+  "stable_eps": 1.0,
+  "min_segment_s": 5.0,
+  "max_segment_s": 90.0
+ },
+ "segments": [
+  {
+   "page": 1,
+   "start_s": 0.0,
+   "end_s": 7.0
+  },
+  {
+   "page": 2,
+   "start_s": 7.0,
+   "end_s": 14.0
+  },
+  {
+   "page": 3,
+   "start_s": 14.0,
+   "end_s": 22.0
+  },
+  {
+   "page": 4,
+   "start_s": 22.0,
+   "end_s": 72.0
+  },
+  {
+   "page": 5,
+   "start_s": 72.0,
+   "end_s": 94.0
+  },
+  {
+   "page": 6,
+   "start_s": 94.0,
+   "end_s": 125.0
+  },
+  {
+   "page": 7,
+   "start_s": 125.0,
+   "end_s": 142.0
+  },
+  {
+   "page": 8,
+   "start_s": 142.0,
+   "end_s": 191.0
+  },
+  {
+   "page": 9,
+   "start_s": 191.0,
+   "end_s": 230.0
+  },
+  {
+   "page": 10,
+   "start_s": 230.0,
+   "end_s": 247.0
+  },
+  {
+   "page": 11,
+   "start_s": 247.0,
+   "end_s": 264.0
+  },
+  {
+   "page": 12,
+   "start_s": 264.0,
+   "end_s": 294.0
+  },
+  {
+   "page": 13,
+   "start_s": 294.0,
+   "end_s": 317.0
+  },
+  {
+   "page": 14,
+   "start_s": 317.0,
+   "end_s": 333.0
+  },
+  {
+   "page": 15,
+   "start_s": 333.0,
+   "end_s": 338.0
+  },
+  {
+   "page": 16,
+   "start_s": 338.0,
+   "end_s": 340.36
+  }
+ ]
+}

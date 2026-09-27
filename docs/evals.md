@@ -17,6 +17,40 @@ Categories `factual`, `multi_hop`, `figure`, `table`, `equation`,
 `out_of_corpus`. Those are the same labels the per-query router emits, so
 per-subset analysis cross-references cleanly.
 
+### Recordings
+
+A recording's pages are its time segments (ADR 0034), and its gold evidence is
+`relevant_spans` in seconds, mapped onto the current segments at scoring time.
+
+| Set | Queries | Recordings | Source |
+|---|---|---|---|
+| `mcif-v1` | 217 (192 with spans, 25 unanswerable) | 21 ACL talks | MCIF, answer locations recovered from its short-form clips |
+| `qmsum-ami-test-v1` | 117 | 18 AMI meetings | QMSum test split, turn spans converted to seconds with AMI word timings |
+
+`scripts/score_talk_retrieval.py` scores each question within its own
+recording: hit@k, recall@k and MRR, each beside a random ranking of that
+recording's pages at the same depth, split by evidence width and question
+origin. Meeting evidence spans several pages, so hits are its headline. The
+segment manifests the scores depend on are committed under
+`data/eval/recordings/`, so the receipts rescore without the media:
+
+```bash
+uv run python -m scripts.derive_arms --run data/eval/mcif-talks-legs.json.gz \
+    --golden data/golden/mcif-v1.yaml --out-dir data/eval/runs/mcif-arms --weight 1 --top-k 10
+uv run python -m scripts.score_talk_retrieval --run data/eval/runs/mcif-arms/*.json \
+    --golden data/golden/mcif-v1.yaml --pages-dir data/eval/recordings/mcif
+uv run python -m scripts.score_talk_retrieval --run data/eval/ami-meetings-text.json.gz \
+    --golden data/golden/qmsum-ami-test-v1.yaml --pages-dir data/eval/recordings/ami
+```
+
+To rebuild from the media (`uv sync --extra media`; about 25 minutes of CPU
+per hour of audio): `scripts.fetch_mcif` and `scripts.fetch_ami --split test
+--audio` download the corpora, `scripts.locate_mcif_spans` and
+`scripts.build_qmsum_golden` rebuild the gold spans, `scripts.ingest_media`
+indexes the recordings, and `scripts.build_visual_index --pages-only` indexes
+the talk keyframes. Attribution for the third-party text in both sets is in
+ADR 0034.
+
 ## Metrics
 
 Retrieval (macro over in-corpus queries; OOC excluded, since they're 0 by

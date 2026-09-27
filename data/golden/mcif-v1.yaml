@@ -1,0 +1,2587 @@
+name: mcif
+version: v1
+queries:
+- query_id: mcif_QA_13_135
+  text: What are the main data sources for language models?
+  paper_id: ICWfTnUMio
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 1.28
+    end_s: 50.83
+  expected_facts:
+  - They are trained on large-scale web-crawled data. Especially prevalent are news corpora.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_20_203
+  text: What are the affiliations of the authors of the paper?
+  paper_id: krJSAnVcGR
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 2.28
+    end_s: 17.44
+  expected_facts:
+  - The work is a collaboration between McGill University/Mila and Microsoft Research.
+  note: MCIF | qa_type=AV | origin=General
+- query_id: mcif_QA_11_107
+  text: What is the name of the speaker?
+  paper_id: csJIsDTYMW
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 1.1
+    end_s: 14.87
+  expected_facts:
+  - The speaker name is Kayo Yin.
+  note: MCIF | qa_type=A | origin=General
+- query_id: mcif_QA_7_71
+  text: Which model did they use to obtain the 82%-87% accuracy?
+  paper_id: miPjvjWOvI
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 298.82
+    end_s: 312.21
+  expected_facts:
+  - They use the T5 XL model.
+  note: MCIF | qa_type=AV | origin=Abstract
+- query_id: mcif_QA_4_42
+  text: Do CoNLL-2003 taggers still work?
+  paper_id: QTlIuodOsA
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 262.6
+    end_s: 275.32
+  expected_facts:
+  - Yes, Transformer-based models are able to generalize even if trained on older data.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_21_215
+  text: What is the novelty of the proposed human evaluation method?
+  paper_id: JRrbTnEZbF
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 72.77
+    end_s: 85.75
+  expected_facts:
+  - It reduces the subjectivity of human evaluation by explicitly annotating whether each response expresses
+    certain human behaviors.
+  note: MCIF | qa_type=A | origin=Abstract
+- query_id: mcif_QA_8_80
+  text: What does the success of the existing weakly supervised approach heavily rely on?
+  paper_id: rOwZgUjcwB
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 150.87
+    end_s: 178.82
+  expected_facts:
+  - Existing weakly supervised learning methods require clean validation samples to work properly.
+  note: MCIF | qa_type=AV | origin=Abstract
+- query_id: mcif_QA_7_70
+  text: What kind of advances can be done to improve the score?
+  paper_id: miPjvjWOvI
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans: []
+  expected_facts: []
+  note: MCIF | qa_type=NA | origin=Abstract
+- query_id: mcif_QA_8_77
+  text: How many authors are involved in the paper?
+  paper_id: rOwZgUjcwB
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 1.9
+    end_s: 19.82
+  expected_facts:
+  - Five authors are involved.
+  note: MCIF | qa_type=AV | origin=General
+- query_id: mcif_QA_9_87
+  text: How many authors are involved in the paper?
+  paper_id: wJAPXMIoIG
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 13.97
+    end_s: 17.88
+  expected_facts:
+  - There are three authors involved.
+  note: MCIF | qa_type=AV | origin=General
+- query_id: mcif_QA_15_154
+  text: Which domains are simplified more?
+  paper_id: JhbtCwcsWY
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 144.06
+    end_s: 152.23
+  expected_facts:
+  - The bible texts are more simplified than the news or language learner texts.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_18_186
+  text: What is the example of the preference for shorter left conjuncts?
+  paper_id: MjDvRpkOFq
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 209.83
+    end_s: 232.43
+  expected_facts:
+  - It is "salt and pepper" rather than "pepper and salt."
+  note: MCIF | qa_type=A | origin=Transcript
+- query_id: mcif_QA_14_147
+  text: Can I use the models for my research?
+  paper_id: UOlPKyCVgg
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 271.85
+    end_s: 289.31
+  expected_facts:
+  - Yes, the models are on huggingFace and the scripts are available on github.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_15_157
+  text: DEplain-web contains documents from the web. Which type of content is inside DEplain-apa?
+  paper_id: JhbtCwcsWY
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 88.83
+    end_s: 99.6
+  expected_facts:
+  - The domain of DEplain-apa are news texts.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_4_44
+  text: Which factors lead to good generalization?
+  paper_id: QTlIuodOsA
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 230.21
+    end_s: 282.18
+  expected_facts:
+  - Better model architectures (namely Transformer), large model sizes, and more fine-tuning examples
+    facilitate good generalization.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_18_187
+  text: How was the tendency for left conjuncts to be shorter measured?
+  paper_id: MjDvRpkOFq
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 288.87
+    end_s: 308.15
+  expected_facts:
+  - The tendency was measured in characters, syllables, and words.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_18_188
+  text: How were the experiments designed to study the effect of the governor’s position?
+  paper_id: MjDvRpkOFq
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 296.94
+    end_s: 326.49
+  expected_facts:
+  - No governor, governor on the left and governor on the right.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_6_63
+  text: How well does a baseline classifier work training on imbalanced data?
+  paper_id: xiSxNRoOzm
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 134.51
+    end_s: 153.99
+  expected_facts:
+  - Training on imbalanced data can lead to a classifier's performance being no better than chance.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_13_127
+  text: How many authors are involved in the paper?
+  paper_id: ICWfTnUMio
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 1.28
+    end_s: 13.59
+  expected_facts:
+  - There are four authors involved in the paper.
+  note: MCIF | qa_type=V | origin=General
+- query_id: mcif_QA_7_74
+  text: What are the characters' names in the example conversation?
+  paper_id: miPjvjWOvI
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 107.33
+    end_s: 129.01
+  expected_facts:
+  - The names are Bob and Alice.
+  note: MCIF | qa_type=A | origin=Transcript
+- query_id: mcif_QA_11_111
+  text: On which discourse phenomena do context-aware MT models improve over context-agnostic ones?
+  paper_id: csJIsDTYMW
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 291.01
+    end_s: 318.54
+  expected_facts:
+  - Context-aware models perform significantly better on formality and lexical cohesion.
+  note: MCIF | qa_type=AV | origin=Abstract
+- query_id: mcif_QA_3_26
+  text: What are the affiliations of the authors of the paper?
+  paper_id: vrydRuOXbT
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 1.06
+    end_s: 18.1
+  expected_facts:
+  - The authors are affiliated with Johns Hopkins University, Purdue Unigersity, MIT and Meta AI.
+  note: MCIF | qa_type=V | origin=General
+- query_id: mcif_QA_2_21
+  text: What was the finding of the previous study where human subjects were given the same persona prompts?
+  paper_id: rxrToXvRyM
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 123.18
+    end_s: 135.52
+  expected_facts:
+  - The finding is that this setup can surface racial stereotypes.
+  note: MCIF | qa_type=A | origin=Transcript
+- query_id: mcif_QA_18_185
+  text: Which sources of data were used in this study?
+  paper_id: MjDvRpkOFq
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 209.83
+    end_s: 222.08
+  expected_facts:
+  - The enhanced version of the Penn Treebank was used to extract statistics.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_18_180
+  text: How many authors are involved in the paper?
+  paper_id: MjDvRpkOFq
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 3.2
+    end_s: 7.73
+  expected_facts:
+  - Two authors are involved.
+  note: MCIF | qa_type=V | origin=General
+- query_id: mcif_QA_6_60
+  text: What are some closely related tasks for cognitive dissonance?
+  paper_id: xiSxNRoOzm
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 184.08
+    end_s: 234.45
+  expected_facts:
+  - 'The authors transfer from two different tasks: topic independent dissonance stance classification
+    referred to debate here in the paper, and on binary classification of expansion and comparison classes
+    of PDTB call referred to as CE.'
+  note: MCIF | qa_type=AV | origin=Abstract
+- query_id: mcif_QA_4_35
+  text: How many authors are involved in the paper?
+  paper_id: QTlIuodOsA
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 1.88
+    end_s: 13.47
+  expected_facts:
+  - The paper was created by two authors.
+  note: MCIF | qa_type=V | origin=General
+- query_id: mcif_QA_6_57
+  text: How many authors are involved in the paper?
+  paper_id: xiSxNRoOzm
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 1.4
+    end_s: 16.72
+  expected_facts:
+  - There are seven authors involved in the paper.
+  note: MCIF | qa_type=V | origin=General
+- query_id: mcif_QA_12_123
+  text: How does the introduced framework differ from the previous works?
+  paper_id: DyXpuURBMP
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 199.96
+    end_s: 214.29
+  expected_facts:
+  - The previous works looked at the annotator agreement, while the introduced framework creates first
+    highly-diverse annotations and aligns the annotations with model predictions or dataset labels.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_2_20
+  text: Which of the three compared setups overlaps the most with the lexicon of stereotypes?
+  paper_id: rxrToXvRyM
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 229.17
+    end_s: 237.56
+  expected_facts:
+  - GPT-3.5 has the most overlap.
+  note: MCIF | qa_type=V | origin=Transcript
+- query_id: mcif_QA_11_114
+  text: Which commercial systems were compared?
+  paper_id: csJIsDTYMW
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 306.27
+    end_s: 336.04
+  expected_facts:
+  - DeepL and Google Translate were compared.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_19_190
+  text: How many authors are involved in the paper?
+  paper_id: myfXyntFYL
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 0.9
+    end_s: 11.17
+  expected_facts:
+  - There are six authors involved in the paper.
+  note: MCIF | qa_type=V | origin=General
+- query_id: mcif_QA_3_30
+  text: Up to how many tokens context length were MPP evaluations performed?
+  paper_id: vrydRuOXbT
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 207.93
+    end_s: 220.84
+  expected_facts:
+  - Up to 1024 tokens were taken into consideration for MPP evaluations.
+  note: MCIF | qa_type=A | origin=Transcript
+- query_id: mcif_QA_7_69
+  text: Which domains did they include in their dataset?
+  paper_id: miPjvjWOvI
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 282.0
+    end_s: 296.86
+  expected_facts:
+  - Music, recipes and books were included.
+  note: MCIF | qa_type=V | origin=Abstract
+- query_id: mcif_QA_12_119
+  text: What is the definition of positionality in general?
+  paper_id: DyXpuURBMP
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 61.36
+    end_s: 91.99
+  expected_facts:
+  - The perspectives [people] hold as a result of their demographics, identity and life experiences.
+  note: MCIF | qa_type=AV | origin=Abstract
+- query_id: mcif_QA_8_76
+  text: What is the name of the speaker?
+  paper_id: rOwZgUjcwB
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 1.9
+    end_s: 19.82
+  expected_facts:
+  - The name of the speaker is Dawei Zhu.
+  note: MCIF | qa_type=AV | origin=General
+- query_id: mcif_QA_16_159
+  text: How many authors are involved in the paper?
+  paper_id: ERmKpJPPDc
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 1.6
+    end_s: 12.73
+  expected_facts:
+  - Four authors are involved in the paper.
+  note: MCIF | qa_type=V | origin=General
+- query_id: mcif_QA_20_206
+  text: Does the tested model work on the test suite?
+  paper_id: krJSAnVcGR
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 229.77
+    end_s: 270.87
+  expected_facts:
+  - Several models struggle, however task-specific training improves performance, but reliably integrating
+    knowledge presented only at inference time is still difficult.
+  note: MCIF | qa_type=AV | origin=Abstract
+- query_id: mcif_QA_20_207
+  text: Which three variants of KITMUS are there?
+  paper_id: krJSAnVcGR
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 154.41
+    end_s: 175.8
+  expected_facts:
+  - KITMUS consists of "Background-Pretrain", "Background-Both" and "Background-Inference".
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_7_68
+  text: What are the affiliations of the authors of the paper?
+  paper_id: miPjvjWOvI
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 0.56
+    end_s: 17.42
+  expected_facts:
+  - They are from Google Research.
+  note: MCIF | qa_type=V | origin=General
+- query_id: mcif_QA_8_82
+  text: What is the last research question?
+  paper_id: rOwZgUjcwB
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 119.3
+    end_s: 148.67
+  expected_facts:
+  - The last research question is 'How to use the available clean samples more efficiently?'.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_5_51
+  text: How does the metric sensitivity work?
+  paper_id: xhjBHGVOyQ
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 226.69
+    end_s: 241.6
+  expected_facts:
+  - Sensitivity measures the model's ability to produce the same output for the same task.
+  note: MCIF | qa_type=AV | origin=Abstract
+- query_id: mcif_QA_17_168
+  text: What is the name of the speaker?
+  paper_id: EqmWoxNDIr
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 1.06
+    end_s: 6.87
+  expected_facts:
+  - The speaker is Jingwei Yi.
+  note: MCIF | qa_type=AV | origin=General
+- query_id: mcif_QA_5_52
+  text: Does greater sensitivity indicate improved model performance, or does it suggest the opposite?
+  paper_id: xhjBHGVOyQ
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 285.97
+    end_s: 300.6
+  expected_facts:
+  - Lower sensitivity means improved model performance.
+  note: MCIF | qa_type=V | origin=Transcript
+- query_id: mcif_QA_3_29
+  text: What kind of linguistic context do models receive during pretraining?
+  paper_id: vrydRuOXbT
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans: []
+  expected_facts: []
+  note: MCIF | qa_type=NA | origin=Abstract
+- query_id: mcif_QA_8_83
+  text: How many clean validation samples are typically needed for good performance in WSL?
+  paper_id: rOwZgUjcwB
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 206.57
+    end_s: 211.03
+  expected_facts:
+  - Only about 20 clean samples per class are typically needed to attain high performance.
+  note: MCIF | qa_type=A | origin=Transcript
+- query_id: mcif_QA_2_14
+  text: What are the affiliations of the authors of the paper?
+  paper_id: rxrToXvRyM
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 0.56
+    end_s: 12.01
+  expected_facts:
+  - The authors are affiliated with Stanford University.
+  note: MCIF | qa_type=V | origin=General
+- query_id: mcif_QA_13_129
+  text: Why is there a need to develop new methods for measuring media biases?
+  paper_id: ICWfTnUMio
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans: []
+  expected_facts: []
+  note: MCIF | qa_type=NA | origin=Abstract
+- query_id: mcif_QA_20_201
+  text: What is the name of the speaker?
+  paper_id: krJSAnVcGR
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 2.28
+    end_s: 17.44
+  expected_facts:
+  - The speaker is called Akshatha Arodi.
+  note: MCIF | qa_type=V | origin=General
+- query_id: mcif_QA_13_133
+  text: What does the political bias propagation pipeline look like?
+  paper_id: ICWfTnUMio
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 36.14
+    end_s: 61.38
+  expected_facts:
+  - The pipeline goes from the pretraining data to Language Models to Downstream tasks.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_15_155
+  text: Does the simplification process differ for DEplain-apa and web?
+  paper_id: JhbtCwcsWY
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 162.7
+    end_s: 182.02
+  expected_facts:
+  - DEplain-apa experiences much more reordering and word additions and a bit more word deletions while
+    the web has more rephrasings.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_10_101
+  text: Is Coscript publicly available?
+  paper_id: ccpXHNfaoy
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans: []
+  expected_facts: []
+  note: MCIF | qa_type=NA | origin=Abstract
+- query_id: mcif_QA_17_172
+  text: How exactly is the watermark inserted into the text?
+  paper_id: EqmWoxNDIr
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 159.38
+    end_s: 192.09
+  expected_facts:
+  - The model provider counts the trigger number in the sentence sent by the user.
+  note: MCIF | qa_type=AV | origin=Abstract
+- query_id: mcif_QA_16_160
+  text: What are the affiliations of the authors of the paper?
+  paper_id: ERmKpJPPDc
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 1.6
+    end_s: 12.73
+  expected_facts:
+  - Penn State University and Amazon are the affiliations of the authors.
+  note: MCIF | qa_type=V | origin=General
+- query_id: mcif_QA_16_161
+  text: Can encoder-decoder models such as mt5 improve by training on a mixture of languages?
+  paper_id: ERmKpJPPDc
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 230.73
+    end_s: 245.63
+  expected_facts:
+  - The speakers shows that mt5 can be improved by training in a mixture of various languages.
+  note: MCIF | qa_type=AV | origin=Abstract
+- query_id: mcif_QA_10_104
+  text: What is an example of constrained language planning?
+  paper_id: ccpXHNfaoy
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 37.32
+    end_s: 52.31
+  expected_facts:
+  - For instance, "make a chocolate cake" is a constrained request with a specific goal.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_17_177
+  text: How do they make sure of the covertness of their method?
+  paper_id: EqmWoxNDIr
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 272.35
+    end_s: 294.45
+  expected_facts:
+  - Absence of "visible pattern" in PCA-based visualization.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_14_141
+  text: How does the work use existing PLMs to build a new one?
+  paper_id: UOlPKyCVgg
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 153.75
+    end_s: 161.16
+  expected_facts:
+  - The authors perform continual pre-training starting with the PLMs.
+  note: MCIF | qa_type=AV | origin=Abstract
+- query_id: mcif_QA_12_124
+  text: Which country is GPT-4 the least aligned with?
+  paper_id: DyXpuURBMP
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 300.76
+    end_s: 315.84
+  expected_facts:
+  - GPT-4 aligns the least with African Islamic.
+  note: MCIF | qa_type=V | origin=Transcript
+- query_id: mcif_QA_1_9
+  text: On which example sentence does the speaker show how the model leverages knowledge learned though
+    the attention mechanism?
+  paper_id: OiqEWDVtWk
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 67.19
+    end_s: 93.99
+  expected_facts:
+  - The example sentence shown on the slide is "I am a student."
+  note: MCIF | qa_type=V | origin=Transcript
+- query_id: mcif_QA_5_55
+  text: How does the amount of tasks impact the model performance?
+  paper_id: xhjBHGVOyQ
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 261.12
+    end_s: 269.37
+  expected_facts:
+  - With the increase in the amount of task the model achieves better performance.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_9_92
+  text: Name three treeless baselines that the authors compare their method with.
+  paper_id: wJAPXMIoIG
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 240.9
+    end_s: 259.54
+  expected_facts:
+  - Baselines are LSTM seq2seq, T5, and Zheng and Lapata.
+  note: MCIF | qa_type=V | origin=Transcript
+- query_id: mcif_QA_9_94
+  text: In what relation are the two co-authors with the first author?
+  paper_id: wJAPXMIoIG
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 13.97
+    end_s: 17.88
+  expected_facts:
+  - They are his advisors.
+  note: MCIF | qa_type=A | origin=Transcript
+- query_id: mcif_QA_19_200
+  text: Who is the first author of PaLM?
+  paper_id: myfXyntFYL
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 13.65
+    end_s: 29.81
+  expected_facts:
+  - The last name of the first author of PaLM is Chowdery.
+  note: MCIF | qa_type=V | origin=Transcript
+- query_id: mcif_QA_1_7
+  text: How many problems of SimulST does the speaker mention?
+  paper_id: OiqEWDVtWk
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 31.55
+    end_s: 62.52
+  expected_facts:
+  - The speaker introduces three current problems of SimulST.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_13_131
+  text: What is an effective way to mitigate social and political biases in datasets when training NLP
+    models?
+  paper_id: ICWfTnUMio
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 314.51
+    end_s: 339.82
+  expected_facts:
+  - Data should be sanitized to reduce biases.
+  note: MCIF | qa_type=AV | origin=Abstract
+- query_id: mcif_QA_19_198
+  text: How good is the fluency of PaLM?
+  paper_id: myfXyntFYL
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 212.41
+    end_s: 226.33
+  expected_facts:
+  - The fluency of PaLM is comparable to state-of-the-art systems.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_17_178
+  text: What are the important properties of a watermarking method?
+  paper_id: EqmWoxNDIr
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 77.04
+    end_s: 106.53
+  expected_facts:
+  - First the method should be applicable to embedding as services. Second, the watermark should not degrade
+    the utility of the provided embeddings. Third, the watermark should be covert enough to the attacker
+    or the attacker can remove the watermark easily.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_11_112
+  text: Which are the 14 different languages into which the English TED talks have been translated?
+  paper_id: csJIsDTYMW
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 129.93
+    end_s: 137.0
+  expected_facts:
+  - The TED talks have been translated into Arabic, German, Spanish, French, Hebrew, Italian, Japanese,
+    Korean, Dutch, Portuguese, Romanian, Russian, Turkish, and Mandarin.
+  note: MCIF | qa_type=V | origin=Transcript
+- query_id: mcif_QA_17_175
+  text: Which distance metrics are used for measuring the difference between benign and backdoor datasets?
+  paper_id: EqmWoxNDIr
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 224.54
+    end_s: 240.4
+  expected_facts:
+  - They use cosine and L2 similarity.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_16_165
+  text: How were the multilingual encoder-based models used for this task?
+  paper_id: ERmKpJPPDc
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 191.23
+    end_s: 229.21
+  expected_facts:
+  - They are used in combination with pointer based decoders (PTR).
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_17_173
+  text: How do the authors decide what moderate-frequency words are?
+  paper_id: EqmWoxNDIr
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 142.7
+    end_s: 158.0
+  expected_facts:
+  - It is based on word frequency in a general text corpus.
+  note: MCIF | qa_type=AV | origin=Abstract
+- query_id: mcif_QA_1_5
+  text: What speech segment size does the approach use?
+  paper_id: OiqEWDVtWk
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans: []
+  expected_facts: []
+  note: MCIF | qa_type=NA | origin=Abstract
+- query_id: mcif_QA_20_209
+  text: In the example with Servin and Kea, what entity-specific knowledge is needed?
+  paper_id: krJSAnVcGR
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 99.38
+    end_s: 151.91
+  expected_facts:
+  - The knowledge that Servin is a judge is needed.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_19_197
+  text: What is the most important factor between the example quality and the similarity to the source
+    sentence?
+  paper_id: myfXyntFYL
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 161.56
+    end_s: 168.65
+  expected_facts:
+  - The example quality is more important than the similarity to the source sentence.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_13_132
+  text: Which language models does the paper focus on in the extended experiments?
+  paper_id: ICWfTnUMio
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 103.54
+    end_s: 133.03
+  expected_facts:
+  - The Language Models finetuned in the experiments are RoBERTa and GPT-2.
+  note: MCIF | qa_type=V | origin=Transcript
+- query_id: mcif_QA_1_4
+  text: Does the model use attention scores from a specific layer or combine the scores from several layers?
+  paper_id: OiqEWDVtWk
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans: []
+  expected_facts: []
+  note: MCIF | qa_type=NA | origin=Abstract
+- query_id: mcif_QA_7_73
+  text: What are the examples of direct inference?
+  paper_id: miPjvjWOvI
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 34.33
+    end_s: 43.8
+  expected_facts:
+  - For example saying the name of the song, or it's position.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_10_98
+  text: What are the affiliations of the authors of the paper?
+  paper_id: ccpXHNfaoy
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 1.54
+    end_s: 12.23
+  expected_facts:
+  - The affiliations are Fudan University and Brain Technlogies Inc.
+  note: MCIF | qa_type=V | origin=General
+- query_id: mcif_QA_14_138
+  text: How many authors are involved in the paper?
+  paper_id: UOlPKyCVgg
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 0.7
+    end_s: 8.91
+  expected_facts:
+  - The paper has seven authors.
+  note: MCIF | qa_type=V | origin=General
+- query_id: mcif_QA_16_163
+  text: Was translating the natural language query using a machine translation model before semantic parsing
+    considered as a baseline?
+  paper_id: ERmKpJPPDc
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 94.53
+    end_s: 110.21
+  expected_facts:
+  - The authors use Google Translate for translating the query into English before passing it to a monolingual
+    semantic parser as baseline.
+  note: MCIF | qa_type=AV | origin=Abstract
+- query_id: mcif_QA_2_19
+  text: What example did the authors give as a marked group?
+  paper_id: rxrToXvRyM
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 162.64
+    end_s: 186.59
+  expected_facts:
+  - The example was a warrior vs. a woman warrior.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_4_37
+  text: Which model architectures do not generalize well?
+  paper_id: QTlIuodOsA
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 101.82
+    end_s: 110.15
+  expected_facts:
+  - RNNs and models using sparse features do not generalize as well as Transformer-based models.
+  note: MCIF | qa_type=V | origin=Abstract
+- query_id: mcif_QA_8_81
+  text: What are the names of the testing datasets?
+  paper_id: rOwZgUjcwB
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans: []
+  expected_facts: []
+  note: MCIF | qa_type=NA | origin=Abstract
+- query_id: mcif_QA_20_202
+  text: How many authors are involved in the paper?
+  paper_id: krJSAnVcGR
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 2.28
+    end_s: 17.44
+  expected_facts:
+  - The author list mentions six people.
+  note: MCIF | qa_type=V | origin=General
+- query_id: mcif_QA_5_48
+  text: Does the author work with multiple modalities or only text?
+  paper_id: xhjBHGVOyQ
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 49.35
+    end_s: 59.3
+  expected_facts:
+  - The authors work with multiple modality.
+  note: MCIF | qa_type=AV | origin=General
+- query_id: mcif_QA_20_204
+  text: What do the authors claim is an understudied area in NLU?
+  paper_id: krJSAnVcGR
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans: []
+  expected_facts: []
+  note: MCIF | qa_type=NA | origin=Abstract
+- query_id: mcif_QA_5_46
+  text: What are the names of the speakers?
+  paper_id: xhjBHGVOyQ
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 0.74
+    end_s: 10.97
+  expected_facts:
+  - The speakers of this work are Ying and Zhiyang.
+  note: MCIF | qa_type=AV | origin=General
+- query_id: mcif_QA_10_102
+  text: Did Coscript undergo any quality checks?
+  paper_id: ccpXHNfaoy
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 274.53
+    end_s: 289.59
+  expected_facts:
+  - To ensure the quality of the data, crowd-sourced workers are asked to find and revise incorrect samples.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_11_115
+  text: What are the limits of existing resources for on context-dependent translation?
+  paper_id: csJIsDTYMW
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 57.16
+    end_s: 72.33
+  expected_facts:
+  - Existing resources support limited types of context-dependent translations and sets of languages.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_1_6
+  text: To which existing SimulST policies is the approach compared?
+  paper_id: OiqEWDVtWk
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 236.52
+    end_s: 250.49
+  expected_facts:
+  - The authors compare their approach to wait-k and local agreement and to a state-of-the-art tailored
+    architecture.
+  note: MCIF | qa_type=AV | origin=Abstract
+- query_id: mcif_QA_14_139
+  text: What are the affiliations of the authors of the paper?
+  paper_id: UOlPKyCVgg
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 0.7
+    end_s: 8.91
+  expected_facts:
+  - The authors are from LIA, Avigon Universite, LS2N, Nantes Universite, Clinique des donnees, CHU de
+    Nantes and Zendioc.
+  note: MCIF | qa_type=V | origin=General
+- query_id: mcif_QA_12_116
+  text: What is the name of the speaker?
+  paper_id: DyXpuURBMP
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 1.3
+    end_s: 22.5
+  expected_facts:
+  - The speaker is Jenny.
+  note: MCIF | qa_type=AV | origin=General
+- query_id: mcif_QA_2_13
+  text: How many authors are involved in the paper?
+  paper_id: rxrToXvRyM
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 0.56
+    end_s: 12.01
+  expected_facts:
+  - Three authors are involved in the paper.
+  note: MCIF | qa_type=AV | origin=General
+- query_id: mcif_QA_4_45
+  text: Is the dataset publicly available?
+  paper_id: QTlIuodOsA
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 283.44
+    end_s: 290.87
+  expected_facts:
+  - Yes, it is available on GitHub.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_1_3
+  text: What are the affiliations of the authors of the paper?
+  paper_id: OiqEWDVtWk
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 0.64
+    end_s: 15.02
+  expected_facts:
+  - The author of the paper is from the University of Trento and the Foundazione Bruno Kessler.
+  note: MCIF | qa_type=AV | origin=General
+- query_id: mcif_QA_7_66
+  text: What is the name of the speaker?
+  paper_id: miPjvjWOvI
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 10.85
+    end_s: 17.42
+  expected_facts:
+  - The speaker is Mohammad Javad Hosseini.
+  note: MCIF | qa_type=AV | origin=General
+- query_id: mcif_QA_9_89
+  text: What type of tokens does the first step of the method map the input tokens to?
+  paper_id: wJAPXMIoIG
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 160.94
+    end_s: 168.33
+  expected_facts:
+  - The input tokens are mapped to an unordered set of output tokens that are logical forms that represent
+    core aspects of the input's meaning.
+  note: MCIF | qa_type=AV | origin=Abstract
+- query_id: mcif_QA_10_103
+  text: How many scripts are represented in Coscript?
+  paper_id: ccpXHNfaoy
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 274.53
+    end_s: 289.59
+  expected_facts:
+  - Coscript represents 55,00 scripts with specific goals.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_15_156
+  text: What is the best alignment method for DEplain?
+  paper_id: JhbtCwcsWY
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 259.34
+    end_s: 279.16
+  expected_facts:
+  - MASSalign works best on DEplain.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_8_79
+  text: What is the benefit of weakly supervised learning?
+  paper_id: rOwZgUjcwB
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 54.05
+    end_s: 73.41
+  expected_facts:
+  - Weakly supervised learning allows training algorithms to robustly train neural networks under label
+    noise so that the trained models still generalize well.
+  note: MCIF | qa_type=AV | origin=Abstract
+- query_id: mcif_QA_15_153
+  text: The documents in DEplain-web were aligned with manual and automatic alignment methods. How was
+    the allocation exactly?
+  paper_id: JhbtCwcsWY
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans: []
+  expected_facts: []
+  note: MCIF | qa_type=NA | origin=Transcript
+- query_id: mcif_QA_4_43
+  text: How was the CoNLL++ dataset created?
+  paper_id: QTlIuodOsA
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 54.27
+    end_s: 68.95
+  expected_facts:
+  - The authors collected data from Reuters news from 2020 and annotated it utilizing the annotation guidelines
+    from the CoNLL-2003 dataset.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_17_174
+  text: What are the existing works on this?
+  paper_id: EqmWoxNDIr
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 109.17
+    end_s: 113.25
+  expected_facts:
+  - Parameter-based, Lexical, Backdoor-based, Adverserial-based.
+  note: MCIF | qa_type=V | origin=Transcript
+- query_id: mcif_QA_16_166
+  text: Are multilingual LLMs such as Codex or Bloom sufficient for CLSP?
+  paper_id: ERmKpJPPDc
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 293.51
+    end_s: 315.28
+  expected_facts:
+  - The speaker says they are still inadequate for CLSP.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_9_95
+  text: How does the method deal with the ambiguity of permutations?
+  paper_id: wJAPXMIoIG
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 282.08
+    end_s: 323.58
+  expected_facts:
+  - The lingustically plausible alignment is induced in training, where backpropagation is possible due
+    to a continouos relaxation of the problem.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_13_130
+  text: How is the fairness of a downstream NLP model defined?
+  paper_id: ICWfTnUMio
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 276.76
+    end_s: 303.32
+  expected_facts:
+  - An example would be if a right-leaning language model is fine-tuned on hate speech or misinformation
+    and deployed. People with opposite political opinions might be marginalised and hate speech targeting
+    minority groups might be increased.
+  note: MCIF | qa_type=AV | origin=Abstract
+- query_id: mcif_QA_14_137
+  text: What is the name of the speaker?
+  paper_id: UOlPKyCVgg
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 0.7
+    end_s: 8.91
+  expected_facts:
+  - The speaker is called Yanis Labrak.
+  note: MCIF | qa_type=AV | origin=General
+- query_id: mcif_QA_3_24
+  text: What is the name of the speaker?
+  paper_id: vrydRuOXbT
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 1.06
+    end_s: 11.35
+  expected_facts:
+  - The name of the speaker is Koustuv Sinha.
+  note: MCIF | qa_type=AV | origin=General
+- query_id: mcif_QA_2_12
+  text: What is the name of the speaker?
+  paper_id: rxrToXvRyM
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 0.56
+    end_s: 12.01
+  expected_facts:
+  - The speaker is Myra Cheng.
+  note: MCIF | qa_type=V | origin=General
+- query_id: mcif_QA_2_16
+  text: What does tropicalism indicate in the context of this paper?
+  paper_id: rxrToXvRyM
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 304.0
+    end_s: 321.0
+  expected_facts:
+  - An example of this is to describe Latina women as vibrant and curvaceous.
+  note: MCIF | qa_type=AV | origin=Abstract
+- query_id: mcif_QA_2_15
+  text: How did the authors create the human-written portrayals of target groups?
+  paper_id: rxrToXvRyM
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans: []
+  expected_facts: []
+  note: MCIF | qa_type=NA | origin=Abstract
+- query_id: mcif_QA_11_113
+  text: What was used to measure context usage in this work?
+  paper_id: csJIsDTYMW
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 108.87
+    end_s: 122.64
+  expected_facts:
+  - In this work, Pointwise CXMI (or P-CXMI) is used to measure context usage.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_14_146
+  text: What is the difference between DrBERT and ChuBERT?
+  paper_id: UOlPKyCVgg
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 128.61
+    end_s: 152.83
+  expected_facts:
+  - The models are trained on different data sets. DrBERT is trained on NACHOS and ChuBERT on clinical
+    notes or on a mix of NACHOS and clinical notes.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_5_47
+  text: How many authors are involved in the paper?
+  paper_id: xhjBHGVOyQ
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 0.74
+    end_s: 10.97
+  expected_facts:
+  - There are three authors involved in the paper.
+  note: MCIF | qa_type=V | origin=General
+- query_id: mcif_QA_6_61
+  text: What is iterative transfer learning?
+  paper_id: xiSxNRoOzm
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 235.92
+    end_s: 251.43
+  expected_facts:
+  - Iterative transfer learning means updating the model by training on the latest set of collected data.
+  note: MCIF | qa_type=A | origin=Abstract
+- query_id: mcif_QA_7_72
+  text: What is the goal of the dataset?
+  paper_id: miPjvjWOvI
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 19.22
+    end_s: 32.91
+  expected_facts:
+  - The goal is to understand users' language when they make a choice.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_17_171
+  text: How can an attacker extract model parameters through an EaaS?
+  paper_id: EqmWoxNDIr
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans: []
+  expected_facts: []
+  note: MCIF | qa_type=NA | origin=Abstract
+- query_id: mcif_QA_1_2
+  text: How many authors are involved in the paper?
+  paper_id: OiqEWDVtWk
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 0.64
+    end_s: 15.02
+  expected_facts:
+  - The paper has three authors.
+  note: MCIF | qa_type=AV | origin=General
+- query_id: mcif_QA_6_65
+  text: How many annotators were used to create the initial dataset?
+  paper_id: xiSxNRoOzm
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans: []
+  expected_facts: []
+  note: MCIF | qa_type=NA | origin=Transcript
+- query_id: mcif_QA_12_118
+  text: What are the affiliations of the authors of the paper?
+  paper_id: DyXpuURBMP
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 1.3
+    end_s: 22.5
+  expected_facts:
+  - The affiliations are Carnegie Mellon University, University of Washington and the Allen Institute
+    for AI.
+  note: MCIF | qa_type=AV | origin=General
+- query_id: mcif_QA_18_184
+  text: What is the example that the governor is on the left?
+  paper_id: MjDvRpkOFq
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 240.48
+    end_s: 271.27
+  expected_facts:
+  - I saw Bart and Lisa.
+  note: MCIF | qa_type=AV | origin=Abstract
+- query_id: mcif_QA_21_219
+  text: What are the state-of-the-art models in dialogue systems?
+  paper_id: JRrbTnEZbF
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans: []
+  expected_facts: []
+  note: MCIF | qa_type=NA | origin=Transcript
+- query_id: mcif_QA_3_33
+  text: Why do we need to evaluate the models' acceptability throughout the context window?
+  paper_id: vrydRuOXbT
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 70.03
+    end_s: 80.16
+  expected_facts:
+  - We need to evaluate the models' acceptability throughout the context window, because these days large
+    language models have longer and longer context windows.
+  note: MCIF | qa_type=A | origin=Transcript
+- query_id: mcif_QA_16_164
+  text: Did training in multilingual fashion cause performance drop compared to monolingual English model?
+  paper_id: ERmKpJPPDc
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 246.53
+    end_s: 262.92
+  expected_facts:
+  - It caused a performance drop in 7 datasets and gain in 3 datasets, which the authors refer to as the
+    "Curse of Multilinguality".
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_7_75
+  text: Do the annotators know about the entity in advance?
+  paper_id: miPjvjWOvI
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 215.0
+    end_s: 225.07
+  expected_facts:
+  - They know the name but not the entities' details.
+  note: MCIF | qa_type=A | origin=Transcript
+- query_id: mcif_QA_19_193
+  text: Which MT metrics were used for the evaluation?
+  paper_id: myfXyntFYL
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans: []
+  expected_facts: []
+  note: MCIF | qa_type=NA | origin=Abstract
+- query_id: mcif_QA_4_39
+  text: Does the regress in generalization impact specific NER types?
+  paper_id: QTlIuodOsA
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans: []
+  expected_facts: []
+  note: MCIF | qa_type=NA | origin=Abstract
+- query_id: mcif_QA_12_120
+  text: Why does positionality in NLP matter?
+  paper_id: DyXpuURBMP
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 23.9
+    end_s: 60.32
+  expected_facts:
+  - The positionality of datasets and models used in NLP systems would lead to design biases for different
+    user groups.
+  note: MCIF | qa_type=AV | origin=Abstract
+- query_id: mcif_QA_16_162
+  text: Were the multilingual LLMs like BLOOM fine-tuned with adapters or full fine-tuning?
+  paper_id: ERmKpJPPDc
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans: []
+  expected_facts: []
+  note: MCIF | qa_type=NA | origin=Abstract
+- query_id: mcif_QA_6_59
+  text: Which model do they use for transfer learning?
+  paper_id: xiSxNRoOzm
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 184.08
+    end_s: 234.45
+  expected_facts:
+  - They use RoBERTA-base with a classifier head trained on Debate and CE data for transfer learning.
+  note: MCIF | qa_type=AV | origin=Abstract
+- query_id: mcif_QA_19_192
+  text: Which are the recent test sets used to assess the PaLM capabilities?
+  paper_id: myfXyntFYL
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans: []
+  expected_facts: []
+  note: MCIF | qa_type=NA | origin=Abstract
+- query_id: mcif_QA_2_22
+  text: How many recommendations did the authors propose at last?
+  paper_id: rxrToXvRyM
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 376.5
+    end_s: 380.4
+  expected_facts:
+  - They had three recommendations.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_10_100
+  text: How much is the gain of the proposed method over the strongest baseline?
+  paper_id: ccpXHNfaoy
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans: []
+  expected_facts: []
+  note: MCIF | qa_type=NA | origin=Abstract
+- query_id: mcif_QA_4_34
+  text: What is the name of the speaker?
+  paper_id: QTlIuodOsA
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 1.88
+    end_s: 13.47
+  expected_facts:
+  - The speaker's name is Shuheng Liu.
+  note: MCIF | qa_type=AV | origin=General
+- query_id: mcif_QA_15_151
+  text: Can the results and dataset in the paper be used as a benchmark?
+  paper_id: JhbtCwcsWY
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 340.66
+    end_s: 349.11
+  expected_facts:
+  - Yes, the dataset and the results in the paper can be used as a benchmark for text simplification.
+  note: MCIF | qa_type=AV | origin=Abstract
+- query_id: mcif_QA_10_99
+  text: How many smaller models do they experiment with in the paper?
+  paper_id: ccpXHNfaoy
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 305.75
+    end_s: 320.74
+  expected_facts:
+  - They experiment only on with smaller T5 model fine-tuned on Coscript.
+  note: MCIF | qa_type=AV | origin=Abstract
+- query_id: mcif_QA_5_53
+  text: Which model is used as the base model for investigating multi-model instruction tuning?
+  paper_id: xhjBHGVOyQ
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 111.09
+    end_s: 126.47
+  expected_facts:
+  - The model used as the base model for multi-modal instruction tuning is OFA (One For All).
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_19_191
+  text: What are the affiliations of the authors of the paper?
+  paper_id: myfXyntFYL
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 0.9
+    end_s: 11.17
+  expected_facts:
+  - All the authors are affiliated with Google.
+  note: MCIF | qa_type=AV | origin=General
+- query_id: mcif_QA_6_58
+  text: What are the affiliations of the authors of the paper?
+  paper_id: xiSxNRoOzm
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 1.4
+    end_s: 16.72
+  expected_facts:
+  - All authors are from Stony Brook University.
+  note: MCIF | qa_type=V | origin=General
+- query_id: mcif_QA_19_194
+  text: Which language pairs were analyzed in the paper?
+  paper_id: myfXyntFYL
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans: []
+  expected_facts: []
+  note: MCIF | qa_type=NA | origin=Abstract
+- query_id: mcif_QA_13_126
+  text: What is the name of the speaker?
+  paper_id: ICWfTnUMio
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 1.28
+    end_s: 13.59
+  expected_facts:
+  - The speaker's name is Shangbin.
+  note: MCIF | qa_type=AV | origin=General
+- query_id: mcif_QA_15_152
+  text: Which models were investigated during the experiments?
+  paper_id: JhbtCwcsWY
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 297.9
+    end_s: 314.91
+  expected_facts:
+  - long-mBART and normal base mBART were used for the experiments.
+  note: MCIF | qa_type=AV | origin=Abstract
+- query_id: mcif_QA_5_54
+  text: From the 62 diverse tasks used in MultiInstruct, how many tasks are used for training and testing
+    purposes?
+  paper_id: xhjBHGVOyQ
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 156.42
+    end_s: 181.74
+  expected_facts:
+  - From the 62 diverse tasks used in MultiInstruct, 53 tasks are used for training and 9 tasks are used
+    for testing.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_15_148
+  text: How many authors are involved in the paper?
+  paper_id: JhbtCwcsWY
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 1.04
+    end_s: 20.38
+  expected_facts:
+  - The paper was created by three authors.
+  note: MCIF | qa_type=V | origin=General
+- query_id: mcif_QA_17_176
+  text: Which datasets did the authors experiment on?
+  paper_id: EqmWoxNDIr
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 247.69
+    end_s: 259.96
+  expected_facts:
+  - They used AG News, MIND, SST2, and Enron Spam.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_14_143
+  text: What is NACHOS?
+  paper_id: UOlPKyCVgg
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 18.28
+    end_s: 30.27
+  expected_facts:
+  - NACHOS is a dataset crawled from the web containing medical data.
+  note: MCIF | qa_type=A | origin=Transcript
+- query_id: mcif_QA_19_189
+  text: What is the name of the speaker?
+  paper_id: myfXyntFYL
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 0.9
+    end_s: 11.17
+  expected_facts:
+  - The speaker's name is David Vilar.
+  note: MCIF | qa_type=AV | origin=General
+- query_id: mcif_QA_19_195
+  text: How much does the prompting strategy impact the results?
+  paper_id: myfXyntFYL
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 74.63
+    end_s: 89.89
+  expected_facts:
+  - The prompt has a big impact on translation quality.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_11_109
+  text: What are the affiliations of the authors of the paper?
+  paper_id: csJIsDTYMW
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 1.1
+    end_s: 14.87
+  expected_facts:
+  - The authors are affiliated with the Carnegie Mellon University, the Tecnico Lisboa, the Berkeley Artificial
+    Intelligence Research (BAIR) Lab, and Unbabel.
+  note: MCIF | qa_type=V | origin=General
+- query_id: mcif_QA_5_50
+  text: What are the 5 expert-written instructions?
+  paper_id: xhjBHGVOyQ
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans: []
+  expected_facts: []
+  note: MCIF | qa_type=NA | origin=Abstract
+- query_id: mcif_QA_20_205
+  text: What do the authors propose to test the models on using information from multiple sources?
+  paper_id: krJSAnVcGR
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 85.11
+    end_s: 97.68
+  expected_facts:
+  - The authors propose a test suite of coreference resolution subtasks that require reasoning over multiple
+    facts.
+  note: MCIF | qa_type=AV | origin=Abstract
+- query_id: mcif_QA_21_214
+  text: What are common evaluation methods for dialogue systems?
+  paper_id: JRrbTnEZbF
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 27.57
+    end_s: 37.76
+  expected_facts:
+  - Often, human judges are asked to select which conversation is better or rate conversations using a
+    Likert scale.
+  note: MCIF | qa_type=AV | origin=Abstract
+- query_id: mcif_QA_12_117
+  text: How many authors are involved in the paper?
+  paper_id: DyXpuURBMP
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 1.3
+    end_s: 22.5
+  expected_facts:
+  - There are five authors involved in the paper.
+  note: MCIF | qa_type=AV | origin=General
+- query_id: mcif_QA_20_210
+  text: In the example with Servin and Kea, what background knowledge is needed?
+  paper_id: krJSAnVcGR
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 99.38
+    end_s: 151.91
+  expected_facts:
+  - The knowledge that judges decide cases in courts of law is needed.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_20_208
+  text: Is the code available, and if yes, where?
+  paper_id: krJSAnVcGR
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 288.87
+    end_s: 302.5
+  expected_facts:
+  - The code is available at GitHub (under the name mpoemsl/kitmus).
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_12_125
+  text: Are the annotators for NLPositionality balanced in regard to each demographic, i.e., country,
+    gender, etc.?
+  paper_id: DyXpuURBMP
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans: []
+  expected_facts: []
+  note: MCIF | qa_type=NA | origin=Transcript
+- query_id: mcif_QA_3_31
+  text: How were sentences perturbed in the acceptable domain?
+  paper_id: vrydRuOXbT
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 281.12
+    end_s: 330.65
+  expected_facts:
+  - To perturb sentences in the acceptable domain, prefix/suffix adverbs, long prefif adverbs, clauses
+    and quotes were added.
+  note: MCIF | qa_type=V | origin=Transcript
+- query_id: mcif_QA_21_216
+  text: What does it mean to have a dimensional evaluation?
+  paper_id: JRrbTnEZbF
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 39.0
+    end_s: 53.55
+  expected_facts:
+  - It means that dialogue quality has many aspects.
+  note: MCIF | qa_type=AV | origin=Abstract
+- query_id: mcif_QA_17_170
+  text: What are the affiliations of the authors of the paper?
+  paper_id: EqmWoxNDIr
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 1.06
+    end_s: 19.76
+  expected_facts:
+  - The affiliations are the University of Science and Technology of Chine, Microsoft Research Asia, Beijing
+    Jiaotong University, Sony AI, Microsoft STC Asia.
+  note: MCIF | qa_type=V | origin=General
+- query_id: mcif_QA_19_196
+  text: In which cases, if any, is the form of the prompting important?
+  paper_id: myfXyntFYL
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 137.86
+    end_s: 155.5
+  expected_facts:
+  - The prompt form is crucial for zero-shot and one-shot prompting only.
+  note: MCIF | qa_type=A | origin=Transcript
+- query_id: mcif_QA_21_218
+  text: Which dialog models did the authors evaluate?
+  paper_id: JRrbTnEZbF
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 237.42
+    end_s: 298.54
+  expected_facts:
+  - The models are BART-FiD-RAG, Blender2, Emora, and Blender-Decode.
+  note: MCIF | qa_type=V | origin=Transcript
+- query_id: mcif_QA_17_169
+  text: How many authors are involved in the paper?
+  paper_id: EqmWoxNDIr
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 1.06
+    end_s: 19.76
+  expected_facts:
+  - Ten authors are involved.
+  note: MCIF | qa_type=V | origin=General
+- query_id: mcif_QA_10_105
+  text: What are the ideal qualities of a good planner?
+  paper_id: ccpXHNfaoy
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 57.56
+    end_s: 73.43
+  expected_facts:
+  - A good planner should write scripts that are reasonable and faithful to constraints.
+  note: MCIF | qa_type=A | origin=Transcript
+- query_id: mcif_QA_10_97
+  text: How many authors are involved in the paper?
+  paper_id: ccpXHNfaoy
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 1.54
+    end_s: 12.23
+  expected_facts:
+  - The paper involves eight different authors.
+  note: MCIF | qa_type=V | origin=General
+- query_id: mcif_QA_6_56
+  text: What is the name of the speaker?
+  paper_id: xiSxNRoOzm
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 1.4
+    end_s: 16.72
+  expected_facts:
+  - The name of the speaker is Vasudha.
+  note: MCIF | qa_type=AV | origin=General
+- query_id: mcif_QA_18_181
+  text: What are the affiliations of the authors of the paper?
+  paper_id: MjDvRpkOFq
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 3.2
+    end_s: 7.73
+  expected_facts:
+  - The affiliations are the Polish Academy of Sciences and the University of Warsaw.
+  note: MCIF | qa_type=V | origin=General
+- query_id: mcif_QA_19_199
+  text: Which are the most common errors of PaLM?
+  paper_id: myfXyntFYL
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 226.77
+    end_s: 231.79
+  expected_facts:
+  - The most common errors of PaLM are omission errors.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_21_213
+  text: What are the affiliations of the authors of the paper?
+  paper_id: JRrbTnEZbF
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 11.11
+    end_s: 19.82
+  expected_facts:
+  - They are from Emory University and Amazon Alexa AI.
+  note: MCIF | qa_type=AV | origin=General
+- query_id: mcif_QA_8_85
+  text: What does CFT stand for in this paper?
+  paper_id: rOwZgUjcwB
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 292.51
+    end_s: 347.71
+  expected_facts:
+  - CFT means continuous fine-tuning.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_3_25
+  text: How many authors are involved in the paper?
+  paper_id: vrydRuOXbT
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 11.83
+    end_s: 18.1
+  expected_facts:
+  - There are seven authors involved in the paper.
+  note: MCIF | qa_type=AV | origin=General
+- query_id: mcif_QA_16_158
+  text: What is the name of the speaker?
+  paper_id: ERmKpJPPDc
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 1.6
+    end_s: 12.73
+  expected_facts:
+  - The speaker's name is Yusen Zhang.
+  note: MCIF | qa_type=AV | origin=General
+- query_id: mcif_QA_9_91
+  text: If the new method has a name, state that name, otherwise state that it does not have a name.
+  paper_id: wJAPXMIoIG
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans: []
+  expected_facts: []
+  note: MCIF | qa_type=NA | origin=Abstract
+- query_id: mcif_QA_2_23
+  text: What was the author's description of the "marked words" method?
+  paper_id: rxrToXvRyM
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 143.66
+    end_s: 152.25
+  expected_facts:
+  - It finds words that distinguish marked groups from unmarked ones.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_13_128
+  text: What are the affiliations of the authors of the paper?
+  paper_id: ICWfTnUMio
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 1.28
+    end_s: 13.59
+  expected_facts:
+  - The authors' affiliations are Paul G. Allen School of Computer Science & Engineering, the University
+    of Washington NLP, Carnegie Mellon University and the Xi'an Jiaotong University.
+  note: MCIF | qa_type=V | origin=General
+- query_id: mcif_QA_18_183
+  text: What is the name of the first mentioned symmetrical dependency structure? Answer the one including
+    the city name
+  paper_id: MjDvRpkOFq
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 41.2
+    end_s: 51.95
+  expected_facts:
+  - The first mentioned symmetrical dependency structure is the Prague Dependency Treebank approach.
+  note: MCIF | qa_type=A | origin=Abstract
+- query_id: mcif_QA_21_211
+  text: What is the name of the speaker?
+  paper_id: JRrbTnEZbF
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 0.54
+    end_s: 9.99
+  expected_facts:
+  - The speakers are James Finch and Sarah Finch.
+  note: MCIF | qa_type=AV | origin=General
+- query_id: mcif_QA_7_67
+  text: How many authors are involved in the paper?
+  paper_id: miPjvjWOvI
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 10.85
+    end_s: 17.42
+  expected_facts:
+  - Four authors are involved.
+  note: MCIF | qa_type=AV | origin=General
+- query_id: mcif_QA_3_28
+  text: What datasets can be used to test syntactic phenomena?
+  paper_id: vrydRuOXbT
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 20.0
+    end_s: 38.0
+  expected_facts:
+  - One can use BLiMP, SyntaxGyn or CrowS-Pairs to test syntactic phenomena.
+  note: MCIF | qa_type=AV | origin=Abstract
+- query_id: mcif_QA_8_84
+  text: What are the abbreviations of the five methods for the first research question?
+  paper_id: rOwZgUjcwB
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 150.87
+    end_s: 211.03
+  expected_facts:
+  - They are FTw, BOND, COSINE, MLC and L2R.
+  note: MCIF | qa_type=V | origin=Transcript
+- query_id: mcif_QA_14_140
+  text: On which tasks is the model evaluated?
+  paper_id: UOlPKyCVgg
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 30.87
+    end_s: 42.5
+  expected_facts:
+  - The models were evaluated using eleven biomedical and clinical French downstream tasks including named
+    entity recognition, classification, part-of-speech tagging and question answering.
+  note: MCIF | qa_type=AV | origin=Abstract
+- query_id: mcif_QA_14_145
+  text: On which data is CamemBERT initially trained?
+  paper_id: UOlPKyCVgg
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans: []
+  expected_facts: []
+  note: MCIF | qa_type=NA | origin=Transcript
+- query_id: mcif_QA_18_179
+  text: What is the name of the speaker?
+  paper_id: MjDvRpkOFq
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 3.2
+    end_s: 7.73
+  expected_facts:
+  - The speaker is Adam Przepiórkowski.
+  note: MCIF | qa_type=AV | origin=General
+- query_id: mcif_QA_4_40
+  text: Which findings led to the conclusion that the temporal drift is the main cause of performance
+    loss?
+  paper_id: QTlIuodOsA
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 206.59
+    end_s: 226.51
+  expected_facts:
+  - Training models on more recent data resulted in worse performance with a larger temporal gap.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_9_90
+  text: Why is it necessary to permute the tokens for the output sequence?
+  paper_id: wJAPXMIoIG
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 169.47
+    end_s: 181.38
+  expected_facts:
+  - The first produces the right tokens but they are not in the correct order, so the second step needs
+    to permute them to produce the correct output.
+  note: MCIF | qa_type=AV | origin=Abstract
+- query_id: mcif_QA_2_18
+  text: Why did the authors recommend that model owners should increase transparency about bias mitigation
+    methods?
+  paper_id: rxrToXvRyM
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 394.53
+    end_s: 415.36
+  expected_facts:
+  - It is not known if the positive stereotypes are due to overly-excessive value alignment or other anti-stereotyping
+    methods.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_3_27
+  text: What are minimal-pair unacceptable inputs?
+  paper_id: vrydRuOXbT
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 38.48
+    end_s: 58.06
+  expected_facts:
+  - A minimal-pair unacceptable input is the ungrammatical sentence from a sentece pair that consist of
+    a grammatical (acceptable) and an ungrammitcal (unaccetable) sentence.
+  note: MCIF | qa_type=AV | origin=Abstract
+- query_id: mcif_QA_14_144
+  text: What evaluation metrics did the authors use?
+  paper_id: UOlPKyCVgg
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 238.1
+    end_s: 251.53
+  expected_facts:
+  - Most tasks were evaluated using F1, in addition Hamming and EMR were used for the FrenchMedMCQA task.
+  note: MCIF | qa_type=V | origin=Transcript
+- query_id: mcif_QA_21_220
+  text: Which metric was used for measuring inter-annotator agreement?
+  paper_id: JRrbTnEZbF
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 163.94
+    end_s: 189.27
+  expected_facts:
+  - The metric is Krippendorff's Alpha.
+  note: MCIF | qa_type=V | origin=Transcript
+- query_id: mcif_QA_3_32
+  text: Which domain was chosen to add completely unrelated sentences to the unacceptable and acceptable
+    queries?
+  paper_id: vrydRuOXbT
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 169.91
+    end_s: 182.44
+  expected_facts:
+  - Wikipedia was chosen to add completely unrelated sentences.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_15_149
+  text: What are the affiliations of the authors of the paper?
+  paper_id: JhbtCwcsWY
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 1.04
+    end_s: 20.38
+  expected_facts:
+  - The research is from the Heinrich Heine University Düsseldorf in Germany.
+  note: MCIF | qa_type=V | origin=General
+- query_id: mcif_QA_5_49
+  text: How does MultiInstruct differ from other benchmarks?
+  paper_id: xhjBHGVOyQ
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 36.62
+    end_s: 86.73
+  expected_facts:
+  - MultiInstruct helps instruction tuning on multi-modal pre-trained modals while other benchmarks are
+    text based.
+  note: MCIF | qa_type=AV | origin=Abstract
+- query_id: mcif_QA_21_212
+  text: How many authors are involved in the paper?
+  paper_id: JRrbTnEZbF
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 0.54
+    end_s: 19.82
+  expected_facts:
+  - There are three authors.
+  note: MCIF | qa_type=AV | origin=General
+- query_id: mcif_QA_18_182
+  text: What is the definition of binary coordination?
+  paper_id: MjDvRpkOFq
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans: []
+  expected_facts: []
+  note: MCIF | qa_type=NA | origin=Abstract
+- query_id: mcif_QA_2_17
+  text: How long, on average, were the prompts used in this study?
+  paper_id: rxrToXvRyM
+  category: out_of_corpus
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans: []
+  expected_facts: []
+  note: MCIF | qa_type=NA | origin=Abstract
+- query_id: mcif_QA_10_106
+  text: What are the implications of the findings on the smaller T5 model?
+  paper_id: ccpXHNfaoy
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 305.75
+    end_s: 320.74
+  expected_facts:
+  - The results of the T5 model fine-tuned on CoScript indicate that smaller models can surpass larger
+    models when properly trained on suitable datasets.
+  note: MCIF | qa_type=A | origin=Transcript
+- query_id: mcif_QA_14_142
+  text: Which learning strategies are investigated in the work?
+  paper_id: UOlPKyCVgg
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 128.61
+    end_s: 161.16
+  expected_facts:
+  - The author compares models trained from scratch on the proposed data set to models trained with continual
+    pre-training.
+  note: MCIF | qa_type=AV | origin=Abstract
+- query_id: mcif_QA_4_38
+  text: How big is the factor of overfitting due to test reuse specifically?
+  paper_id: QTlIuodOsA
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 171.27
+    end_s: 201.7
+  expected_facts:
+  - Adaptive overfitting is not observed, as every unit of improvment on CoNLL-2003 translates to more
+    than one unit on CoNLL++ when examining the best-fit line of the F1 scores on both datasets.
+  note: MCIF | qa_type=AV | origin=Abstract
+- query_id: mcif_QA_15_150
+  text: How was the quality of the simplification evaluated?
+  paper_id: JhbtCwcsWY
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 280.7
+    end_s: 349.11
+  expected_facts:
+  - 'The authors used different evaluation metrics for the quality of the simplification: SARI, BLEU,
+    BS-P, and FRE.'
+  note: MCIF | qa_type=V | origin=Abstract
+- query_id: mcif_QA_13_134
+  text: Do language models have different political biases?
+  paper_id: ICWfTnUMio
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 94.51
+    end_s: 112.99
+  expected_facts:
+  - Yes, different Language Models have different political biases.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_6_62
+  text: What is cognitive dissonance?
+  paper_id: xiSxNRoOzm
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 20.24
+    end_s: 31.13
+  expected_facts:
+  - Cognitive Dissonance means two beliefs or actions that are inconsistent.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_13_136
+  text: Which language model is the most liberal?
+  paper_id: ICWfTnUMio
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 103.54
+    end_s: 112.99
+  expected_facts:
+  - GPT-4 is the most liberal.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_6_64
+  text: Does cumulative training perform better than iterative when doing active learning?
+  paper_id: xiSxNRoOzm
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 253.15
+    end_s: 258.86
+  expected_facts:
+  - Cummulative training always outperforms iterative training during all different active learning strategies.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_1_1
+  text: What is the name of the speaker?
+  paper_id: OiqEWDVtWk
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 0.64
+    end_s: 15.02
+  expected_facts:
+  - The speaker is Sara Papi.
+  note: MCIF | qa_type=AV | origin=General
+- query_id: mcif_QA_11_110
+  text: Where was the data taken from in the MuDa benchmark?
+  paper_id: csJIsDTYMW
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 129.93
+    end_s: 137.0
+  expected_facts:
+  - The data is taken from the transcripts of TED talks translated into 14 different languages.
+  note: MCIF | qa_type=AV | origin=Abstract
+- query_id: mcif_QA_9_86
+  text: What is the name of the speaker?
+  paper_id: wJAPXMIoIG
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 0.44
+    end_s: 13.39
+  expected_facts:
+  - The speaker's name is Mathias Lindemann.
+  note: MCIF | qa_type=AV | origin=General
+- query_id: mcif_QA_16_167
+  text: What is cross-lingual transfer?
+  paper_id: ERmKpJPPDc
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 169.35
+    end_s: 190.27
+  expected_facts:
+  - The speaker explains it as training on one language such as English and doing inference on other language
+    such as German.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_8_78
+  text: What are the affiliations of the authors of the paper?
+  paper_id: rOwZgUjcwB
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 1.9
+    end_s: 19.82
+  expected_facts:
+  - The affiliations are Saarland university, Amazon Alexa, and University of Vienna.
+  note: MCIF | qa_type=V | origin=General
+- query_id: mcif_QA_1_11
+  text: Which latency measures do the authors use?
+  paper_id: OiqEWDVtWk
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 194.37
+    end_s: 223.6
+  expected_facts:
+  - The latency is measured using average lagging and computational aware average lagging.
+  note: MCIF | qa_type=A | origin=Transcript
+- query_id: mcif_QA_9_93
+  text: What are the drawbacks of tree-based methods?
+  paper_id: wJAPXMIoIG
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 110.53
+    end_s: 134.37
+  expected_facts:
+  - The trees are not given and need to be obtained, involving computationally intensive processing and
+    formalism/domain-specific grammars.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_4_36
+  text: What are the affiliations of the authors of the paper?
+  paper_id: QTlIuodOsA
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 1.88
+    end_s: 13.47
+  expected_facts:
+  - The research are from the School of Interactive Computing, George Institute of Technology.
+  note: MCIF | qa_type=V | origin=General
+- query_id: mcif_QA_21_217
+  text: What does ABC-Eval stand for?
+  paper_id: JRrbTnEZbF
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 86.55
+    end_s: 98.56
+  expected_facts:
+  - It stands for Annotating Behaviors in Chat.
+  note: MCIF | qa_type=AV | origin=Transcript
+- query_id: mcif_QA_4_41
+  text: Until which year is the performance delta between CoNLL-2003 and CoNLL++ higher than 5 percentage
+    points?
+  paper_id: QTlIuodOsA
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 230.21
+    end_s: 282.18
+  expected_facts:
+  - This is the case until 2016.
+  note: MCIF | qa_type=V | origin=Transcript
+- query_id: mcif_QA_9_88
+  text: What are the affiliations of the authors of the paper?
+  paper_id: wJAPXMIoIG
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 0.44
+    end_s: 17.88
+  expected_facts:
+  - The first author is with University of Edinburgh, the second author with Saarland University, and
+    the third author with both Edinburgh and University of Amsterdam.
+  note: MCIF | qa_type=V | origin=General
+- query_id: mcif_QA_10_96
+  text: What is the name of the speaker?
+  paper_id: ccpXHNfaoy
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 1.54
+    end_s: 12.23
+  expected_facts:
+  - The name of the speaker is Siyu Yuan.
+  note: MCIF | qa_type=AV | origin=General
+- query_id: mcif_QA_11_108
+  text: How many authors are involved in the paper?
+  paper_id: csJIsDTYMW
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 1.1
+    end_s: 14.87
+  expected_facts:
+  - There are five authors in the paper.
+  note: MCIF | qa_type=AV | origin=General
+- query_id: mcif_QA_1_10
+  text: To which dedicated simulST architecture is the approach compared?
+  paper_id: OiqEWDVtWk
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages: []
+  relevant_spans:
+  - start_s: 236.52
+    end_s: 250.49
+  expected_facts:
+  - The authors compard their techniques to the CAAT technique.
+  note: MCIF | qa_type=V | origin=Transcript

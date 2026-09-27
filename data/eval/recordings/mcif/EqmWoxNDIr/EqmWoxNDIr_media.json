@@ -1,0 +1,77 @@
+{
+ "doc_id": "EqmWoxNDIr",
+ "source": "EqmWoxNDIr.mp4",
+ "duration_s": 301.0,
+ "transcriber": "faster-whisper/large-v3-turbo/int8",
+ "segmentation": {
+  "sample_fps": 1.0,
+  "thumb_width": 64,
+  "thumb_height": 36,
+  "cut_threshold": 4.0,
+  "stable_eps": 1.0,
+  "min_segment_s": 5.0,
+  "max_segment_s": 90.0
+ },
+ "segments": [
+  {
+   "page": 1,
+   "start_s": 0.0,
+   "end_s": 20.0
+  },
+  {
+   "page": 2,
+   "start_s": 20.0,
+   "end_s": 47.0
+  },
+  {
+   "page": 3,
+   "start_s": 47.0,
+   "end_s": 64.0
+  },
+  {
+   "page": 4,
+   "start_s": 64.0,
+   "end_s": 108.0
+  },
+  {
+   "page": 5,
+   "start_s": 108.0,
+   "end_s": 131.0
+  },
+  {
+   "page": 6,
+   "start_s": 131.0,
+   "end_s": 193.0
+  },
+  {
+   "page": 7,
+   "start_s": 193.0,
+   "end_s": 224.0
+  },
+  {
+   "page": 8,
+   "start_s": 224.0,
+   "end_s": 247.0
+  },
+  {
+   "page": 9,
+   "start_s": 247.0,
+   "end_s": 260.0
+  },
+  {
+   "page": 10,
+   "start_s": 260.0,
+   "end_s": 272.0
+  },
+  {
+   "page": 11,
+   "start_s": 272.0,
+   "end_s": 295.0
+  },
+  {
+   "page": 12,
+   "start_s": 295.0,
+   "end_s": 301.0
+  }
+ ]
+}

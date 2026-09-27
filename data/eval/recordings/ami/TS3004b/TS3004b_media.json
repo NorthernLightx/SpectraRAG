@@ -1,0 +1,143 @@
+{
+ "doc_id": "TS3004b",
+ "source": "TS3004b.wav",
+ "duration_s": 2246.058625,
+ "transcriber": "faster-whisper/large-v3-turbo/int8",
+ "segmentation": {
+  "min_segment_s": 45.0,
+  "max_segment_s": 90.0
+ },
+ "segments": [
+  {
+   "page": 1,
+   "start_s": 0.0,
+   "end_s": 45.18
+  },
+  {
+   "page": 2,
+   "start_s": 45.18,
+   "end_s": 110.0
+  },
+  {
+   "page": 3,
+   "start_s": 110.0,
+   "end_s": 155.58
+  },
+  {
+   "page": 4,
+   "start_s": 155.58,
+   "end_s": 261.23999999999995
+  },
+  {
+   "page": 5,
+   "start_s": 261.23999999999995,
+   "end_s": 352.04
+  },
+  {
+   "page": 6,
+   "start_s": 352.04,
+   "end_s": 442.2
+  },
+  {
+   "page": 7,
+   "start_s": 442.2,
+   "end_s": 532.52
+  },
+  {
+   "page": 8,
+   "start_s": 532.52,
+   "end_s": 623.14
+  },
+  {
+   "page": 9,
+   "start_s": 623.14,
+   "end_s": 713.26
+  },
+  {
+   "page": 10,
+   "start_s": 713.26,
+   "end_s": 803.6
+  },
+  {
+   "page": 11,
+   "start_s": 803.6,
+   "end_s": 893.74
+  },
+  {
+   "page": 12,
+   "start_s": 893.74,
+   "end_s": 984.14
+  },
+  {
+   "page": 13,
+   "start_s": 984.14,
+   "end_s": 1074.82
+  },
+  {
+   "page": 14,
+   "start_s": 1074.82,
+   "end_s": 1167.02
+  },
+  {
+   "page": 15,
+   "start_s": 1167.02,
+   "end_s": 1257.08
+  },
+  {
+   "page": 16,
+   "start_s": 1257.08,
+   "end_s": 1347.26
+  },
+  {
+   "page": 17,
+   "start_s": 1347.26,
+   "end_s": 1437.26
+  },
+  {
+   "page": 18,
+   "start_s": 1437.26,
+   "end_s": 1527.4
+  },
+  {
+   "page": 19,
+   "start_s": 1527.4,
+   "end_s": 1617.48
+  },
+  {
+   "page": 20,
+   "start_s": 1617.48,
+   "end_s": 1707.62
+  },
+  {
+   "page": 21,
+   "start_s": 1707.62,
+   "end_s": 1797.66
+  },
+  {
+   "page": 22,
+   "start_s": 1797.66,
+   "end_s": 1887.66
+  },
+  {
+   "page": 23,
+   "start_s": 1887.66,
+   "end_s": 1977.96
+  },
+  {
+   "page": 24,
+   "start_s": 1977.96,
+   "end_s": 2068.42
+  },
+  {
+   "page": 25,
+   "start_s": 2068.42,
+   "end_s": 2159.94
+  },
+  {
+   "page": 26,
+   "start_s": 2159.94,
+   "end_s": 2246.058625
+  }
+ ],
+ "kind": "audio"
+}

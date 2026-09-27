@@ -1,0 +1,133 @@
+{
+ "doc_id": "TS3004a",
+ "source": "TS3004a.wav",
+ "duration_s": 1345.322625,
+ "transcriber": "faster-whisper/large-v3-turbo/int8",
+ "segmentation": {
+  "min_segment_s": 45.0,
+  "max_segment_s": 90.0
+ },
+ "segments": [
+  {
+   "page": 1,
+   "start_s": 0.0,
+   "end_s": 92.12
+  },
+  {
+   "page": 2,
+   "start_s": 92.12,
+   "end_s": 148.4
+  },
+  {
+   "page": 3,
+   "start_s": 148.4,
+   "end_s": 238.4
+  },
+  {
+   "page": 4,
+   "start_s": 238.4,
+   "end_s": 328.72
+  },
+  {
+   "page": 5,
+   "start_s": 328.72,
+   "end_s": 425.96
+  },
+  {
+   "page": 6,
+   "start_s": 425.96,
+   "end_s": 497.78
+  },
+  {
+   "page": 7,
+   "start_s": 497.78,
+   "end_s": 545.12
+  },
+  {
+   "page": 8,
+   "start_s": 545.12,
+   "end_s": 590.72
+  },
+  {
+   "page": 9,
+   "start_s": 590.72,
+   "end_s": 642.44
+  },
+  {
+   "page": 10,
+   "start_s": 642.44,
+   "end_s": 694.36
+  },
+  {
+   "page": 11,
+   "start_s": 694.36,
+   "end_s": 744.74
+  },
+  {
+   "page": 12,
+   "start_s": 744.74,
+   "end_s": 793.08
+  },
+  {
+   "page": 13,
+   "start_s": 793.08,
+   "end_s": 838.9
+  },
+  {
+   "page": 14,
+   "start_s": 838.9,
+   "end_s": 891.78
+  },
+  {
+   "page": 15,
+   "start_s": 891.78,
+   "end_s": 939.42
+  },
+  {
+   "page": 16,
+   "start_s": 939.42,
+   "end_s": 986.36
+  },
+  {
+   "page": 17,
+   "start_s": 986.36,
+   "end_s": 1032.94
+  },
+  {
+   "page": 18,
+   "start_s": 1032.94,
+   "end_s": 1080.02
+  },
+  {
+   "page": 19,
+   "start_s": 1080.02,
+   "end_s": 1127.48
+  },
+  {
+   "page": 20,
+   "start_s": 1127.48,
+   "end_s": 1173.22
+  },
+  {
+   "page": 21,
+   "start_s": 1173.22,
+   "end_s": 1218.4
+  },
+  {
+   "page": 22,
+   "start_s": 1218.4,
+   "end_s": 1263.48
+  },
+  {
+   "page": 23,
+   "start_s": 1263.48,
+   "end_s": 1308.72
+  },
+  {
+   "page": 24,
+   "start_s": 1308.72,
+   "end_s": 1345.322625
+  }
+ ],
+ "kind": "audio"
+}

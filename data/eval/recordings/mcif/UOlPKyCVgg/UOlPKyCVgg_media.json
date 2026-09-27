@@ -1,0 +1,57 @@
+{
+ "doc_id": "UOlPKyCVgg",
+ "source": "UOlPKyCVgg.mp4",
+ "duration_s": 299.17833333333334,
+ "transcriber": "faster-whisper/large-v3-turbo/int8",
+ "segmentation": {
+  "sample_fps": 1.0,
+  "thumb_width": 64,
+  "thumb_height": 36,
+  "cut_threshold": 4.0,
+  "stable_eps": 1.0,
+  "min_segment_s": 5.0,
+  "max_segment_s": 90.0
+ },
+ "segments": [
+  {
+   "page": 1,
+   "start_s": 0.0,
+   "end_s": 9.206666666666667
+  },
+  {
+   "page": 2,
+   "start_s": 9.206666666666667,
+   "end_s": 49.10333333333333
+  },
+  {
+   "page": 3,
+   "start_s": 49.10333333333333,
+   "end_s": 96.16166666666666
+  },
+  {
+   "page": 4,
+   "start_s": 96.16166666666666,
+   "end_s": 182.09333333333333
+  },
+  {
+   "page": 5,
+   "start_s": 182.09333333333333,
+   "end_s": 231.19833333333332
+  },
+  {
+   "page": 6,
+   "start_s": 231.19833333333332,
+   "end_s": 258.8183333333333
+  },
+  {
+   "page": 7,
+   "start_s": 258.8183333333333,
+   "end_s": 289.5083333333333
+  },
+  {
+   "page": 8,
+   "start_s": 289.5083333333333,
+   "end_s": 299.17833333333334
+  }
+ ]
+}
