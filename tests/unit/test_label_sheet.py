@@ -32,7 +32,7 @@ def test_build_data_lists_ingested_talks_and_skips_unanswerable(tmp_path: Path) 
             segments=[MediaSegment(page=1, start_s=0.0, end_s=20.0)],
         ),
     )
-    save_words(pages, "talk", "fake", [Word(1.0, 1.5, " Hello.")])
+    save_words(pages, "talk", "fake", [Word(1.0, 1.5, " Hello.")], source="test")
     candidates = [
         GoldenQuery(
             query_id="a",

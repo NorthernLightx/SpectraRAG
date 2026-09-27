@@ -32,6 +32,13 @@ from tests.fakes import FakeEmbedder
 PARAMS = SegmentationParams()
 
 
+def _recording(path: Path) -> Path:
+    """A stand-in file: probing and decoding are faked, the bytes only feed the
+    transcript cache's fingerprint."""
+    path.write_bytes(b"recording")
+    return path
+
+
 def _thumb(value: float) -> np.ndarray:
     return np.full((36, 64), value, dtype=np.float32)
 
@@ -167,7 +174,11 @@ async def test_ingest_media_indexes_chunks_off_the_event_loop(
         return iter(frames), 20.0
 
     monkeypatch.setattr(media, "iter_video_frames", fake_frames)
-    monkeypatch.setattr(media, "probe_media", lambda path: (True, 20.0))
+    monkeypatch.setattr(
+        media,
+        "probe_media",
+        lambda path: media.MediaProbe(has_video=True, has_audio=True, duration_s=20.0),
+    )
     transcriber = _FakeTranscriber()
     vectorstore = QdrantVectorStore(url=":memory:", collection_name="media", dim=8)
     await vectorstore.ensure_collection()
@@ -175,7 +186,7 @@ async def test_ingest_media_indexes_chunks_off_the_event_loop(
 
     result = await ingest_media(
         doc_id="talk",
-        media_path=tmp_path / "talk.mp4",
+        media_path=_recording(tmp_path / "talk.mp4"),
         embedder=FakeEmbedder(dim=8),
         vectorstore=vectorstore,
         bm25=bm25,
@@ -209,6 +220,8 @@ def test_segment_video_decodes_a_real_file(tmp_path: Path) -> None:
                 container.mux(stream.encode(frame))
         container.mux(stream.encode(None))
 
+    probe = media.probe_media(path)
+    assert (probe.has_video, probe.has_audio) == (True, False)
     segments = media.segment_video(path, "slides", tmp_path / "pages", PARAMS)
     assert [s.page for s in segments] == [1, 2, 3]
     assert segments[1].start_s == pytest.approx(8.0, abs=1.0)
@@ -237,7 +250,11 @@ async def test_reingest_reuses_the_cached_transcript(
         return iter([(float(t), _thumb(0.0), image) for t in range(10)]), 10.0
 
     monkeypatch.setattr(media, "iter_video_frames", fake_frames)
-    monkeypatch.setattr(media, "probe_media", lambda path: (True, 10.0))
+    monkeypatch.setattr(
+        media,
+        "probe_media",
+        lambda path: media.MediaProbe(has_video=True, has_audio=True, duration_s=10.0),
+    )
     vectorstore = QdrantVectorStore(url=":memory:", collection_name="media", dim=8)
     await vectorstore.ensure_collection()
     runs = []
@@ -245,7 +262,7 @@ async def test_reingest_reuses_the_cached_transcript(
         runs.append(
             await ingest_media(
                 doc_id="talk",
-                media_path=tmp_path / "talk.mp4",
+                media_path=_recording(tmp_path / "talk.mp4"),
                 embedder=FakeEmbedder(dim=8),
                 vectorstore=vectorstore,
                 bm25=Bm25Index(),
@@ -329,12 +346,16 @@ async def test_ingest_media_indexes_audio_without_keyframes(
         def transcribe(self, path: Path) -> list[Word]:
             return _sentence(0, 50) + _sentence(50, 100)
 
-    monkeypatch.setattr(media, "probe_media", lambda path: (False, 100.0))
+    monkeypatch.setattr(
+        media,
+        "probe_media",
+        lambda path: media.MediaProbe(has_video=False, has_audio=True, duration_s=100.0),
+    )
     vectorstore = QdrantVectorStore(url=":memory:", collection_name="media", dim=8)
     await vectorstore.ensure_collection()
     result = await ingest_media(
         doc_id="call",
-        media_path=tmp_path / "call.mp3",
+        media_path=_recording(tmp_path / "call.mp3"),
         embedder=FakeEmbedder(dim=8),
         vectorstore=vectorstore,
         bm25=Bm25Index(),
@@ -360,9 +381,9 @@ def test_probe_media_tells_audio_from_video(tmp_path: Path) -> None:
             container.mux(packet)
         for packet in stream.encode(None):
             container.mux(packet)
-    has_video, duration = media.probe_media(path)
-    assert has_video is False
-    assert duration == pytest.approx(3.0, abs=0.1)
+    probe = media.probe_media(path)
+    assert (probe.has_video, probe.has_audio) == (False, True)
+    assert probe.duration_s == pytest.approx(3.0, abs=0.1)
 
 
 def test_cover_art_does_not_make_an_audio_file_a_video(tmp_path: Path) -> None:
@@ -388,5 +409,67 @@ def test_cover_art_does_not_make_an_audio_file_a_video(tmp_path: Path) -> None:
             container.mux(packet)
     with av.open(str(path)) as check:
         assert len(check.streams.video) == 1
-    has_video, _ = media.probe_media(path)
-    assert has_video is False
+    assert media.probe_media(path).has_video is False
+
+
+def test_words_after_the_last_segment_extend_it() -> None:
+    # An audio track can run past the video's last frame; its last words must
+    # not fall outside every page.
+    segments = [MediaSegment(page=1, start_s=0.0, end_s=10.0)]
+    words = [Word(9.0, 9.5, " late"), Word(10.2, 10.9, " words.")]
+    covered = media.cover_words(segments, words)
+    assert covered[-1].end_s >= 10.9
+    chunks = transcript_chunks("talk", covered, words)
+    assert chunks[0].text == "late words."
+
+
+def test_cached_transcript_is_ignored_when_the_recording_changes(tmp_path: Path) -> None:
+    recording = tmp_path / "talk.mp3"
+    recording.write_bytes(b"first take" * 100)
+    words = [Word(0.0, 0.5, " hello")]
+    media.save_words(tmp_path, "talk", "fake", words, source=media.media_fingerprint(recording))
+    assert media.load_words(tmp_path, "talk", "fake", source=media.media_fingerprint(recording))
+    recording.write_bytes(b"second take" * 100)
+    assert (
+        media.load_words(tmp_path, "talk", "fake", source=media.media_fingerprint(recording))
+        is None
+    )
+
+
+async def test_video_without_audio_is_indexed_without_transcribing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from src.ingestion.pipeline import ingest_media
+
+    def fake_frames(
+        path: Path, params: SegmentationParams
+    ) -> tuple[Iterator[tuple[float, np.ndarray, Image.Image]], float]:
+        image = Image.new("RGB", (32, 18), "red")
+        return iter([(float(t), _thumb(0.0), image) for t in range(10)]), 10.0
+
+    monkeypatch.setattr(media, "iter_video_frames", fake_frames)
+    monkeypatch.setattr(
+        media,
+        "probe_media",
+        lambda path: media.MediaProbe(has_video=True, has_audio=False, duration_s=10.0),
+    )
+    video = tmp_path / "silent.mp4"
+    video.write_bytes(b"x")
+    vectorstore = QdrantVectorStore(url=":memory:", collection_name="media", dim=8)
+    await vectorstore.ensure_collection()
+    result = await ingest_media(
+        doc_id="silent",
+        media_path=video,
+        embedder=FakeEmbedder(dim=8),
+        vectorstore=vectorstore,
+        bm25=Bm25Index(),
+        transcriber=_FailingTranscriber(),
+        pages_dir=tmp_path / "pages",
+    )
+    assert result.chunk_count == 0
+    assert (tmp_path / "pages" / "silent" / "silent_p1.png").exists()
+
+
+def test_transcriber_cache_key_carries_the_language() -> None:
+    assert media.WhisperTranscriber().name.endswith("/auto")
+    assert media.WhisperTranscriber(language="en").name.endswith("/en")

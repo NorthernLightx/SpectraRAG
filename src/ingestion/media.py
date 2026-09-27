@@ -18,6 +18,7 @@ is decoded or transcribed.
 from __future__ import annotations
 
 import glob
+import hashlib
 import itertools
 import json
 from collections.abc import Iterable, Iterator, Sequence
@@ -188,9 +189,11 @@ class WhisperTranscriber:
         device: str = "cpu",
         compute_type: str = "int8",
         threads: int = 8,
-        language: str | None = "en",
+        language: str | None = None,
     ) -> None:
-        self.name = f"faster-whisper/{model}/{compute_type}"
+        # The name keys the transcript cache, so it names everything that
+        # changes the words: None lets Whisper detect the language.
+        self.name = f"faster-whisper/{model}/{compute_type}/{language or 'auto'}"
         self._model_name = model
         self._device = device
         self._compute_type = compute_type
@@ -305,30 +308,68 @@ def words_path(pages_dir: Path, doc_id: str) -> Path:
     return pages_dir / doc_id / f"{doc_id}_words.json"
 
 
-def save_words(pages_dir: Path, doc_id: str, transcriber: str, words: Sequence[Word]) -> None:
+def media_fingerprint(path: Path) -> str:
+    """Identity of a recording's bytes: its size and a hash of its first and
+    last MiB. It survives a copy or a touch, and changes when the file is
+    replaced by another take under the same name."""
+    size = path.stat().st_size
+    digest = hashlib.sha256(str(size).encode())
+    with path.open("rb") as fh:
+        digest.update(fh.read(1 << 20))
+        fh.seek(max(0, size - (1 << 20)))
+        digest.update(fh.read(1 << 20))
+    return digest.hexdigest()[:16]
+
+
+def save_words(
+    pages_dir: Path, doc_id: str, transcriber: str, words: Sequence[Word], *, source: str
+) -> None:
     path = words_path(pages_dir, doc_id)
     path.parent.mkdir(parents=True, exist_ok=True)
-    payload = {"transcriber": transcriber, "words": [[w.start_s, w.end_s, w.text] for w in words]}
+    payload = {
+        "transcriber": transcriber,
+        "source": source,
+        "words": [[w.start_s, w.end_s, w.text] for w in words],
+    }
     path.write_text(json.dumps(payload), encoding="utf-8")
 
 
-def load_words(pages_dir: Path, doc_id: str, transcriber: str) -> list[Word] | None:
-    """The cached transcript of `doc_id`, or None when there is none from this
-    transcriber. Segmentation never changes the words, so a re-segmentation
-    reuses them instead of transcribing again."""
+def load_words(pages_dir: Path, doc_id: str, transcriber: str, *, source: str) -> list[Word] | None:
+    """The cached transcript of `doc_id`, or None unless it came from this
+    transcriber and this recording (`media_fingerprint`). Segmentation never
+    changes the words, so a re-segmentation reuses them."""
     path = words_path(pages_dir, doc_id)
     if not path.exists():
         return None
     payload = json.loads(path.read_text(encoding="utf-8"))
-    if payload.get("transcriber") != transcriber:
+    if payload.get("transcriber") != transcriber or payload.get("source") != source:
         return None
     return [Word(start_s=float(a), end_s=float(b), text=str(t)) for a, b, t in payload["words"]]
 
 
-def probe_media(path: Path) -> tuple[bool, float]:
-    """Whether `path` holds moving video, and its duration in seconds. Cover art
-    in an audio file is a one-picture video stream, flagged as attached, and
-    does not count."""
+def cover_words(segments: Sequence[MediaSegment], words: Sequence[Word]) -> list[MediaSegment]:
+    """`segments` with the last one stretched to the last word's end. A video's
+    audio can outlast its last frame, and a word whose midpoint falls after
+    every segment would otherwise belong to no page."""
+    out = list(segments)
+    last_end = max((w.end_s for w in words), default=0.0)
+    if out and last_end >= out[-1].end_s:
+        tail = out[-1]
+        out[-1] = MediaSegment(page=tail.page, start_s=tail.start_s, end_s=last_end + 1e-3)
+    return out
+
+
+@dataclass(frozen=True)
+class MediaProbe:
+    has_video: bool
+    has_audio: bool
+    duration_s: float
+
+
+def probe_media(path: Path) -> MediaProbe:
+    """Which streams `path` holds, and its duration in seconds. Cover art in an
+    audio file is a one-picture video stream, flagged as attached, and does not
+    count as video."""
     import av
 
     container: Any = av.open(str(path))
@@ -340,7 +381,11 @@ def probe_media(path: Path) -> tuple[bool, float]:
         else:
             stream = container.streams[0]
             duration_s = float(stream.duration * stream.time_base) if stream.duration else 0.0
-        return has_video, float(duration_s)
+        return MediaProbe(
+            has_video=has_video,
+            has_audio=len(container.streams.audio) > 0,
+            duration_s=float(duration_s),
+        )
     finally:
         container.close()
 

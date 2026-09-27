@@ -46,8 +46,8 @@ uv run python -m scripts.score_talk_retrieval --run data/eval/ami-meetings-text.
 To rebuild from the media (`uv sync --extra media`; about 25 minutes of CPU
 per hour of audio): `scripts.fetch_mcif` and `scripts.fetch_ami --split test
 --audio` download the corpora, `scripts.locate_mcif_spans` and
-`scripts.build_qmsum_golden` rebuild the gold spans, `scripts.ingest_media`
-indexes the recordings, and `scripts.build_visual_index --pages-only` indexes
+`scripts.build_qmsum_golden` rebuild the gold spans, `scripts.ingest_media
+--language en` indexes the recordings, and `scripts.build_visual_index --pages-only` indexes
 the talk keyframes. Attribution for the third-party text in both sets is in
 ADR 0034.
 

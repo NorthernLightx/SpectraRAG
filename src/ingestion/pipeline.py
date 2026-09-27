@@ -239,20 +239,25 @@ async def ingest_media(
     params = params or media.SegmentationParams()
     audio_params = audio_params or media.AudioSegmentationParams()
     with timed_event(_log, "ingest_media.done", doc_id=doc_id, media_path=str(media_path)) as ctx:
-        has_video, duration_s = await asyncio.to_thread(media.probe_media, media_path)
-        words = media.load_words(pages_dir, doc_id, transcriber.name)
-        if words is None:
-            words = await asyncio.to_thread(transcriber.transcribe, media_path)
-            media.save_words(pages_dir, doc_id, transcriber.name, words)
+        probe = await asyncio.to_thread(media.probe_media, media_path)
+        words: list[media.Word] = []
+        if probe.has_audio:
+            source = await asyncio.to_thread(media.media_fingerprint, media_path)
+            cached = media.load_words(pages_dir, doc_id, transcriber.name, source=source)
+            if cached is None:
+                cached = await asyncio.to_thread(transcriber.transcribe, media_path)
+                media.save_words(pages_dir, doc_id, transcriber.name, cached, source=source)
+            words = cached
         segmentation: dict[str, Any]
-        if has_video:
+        if probe.has_video:
             segments = await asyncio.to_thread(
                 media.segment_video, media_path, doc_id, pages_dir, params
             )
             segmentation = params.as_dict()
         else:
-            segments = media.segment_words(words, duration_s=duration_s, params=audio_params)
+            segments = media.segment_words(words, duration_s=probe.duration_s, params=audio_params)
             segmentation = audio_params.as_dict()
+        segments = media.cover_words(segments, words)
         chunks = media.transcript_chunks(doc_id, segments, words, target_chars=target_chars)
         media.write_manifest(
             pages_dir,
@@ -263,10 +268,10 @@ async def ingest_media(
                 transcriber=transcriber.name,
                 segmentation=segmentation,
                 segments=segments,
-                kind="video" if has_video else "audio",
+                kind="video" if probe.has_video else "audio",
             ),
         )
-        ctx["kind"] = "video" if has_video else "audio"
+        ctx["kind"] = "video" if probe.has_video else "audio"
         ctx["segments"] = len(segments)
         ctx["words"] = len(words)
         ctx["chunks"] = len(chunks)
