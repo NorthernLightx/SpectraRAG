@@ -120,7 +120,7 @@ def test_recordings_table_matches_its_runs(
 @pytest.mark.parametrize(
     ("label", "run_path"),
     [
-        ("within its own document", "data/eval/answers-mmdocir-gen150-scoped.json.gz"),
+        ("within the question's document", "data/eval/answers-mmdocir-gen150-scoped.json.gz"),
         ("across all 218 documents", "data/eval/answers-mmdocir-gen150-unscoped.json.gz"),
     ],
 )

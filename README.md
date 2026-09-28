@@ -78,21 +78,21 @@ share of correct pages in the top 5 and top 10 results.
 | text and page images | 0.70 | 0.79 |
 | page images only | **0.75** | **0.80** |
 
-Answering 150 of those questions, a stratified sample, with the demo's search
-(top 5 results) and `gemma4:31b` reading the pages, graded by `gpt-oss:120b`
-against MMDocIR's answers
-([`scoped`](./data/eval/answers-mmdocir-gen150-scoped.json.gz),
-[`unscoped`](./data/eval/answers-mmdocir-gen150-unscoped.json.gz)). A quarter of
-the questions say "the paper" or "Figure 1" and need their document named.
+Answers, on 150 of those questions (a stratified sample), run the way the demo
+runs: text and page-image search together, the top 5 pages go to `gemma4:31b`,
+which reads them and answers, and `gpt-oss:120b` grades each answer against
+MMDocIR's reference answer. MMDocIR asks each question about one document
+("How many authors are listed in the paper?"), so the first row limits the
+search to that document; the second searches all 218, like the table above.
+Receipts: [`one document`](./data/eval/answers-mmdocir-gen150-scoped.json.gz),
+[`all documents`](./data/eval/answers-mmdocir-gen150-unscoped.json.gz).
 
-| each question searched | correct | refused | wrong |
+| search | correct | declined to answer | wrong |
 |---|---|---|---|
-| within its own document | **0.58** | 0.11 | 0.31 |
+| within the question's document | **0.58** | 0.11 | 0.31 |
 | across all 218 documents | 0.50 | 0.14 | 0.36 |
 
-Method and full numbers: [`docs/results.md`](./docs/results.md). Where answer
-accuracy is lost, and the fixes that did not help:
-[`docs/finding-the-bottleneck.md`](./docs/finding-the-bottleneck.md).
+Method and full numbers: [`docs/results.md`](./docs/results.md).
 
 Recordings: each question is searched within its own recording, against a
 random order of that recording's segments.
@@ -113,7 +113,10 @@ uv sync --extra dev
 uv run spectrarag serve
 ```
 
-This serves the bundled demo papers; the first run downloads the models. The
+This serves the demo set that ships in the repo: 20 arXiv papers and 3 recorded
+talks, indexed for text search, with their page images. Page-image search needs
+its own index, built on a GPU (see [Page-image search](#page-image-search)).
+The first run downloads the embedding and reranking models, about 3 GB. The
 API is at <http://localhost:8000>, with interactive docs at `/docs`.
 
 ```bash
@@ -141,47 +144,69 @@ same body to `/answer`.
 
 The live demo is a separate web app built on this API.
 
-### Add a PDF while it runs
+### Add your own data
 
-The PDF is searchable right away, by text only.
+| you have | run | you get |
+|---|---|---|
+| one PDF, while the server runs | `POST /ingest` | text search |
+| a folder of PDFs | `spectrarag ingest` (Docker Qdrant and Ollama) | text search |
+| talk videos or audio | `scripts.ingest_media` | search over the transcript, with times |
+| PDFs, or a talk's slides | `scripts.build_visual_index` (CUDA GPU) | page-image search |
+
+#### One PDF while the server runs
+
+It is searchable right away, by text.
 
 ```bash
 RAG_ENABLE_UPLOAD=true uv run spectrarag serve
 curl -F "file=@mydoc.pdf" localhost:8000/ingest
 ```
 
-### Full local stack (Docker Qdrant and Ollama)
+#### A folder of PDFs
+
+This path runs Qdrant and the embedding model in Docker:
 
 ```bash
 cp .env.example .env
 docker compose up -d qdrant ollama
 docker exec rag-ollama ollama pull bge-m3
-uv run spectrarag fetch
-uv run spectrarag ingest
-uv run uvicorn src.api.main:app --port 8000
-```
-
-### Index your own PDFs
-
-With the local stack running:
-
-```bash
 uv run spectrarag ingest --pdf-dir ./mydocs --collection my_corpus
 ```
 
-Set `RAG_CORPUS_COLLECTION=my_corpus` in `.env` and restart the API.
+Set `RAG_CORPUS_COLLECTION=my_corpus` in `.env`, then start the API with
+`uv run uvicorn src.api.main:app --port 8000`.
 
-### Turn on page-image search
+#### Recordings (preview)
 
-Build the page index on a CUDA GPU (8 GB is enough); searching it runs on CPU.
+Videos (mp4, mov, mkv, webm) and audio (mp3, wav, m4a, flac, ogg, opus, aac)
+join the index `spectrarag serve` uses. Stop the server first; the local index
+takes one process at a time.
 
 ```bash
-uv run spectrarag fetch        # the demo corpus PDFs
-uv run python -m scripts.build_visual_index
-uv run python -m scripts.render_pages --pdf-dir data/papers
+uv sync --extra dev --extra media
+uv run python -m scripts.ingest_media --media-dir ./recordings \
+    --pages-dir data/pages --qdrant path:./qdrant_local --collection rag_corpus
+uv run spectrarag serve
 ```
 
-For your own corpus:
+A recording's id is its file name without the extension. Each result from it
+has `start_s` and `end_s` in its metadata.
+
+#### Page-image search
+
+Build the page index on a CUDA GPU (8 GB is enough); searching it runs on CPU.
+For the demo set, the second command adds the talks' slides:
+
+```bash
+uv run spectrarag fetch
+uv run python -m scripts.build_visual_index
+uv run python -m scripts.build_visual_index --pages-only \
+    --paper-id wJAPXMIoIG --paper-id csJIsDTYMW --paper-id DyXpuURBMP
+RAG_ENABLE_MULTIMODAL=true uv run spectrarag serve
+```
+
+For your own recordings, pass their ids to `--paper-id`. For a folder of PDFs in
+the Docker setup:
 
 ```bash
 uv run python -m scripts.build_visual_index --pdf-dir ./mydocs \
@@ -189,37 +214,8 @@ uv run python -m scripts.build_visual_index --pdf-dir ./mydocs \
     --corpus-collection my_corpus --collection my_corpus_visual
 ```
 
-Then set `RAG_ENABLE_MULTIMODAL=true`, `RAG_VISUAL_COLLECTION` and
-`RAG_PAGES_DIR`. If answers live mostly in figures and scans, try
-`RAG_VISUAL_FUSION_WEIGHT=2`.
-
-### Index recordings (preview)
-
-Videos (mp4, mov, mkv, webm) and audio (mp3, wav, m4a, flac, ogg, opus, aac):
-
-```bash
-uv sync --extra dev --extra media
-uv run python -m scripts.ingest_media --media-dir ./recordings \
-    --pages-dir data/recordings --qdrant path:./qdrant_media --collection recordings
-```
-
-For videos, also index the slide images (needs a CUDA GPU):
-
-```bash
-uv run python -m scripts.build_visual_index --pages-only --pages-dir data/recordings \
-    --qdrant path:./qdrant_media --collection recordings_visual
-```
-
-Serve them:
-
-```bash
-RAG_QDRANT_URL=path:./qdrant_media RAG_CORPUS_COLLECTION=recordings \
-RAG_PAGES_DIR=data/recordings uv run spectrarag serve
-```
-
-Add `RAG_ENABLE_MULTIMODAL=true` and `RAG_VISUAL_COLLECTION=recordings_visual`
-to search the slide images too. Each result has `start_s` and `end_s` in its
-metadata.
+Then set `RAG_ENABLE_MULTIMODAL=true` and `RAG_VISUAL_COLLECTION=my_corpus_visual`.
+If answers live mostly in figures and scans, try `RAG_VISUAL_FUSION_WEIGHT=2`.
 
 ### Configuration
 
@@ -246,7 +242,10 @@ Set these in `.env` or the environment.
   `RAG_ENABLE_UPLOAD` off or set `RAG_PUBLIC_API_KEY`.
 - One collection at a time; no user accounts or connectors.
 - The demo papers are mostly text, so page-image search adds little on them.
-- Recordings are a preview: no speaker labels, and the live demo has none yet.
+- Recordings are a preview: no speaker labels, and the live demo has three talks.
+- `spectrarag ingest` needs Docker Qdrant and Ollama. The self-contained index
+  that `spectrarag serve` uses takes new PDFs only through `POST /ingest`, one
+  at a time.
 - Transcription takes about 25 minutes per hour of audio on 8 CPU threads, so
   recordings are indexed from the command line; `POST /ingest` takes PDFs only.
 
