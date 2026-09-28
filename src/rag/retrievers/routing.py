@@ -134,18 +134,27 @@ def fused_page_order(
     1.15 at top_k=10) returns exactly the visual leg's page set. The weight is a
     dial only when the legs run deeper than `top_k` (`fusion_depth`).
     """
+    rrf = _rrf_scores(text_ids, visual_ids, visual_weight=visual_weight)
+    return [page for page, _ in sorted(rrf.items(), key=lambda p: p[1], reverse=True)[:top_k]]
+
+
+def _first_page_ranks(ids: list[str]) -> dict[str, int]:
+    """1-based rank of each page at its first appearance in a leg's ranking."""
+    ranks: dict[str, int] = {}
+    for chunk_id in ids:
+        ranks.setdefault(_to_page_id(chunk_id), len(ranks) + 1)
+    return ranks
+
+
+def _rrf_scores(
+    text_ids: list[str], visual_ids: list[str], *, visual_weight: float
+) -> dict[str, float]:
+    """Page id -> 1/(k+rank_text) + w/(k+rank_visual), text pages inserted first."""
     rrf: dict[str, float] = {}
     for weight, ids in ((1.0, text_ids), (visual_weight, visual_ids)):
-        seen: set[str] = set()
-        rank = 0
-        for chunk_id in ids:
-            page_id = _to_page_id(chunk_id)
-            if page_id in seen:
-                continue
-            seen.add(page_id)
-            rrf[page_id] = rrf.get(page_id, 0.0) + weight / (_RRF_K + rank + 1)
-            rank += 1
-    return [page for page, _ in sorted(rrf.items(), key=lambda p: p[1], reverse=True)[:top_k]]
+        for page_id, rank in _first_page_ranks(ids).items():
+            rrf[page_id] = rrf.get(page_id, 0.0) + weight / (_RRF_K + rank)
+    return rrf
 
 
 def _to_page_id(chunk_id: str) -> str:
@@ -652,19 +661,35 @@ class RoutingRetriever:
             _to_page_id(r.chunk_id): r for r in visual_results
         }
 
+        text_ids = [r.chunk_id for r in text_results]
+        visual_ids = [r.chunk_id for r in visual_results]
         fused_pages = fused_page_order(
-            [r.chunk_id for r in text_results],
-            [r.chunk_id for r in visual_results],
-            top_k=top_k,
-            visual_weight=self._visual_fusion_weight,
+            text_ids, visual_ids, top_k=top_k, visual_weight=self._visual_fusion_weight
         )
+        # Each result reports its page's rank and score in each leg and the fused
+        # score, so a client can show why a page placed where it did: raw scores
+        # from the two legs are on different scales and are never compared.
+        text_ranks, visual_ranks = _first_page_ranks(text_ids), _first_page_ranks(visual_ids)
+        rrf = _rrf_scores(text_ids, visual_ids, visual_weight=self._visual_fusion_weight)
 
         out: list[RetrievalResult] = []
         for page_id in fused_pages:
-            if page_id in best_text_per_page:
-                out.append(best_text_per_page[page_id])
-            elif page_id in visual_by_page:
-                out.append(visual_by_page[page_id])
+            text_hit, visual_hit = best_text_per_page.get(page_id), visual_by_page.get(page_id)
+            result = text_hit or visual_hit
+            if result is None:
+                continue
+            legs = {
+                "text": {"rank": text_ranks[page_id], "score": text_hit.score}
+                if text_hit
+                else None,
+                "visual": (
+                    {"rank": visual_ranks[page_id], "score": visual_hit.score}
+                    if visual_hit
+                    else None
+                ),
+                "fusion": rrf[page_id],
+            }
+            out.append(result.model_copy(update={"metadata": {**result.metadata, "legs": legs}}))
         return out
 
 

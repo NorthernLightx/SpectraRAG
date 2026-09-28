@@ -200,3 +200,22 @@ def test_derived_arms_keep_the_collections_the_run_searched() -> None:
     for arm in derive(run, golden, top_k=10, weights=[1.0]).values():
         assert arm["config"]["collection"] == "talks"
         assert arm["config"]["visual_collection"] == "talks_visual"
+
+
+async def test_fused_results_carry_each_legs_page_rank_and_the_fusion_score() -> None:
+    text = [_text("d", 4, 0), _text("d", 2, 1), _text("d", 2, 2), _text("d", 6, 3)]
+    visual = [_visual("d", 1), _visual("d", 2), _visual("d", 4)]
+    router = RoutingRetriever(text=_Leg(text), visual=_Leg(visual), mode="hybrid")
+    results = await router.retrieve(Query(text="q", top_k=4))
+
+    legs = {r.chunk_id.rsplit("::", 1)[0]: r.metadata["legs"] for r in results}
+    assert list(legs) == ["d::p4", "d::p2", "d::p1", "d::p6"]
+    assert legs["d::p2"] == {
+        "text": {"rank": 2, "score": text[1].score},
+        "visual": {"rank": 2, "score": visual[1].score},
+        "fusion": pytest.approx(1 / 62 + 1 / 62),
+    }
+    assert legs["d::p4"]["fusion"] == pytest.approx(1 / 61 + 1 / 63)
+    assert legs["d::p1"]["text"] is None
+    assert legs["d::p6"]["visual"] is None
+    assert "legs" not in text[1].metadata
