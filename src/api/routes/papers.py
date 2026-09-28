@@ -64,6 +64,8 @@ class PaperInfo(BaseModel):
     # A recording's pages are its time segments (ADR 0034).
     kind: Literal["pdf", "video", "audio"] = "pdf"
     duration_s: float | None = None
+    # (start_s, end_s) of each page in page order, for a recording.
+    segments: list[tuple[float, float]] | None = None
     # Human-readable title from data/paper_titles.json when available.
     # The demo UI prefers this over paper_id for the corpus dropdown.
     title: str | None = None
@@ -103,6 +105,11 @@ def list_papers(settings: Settings = Depends(get_settings)) -> list[PaperInfo]:
                 page_count=page_count,
                 kind=manifest.kind if manifest is not None else "pdf",
                 duration_s=manifest.duration_s if manifest is not None else None,
+                segments=[
+                    (s.start_s, s.end_s) for s in sorted(manifest.segments, key=lambda s: s.page)
+                ]
+                if manifest is not None
+                else None,
                 title=titles.get(paper_id),
             )
         )

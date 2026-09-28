@@ -57,6 +57,29 @@ def test_papers_tell_recordings_from_pdfs(tmp_path: Path) -> None:
     assert (papers["call"].kind, papers["call"].duration_s) == ("audio", 121.0)
 
 
+def test_a_recording_lists_the_time_span_of_each_page(tmp_path: Path) -> None:
+    (tmp_path / "doc").mkdir()
+    Image.new("RGB", (4, 4)).save(tmp_path / "doc" / "doc_p1.png")
+    write_manifest(
+        tmp_path,
+        MediaManifest(
+            doc_id="talk",
+            source="talk.mp4",
+            duration_s=12.0,
+            transcriber="fake",
+            segmentation={},
+            segments=[
+                MediaSegment(page=1, start_s=0.0, end_s=5.5),
+                MediaSegment(page=2, start_s=5.5, end_s=12.0),
+            ],
+            kind="video",
+        ),
+    )
+    papers = {p.paper_id: p for p in list_papers(settings=Settings(pages_dir=tmp_path))}
+    assert papers["talk"].segments == [(0.0, 5.5), (5.5, 12.0)]
+    assert papers["doc"].segments is None
+
+
 def test_one_unreadable_manifest_does_not_take_down_the_list(tmp_path: Path) -> None:
     (tmp_path / "doc").mkdir()
     Image.new("RGB", (4, 4)).save(tmp_path / "doc" / "doc_p1.png")
