@@ -140,3 +140,54 @@ async def test_pages_only_build_sizes_the_collection_from_the_encoder(
     vectors = info.config.params.vectors
     assert isinstance(vectors, VectorParams)
     assert vectors.size == 320
+
+
+async def test_named_documents_are_added_to_an_existing_page_index(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    pages_dir = tmp_path / "pages"
+    for paper in ("paperA", "talkB", "talkC"):
+        (pages_dir / paper).mkdir(parents=True)
+        (pages_dir / paper / f"{paper}_p1.png").write_bytes(b"not decoded: the encoder is stubbed")
+    encoded: list[str] = []
+
+    async def _fake_build(
+        pages_by_paper: dict[str, list[tuple[int, Path]]], *, model_name: str, device: str
+    ) -> _StubRetriever:
+        encoded.extend(pages_by_paper)
+        return _StubRetriever(
+            {f"{p}::p1::page": torch.ones((2, 4)) for p in pages_by_paper},
+            {f"{p}::p1::page": (p, 1) for p in pages_by_paper},
+        )
+
+    monkeypatch.setattr(bvi, "build_visual_retriever", _fake_build)
+    qurl = f"path:{tmp_path / 'q'}"
+
+    async def build(paper_ids: list[str]) -> None:
+        await bvi._main(
+            pdf_dir=tmp_path,
+            pdfs=None,
+            qdrant_url=qurl,
+            collection="pages_visual",
+            corpus_collection="rag_corpus",
+            pages_dir=pages_dir,
+            visual_model="stub",
+            device="cpu",
+            dpi=150,
+            force=False,
+            pages_only=True,
+            paper_ids=paper_ids,
+        )
+
+    await build(["paperA"])
+    await build(["talkB"])
+    with pytest.raises(SystemExit, match="talkZ"):
+        await build(["talkZ"])
+
+    vs = QdrantVisualStore(url=qurl, collection_name="pages_visual")
+    count = await vs.count()
+    hits = await vs.search([[1.0, 1.0, 1.0, 1.0]], top_k=5)
+    await vs.close()
+    assert encoded == ["paperA", "talkB"]
+    assert count == 2
+    assert {h.paper_id for h in hits} == {"paperA", "talkB"}
