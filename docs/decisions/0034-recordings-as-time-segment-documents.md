@@ -206,3 +206,20 @@ not indexed. Receipt:
 
 The reader now sees each transcript chunk's time range as `time=m:ss-m:ss`
 ([`src/rag/context.py`](../../src/rag/context.py)).
+
+## Amendment (2026-09-28): three talks in the hosted demo
+
+The demo corpus now holds three MCIF talks: Marked Personas, When Does
+Translation Require Context?, and NLPositionality. They were picked for their
+slides among the talks retrieval serves well (hit@1 0.71 to 0.80 each, against
+0.57 over all 21), so they show the feature rather than its average. Their 75
+transcript chunks joined `rag_corpus`, and their 74 keyframes joined the page
+index through `build_visual_index --pages-only --paper-id`, with vectors identical
+to the eval's. The regression gate did not move ([`docs/evals.md`](../evals.md)).
+
+The demo hosts no video. The web client streams each talk from the MCIF dataset
+on Hugging Face, at the revision `scripts/fetch_mcif.py` pins, seeks to a page's
+start with a `#t=` fragment, and credits MCIF (CC BY 4.0). If that revision
+goes away, answers and slides still work and only the player breaks. `/papers`
+lists each recording page's time span, which labels a slide found by the
+page-image leg; a transcript chunk carries its own span.
