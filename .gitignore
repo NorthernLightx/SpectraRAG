@@ -113,7 +113,7 @@ data/pages/*
 !data/pages/.gitkeep
 !data/pages/2604.*
 # MCIF talks in the demo (ADR 0034); transcript caches stay local
-!data/pages/rxrToXvRyM
+!data/pages/wJAPXMIoIG
 !data/pages/csJIsDTYMW
 !data/pages/DyXpuURBMP
 data/pages/*/*_words.json

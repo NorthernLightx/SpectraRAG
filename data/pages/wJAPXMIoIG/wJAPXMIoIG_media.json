@@ -1,0 +1,83 @@
+{
+ "doc_id": "wJAPXMIoIG",
+ "source": "wJAPXMIoIG.mp4",
+ "duration_s": 333.1333333333333,
+ "transcriber": "faster-whisper/large-v3-turbo/int8/en",
+ "segmentation": {
+  "sample_fps": 1.0,
+  "thumb_width": 64,
+  "thumb_height": 36,
+  "cut_threshold": 4.0,
+  "stable_eps": 1.0,
+  "min_segment_s": 5.0,
+  "max_segment_s": 90.0
+ },
+ "segments": [
+  {
+   "page": 1,
+   "start_s": 0.0,
+   "end_s": 20.0
+  },
+  {
+   "page": 2,
+   "start_s": 20.0,
+   "end_s": 35.0
+  },
+  {
+   "page": 3,
+   "start_s": 35.0,
+   "end_s": 57.0
+  },
+  {
+   "page": 4,
+   "start_s": 57.0,
+   "end_s": 98.0
+  },
+  {
+   "page": 5,
+   "start_s": 98.0,
+   "end_s": 136.0
+  },
+  {
+   "page": 6,
+   "start_s": 136.0,
+   "end_s": 155.0
+  },
+  {
+   "page": 7,
+   "start_s": 155.0,
+   "end_s": 175.0
+  },
+  {
+   "page": 8,
+   "start_s": 175.0,
+   "end_s": 194.0
+  },
+  {
+   "page": 9,
+   "start_s": 194.0,
+   "end_s": 232.0
+  },
+  {
+   "page": 10,
+   "start_s": 232.0,
+   "end_s": 241.0
+  },
+  {
+   "page": 11,
+   "start_s": 241.0,
+   "end_s": 261.0
+  },
+  {
+   "page": 12,
+   "start_s": 261.0,
+   "end_s": 297.0
+  },
+  {
+   "page": 13,
+   "start_s": 297.0,
+   "end_s": 333.1333333333333
+  }
+ ],
+ "kind": "video"
+}

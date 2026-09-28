@@ -209,11 +209,12 @@ The reader now sees each transcript chunk's time range as `time=m:ss-m:ss`
 
 ## Amendment (2026-09-28): three talks in the hosted demo
 
-The demo corpus now holds three MCIF talks: Marked Personas, When Does
-Translation Require Context?, and NLPositionality. They were picked for their
-slides among the talks retrieval serves well (hit@1 0.71 to 0.80 each, against
-0.57 over all 21), so they show the feature rather than its average. Their 75
-transcript chunks joined `rag_corpus`, and their 74 keyframes joined the page
+The demo corpus now holds three MCIF talks: Compositional Generalization
+without Trees, When Does Translation Require Context?, and NLPositionality. They
+were picked for their slides among the talks retrieval serves well (hit@1 0.71
+to 0.78 each, against 0.57 over all 21), so they show the feature rather than
+its average. Their 74 transcript chunks joined `rag_corpus`, and their 74
+keyframes joined the page
 index through `build_visual_index --pages-only --paper-id`, with vectors identical
 to the eval's. The regression gate did not move ([`docs/evals.md`](../evals.md)).
 
@@ -223,3 +224,10 @@ start with a `#t=` fragment, and credits MCIF (CC BY 4.0). If that revision
 goes away, answers and slides still work and only the player breaks. `/papers`
 lists each recording page's time span, which labels a slide found by the
 page-image leg; a transcript chunk carries its own span.
+
+Marked Personas was the first pick and was swapped out the same day. Its MP4
+cuts its video track with a two-part edit list, dropping 11 s at the start and
+15 s in the middle while the audio plays straight through. FFmpeg, which cut the
+slides, applies the edits (425.8 s); a browser that ignores them plays a 452.5 s
+track, so the player showed the wrong length and time. It is the only one of the
+21 MCIF videos with more than one edit.
