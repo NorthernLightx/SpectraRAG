@@ -13,6 +13,7 @@ from scripts.derive_arms import derive, read_run
 from scripts.rescore_mmlb_pages import rescore
 from scripts.score_talk_retrieval import score_run
 from src.eval.golden_set import load_golden_set
+from src.eval.metrics_generation import answer_outcome, outcome_rates
 
 _REPO = Path(__file__).resolve().parents[2]
 _README = (_REPO / "README.md").read_text(encoding="utf-8")
@@ -114,3 +115,22 @@ def test_recordings_table_matches_its_runs(
         mean(key) for key in ("hit_at_1", "random_hit_at_1", "hit_at_3", "random_hit_at_3")
     ]
     assert _readme_numbers(label) == expected
+
+
+@pytest.mark.parametrize(
+    ("label", "run_path"),
+    [
+        ("within its own document", "data/eval/answers-mmdocir-gen150-scoped.json.gz"),
+        ("across all 218 documents", "data/eval/answers-mmdocir-gen150-unscoped.json.gz"),
+    ],
+)
+def test_answers_table_matches_its_runs(label: str, run_path: str) -> None:
+    run = read_run(_REPO / run_path)
+    outcomes = [
+        answer_outcome(pq["answer_text"], pq["generation"]["answer_correctness"])
+        for pq in run["per_query"]
+    ]
+    rates = outcome_rates(outcomes)
+
+    assert len(outcomes) == 150
+    assert _readme_numbers(label) == [f"{rates[k]:.2f}" for k in ("correct", "refused", "wrong")]

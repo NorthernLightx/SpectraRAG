@@ -78,6 +78,18 @@ share of correct pages in the top 5 and top 10 results.
 | text and page images | 0.70 | 0.79 |
 | page images only | **0.75** | **0.80** |
 
+Answering 150 of those questions, a stratified sample, with the demo's search
+(top 5 results) and `gemma4:31b` reading the pages, graded by `gpt-oss:120b`
+against MMDocIR's answers
+([`scoped`](./data/eval/answers-mmdocir-gen150-scoped.json.gz),
+[`unscoped`](./data/eval/answers-mmdocir-gen150-unscoped.json.gz)). A quarter of
+the questions say "the paper" or "Figure 1" and need their document named.
+
+| each question searched | correct | refused | wrong |
+|---|---|---|---|
+| within its own document | **0.58** | 0.11 | 0.31 |
+| across all 218 documents | 0.50 | 0.14 | 0.36 |
+
 Method and full numbers: [`docs/results.md`](./docs/results.md). Where answer
 accuracy is lost, and the fixes that did not help:
 [`docs/finding-the-bottleneck.md`](./docs/finding-the-bottleneck.md).

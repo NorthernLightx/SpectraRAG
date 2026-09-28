@@ -304,6 +304,28 @@ instead of the 72 DPI MMDocIR ships moved that +0.023. Prompting the reader to
 treat page images as context lifts the metric but turns correct refusals into
 wrong answers, so no prompt change shipped.
 
+On 2026-09-28 the served stack (`--profile cpu --router`, fingerprint
+`4543c8ffb013`, top 5) answered the same 150 questions through the reader
+context of ADR 0033, read by `gemma4:31b` and graded by `gpt-oss:120b`, with
+refusal read from the answer text (`answer_outcome`):
+
+| each question searched | correct | refused | wrong | gold page in the top 5 |
+|---|---|---|---|---|
+| within its own document | 0.58 [0.50, 0.66] | 0.11 | 0.31 | 137 of 150 |
+| across all 218 documents | 0.50 [0.42, 0.58] | 0.14 | 0.36 | 115 of 150 |
+
+With a gold page in context the reader is right 63 to 64 % of the time in both
+settings, so scoping's gain (+0.08, paired 95 % interval [+0.03, +0.14]) is
+retrieval: 41 of the questions say "the paper" or "Figure 1". Among
+gold-retrieved queries, refusals are down to 6 to 8 % and wrong answers (28 to
+31 %) are the larger loss. Four of the 47 scoped wrong answers partly decline,
+which the prefix-based refusal check counts as wrong. Twenty grades read by hand
+all agreed with the judge. The reader, the prompt and the judge all differ from
+the July runs above, so the two sets do not compare. Receipts:
+[`answers-mmdocir-gen150-scoped.json.gz`](../data/eval/answers-mmdocir-gen150-scoped.json.gz)
+and [`-unscoped`](../data/eval/answers-mmdocir-gen150-unscoped.json.gz); the
+page-image leg ran in bf16 on a GPU, where the service runs fp32 on CPU.
+
 ## End-to-end: a RAG↔long-context spectrum, not a fixed ceiling
 
 The retrieval lift and the strong oracle-page generation are both real, but they

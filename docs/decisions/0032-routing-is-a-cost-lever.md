@@ -334,3 +334,16 @@ answers by between about 1.6 and 4 to one, depending on the depth and on where
 the partial grades fall. A stronger judge re-grading the 18 partial answers
 narrows the range. The ordering, refusal ahead of misreading, and the no-ship
 call on the prompt variants stand.
+
+## Amendment (2026-09-28): on the reader context, wrong answers lead
+
+The served stack answered the gen150 questions again through the reader context
+of ADR 0033, with `gemma4:31b` reading and `gpt-oss:120b` grading
+([`docs/results.md`](../results.md)). Scoped to each question's document, 0.58
+are correct, 0.11 refused and 0.31 wrong; across all 218 documents, 0.50, 0.14
+and 0.36. Where a gold page reached the reader, wrong answers (28 to 31 %)
+outnumber refusals (6 to 8 %) by about four to one, the reverse of the ordering
+above. Against July's unscoped arm (22.7 % correct, 48.0 % refused, 29.3 %
+wrong), the reader now answers far more often: correct rises to 0.50 and wrong
+to 0.36. The reader, the prompt and the judge changed together, so none of them
+is credited with the change.
