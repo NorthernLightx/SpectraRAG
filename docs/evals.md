@@ -215,6 +215,12 @@ Both baselines were regenerated on 2026-09-23 when the gate moved from an
 unreranked text leg to the served stack; text-arm recall@10 went from 0.790 to
 0.871 and no query lost a gold page.
 
+On 2026-09-28 three MCIF talks joined the snapshot (75 transcript chunks, 74
+slide pages; ADR 0034). Both arms reproduced their baselines to four decimals
+and passed the per-query check, and the re-recorded fixture matched the old one
+on all 39 queries: the golden queries filter by paper, so talk pages never
+enter their rankings.
+
 ### Full-stack baseline, manual or scheduled
 
 `data/eval/baseline.json` is the end-to-end reference (v3 + router + visual +
