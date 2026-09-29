@@ -67,8 +67,12 @@ flowchart LR
 
 ## Results
 
-Finding the right page on [MMDocIR](https://arxiv.org/abs/2501.08828), 1,029
-questions, from one recorded run
+Finding the right page on [MMDocIR](https://arxiv.org/abs/2501.08828), a
+public benchmark of questions about long documents. The search corpus is the
+218 documents of up to 60 pages in its evaluation set; the table covers the
+1,029 questions on the 200 of them that MMLongBench-Doc does not also use
+([selection](./docs/results.md#mmdocir-where-routing-stops-paying)). From one
+recorded run
 ([`data/eval/mmdocir-depth50-legs.json.gz`](./data/eval/mmdocir-depth50-legs.json.gz)):
 share of correct pages in the top 5 and top 10 results.
 
@@ -78,10 +82,13 @@ share of correct pages in the top 5 and top 10 results.
 | text and page images | 0.70 | 0.79 |
 | page images only | **0.75** | **0.80** |
 
-Answers, on 150 of those questions (a stratified sample), run the way the demo
-runs: text and page-image search together, the top 5 pages go to `gemma4:31b`,
-which reads them and answers, and `gpt-oss:120b` grades each answer against
-MMDocIR's reference answer. MMDocIR asks each question about one document
+Answers, on 150 of the 1,029 questions above
+([`data/golden/mmdocir-gen150.yaml`](./data/golden/mmdocir-gen150.yaml)): the
+same mix of kinds as the full set, 69 text, 48 figure and 33 table questions
+from 92 documents. Each ran the way the demo runs: text and page-image search
+together, the top 5 pages go to `gemma4:31b`, which reads them and answers, and
+`gpt-oss:120b` grades each answer against MMDocIR's reference answer. MMDocIR
+asks each question about one document
 ("How many authors are listed in the paper?"), so the first row limits the
 search to that document; the second searches all 218, like the table above.
 Receipts: [`one document`](./data/eval/answers-mmdocir-gen150-scoped.json.gz),

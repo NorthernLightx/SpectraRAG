@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from collections import Counter
 from pathlib import Path
 from typing import Any
 
@@ -52,16 +53,28 @@ def _pages(chunk_ids: list[str]) -> list[str]:
     return list(dict.fromkeys("::".join(c.split("::")[:2]) for c in chunk_ids))
 
 
-def test_mmdocir_table_matches_its_run() -> None:
-    run = read_run(_REPO / "data/eval/mmdocir-depth50-legs.json.gz")
-    golden = _yaml("data/golden/mmdocir-v1.yaml")
-    # Reported on the questions whose documents are not in the MMLongBench corpus (docs/results.md).
+def _mmdocir_reported(golden: dict[str, Any]) -> set[str]:
+    """The MMDocIR questions the README reports on: those whose documents are
+    not in the MMLongBench corpus (docs/results.md)."""
     mmlb = {
         q["paper_id"]
         for q in _yaml("data/golden/mmlongbench-v1.yaml")["queries"]
         if q.get("paper_id")
     }
-    keep = {q["query_id"] for q in golden["queries"] if q["paper_id"] not in mmlb}
+    return {q["query_id"] for q in golden["queries"] if q["paper_id"] not in mmlb}
+
+
+def test_mmdocir_table_matches_its_run() -> None:
+    run = read_run(_REPO / "data/eval/mmdocir-depth50-legs.json.gz")
+    golden = _yaml("data/golden/mmdocir-v1.yaml")
+    keep = _mmdocir_reported(golden)
+    # The README says where the questions come from: the corpus documents, and
+    # the documents behind the reported questions.
+    text = " ".join(_README.split())
+    corpus = {q["paper_id"] for q in golden["queries"]}
+    reported = {q["paper_id"] for q in golden["queries"] if q["query_id"] in keep}
+    assert f"the {len(corpus)} documents of up to 60 pages" in text
+    assert f"on the {len(reported)} of them" in text
     # The served search: each leg cut to ten results, fused with weight 1 (ADR 0032).
     for pq in run["per_query"]:
         pq["leg_chunk_ids"] = {leg: ids[:10] for leg, ids in pq["leg_chunk_ids"].items()}
@@ -134,3 +147,31 @@ def test_answers_table_matches_its_runs(label: str, run_path: str) -> None:
 
     assert len(outcomes) == 150
     assert _readme_numbers(label) == [f"{rates[k]:.2f}" for k in ("correct", "refused", "wrong")]
+
+
+def test_answered_sample_is_named() -> None:
+    """The README says which 150 questions were answered: questions from the
+    retrieval table, their mix of kinds and documents, and the file listing them,
+    which both answer runs cover exactly."""
+    path = "data/golden/mmdocir-gen150.yaml"
+    sample = _yaml(path)["queries"]
+    ids = {q["query_id"] for q in sample}
+    assert ids <= _mmdocir_reported(_yaml("data/golden/mmdocir-v1.yaml"))
+    for run_path in (
+        "data/eval/answers-mmdocir-gen150-scoped.json.gz",
+        "data/eval/answers-mmdocir-gen150-unscoped.json.gz",
+    ):
+        assert {pq["query_id"] for pq in read_run(_REPO / run_path)["per_query"]} == ids
+
+    text = " ".join(_README.split())
+    assert path in text
+    m = re.search(r"(\d+) text, (\d+) figure and (\d+) table questions from (\d+) documents", text)
+    assert m, "the README does not give the answered sample's mix"
+    kinds = Counter(q["category"] for q in sample)
+    documents = len({q["paper_id"] for q in sample})
+    assert [int(n) for n in m.groups()] == [
+        kinds["factual"],
+        kinds["figure"],
+        kinds["table"],
+        documents,
+    ]
