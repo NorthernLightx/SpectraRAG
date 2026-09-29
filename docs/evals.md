@@ -222,6 +222,13 @@ and passed the per-query check, and the re-recorded fixture matched the old one
 on all 39 queries: the golden queries filter by paper, so talk pages never
 enter their rankings.
 
+On 2026-09-30 the snapshot gained 91 text, figure and table chunks for
+2604.28182v1, whose pages 55 to 81 an earlier bake had lost to Docling's silent
+page drop (ingestion now converts in page windows). Both arms passed and the
+baselines stay. One query moved: `q20_exploration_hacking` now ranks a page-57
+definition of the term above its labelled page, so mrr fell from 0.5944 to
+0.5936 on the text arm and from 0.6280 to 0.6263 on the fused one.
+
 ### Full-stack baseline, manual or scheduled
 
 `data/eval/baseline.json` is the end-to-end reference (v3 + router + visual +
