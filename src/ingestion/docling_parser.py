@@ -367,13 +367,46 @@ def summarize_conversion(result: Any) -> DoclingConversion:
     )
 
 
+# One Docling run over a long PDF drops every page past roughly the 40th to a
+# cumulative std::bad_alloc, whatever memory is free: 2604.28182v1 lost pages
+# 47 to 81, which convert cleanly on their own. Windows of at most this many
+# pages, merged afterwards, keep them.
+_WINDOW_PAGES = 30
+
+
+def _merge_documents(documents: list[Any]) -> Any:
+    """One DoclingDocument from per-window documents; pages keep their numbers."""
+    from docling_core.types.doc.document import DoclingDocument
+
+    return DoclingDocument.concatenate(documents)
+
+
 def convert_with_docling(pdf_path: Path) -> DoclingConversion:
-    """Single Docling conversion. Shared between text-chunking (ADR 0021) and
-    figure / table extraction (ADR 0020) so we only run the layout +
-    OCR pipeline once per paper."""
+    """Docling conversion of a whole PDF, in page windows of `_WINDOW_PAGES`.
+    Shared between text-chunking (ADR 0021) and figure / table extraction
+    (ADR 0020) so the layout + OCR pipeline runs once per paper."""
     if not pdf_path.exists():
         raise FileNotFoundError(f"PDF not found: {pdf_path}")
-    conversion = summarize_conversion(_build_converter().convert(pdf_path))
+    import fitz
+
+    with fitz.open(pdf_path) as pdf:
+        n_pages = pdf.page_count
+    converter = _build_converter()
+    parts = [
+        summarize_conversion(
+            converter.convert(pdf_path, page_range=(start, min(start + _WINDOW_PAGES - 1, n_pages)))
+        )
+        for start in range(1, n_pages + 1, _WINDOW_PAGES)
+    ]
+    conversion = (
+        parts[0]
+        if len(parts) == 1
+        else DoclingConversion(
+            document=_merge_documents([part.document for part in parts]),
+            failed_pages=sorted(page for part in parts for page in part.failed_pages),
+            errors=[error for part in parts for error in part.errors],
+        )
+    )
     if conversion.partial:
         _log.warning(
             "docling.partial_conversion",
