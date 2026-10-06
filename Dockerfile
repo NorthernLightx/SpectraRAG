@@ -18,7 +18,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 FROM python:3.12-slim-bookworm AS runtime
 
-# OS deps for psycopg, pymupdf, etc.
+# OS libraries that psycopg and pymupdf need.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
        libpq5 \
@@ -48,14 +48,14 @@ COPY --chown=app:app data/paper_titles.json /home/app/data/paper_titles.json
 
 # Baked-in Qdrant snapshot. `qdrant-client` runs in embedded mode against
 # this directory (`url='path:/home/app/qdrant_local'`), so the deploy needs
-# no external Qdrant — the entire vector index ships inside the image.
+# no external Qdrant: the entire vector index ships inside the image.
 # Build it before `docker build`:
 #   uv run python -m scripts.bootstrap_corpus \
 #       --pdf-dir data/papers \
 #       --qdrant path:./qdrant_local \
 #       --ollama http://localhost:11434
 # When the directory is empty (only .gitkeep), the lifespan handler logs
-# `skip_empty_corpus` and /answer returns 503 — same fallback as a missing
+# `skip_empty_corpus` and /answer returns 503, the same fallback as a missing
 # pages_dir. Re-baking is idempotent in the source script.
 COPY --chown=app:app qdrant_local /home/app/qdrant_local
 
@@ -70,7 +70,7 @@ RUN /home/app/.venv/bin/python -c \
     "from sentence_transformers import SentenceTransformer, CrossEncoder; SentenceTransformer('BAAI/bge-m3'); CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')"
 
 # ADR 0028: bake the ColQwen2 visual encoder so the multimodal serve path pays
-# no HuggingFace fetch at startup — a ~4 GB cold download would blow the Cloud
+# no HuggingFace fetch at startup: a ~4 GB cold download would blow the Cloud
 # Run startup window. from_pretrained caches the adapter, its Qwen2-VL-2B base,
 # and the processor. Only the query is encoded at serve time; the page vectors
 # are pre-built into the Qdrant snapshot (scripts/build_visual_index.py). Adds
