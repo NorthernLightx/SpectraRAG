@@ -566,6 +566,39 @@ async def test_warm_retriever_without_a_corpus_is_a_no_op() -> None:
     await _warm_retriever()
 
 
+@pytest.mark.asyncio
+async def test_warm_retriever_logs_time_per_stage(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The warm-up is most of a cold start; its log must say which stage
+    (query encode, search, rerank) the time went to."""
+    from src.api import bootstrap
+    from src.observability.stages import stage
+
+    class _StagedRetriever(_RecordingRetriever):
+        async def retrieve(self, query: Query) -> list[RetrievalResult]:
+            with stage("visual_encode"):
+                pass
+            return await super().retrieve(query)
+
+    events: list[tuple[str, dict[str, object]]] = []
+
+    class _Log:
+        def info(self, event: str, **kw: object) -> None:
+            events.append((event, kw))
+
+        def warning(self, event: str, **kw: object) -> None:
+            events.append((event, kw))
+
+    monkeypatch.setattr(bootstrap, "get_logger", lambda _name: _Log())
+    _RetrieverState.instance = _StagedRetriever()
+
+    await _warm_retriever()
+
+    warm = [kw for event, kw in events if event == "api.retriever.warm"]
+    assert len(warm) == 1
+    stage_ms = warm[0]["stage_ms"]
+    assert isinstance(stage_ms, dict) and "visual_encode" in stage_ms
+
+
 def test_startup_warms_the_retriever_before_serving(monkeypatch: pytest.MonkeyPatch) -> None:
     """The first query after a cold start ran past Cloud Run's request timeout
     while /health already answered: startup must pay the first-call cost."""

@@ -30,6 +30,7 @@ from src.embeddings.protocol import Embedder
 from src.llm.ollama_chat import OllamaChatClient
 from src.llm.openrouter import OpenRouterClient
 from src.observability.logging import get_logger
+from src.observability.stages import collect_stages, rounded
 from src.prompts.loader import load_prompt_by_name
 from src.rag.bm25 import Bm25Index
 from src.rag.context import MAX_PAGE_IMAGES, READER_PROMPT_NAME
@@ -366,8 +367,13 @@ async def _warm_retriever() -> None:
     log = get_logger(__name__)
     start = time.perf_counter()
     try:
-        await retriever.retrieve(Query(text="warm-up", top_k=1, force_route="hybrid"))
+        with collect_stages() as stages:
+            await retriever.retrieve(Query(text="warm-up", top_k=1, force_route="hybrid"))
     except Exception as exc:
         log.warning("api.retriever.warmup_failed", error=str(exc), error_type=type(exc).__name__)
         return
-    log.info("api.retriever.warm", seconds=round(time.perf_counter() - start, 1))
+    log.info(
+        "api.retriever.warm",
+        seconds=round(time.perf_counter() - start, 1),
+        stage_ms=rounded(stages),
+    )
