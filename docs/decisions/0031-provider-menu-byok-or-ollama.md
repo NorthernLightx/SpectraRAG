@@ -72,3 +72,38 @@ than removing it. Scripts are allowed by exact URL, because a CDN host such as
 unpkg.com would admit any package published there. Connections are limited to
 the page's own origin, the API origin passed with `--api-base`, OpenRouter, and
 a local Ollama unless `--hosted`. The no-build dev page has no policy.
+
+## Amendment (2026-10-06): free answers on the hosted page
+
+The hosted page answers questions without a key again, through Google rather
+than a server-held key. A visitor with no key gets answers from Gemini
+(`gemini-3.5-flash-lite`) through Firebase AI Logic, on the Agent Platform
+backend in the `eu` multi-region. A visitor's own OpenRouter key takes
+precedence, and the menu works as before.
+
+What differs from ADR 0027's caged key:
+
+- There is no secret on the server or in the page. The page carries the
+  Firebase web config, which names the project and grants nothing by itself.
+  App Check (score-based reCAPTCHA Enterprise) vouches that a request comes
+  from the hosted page, and AI Logic refuses requests without a valid token.
+- Google enforces the ceiling, not this code. A service-level spend cap on AI
+  Logic pauses it for the rest of the month once spend reaches the budget.
+  Enforcement trails usage reporting by minutes, so a burst can overshoot it.
+  A paused service answers 403 or 429 and a refused App Check token 401. The
+  chat then falls back to the key notice with the search results still shown.
+- Each browser gets 20 free answers a day, counted in `localStorage`. The
+  count keeps one visitor from spending the month's budget for everyone; it
+  is not a security boundary, since App Check and the cap are.
+- The reader's messages still come from `/context` (ADR 0033). The browser
+  only converts them to Gemini's message format.
+- The Firebase SDK and reCAPTCHA load on the first keyless question, not with
+  the page.
+
+Gemini 3.5 Flash-Lite was picked over 3.1 Flash-Lite on the four saved demo
+questions: both answered the text questions, and only 3.5 read the answer off
+a slide chart. That is a sanity check, not an eval.
+
+Given `--firebase-config`, the build bundles the reader and adds AI Logic, App
+Check and reCAPTCHA to the policy. reCAPTCHA's script and frame are admitted by
+path prefix, because their URLs change with each reCAPTCHA release.
