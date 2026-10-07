@@ -327,8 +327,11 @@ def _build_converter() -> DocumentConverter:
     pipeline.images_scale = _PICTURE_SCALE
     pipeline.generate_picture_images = True
     pipeline.do_picture_classification = True
+    # Docling picks a backend from the content, not the name, and allows every
+    # format by default; an upload named .pdf must not reach the others.
     return DocumentConverter(
-        format_options={InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline)}
+        allowed_formats=[InputFormat.PDF],
+        format_options={InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline)},
     )
 
 
