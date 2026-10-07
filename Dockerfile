@@ -76,8 +76,38 @@ RUN /home/app/.venv/bin/python -c \
 # are pre-built into the Qdrant snapshot (scripts/build_visual_index.py). Adds
 # ~4 GB to the image; the visual leg only activates when RAG_ENABLE_MULTIMODAL
 # is set AND the visual collection is populated.
+# The base checkpoint ships in fp32, but its tensors hold values bf16 represents
+# exactly, and the CPU serve path loads it in fp32. The same layer rewrites
+# every such tensor in bf16, which halves the bytes a cold start reads from the
+# streamed image and leaves the loaded weights unchanged. A tensor that bf16
+# would round stays fp32.
 RUN /home/app/.venv/bin/python -c \
-    "from colpali_engine.models import ColQwen2, ColQwen2Processor; ColQwen2.from_pretrained('vidore/colqwen2-v1.0'); ColQwen2Processor.from_pretrained('vidore/colqwen2-v1.0')"
+    "from colpali_engine.models import ColQwen2, ColQwen2Processor; ColQwen2.from_pretrained('vidore/colqwen2-v1.0'); ColQwen2Processor.from_pretrained('vidore/colqwen2-v1.0')" \
+ && /home/app/.venv/bin/python - <<'EOF'
+import glob
+import os
+
+import torch
+from huggingface_hub.constants import HF_HUB_CACHE
+from safetensors import safe_open
+from safetensors.torch import save_file
+
+shards = glob.glob(os.path.join(
+    HF_HUB_CACHE, "models--vidore--colqwen2-base", "snapshots", "*", "*.safetensors"))
+assert shards, "no colqwen2-base shards in the cache"
+for shard in shards:
+    path = os.path.realpath(shard)
+    out = {}
+    with safe_open(path, framework="pt") as f:
+        meta = f.metadata()
+        for name in f.keys():
+            t = f.get_tensor(name)
+            narrow = t.to(torch.bfloat16)
+            out[name] = narrow if torch.equal(narrow.to(t.dtype), t) else t.clone()
+    save_file(out, path + ".tmp", metadata=meta)
+    os.replace(path + ".tmp", path)
+    print(os.path.basename(shard), {str(v.dtype) for v in out.values()})
+EOF
 
 # RAG_PROFILE=cpu: the retrieval stack lives in src/config/profiles/cpu.yaml so
 # `eval_run --profile cpu` measures exactly what this image serves.
