@@ -78,9 +78,9 @@ RUN /home/app/.venv/bin/python -c \
 # is set AND the visual collection is populated.
 # The base checkpoint ships in fp32, but its tensors hold values bf16 represents
 # exactly, and the CPU serve path loads it in fp32. The same layer rewrites
-# every such tensor in bf16, which halves the bytes a cold start reads from the
-# streamed image and leaves the loaded weights unchanged. A tensor that bf16
-# would round stays fp32.
+# every such tensor in bf16, which halves the checkpoint on disk and leaves the
+# loaded weights unchanged; a tensor that bf16 would round stays fp32. It did
+# not shorten the cold start (ADR 0028, 2026-10-07 amendment).
 RUN /home/app/.venv/bin/python -c \
     "from colpali_engine.models import ColQwen2, ColQwen2Processor; ColQwen2.from_pretrained('vidore/colqwen2-v1.0'); ColQwen2Processor.from_pretrained('vidore/colqwen2-v1.0')" \
  && /home/app/.venv/bin/python - <<'EOF'
