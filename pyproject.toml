@@ -7,7 +7,8 @@ name = "spectrarag"
 version = "0.1.0"
 description = "Multi-modal PDF RAG comparing text-pipeline vs visual retrieval."
 readme = "README.md"
-requires-python = ">=3.12"
+# Below 3.15: onnxruntime ships no Windows wheels there, so the lock cannot resolve.
+requires-python = ">=3.12,<3.15"
 license = { text = "MIT" }
 authors = [{ name = "NorthernLightx", email = "70861631+NorthernLightx@users.noreply.github.com" }]
 
@@ -42,7 +43,8 @@ dependencies = [
   # ONNX engine to dodge the transformers/torch.compile-needs-Triton
   # path that isn't available on Windows CPU.
   "onnxruntime>=1.20",
-  "sentence-transformers>=3.3",
+  # 5.6 fixes GHSA-jhr6-gm9c-rqjv: local model code ran despite trust_remote_code=False.
+  "sentence-transformers>=5.6",
   "sentry-sdk[fastapi]>=2.18",
   "torch>=2.6",
   "torchvision>=0.21",
