@@ -2,6 +2,24 @@
 
 Status: accepted (supersedes [0013](./0013-routing-is-the-accuracy-lever.md))
 
+## Current state (as of 2026-10-07)
+
+The amendments below moved the conclusion more than once. Where it stands:
+
+- The served retriever fuses both legs on every query (`routing_mode=hybrid`,
+  the first 2026-09-17 amendment). The classifier remains as a mode, not the
+  default.
+- On MMDocIR, fusing beats the classifier router by 0.16 recall@10.
+  Visual-only beats fusing by a small, real margin (0.016 recall@10, wider in
+  the top five). The text leg stays because it lets a citation point at a
+  passage and because it works on a corpus with no page index.
+- The fusion weight is per corpus. The text-heavy demo keeps 1; a visual-heavy
+  corpus gets visual-only's pages at a weight of 2.
+- The reader limits the answers. On the served stack 0.58 of answers are
+  correct when scoped to the question's document, and where the right page
+  reached the reader, wrong answers outnumber refusals about four to one
+  (2026-09-28).
+
 ## Context
 
 ADR 0013 concluded that per-query routing is where retrieval accuracy comes

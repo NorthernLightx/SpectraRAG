@@ -5,6 +5,21 @@ text baseline (`eval_docling_text` has no figure chunks). The new field
 exists for the figures gallery and for any future role-aware retriever.
 **Date:** 2026-05-20
 
+## Current state (as of 2026-10-07)
+
+The amendments below changed the rules several times. Where they ended up:
+
+- Every picture Docling detects is kept and stored with a role. The paper's
+  own figure caption decides first, then Docling's picture classifier at 0.30
+  confidence or more (logos and icons are `decoration`; charts, diagrams and
+  tables are `figure`), then the area: an uncaptioned picture under 5000 pt² is
+  `decoration` and the rest `unlabeled`. A picture with no bounding box is
+  `unlabeled`.
+- Retrieval drops `decoration` chunks. Measured, this changed no result.
+- The gallery shows `figure` and `unlabeled` pictures together as figures and
+  hides `decoration`; decorations under 500 pt² are dropped even from its
+  opt-in view.
+
 ## Context
 
 Spot-checking the figures gallery on `eval_docling_mm` (Docling +
