@@ -19,7 +19,7 @@ points to the page or timestamp each answer came from. Also in the repo:
 
 **▶ Live demo: <https://spectrarag-demo.web.app>**
 
-![Asking what the blue and red curves in a paper's Figure 1 show: the answer cites the figure, and its source opens on the page with the figure region boxed](docs/assets/demo.webp)
+![Asking which surrogate losses a paper's Table 1 compares: the answer cites the table, and its source opens the page with the table boxed. Then asking about a talk: the answer cites slide 24, and its source opens the video at 5:01 on that chart](docs/assets/demo.webp)
 
 ## Highlights
 
@@ -307,7 +307,7 @@ Contributing: [`CONTRIBUTING.md`](./CONTRIBUTING.md). Design notes:
   [Sentry](https://sentry.io/), [Langfuse](https://langfuse.com/).
 - **Benchmarks:** [MMDocIR](https://arxiv.org/abs/2501.08828),
   [MMLongBench-Doc](https://arxiv.org/abs/2407.01523),
-  [MCIF](https://arxiv.org/abs/2507.19634) (CC BY 4.0),
+  [MCIF](https://arxiv.org/abs/2507.19634) (CC BY 4.0; the demo animation shows one of its talks),
   [QMSum](https://arxiv.org/abs/2104.05938) on the AMI Meeting Corpus
   (CC BY 4.0), and [BRIGHT](https://arxiv.org/abs/2407.12883) for the agentic
   search endpoint, which follows
