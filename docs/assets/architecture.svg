@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1535 960" width="1535" height="960" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-labelledby="t d">
+  <title id="t">SpectraRAG architecture</title>
+  <desc id="d">Documents are parsed into a text index and a page-image index once. Each question searches both, the results are merged per page, and a vision LLM answers with citations.</desc>
+  <defs><marker id="arrow-334155" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="11" markerHeight="11" markerUnits="userSpaceOnUse" orient="auto"><path d="M0 0L10 5L0 10z" fill="#334155"/></marker><marker id="arrow-0369a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="11" markerHeight="11" markerUnits="userSpaceOnUse" orient="auto"><path d="M0 0L10 5L0 10z" fill="#0369a1"/></marker><marker id="arrow-a21caf" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="11" markerHeight="11" markerUnits="userSpaceOnUse" orient="auto"><path d="M0 0L10 5L0 10z" fill="#a21caf"/></marker><linearGradient id="mix" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#c026d3"/><stop offset="1" stop-color="#0284c7"/></linearGradient><linearGradient id="mix-edge" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#a21caf"/><stop offset="1" stop-color="#0369a1"/></linearGradient></defs>
+  <rect width="1535" height="960" rx="18" fill="#fff"/>
+  <g transform="translate(30 0)">
+  <rect x="150" y="28" width="910" height="907" fill="none" stroke="#94a3b8" stroke-width="2"/>
+  <path d="M4 4h16v6H4z M4 14h16v6H4z M8 7h.01 M8 17h.01" transform="translate(171.0 53.0) scale(1.25)" fill="none" stroke="#1e293b" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="216" y="78" font-size="27" fill="#1e293b" text-anchor="start" font-weight="400">Self-hosted</text>
+  <rect x="1080" y="28" width="400" height="907" fill="none" stroke="#94a3b8" stroke-width="2"/>
+  <path d="M7 19h10a4.5 4.5 0 0 0 .6-8.96A6 6 0 0 0 6.2 11.1 4 4 0 0 0 7 19z" transform="translate(1101.0 53.0) scale(1.25)" fill="none" stroke="#1e293b" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="1146" y="78" font-size="27" fill="#1e293b" text-anchor="start" font-weight="400">Model provider</text>
+  <rect x="450" y="122" width="410" height="388" rx="26" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.6" stroke-dasharray="6 5"/>
+  <text x="655.0" y="541" font-size="22" fill="#475569" text-anchor="middle" font-weight="400">Index, once per document</text>
+  <rect x="830" y="582" width="200" height="185" rx="26" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.6" stroke-dasharray="6 5"/>
+  <text x="930.0" y="798" font-size="22" fill="#475569" text-anchor="middle" font-weight="400">Search, every question</text>
+  <rect x="1215" y="582" width="210" height="185" rx="26" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.6" stroke-dasharray="6 5"/>
+  <text x="1320.0" y="798" font-size="22" fill="#475569" text-anchor="middle" font-weight="400">OpenRouter, or any</text>
+  <text x="1320.0" y="825" font-size="22" fill="#475569" text-anchor="middle" font-weight="400">model via /context</text>
+  <path d="M285 305 L430 305" fill="none" stroke="#334155" stroke-width="2"/>
+  <path d="M430 305 L430.0 229.0 Q430 215 444.0 215.0 L490 215" fill="none" stroke="#0369a1" stroke-width="2" marker-end="url(#arrow-0369a1)"/>
+  <path d="M430 305 L430.0 381.0 Q430 395 444.0 395.0 L490 395" fill="none" stroke="#a21caf" stroke-width="2" marker-end="url(#arrow-a21caf)"/>
+  <path d="M570 215 L760 215" fill="none" stroke="#0369a1" stroke-width="2" marker-end="url(#arrow-0369a1)"/>
+  <path d="M570 395 L760 395" fill="none" stroke="#a21caf" stroke-width="2" marker-end="url(#arrow-a21caf)"/>
+  <path d="M840 215 L936.0 215.0 Q950 215 950.0 229.0 L950 610" fill="none" stroke="#0369a1" stroke-width="2" marker-end="url(#arrow-0369a1)"/>
+  <path d="M840 395 L896.0 395.0 Q910 395 910.0 409.0 L910 610" fill="none" stroke="#a21caf" stroke-width="2" marker-end="url(#arrow-a21caf)"/>
+  <path d="M73 650 L890 650" fill="none" stroke="#334155" stroke-width="2" marker-end="url(#arrow-334155)"/>
+  <path d="M970 650 L1280 650" fill="none" stroke="#334155" stroke-width="2" marker-end="url(#arrow-334155)"/>
+  <path d="M1360 650 L1441.0 650.0 Q1455 650 1455.0 664.0 L1455.0 854.0 Q1455 868 1441.0 868.0 L134.0 868.0 Q120 868 120.0 854.0 L120.0 694.0 Q120 680 106.0 680.0 L73.5 680" fill="none" stroke="#334155" stroke-width="2" marker-end="url(#arrow-334155)"/>
+  <rect x="205" y="265" width="80" height="80" rx="12" fill="#334155" stroke="#1e293b" stroke-width="2"/>
+  <path d="M7 3h7l4 4v14H7z M14 3v4h4 M10 12h5 M10 16h5 M4 6v15" transform="translate(227.0 287.0) scale(1.5)" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="245" y="373" font-size="22" fill="#1e293b" text-anchor="middle" font-weight="400">PDFs, talks,</text>
+  <text x="245" y="400" font-size="22" fill="#1e293b" text-anchor="middle" font-weight="400">and audio</text>
+  <rect x="490" y="175" width="80" height="80" rx="12" fill="#0284c7" stroke="#0369a1" stroke-width="2"/>
+  <path d="M4 4h7v7H4z M13 4h7v4h-7z M13 10h7v10h-7z M4 13h7v7H4z" transform="translate(512.0 197.0) scale(1.5)" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="530" y="283" font-size="22" fill="#1e293b" text-anchor="middle" font-weight="400">Docling,</text>
+  <text x="530" y="310" font-size="22" fill="#1e293b" text-anchor="middle" font-weight="400">Whisper</text>
+  <rect x="760" y="175" width="80" height="80" rx="12" fill="#0284c7" stroke="#0369a1" stroke-width="2"/>
+  <path d="M4 6c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3z M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6 M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3" transform="translate(782.0 197.0) scale(1.5)" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="800" y="283" font-size="22" fill="#1e293b" text-anchor="middle" font-weight="400">Text</text>
+  <text x="800" y="310" font-size="22" fill="#1e293b" text-anchor="middle" font-weight="400">index</text>
+  <rect x="490" y="355" width="80" height="80" rx="12" fill="#c026d3" stroke="#a21caf" stroke-width="2"/>
+  <path d="M3 5h18v14H3z M3 16l5-5 4 4 3-3 6 6 M15.5 9.5h.01" transform="translate(512.0 377.0) scale(1.5)" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="530" y="463" font-size="22" fill="#1e293b" text-anchor="middle" font-weight="400">Page</text>
+  <text x="530" y="490" font-size="22" fill="#1e293b" text-anchor="middle" font-weight="400">images</text>
+  <rect x="760" y="355" width="80" height="80" rx="12" fill="#c026d3" stroke="#a21caf" stroke-width="2"/>
+  <path d="M4 4h7v7H4z M13 4h7v7h-7z M4 13h7v7H4z M13 13h7v7h-7z" transform="translate(782.0 377.0) scale(1.5)" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="800" y="463" font-size="22" fill="#1e293b" text-anchor="middle" font-weight="400">Page</text>
+  <text x="800" y="490" font-size="22" fill="#1e293b" text-anchor="middle" font-weight="400">index</text>
+  <rect x="890" y="610" width="80" height="80" rx="12" fill="url(#mix)" stroke="url(#mix-edge)" stroke-width="2"/>
+  <path d="M10.5 4.5a6 6 0 1 0 0 12 6 6 0 0 0 0-12z M15 15l5 5 M8 10.5h5" transform="translate(912.0 632.0) scale(1.5)" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="930" y="718" font-size="22" fill="#1e293b" text-anchor="middle" font-weight="400">Search both,</text>
+  <text x="930" y="745" font-size="22" fill="#1e293b" text-anchor="middle" font-weight="400">merge per page</text>
+  <rect x="1280" y="610" width="80" height="80" rx="12" fill="#334155" stroke="#1e293b" stroke-width="2"/>
+  <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z" transform="translate(1302.0 632.0) scale(1.5)" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="1320" y="718" font-size="22" fill="#1e293b" text-anchor="middle" font-weight="400">Vision</text>
+  <text x="1320" y="745" font-size="22" fill="#1e293b" text-anchor="middle" font-weight="400">LLM</text>
+  <circle cx="36" cy="665" r="40" fill="#334155"/>
+  <path d="M12 4.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7z M5 20c0-4 3-6 7-6s7 2 7 6" transform="translate(19.0 648.0) scale(1.4166666666666667)" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="36" y="735" font-size="22" fill="#1e293b" text-anchor="middle" font-weight="400">User</text>
+  <circle cx="357" cy="305" r="19" fill="#64748b"/>
+  <text x="357" y="312" font-size="19" fill="#fff" text-anchor="middle" font-weight="600">1</text>
+  <text x="357" y="250" font-size="22" fill="#1e293b" text-anchor="middle" font-weight="400">Add</text>
+  <text x="357" y="277" font-size="22" fill="#1e293b" text-anchor="middle" font-weight="400">documents</text>
+  <circle cx="665" cy="215" r="19" fill="#64748b"/>
+  <text x="665" y="222" font-size="19" fill="#fff" text-anchor="middle" font-weight="600">2</text>
+  <text x="665" y="187" font-size="22" fill="#1e293b" text-anchor="middle" font-weight="400">BGE-M3 + BM25</text>
+  <circle cx="665" cy="395" r="19" fill="#64748b"/>
+  <text x="665" y="402" font-size="19" fill="#fff" text-anchor="middle" font-weight="600">2</text>
+  <text x="665" y="367" font-size="22" fill="#1e293b" text-anchor="middle" font-weight="400">ColQwen2</text>
+  <circle cx="330" cy="650" r="19" fill="#64748b"/>
+  <text x="330" y="657" font-size="19" fill="#fff" text-anchor="middle" font-weight="600">3</text>
+  <text x="330" y="697" font-size="22" fill="#1e293b" text-anchor="middle" font-weight="400">Ask a question</text>
+  <circle cx="1147" cy="650" r="19" fill="#64748b"/>
+  <text x="1147" y="657" font-size="19" fill="#fff" text-anchor="middle" font-weight="600">4</text>
+  <text x="1147" y="697" font-size="22" fill="#1e293b" text-anchor="middle" font-weight="400">Question +</text>
+  <text x="1147" y="724" font-size="22" fill="#1e293b" text-anchor="middle" font-weight="400">top pages</text>
+  <circle cx="640" cy="868" r="19" fill="#64748b"/>
+  <text x="640" y="875" font-size="19" fill="#fff" text-anchor="middle" font-weight="600">5</text>
+  <text x="640" y="915" font-size="22" fill="#1e293b" text-anchor="middle" font-weight="400">Answer, citing pages and timestamps</text>
+  </g>
+</svg>

@@ -10,10 +10,12 @@
 
 SpectraRAG is a self-hosted multimodal RAG system that answers questions from charts,
 scanned tables, slides and speech, across PDFs, talk videos and audio, and
-points to the page or timestamp each answer came from. It ships the full loop:
-multimodal ingestion (Docling for PDFs, Whisper for recordings), an eval
-harness on human-labelled golden sets, a per-query recall gate in CI, and ADRs
-documenting the ablations behind its defaults.
+points to the page or timestamp each answer came from. Also in the repo:
+
+- Multimodal ingestion: Docling for PDFs, Whisper for recordings
+- An eval harness on human-labelled golden sets
+- A per-query recall gate in CI
+- ADRs documenting the ablations behind its defaults
 
 **▶ Live demo: <https://spectrarag-demo.web.app>**
 
@@ -39,31 +41,17 @@ documenting the ablations behind its defaults.
 
 ## How it works
 
-```mermaid
-flowchart LR
-    PDF[PDFs] -->|Docling| TXTIDX[(Text index<br/>BGE-M3 + BM25)]
-    PDF -->|render pages| PAGEIDX[(Page index<br/>ColQwen2)]
-    REC[Talk videos<br/>and audio] -->|Whisper| TXTIDX
-    REC -->|slides| PAGEIDX
-    Q[Question] --> TXT[Text search<br/>BM25 + BGE-M3 + rerank]
-    Q --> PAGE[Page-image search<br/>ColQwen2 MaxSim]
-    TXTIDX --> TXT
-    PAGEIDX --> PAGE
-    TXT --> FUSE[Merge per page<br/>weighted RRF]
-    PAGE --> FUSE
-    FUSE --> LLM[Vision LLM]
-    LLM --> A[Answer + citations]
-```
+![SpectraRAG architecture: documents are indexed once as text (Docling and Whisper, then BGE-M3 and BM25) and as page images (ColQwen2). Each question searches both indexes, the results are merged per page, and a vision LLM answers, citing pages and timestamps.](docs/assets/architecture.svg)
 
-1. **Index.** Docling splits each PDF into passages, figures and tables,
-   indexed for keyword and meaning search (BM25 and BGE-M3). Each page is also
-   indexed as an image (ColQwen2); this is the page index. Recordings are
-   transcribed by Whisper into timed passages, and a talk's slides join the
-   page index.
-2. **Search.** Each question runs on both indexes, and the two result lists are
-   merged page by page (weighted reciprocal-rank fusion).
-3. **Answer.** A vision model reads the top passages and their page images,
-   then answers with citations.
+- **Index (steps 1 and 2).** Docling splits each PDF into passages, figures
+  and tables, indexed for keyword and meaning search (BM25 and BGE-M3). Each
+  page is also indexed as an image (ColQwen2); this is the page index.
+  Recordings are transcribed by Whisper into timed passages, and a talk's
+  slides join the page index.
+- **Search (step 3).** Each question runs on both indexes, and the two result
+  lists are merged page by page (weighted reciprocal-rank fusion).
+- **Answer (steps 4 and 5).** A vision model reads the top passages and their
+  page images, then answers with citations.
 
 ## Results
 
