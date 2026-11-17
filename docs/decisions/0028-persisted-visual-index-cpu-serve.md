@@ -106,10 +106,76 @@ The index rides only in the overlay.
 ```sh
 gcloud builds submit --region=europe-west1 --config cloudbuild.overlay.yaml .
 gcloud run deploy spectrarag --region=europe-west1 \
-    --image=<digest printed by the build> --memory=16Gi --cpu=4
+    --image=<digest printed by the build> --memory=16Gi --cpu=4 \
+    --execution-environment=gen2
 ```
 
 Two constraints the hard way: the build must run in the EU pool
 (`--region=europe-west1`) or the multi-GB push to the EU registry times out
 from the default US pool, and the deploy should use the image *digest*, not the
 `:visual` tag, to dodge stale registry manifests.
+
+## Amendment (2026-09-27): the image carried CUDA torch
+
+The Context above says the image ships the CPU torch wheel. It shipped the CUDA
+build: PyPI's Linux torch wheel is built against CUDA and pulls 15 `nvidia-*`
+wheels and triton, 3.2 GB compressed, into an image that runs on CPU. The
+Python environment was a 4.5 GB compressed layer of the 11.7 GB image.
+`pyproject.toml` now resolves Linux torch and torchvision from the PyTorch CPU
+index at the versions the image ran (2.10.0 and 0.25.0). The environment
+installs to 1.8 GB with no `nvidia-*` package, and the image published from
+`main` went from 11.7 to 7.7 GB compressed.
+
+One cold start of the visual image, from its logs: 16 s to import the app, 61 s
+to the first model load (importing sentence-transformers, which imports torch),
+55 s to load the models and open the index, and 2.5 minutes for the warm-up
+query, most of it the first forward passes. Cloud Run streams image bytes as
+they are first read, so these phases track how much of the image startup
+touches.
+
+Seven starts of the CUDA image took 240 to 283 s, 44 to 61 s of it importing
+torch. The first two starts of the CPU image took 245 and 180 s, 37 and 28 s of
+it importing torch. The import is shorter in both; two starts are too few to
+size the change in the total.
+
+## Amendment (2026-10-07): what moved the cold start and what did not
+
+Two cold starts in early October took 3.5 and 4.4 minutes to become ready, most
+of it the warm-up query: 54 to 66 s for the text leg and 122 to 153 s for the
+visual leg, against 5 s for the same query once warm. Both checkpoints are
+stored in fp32 (the ColQwen2 base at 8.8 GB, bge-m3 at 2.3 GB) and load
+memory-mapped, so the first forward passes read the weights from the streamed
+image a page at a time.
+
+The service now runs Cloud Run's second-generation execution environment, a
+full Linux kernel in place of gVisor's emulated system calls, at the same
+price. Two more changes were measured on top of it. Time from the instance
+start to the passing startup probe:
+
+| image | after a deploy | on a request after idle |
+|---|---|---|
+| second generation | 2.5 min | 2.1 min |
+| plus a background read of the weights at start | 2.1 min | 2.0 and 2.0 min |
+| plus the ColQwen2 base stored in bf16 | 1.7 min | 2.0 min |
+
+The background read cut the warm-up query to 12 s, but the time until the app
+imported rose from 14 to 33 s, with the read and Python's imports pulling from
+the same image. The total did not move, and the read was dropped.
+
+Every tensor of the ColQwen2 base except one small projection holds values
+bf16 represents exactly, and the CPU path loads the model in fp32, so the image
+now stores those tensors in bf16. The visual leg's top ten for four probe
+queries matched the fp32 image page for page, with scores within 7e-6, the same
+on two instances. The compressed image shrank only from 7.84 to 7.34 GB, since
+gzip had already squeezed the zero low halves of the fp32 values, and a start
+after idle still took 2.0 minutes. Uncompressed bytes are not what bounds the
+start.
+
+Where those 2 minutes go, from the per-stage warm-up log: 16 s until the app
+imports, 50 s for imports, the text index and bge-m3, 39 s for ColQwen2 and the
+page index, and 14 s for the warm-up query, 8 s of it loading the cross-encoder
+and reranking.
+
+Max instances is a soft limit: during the 4.4-minute start Cloud Run started a
+second instance and stopped the first as it became ready, which added a minute
+and paid for two starts. A shorter start leaves less time for that.

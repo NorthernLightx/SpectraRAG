@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MCIF span labelling</title>
+<link rel="icon" href="data:,">
+<style>
+  :root {
+    --bg: #f7f7f5; --panel: #ffffff; --ink: #1d1d1b; --muted: #6b6b66; --line: #e3e2dd;
+    --accent: #2f5fd0; --accent-soft: #e6ecfb; --ok: #1f7a4a; --warn: #a3620a; --danger: #b3261e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #151514; --panel: #1f1f1d; --ink: #ecebe6; --muted: #9c9b95; --line: #33332f;
+      --accent: #8aa9ff; --accent-soft: #232c45; --ok: #6fcf97; --warn: #f2b35b; --danger: #f28b82;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { display: flex; gap: 12px; align-items: center; padding: 10px 16px;
+           border-bottom: 1px solid var(--line); background: var(--panel); position: sticky; top: 0; z-index: 2; }
+  header h1 { font-size: 15px; margin: 0 12px 0 0; }
+  header .keys { color: var(--muted); font-size: 12px; margin-left: auto; }
+  button, .filebtn { font: inherit; font-size: 13px; padding: 4px 10px; border-radius: 6px; cursor: pointer;
+           border: 1px solid var(--line); background: var(--panel); color: var(--ink); }
+  button:hover, .filebtn:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .layout { display: grid; grid-template-columns: 200px minmax(0, 1.4fr) minmax(320px, 1fr);
+            gap: 12px; padding: 12px 16px; height: calc(100vh - 52px); }
+  .col { min-height: 0; display: flex; flex-direction: column; gap: 10px; }
+  .scroll { overflow: auto; min-height: 0; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+  #talks button { display: flex; justify-content: space-between; width: 100%; margin: 0 0 4px;
+                  text-align: left; font-family: ui-monospace, monospace; font-size: 12px; }
+  #talks button.active { background: var(--accent-soft); border-color: var(--accent); }
+  .done { color: var(--ok); }
+  video { width: 100%; max-height: 46vh; background: #000; border-radius: 8px; }
+  #slides { display: flex; gap: 6px; overflow-x: auto; padding: 6px; }
+  .slide { flex: 0 0 auto; width: 132px; cursor: pointer; border: 2px solid transparent; border-radius: 6px;
+           padding: 2px; font-size: 11px; color: var(--muted); text-align: center; }
+  .slide img { width: 100%; display: block; border-radius: 4px; }
+  .slide.now { border-color: var(--accent); color: var(--ink); }
+  #transcript { flex: 1; padding: 6px 10px; }
+  .tline { display: flex; gap: 8px; padding: 2px 4px; border-radius: 4px; cursor: pointer; }
+  .tline:hover { background: var(--accent-soft); }
+  .tline.now { background: var(--accent-soft); }
+  .tline time { color: var(--muted); font-family: ui-monospace, monospace; font-size: 12px; flex: 0 0 52px; }
+  .q { padding: 10px 12px; margin-bottom: 8px; cursor: pointer; }
+  .q.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .q .text { font-weight: 600; }
+  .q .ref { color: var(--muted); margin: 4px 0; }
+  .q .tag { font-size: 11px; color: var(--muted); font-family: ui-monospace, monospace; }
+  .q .spans { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+  .span { font-family: ui-monospace, monospace; font-size: 12px; padding: 2px 6px; border-radius: 4px;
+          background: var(--accent-soft); display: inline-flex; gap: 6px; align-items: center; }
+  .span a { cursor: pointer; color: var(--accent); }
+  .span a.x { color: var(--danger); }
+  .pending { color: var(--warn); font-size: 12px; }
+  .none { color: var(--warn); font-weight: 600; font-size: 12px; }
+  .row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .empty { padding: 24px; color: var(--muted); }
+  input[type=file] { display: none; }
+</style>
+</head>
+<body>
+<header>
+  <h1>MCIF span labelling</h1>
+  <span id="progress"></span>
+  <button class="primary" id="export">Export mcif-spans.json</button>
+  <label class="filebtn">Import<input type="file" id="import" accept=".json"></label>
+  <span class="keys">Keys: space play/pause · [ start · ] end · s current slide · j/k next/previous question</span>
+</header>
+<div class="layout">
+  <nav class="col scroll" id="talks"></nav>
+  <main class="col">
+    <video id="video" controls preload="metadata"></video>
+    <div class="panel" id="slides"></div>
+    <div class="panel scroll" id="transcript"></div>
+  </main>
+  <section class="col scroll" id="questions"></section>
+</div>
+<script>
+const DATA = /*__DATA__*/null;
+const KEY = "mcif-spans-v1";
+const $ = (id) => document.getElementById(id);
+const video = $("video");
+
+let labels = {};
+try { labels = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (e) { labels = {}; }
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(labels)); } catch (e) { /* private window */ } };
+
+let talk = null, active = null;
+const pending = {};
+
+const fmt = (s) => { const m = Math.floor(s / 60); return `${m}:${(s - 60 * m).toFixed(1).padStart(4, "0")}`; };
+const entry = (qid) => (labels[qid] ||= { spans: [], none: false });
+const isDone = (qid) => { const l = labels[qid]; return !!l && (l.none || l.spans.length > 0); };
+const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+
+function renderProgress() {
+  const all = DATA.talks.flatMap((t) => t.questions.map((q) => q.id));
+  $("progress").textContent = `${all.filter(isDone).length} / ${all.length} labelled`;
+}
+
+function renderTalks() {
+  $("talks").innerHTML = "";
+  for (const t of DATA.talks) {
+    const n = t.questions.filter((q) => isDone(q.id)).length;
+    const b = document.createElement("button");
+    b.className = t === talk ? "active" : "";
+    b.innerHTML = `<span>${t.id}</span><span class="${n === t.questions.length ? "done" : ""}">${n}/${t.questions.length}</span>`;
+    b.onclick = () => openTalk(t);
+    $("talks").appendChild(b);
+  }
+  if (DATA.missing.length) {
+    const p = document.createElement("p");
+    p.className = "empty";
+    p.textContent = `Not ingested yet: ${DATA.missing.length}`;
+    $("talks").appendChild(p);
+  }
+}
+
+function openTalk(t) {
+  talk = t; active = t.questions[0]?.id ?? null;
+  video.src = t.video;
+  $("slides").innerHTML = t.segments.map((s) =>
+    `<div class="slide" data-start="${s.start}"><img loading="lazy" src="${s.img}" alt="slide ${s.page}">p${s.page} · ${fmt(s.start)}</div>`).join("");
+  $("transcript").innerHTML = t.lines.map((l, i) =>
+    `<div class="tline" data-i="${i}" data-start="${l.start}"><time>${fmt(l.start)}</time><span>${esc(l.text)}</span></div>`).join("");
+  for (const el of document.querySelectorAll(".slide, .tline")) {
+    el.onclick = () => { video.currentTime = Math.max(0, +el.dataset.start - 0.3); video.play(); };
+  }
+  renderTalks(); renderQuestions();
+}
+
+function segmentAt(t) {
+  return talk.segments.find((s) => t >= s.start && t < s.end) || talk.segments[talk.segments.length - 1];
+}
+
+function renderQuestions() {
+  $("questions").innerHTML = "";
+  talk.questions.forEach((q, i) => {
+    const l = labels[q.id] || { spans: [], none: false };
+    const card = document.createElement("div");
+    card.className = "panel q" + (q.id === active ? " active" : "");
+    card.innerHTML = `
+      <div class="text">${i + 1}. ${esc(q.text)}</div>
+      <div class="ref">${esc(q.reference)}</div>
+      <div class="tag">${esc(q.tag)} · ${q.id}</div>
+      <div class="spans">${l.spans.map(([s, e], k) =>
+        `<span class="span"><a data-play="${s}">▶ ${fmt(s)}–${fmt(e)}</a><a class="x" data-del="${k}">✕</a></span>`).join("")}
+        ${l.none ? '<span class="none">can’t locate</span>' : ""}
+        ${pending[q.id] !== undefined ? `<span class="pending">start ${fmt(pending[q.id])}, press End</span>` : ""}</div>
+      <div class="row">
+        <button data-act="start">Start</button><button data-act="end">End</button>
+        <button data-act="slide">+ Current slide</button>
+        <button data-act="none">${l.none ? "Undo can’t locate" : "Can’t locate"}</button>
+      </div>`;
+    card.onclick = (ev) => {
+      active = q.id;
+      const a = ev.target.closest("[data-act],[data-play],[data-del]");
+      if (a?.dataset.play !== undefined) { video.currentTime = +a.dataset.play; video.play(); }
+      else if (a?.dataset.del !== undefined) { entry(q.id).spans.splice(+a.dataset.del, 1); commit(); return; }
+      else if (a?.dataset.act) { act(a.dataset.act); return; }
+      renderQuestions();
+    };
+    $("questions").appendChild(card);
+  });
+  renderProgress();
+}
+
+function act(what) {
+  if (!active) return;
+  const t = +video.currentTime.toFixed(1);
+  if (what === "start") pending[active] = t;
+  if (what === "end") {
+    const s = pending[active];
+    if (s === undefined || t <= s) return;
+    entry(active).spans.push([s, t]); delete pending[active];
+  }
+  if (what === "slide") { const g = segmentAt(t); entry(active).spans.push([g.start, g.end]); }
+  if (what === "none") entry(active).none = !entry(active).none;
+  commit();
+}
+
+function commit() {
+  for (const l of Object.values(labels)) l.spans.sort((a, b) => a[0] - b[0]);
+  save(); renderQuestions(); renderTalks();
+}
+
+video.addEventListener("timeupdate", () => {
+  if (!talk) return;
+  const t = video.currentTime;
+  document.querySelectorAll(".slide").forEach((el, i) => el.classList.toggle("now", talk.segments[i] === segmentAt(t)));
+  let cur = null;
+  document.querySelectorAll(".tline").forEach((el) => {
+    const on = t >= +el.dataset.start && t < (talk.lines[+el.dataset.i].end + 0.5);
+    el.classList.toggle("now", on); if (on) cur = el;
+  });
+  if (cur && !video.paused) cur.scrollIntoView({ block: "nearest" });
+});
+
+document.addEventListener("keydown", (ev) => {
+  if (!talk || ev.target.tagName === "INPUT" || ev.ctrlKey || ev.metaKey || ev.altKey) return;
+  const ids = talk.questions.map((q) => q.id);
+  const i = ids.indexOf(active);
+  if (ev.key === " ") {
+    // A focused player toggles itself; toggling here too would cancel it out.
+    if (ev.target === video) return;
+    ev.preventDefault();
+    // A focused button would also be pressed when the key comes back up.
+    if (ev.target.tagName === "BUTTON") ev.target.blur();
+    video.paused ? video.play() : video.pause();
+  }
+  else if (ev.key === "[") act("start");
+  else if (ev.key === "]") act("end");
+  else if (ev.key === "s") act("slide");
+  else if (ev.key === "j") { active = ids[Math.min(ids.length - 1, i + 1)]; renderQuestions(); }
+  else if (ev.key === "k") { active = ids[Math.max(0, i - 1)]; renderQuestions(); }
+});
+
+$("export").onclick = () => {
+  const out = {};
+  for (const [qid, l] of Object.entries(labels)) {
+    if (l.none) out[qid] = "none";
+    else if (l.spans.length) out[qid] = l.spans;
+  }
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(out, null, 1)], { type: "application/json" }));
+  a.download = "mcif-spans.json"; a.click();
+};
+
+$("import").onchange = async (ev) => {
+  const file = ev.target.files[0]; if (!file) return;
+  const data = JSON.parse(await file.text());
+  for (const [qid, v] of Object.entries(data)) labels[qid] = v === "none" ? { spans: [], none: true } : { spans: v, none: false };
+  commit();
+};
+
+if (DATA.talks.length) openTalk(DATA.talks[0]);
+else { $("questions").innerHTML = '<p class="empty">No ingested talks yet.</p>'; renderTalks(); }
+</script>
+</body>
+</html>

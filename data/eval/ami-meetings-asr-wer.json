@@ -1,0 +1,154 @@
+{
+ "what": "faster-whisper large-v3-turbo int8 (en) on AMI Mix-Headset audio vs AMI manual words, 18 QMSum test meetings; lowercased, punctuation stripped",
+ "median_wer": 0.2728,
+ "deleted_words": 16179,
+ "deleted_fillers_share": 0.3471,
+ "deleted_in_runs_of_20_plus_share": 0.0485,
+ "runs_of_20_plus": 19,
+ "meetings": [
+  {
+   "meeting": "ES2004a",
+   "words": 2645,
+   "wer": 0.2715,
+   "deletions": 0.1773,
+   "substitutions": 0.0548,
+   "insertions": 0.0393
+  },
+  {
+   "meeting": "ES2004c",
+   "words": 7023,
+   "wer": 0.184,
+   "deletions": 0.125,
+   "substitutions": 0.048,
+   "insertions": 0.011
+  },
+  {
+   "meeting": "ES2004d",
+   "words": 6174,
+   "wer": 0.2789,
+   "deletions": 0.1842,
+   "substitutions": 0.0729,
+   "insertions": 0.0219
+  },
+  {
+   "meeting": "ES2011a",
+   "words": 2467,
+   "wer": 0.261,
+   "deletions": 0.1686,
+   "substitutions": 0.0685,
+   "insertions": 0.0239
+  },
+  {
+   "meeting": "ES2011b",
+   "words": 4543,
+   "wer": 0.2203,
+   "deletions": 0.1558,
+   "substitutions": 0.0458,
+   "insertions": 0.0187
+  },
+  {
+   "meeting": "ES2011c",
+   "words": 4750,
+   "wer": 0.2175,
+   "deletions": 0.1539,
+   "substitutions": 0.0465,
+   "insertions": 0.0171
+  },
+  {
+   "meeting": "ES2011d",
+   "words": 4533,
+   "wer": 0.274,
+   "deletions": 0.1771,
+   "substitutions": 0.0783,
+   "insertions": 0.0185
+  },
+  {
+   "meeting": "IS1003a",
+   "words": 1494,
+   "wer": 0.3407,
+   "deletions": 0.1861,
+   "substitutions": 0.0977,
+   "insertions": 0.0569
+  },
+  {
+   "meeting": "IS1003b",
+   "words": 3786,
+   "wer": 0.2309,
+   "deletions": 0.1286,
+   "substitutions": 0.0679,
+   "insertions": 0.0343
+  },
+  {
+   "meeting": "IS1003c",
+   "words": 5036,
+   "wer": 0.2883,
+   "deletions": 0.2145,
+   "substitutions": 0.0592,
+   "insertions": 0.0147
+  },
+  {
+   "meeting": "IS1003d",
+   "words": 6034,
+   "wer": 0.3436,
+   "deletions": 0.262,
+   "substitutions": 0.0708,
+   "insertions": 0.0108
+  },
+  {
+   "meeting": "TS3004a",
+   "words": 3049,
+   "wer": 0.3083,
+   "deletions": 0.2368,
+   "substitutions": 0.0551,
+   "insertions": 0.0164
+  },
+  {
+   "meeting": "TS3004b",
+   "words": 6471,
+   "wer": 0.2976,
+   "deletions": 0.2333,
+   "substitutions": 0.0567,
+   "insertions": 0.0076
+  },
+  {
+   "meeting": "TS3004c",
+   "words": 6912,
+   "wer": 0.3015,
+   "deletions": 0.2098,
+   "substitutions": 0.0687,
+   "insertions": 0.023
+  },
+  {
+   "meeting": "TS3004d",
+   "words": 6285,
+   "wer": 0.3111,
+   "deletions": 0.2186,
+   "substitutions": 0.0706,
+   "insertions": 0.0218
+  },
+  {
+   "meeting": "TS3011a",
+   "words": 3279,
+   "wer": 0.2022,
+   "deletions": 0.147,
+   "substitutions": 0.0451,
+   "insertions": 0.0101
+  },
+  {
+   "meeting": "TS3011b",
+   "words": 5964,
+   "wer": 0.22,
+   "deletions": 0.1704,
+   "substitutions": 0.0418,
+   "insertions": 0.0079
+  },
+  {
+   "meeting": "TS3011c",
+   "words": 6026,
+   "wer": 0.2305,
+   "deletions": 0.1754,
+   "substitutions": 0.0433,
+   "insertions": 0.0118
+  }
+ ]
+}

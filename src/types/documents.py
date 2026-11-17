@@ -63,6 +63,26 @@ class Page(BaseModel):
     image_path: Path | None = None
 
 
+class MediaSegment(BaseModel):
+    """One time segment of a recording, which the rest of the stack treats as
+    page `page` of that document: its keyframe is the page image and its
+    transcript chunks carry this page number."""
+
+    model_config = ConfigDict(frozen=True)
+
+    page: int = Field(ge=1)
+    start_s: float = Field(ge=0)
+    end_s: float
+
+    @model_validator(mode="after")
+    def _check_ordering(self) -> MediaSegment:
+        if self.end_s <= self.start_s:
+            raise ValueError(
+                f"MediaSegment: end_s ({self.end_s}) must be > start_s ({self.start_s})"
+            )
+        return self
+
+
 class Chunk(BaseModel):
     """A retrievable text chunk produced by the ingestion pipeline.
 

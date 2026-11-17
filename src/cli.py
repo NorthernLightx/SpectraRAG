@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import shutil
 import subprocess
 import sys
 from collections.abc import Callable
@@ -36,6 +37,24 @@ def _serve(ns: argparse.Namespace) -> int:
     _docker_qdrant = "http://localhost:6333"
     if os.environ.get("RAG_QDRANT_URL", _docker_qdrant) == _docker_qdrant:
         os.environ["RAG_QDRANT_URL"] = "path:./qdrant_local"
+    # POST /ingest writes into the store it serves (ADR 0029). The snapshot is
+    # committed, so with uploads on, serve a gitignored copy made once and kept,
+    # which holds the uploads across restarts.
+    uploads = os.environ.get("RAG_ENABLE_UPLOAD", "").strip().lower() in {"1", "true", "yes", "on"}
+    if uploads and os.environ["RAG_QDRANT_URL"] == "path:./qdrant_local":
+        # The marker outlives an interrupted copy, which is then made again.
+        copying = os.path.join("qdrant_uploads", ".copying")
+        if os.path.exists(copying):
+            shutil.rmtree("qdrant_uploads")
+        if not os.path.isdir("qdrant_uploads") and os.path.isdir("qdrant_local"):
+            os.makedirs("qdrant_uploads")
+            open(copying, "w").close()
+            shutil.copytree("qdrant_local", "qdrant_uploads", dirs_exist_ok=True)
+            os.remove(copying)
+        os.environ["RAG_QDRANT_URL"] = "path:./qdrant_uploads"
+        print(
+            "Uploads are on: serving ./qdrant_uploads, a copy of the snapshot. Delete it to start over."
+        )
     if os.path.isdir("data/pages"):
         os.environ.setdefault("RAG_PAGES_DIR", "data/pages")
 

@@ -24,6 +24,8 @@ Usage:
 
 Idempotent: refuses to rebuild a non-empty collection unless ``--force``
 (which drops only the visual collection, leaving the text collection intact).
+``--pages-only --paper-id ID`` adds the named documents' pages to an existing
+collection instead; point ids derive from page ids, so a rerun overwrites them.
 """
 
 from __future__ import annotations
@@ -78,6 +80,7 @@ async def _main(
     dpi: int,
     force: bool,
     pages_only: bool = False,
+    paper_ids: list[str] | None = None,
 ) -> None:
     log = get_logger("scripts.build_visual_index")
     if pages_only:
@@ -89,6 +92,7 @@ async def _main(
             device=device,
             force=force,
             log=log,
+            paper_ids=paper_ids,
         )
         return
     pdf_paths = sorted(pdfs) if pdfs else sorted(pdf_dir.glob("*.pdf"))
@@ -180,6 +184,7 @@ async def _main_pages_only(
     device: str,
     force: bool,
     log: BoundLogger,
+    paper_ids: list[str] | None = None,
 ) -> None:
     """Index an already-rendered page tree: no PDFs, no text-corpus scoping.
 
@@ -188,12 +193,18 @@ async def _main_pages_only(
     text collection that the PDF path scopes against.
     """
     pages_by_paper = _scan_pages_dir(pages_dir)
+    if paper_ids:
+        missing = sorted(set(paper_ids) - set(pages_by_paper))
+        if missing:
+            raise SystemExit(f"No page images for {', '.join(missing)} under {pages_dir}")
+        pages_by_paper = {p: pages_by_paper[p] for p in paper_ids}
     if not pages_by_paper:
         raise SystemExit(f"No page images found under {pages_dir}")
     n_pages = sum(len(v) for v in pages_by_paper.values())
     print(f"Found {n_pages} pages across {len(pages_by_paper)} papers in {pages_dir}")
 
-    if not await _prepare_collection(qdrant_url, collection, force, log):
+    # Named documents join the collection as it is; only a whole-tree build is gated.
+    if not paper_ids and not await _prepare_collection(qdrant_url, collection, force, log):
         return
 
     await _embed_and_persist(
@@ -291,7 +302,15 @@ if __name__ == "__main__":
         action="store_true",
         help="Index the page images already under --pages-dir; skip PDFs and corpus scoping.",
     )
+    parser.add_argument(
+        "--paper-id",
+        dest="paper_ids",
+        action="append",
+        help="With --pages-only: add this document's pages to the collection (repeatable).",
+    )
     args = parser.parse_args()
+    if args.paper_ids and (not args.pages_only or args.force):
+        parser.error("--paper-id needs --pages-only and cannot be combined with --force")
 
     configure_logging(level="INFO", env="local", log_file=None)
     asyncio.run(
@@ -307,5 +326,6 @@ if __name__ == "__main__":
             dpi=args.dpi,
             force=args.force,
             pages_only=args.pages_only,
+            paper_ids=args.paper_ids,
         )
     )
