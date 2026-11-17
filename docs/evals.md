@@ -17,6 +17,41 @@ Categories `factual`, `multi_hop`, `figure`, `table`, `equation`,
 `out_of_corpus`. Those are the same labels the per-query router emits, so
 per-subset analysis cross-references cleanly.
 
+### Recordings
+
+A recording's pages are its time segments (ADR 0034), and its gold evidence is
+`relevant_spans` in seconds, mapped onto the current segments at scoring time.
+
+| Set | Queries | Recordings | Source |
+|---|---|---|---|
+| `mcif-v1` | 217 (192 with spans, 25 unanswerable) | 21 ACL talks | MCIF, answer locations recovered from its short-form clips |
+| `qmsum-ami-test-v2` | 123 | 19 AMI meetings | QMSum test split, turn spans converted to seconds with AMI word timings |
+| `qmsum-ami-test-v1` | 117 | 18 AMI meetings | the same before the aligner fix (ADR 0034 amendment), kept for its runs |
+
+`scripts/score_talk_retrieval.py` scores each question within its own
+recording: hit@k, recall@k and MRR, each beside a random ranking of that
+recording's pages at the same depth, split by evidence width and question
+origin. Meeting evidence spans several pages, so hits are its headline. The
+segment manifests the scores depend on are committed under
+`data/eval/recordings/`, so the receipts rescore without the media:
+
+```bash
+uv run python -m scripts.derive_arms --run data/eval/mcif-talks-legs.json.gz \
+    --golden data/golden/mcif-v1.yaml --out-dir data/eval/runs/mcif-arms --weight 1 --top-k 10
+uv run python -m scripts.score_talk_retrieval --run data/eval/runs/mcif-arms/*.json \
+    --golden data/golden/mcif-v1.yaml --pages-dir data/eval/recordings/mcif
+uv run python -m scripts.score_talk_retrieval --run data/eval/ami-meetings-text-v2.json.gz \
+    --golden data/golden/qmsum-ami-test-v2.yaml --pages-dir data/eval/recordings/ami
+```
+
+To rebuild from the media (`uv sync --extra media`; about 25 minutes of CPU
+per hour of audio): `scripts.fetch_mcif` and `scripts.fetch_ami --split test
+--audio` download the corpora, `scripts.locate_mcif_spans` and
+`scripts.build_qmsum_golden` rebuild the gold spans, `scripts.ingest_media
+--language en` indexes the recordings, and `scripts.build_visual_index --pages-only` indexes
+the talk keyframes. Attribution for the third-party text in both sets is in
+ADR 0034.
+
 ## Metrics
 
 Retrieval (macro over in-corpus queries; OOC excluded, since they're 0 by
@@ -179,6 +214,20 @@ places with a near-tie at rank 10), regenerate both baselines on the runner.
 Both baselines were regenerated on 2026-09-23 when the gate moved from an
 unreranked text leg to the served stack; text-arm recall@10 went from 0.790 to
 0.871 and no query lost a gold page.
+
+On 2026-09-28 three MCIF talks joined the snapshot (74 transcript chunks, 74
+slide pages; ADR 0034, one talk swapped the same day). Both arms reproduced their
+baselines to four decimals, before and after the swap,
+and passed the per-query check, and the re-recorded fixture matched the old one
+on all 39 queries: the golden queries filter by paper, so talk pages never
+enter their rankings.
+
+On 2026-09-30 the snapshot gained 91 text, figure and table chunks for
+2604.28182v1, whose pages 55 to 81 an earlier bake had lost to Docling's silent
+page drop (ingestion now converts in page windows). Both arms passed and the
+baselines stay. One query moved: `q20_exploration_hacking` now ranks a page-57
+definition of the term above its labelled page, so mrr fell from 0.5944 to
+0.5936 on the text arm and from 0.6280 to 0.6263 on the fused one.
 
 ### Full-stack baseline, manual or scheduled
 

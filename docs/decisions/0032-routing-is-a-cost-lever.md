@@ -2,6 +2,24 @@
 
 Status: accepted (supersedes [0013](./0013-routing-is-the-accuracy-lever.md))
 
+## Current state (as of 2026-10-07)
+
+The amendments below moved the conclusion more than once. Where it stands:
+
+- The served retriever fuses both legs on every query (`routing_mode=hybrid`,
+  the first 2026-09-17 amendment). The classifier remains as a mode, not the
+  default.
+- On MMDocIR, fusing beats the classifier router by 0.16 recall@10.
+  Visual-only beats fusing by a small, real margin (0.016 recall@10, wider in
+  the top five). The text leg stays because it lets a citation point at a
+  passage and because it works on a corpus with no page index.
+- The fusion weight is per corpus. The text-heavy demo keeps 1; a visual-heavy
+  corpus gets visual-only's pages at a weight of 2.
+- The reader limits the answers. On the served stack 0.58 of answers are
+  correct when scoped to the question's document, and where the right page
+  reached the reader, wrong answers outnumber refusals about four to one
+  (2026-09-28).
+
 ## Context
 
 ADR 0013 concluded that per-query routing is where retrieval accuracy comes
@@ -334,3 +352,16 @@ answers by between about 1.6 and 4 to one, depending on the depth and on where
 the partial grades fall. A stronger judge re-grading the 18 partial answers
 narrows the range. The ordering, refusal ahead of misreading, and the no-ship
 call on the prompt variants stand.
+
+## Amendment (2026-09-28): on the reader context, wrong answers lead
+
+The served stack answered the gen150 questions again through the reader context
+of ADR 0033, with `gemma4:31b` reading and `gpt-oss:120b` grading
+([`docs/results.md`](../results.md)). Scoped to each question's document, 0.58
+are correct, 0.11 refused and 0.31 wrong; across all 218 documents, 0.50, 0.14
+and 0.36. Where a gold page reached the reader, wrong answers (28 to 31 %)
+outnumber refusals (6 to 8 %) by about four to one, the reverse of the ordering
+above. Against July's unscoped arm (22.7 % correct, 48.0 % refused, 29.3 %
+wrong), the reader now answers far more often: correct rises to 0.50 and wrong
+to 0.36. The reader, the prompt and the judge changed together, so none of them
+is credited with the change.

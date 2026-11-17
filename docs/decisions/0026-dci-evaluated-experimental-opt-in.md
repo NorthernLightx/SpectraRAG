@@ -89,3 +89,13 @@ Implemented the agent (`src/dci/`) and a BRIGHT harness
   retriever) but the same posture: measure before shipping.
 - ADR 0013: routing is the accuracy lever; DCI does not move it.
 - Full experiment record: `docs/research/dci-bright-2026-06-02/` (local note).
+
+## Amendment (2026-09-29): the demo client no longer offers the agent
+
+The decision above put a toggle for the agent in the web UI. The demo client
+dropped it along with its other search settings, so every question now runs the
+served search. In the demo the agent ignored a question's document scope,
+searched text only while the demo is about pages and slides, never showed its
+steps, and was the only path that sent a visitor's OpenRouter key to this
+server. `POST /query/dci` is unchanged: it stays behind `RAG_ENABLE_DCI` and is
+listed in `/docs`.

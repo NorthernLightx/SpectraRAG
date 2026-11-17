@@ -1,0 +1,46 @@
+{
+ "what": "slide-cut segmentation (SegmentationParams defaults) on camera footage vs slide talks",
+ "params": {
+  "sample_fps": 1.0,
+  "thumb_width": 64,
+  "thumb_height": 36,
+  "cut_threshold": 4.0,
+  "stable_eps": 1.0,
+  "min_segment_s": 5.0,
+  "max_segment_s": 90.0
+ },
+ "recordings": [
+  {
+   "recording": "AMI ES2004a Corner camera",
+   "seconds": 1160,
+   "stable_share": 0.796,
+   "segments": 29,
+   "segments_per_min": 1.5,
+   "median_segment_s": 11.0
+  },
+  {
+   "recording": "AMI ES2004a Closeup1 camera",
+   "seconds": 1160,
+   "stable_share": 0.571,
+   "segments": 76,
+   "segments_per_min": 3.93,
+   "median_segment_s": 5.0
+  },
+  {
+   "recording": "MCIF talk DyXpuURBMP",
+   "seconds": 402,
+   "stable_share": 0.878,
+   "segments": 34,
+   "segments_per_min": 5.07,
+   "median_segment_s": 8.2
+  },
+  {
+   "recording": "MCIF talk ICWfTnUMio",
+   "seconds": 348,
+   "stable_share": 0.954,
+   "segments": 13,
+   "segments_per_min": 2.24,
+   "median_segment_s": 21.0
+  }
+ ]
+}

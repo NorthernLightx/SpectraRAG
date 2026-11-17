@@ -1,14 +1,17 @@
 # Finding the bottleneck
 
+*A snapshot from 2026-07-27. ADR 0032 and ADR 0033 have since changed the served
+stack and the reader; current numbers are in [`results.md`](../results.md).*
+
 How a measurement campaign overturned this project's own founding assumption,
-and what it killed along the way. Numbers live in [`results.md`](./results.md)
-and [`research/2026-05-29-agenda/RESULTS.md`](./research/2026-05-29-agenda/RESULTS.md);
+and what it killed along the way. Numbers live in [`results.md`](../results.md)
+and [`2026-05-29-agenda/RESULTS.md`](./2026-05-29-agenda/RESULTS.md);
 this is the reasoning.
 
 ## The assumption
 
-The headline result here is a retrieval win: routing figure and table queries
-to a visual retriever lifts page recall by 35 %. The natural next step was more
+The first headline result here was a retrieval win: routing figure and table
+queries to a visual retriever lifted page recall by 35 %. The natural next step was more
 of the same: better fusion, better reranking, better routing. For months the
 working theory was that the system was *retrieval-bound*: find the right page
 more often and the answers follow.
@@ -67,7 +70,7 @@ Three levers held up under measurement, and they set the roadmap:
   window, feeding the whole document beats top-5 retrieval by +0.12, and
   fails or loses beyond the window, where retrieval is required. That
   measured crossover became the route-by-fit design
-  ([ADR 0024](./decisions/0024-route-by-fit-page-selector.md)): whole
+  ([ADR 0024](../decisions/0024-route-by-fit-page-selector.md)): whole
   document when it fits, RAG when it doesn't.
 - **Rank the gold page higher.** The oracle's remaining edge over the real
   pipeline is entirely about the gold page being present, worth ~0.06.

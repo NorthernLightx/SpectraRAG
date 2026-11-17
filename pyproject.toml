@@ -7,7 +7,8 @@ name = "spectrarag"
 version = "0.1.0"
 description = "Multi-modal PDF RAG comparing text-pipeline vs visual retrieval."
 readme = "README.md"
-requires-python = ">=3.12"
+# Below 3.15: onnxruntime ships no Windows wheels there, so the lock cannot resolve.
+requires-python = ">=3.12,<3.15"
 license = { text = "MIT" }
 authors = [{ name = "NorthernLightx", email = "70861631+NorthernLightx@users.noreply.github.com" }]
 
@@ -42,7 +43,8 @@ dependencies = [
   # ONNX engine to dodge the transformers/torch.compile-needs-Triton
   # path that isn't available on Windows CPU.
   "onnxruntime>=1.20",
-  "sentence-transformers>=3.3",
+  # 5.6 fixes GHSA-jhr6-gm9c-rqjv: local model code ran despite trust_remote_code=False.
+  "sentence-transformers>=5.6",
   "sentry-sdk[fastapi]>=2.18",
   "torch>=2.6",
   "torchvision>=0.21",
@@ -67,25 +69,37 @@ dev = [
   "types-pyyaml",
 ]
 
+# Build-time transcription of recorded talks; the serve image does not install it.
+media = [
+  "faster-whisper>=1.2",
+]
+
 # PyTorch wheels: cu126 on Windows for local 8 GB GPU dev (cross-encoder rerank).
-# Linux (CI / cloud) keeps the default PyPI wheel (CPU-only) since the
-# regression-gate / unit suite doesn't need GPU. `explicit = true` keeps this index
-# off the resolver path for non-torch packages.
+# CPU wheels on Linux, where CI and the Cloud Run image have no GPU: PyPI's Linux
+# torch is the CUDA build, which pulls about 3 GB of nvidia-* wheels. `explicit =
+# true` keeps these indexes off the resolver path for non-torch packages.
 [[tool.uv.index]]
 name = "pytorch-cu126"
 url = "https://download.pytorch.org/whl/cu126"
 explicit = true
 
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
 [tool.uv.sources]
 torch = [
   { index = "pytorch-cu126", marker = "sys_platform == 'win32'" },
+  { index = "pytorch-cpu", marker = "sys_platform == 'linux'" },
 ]
 torchvision = [
   { index = "pytorch-cu126", marker = "sys_platform == 'win32'" },
+  { index = "pytorch-cpu", marker = "sys_platform == 'linux'" },
 ]
 
 # Tell uv to resolve for both Windows + Linux so the lockfile has separate entries
-# for each (cu126 wheels on win32; CPU wheels from PyPI on linux for CI).
+# for each (cu126 wheels on win32, CPU wheels on linux).
 [tool.uv]
 environments = [
   "sys_platform == 'win32'",
@@ -138,7 +152,7 @@ plugins = ["pydantic.mypy"]
 exclude = "scripts/(experiments|legacy)/"
 
 [[tool.mypy.overrides]]
-module = ["rank_bm25", "rank_bm25.*", "regex", "regex.*", "ollama", "ollama.*", "langfuse", "langfuse.*", "fitz", "fitz.*", "sentence_transformers", "sentence_transformers.*", "PIL", "PIL.*", "colpali_engine", "colpali_engine.*", "torch", "torch.*", "torchvision", "torchvision.*", "datasets", "datasets.*", "huggingface_hub", "huggingface_hub.*", "networkx", "networkx.*", "docling", "docling.*"]
+module = ["rank_bm25", "rank_bm25.*", "regex", "regex.*", "ollama", "ollama.*", "langfuse", "langfuse.*", "fitz", "fitz.*", "sentence_transformers", "sentence_transformers.*", "PIL", "PIL.*", "colpali_engine", "colpali_engine.*", "torch", "torch.*", "torchvision", "torchvision.*", "datasets", "datasets.*", "huggingface_hub", "huggingface_hub.*", "networkx", "networkx.*", "docling", "docling.*", "av", "av.*", "faster_whisper", "faster_whisper.*"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]

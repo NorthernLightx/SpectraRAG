@@ -163,6 +163,26 @@ def test_config_note_names_the_changed_retrieval_knobs() -> None:
     assert "older run" in (config_note({"config": {}}, run("b", "y")) or "")
 
 
+def test_config_note_flags_the_same_stack_on_another_collection() -> None:
+    """The fingerprint covers the stack, not the corpus it searched."""
+    from scripts.check_regression import config_note
+
+    def run(collection: str | None) -> dict[str, object]:
+        config: dict[str, object] = {"retrieval_fingerprint": "a", "retrieval_config": {}}
+        if collection is not None:
+            config["collection"] = collection
+        return {"config": config}
+
+    assert config_note(run("talks"), run("talks")) is None
+    note = config_note(run("talks"), run("talks_ocr"))
+    assert note is not None
+    assert "collection: 'talks' -> 'talks_ocr'" in note
+    assert config_note(run(None), run("talks")) is None
+    # derive_arms writes null for a run that recorded none.
+    older = {"config": {"retrieval_fingerprint": "a", "collection": None}}
+    assert config_note(older, run("talks")) is None
+
+
 def test_per_query_losses_catch_a_drop_the_mean_absorbs() -> None:
     from scripts.check_regression import per_query_losses
 

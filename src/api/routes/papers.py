@@ -3,7 +3,8 @@
 Derives the catalogue from the on-disk `pages_dir` layout
 (`<pages_dir>/<paper_id>/<paper_id>_p<N>.png`) so the result tracks
 whatever's actually been baked into the deployed image, with no separate
-manifest to drift out of sync.
+manifest to drift out of sync. An audio recording has pages but no page
+images; its segment manifest beside them gives the count.
 
 Titles are read from `data/paper_titles.json` (mapping paper_id → title)
 when present. Populate the file via `scripts/fetch_paper_titles.py`. When
@@ -16,14 +17,18 @@ import json
 import re
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
 from src.api.deps import get_settings
 from src.config.settings import Settings
+from src.ingestion.media import load_manifest, manifest_path
+from src.observability.logging import get_logger
 
 router = APIRouter()
+_log = get_logger(__name__)
 
 
 # arXiv preprint IDs look like `YYMM.NNNNN[vN]` (post-2007 format). Older
@@ -56,6 +61,11 @@ class PaperInfo(BaseModel):
     arxiv_url: str | None = None
     pdf_url: str | None = None
     page_count: int
+    # A recording's pages are its time segments (ADR 0034).
+    kind: Literal["pdf", "video", "audio"] = "pdf"
+    duration_s: float | None = None
+    # (start_s, end_s) of each page in page order, for a recording.
+    segments: list[tuple[float, float]] | None = None
     # Human-readable title from data/paper_titles.json when available.
     # The demo UI prefers this over paper_id for the corpus dropdown.
     title: str | None = None
@@ -73,6 +83,16 @@ def list_papers(settings: Settings = Depends(get_settings)) -> list[PaperInfo]:
             continue
         paper_id = subdir.name
         page_count = sum(1 for _ in subdir.glob(f"{paper_id}_p*.png"))
+        manifest = None
+        if manifest_path(pages_dir, paper_id).exists():
+            # One unreadable manifest must not take the whole catalogue down.
+            try:
+                manifest = load_manifest(pages_dir, paper_id)
+            except (OSError, ValueError) as exc:
+                _log.warning("papers.manifest_unreadable", paper_id=paper_id, error=str(exc))
+                continue
+        if page_count == 0 and manifest is not None:
+            page_count = len(manifest.segments)
         if page_count == 0:
             continue
         is_arxiv = bool(_ARXIV_RE.match(paper_id))
@@ -83,6 +103,13 @@ def list_papers(settings: Settings = Depends(get_settings)) -> list[PaperInfo]:
                 arxiv_url=f"https://arxiv.org/abs/{paper_id}" if is_arxiv else None,
                 pdf_url=f"https://arxiv.org/pdf/{paper_id}.pdf" if is_arxiv else None,
                 page_count=page_count,
+                kind=manifest.kind if manifest is not None else "pdf",
+                duration_s=manifest.duration_s if manifest is not None else None,
+                segments=[
+                    (s.start_s, s.end_s) for s in sorted(manifest.segments, key=lambda s: s.page)
+                ]
+                if manifest is not None
+                else None,
                 title=titles.get(paper_id),
             )
         )

@@ -4,7 +4,7 @@
  "visual_model": "vidore/colqwen2-v1.0",
  "dtype": "bf16",
  "device": "cpu",
- "n_pages": 575,
+ "n_pages": 649,
  "depth": 50,
  "paper_id_filter": true,
  "queries": [
