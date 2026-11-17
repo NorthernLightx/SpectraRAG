@@ -16,8 +16,7 @@ concurrency:
 jobs:
   lint-typecheck-test:
     runs-on: ubuntu-latest
-    # The pytest step alone has run from 11 to over 19 minutes on the same code.
-    timeout-minutes: 30
+    timeout-minutes: 10
 
     steps:
       - name: Checkout
