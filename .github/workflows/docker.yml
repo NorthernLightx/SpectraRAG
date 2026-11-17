@@ -2,7 +2,8 @@
 # - validate: builds the Dockerfile on PRs only. Fast, no GHCR push. On push to
 #   main, publish builds the same image, so a separate validate build would just
 #   duplicate it (and double the disk pressure on the runner).
-# - publish: runs only on main + version-tag pushes. The bake artefacts
+# - publish: runs on main + version-tag pushes, weekly and on manual
+#   dispatch. The bake artefacts
 #   (`data/pages/`, `qdrant_local/`) are committed to git, so this job is
 #   just `docker build` + `docker push`. ~10-15 min cold cache, ~3 min warm.
 #
@@ -27,6 +28,11 @@ on:
       - "pyproject.toml"
       - "uv.lock"
       - ".github/workflows/docker.yml"
+  schedule:
+    # Mondays, ahead of the image scan in security.yml: without a push, only
+    # a rebuild brings patched Debian packages into the :main image.
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -73,7 +79,7 @@ jobs:
           cache-to: type=gha,ignore-error=true
 
   publish:
-    if: github.event_name == 'push'
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
@@ -120,5 +126,8 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          # A cached apt layer would keep last month's packages, so the
+          # weekly run builds every layer again.
+          no-cache: ${{ github.event_name == 'schedule' }}
           cache-from: type=gha
           cache-to: type=gha,ignore-error=true
