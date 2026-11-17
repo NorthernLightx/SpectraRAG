@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import threading
 import time
 from typing import Any
 
@@ -150,6 +151,16 @@ def test_script_intersect_and_sandbox() -> None:
     assert "ImportError" in tools.run_script("import os\nresult = 1")  # imports blocked
     assert "did not assign" in tools.run_script("x = 1")  # must set result
     assert "timed out" in tools.run_script("while True:\n    pass", timeout=0.5)
+
+
+def test_a_timed_out_script_stops_running() -> None:
+    """A script left running holds the interpreter for the rest of the process."""
+    tools = CorpusTools(_DOCS)
+    before = set(threading.enumerate())
+
+    assert "timed out" in tools.run_script("while True:\n    pass", timeout=0.2)
+
+    assert not [t for t in threading.enumerate() if t not in before and t.is_alive()]
 
 
 def test_agent_uses_filter_then_ranks() -> None:
