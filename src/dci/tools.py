@@ -13,6 +13,7 @@ RAM is not a semantic index; it's the corpus itself, scanned linearly per query.
 from __future__ import annotations
 
 import builtins
+import ctypes
 import re
 import threading
 import time
@@ -39,6 +40,28 @@ _SAFE_BUILTIN_NAMES = (
     "any all zip map filter abs round reversed print repr isinstance bytes frozenset"
 )
 _SAFE_BUILTINS = {name: getattr(builtins, name) for name in _SAFE_BUILTIN_NAMES.split()}
+_STOP_ATTEMPTS = 20
+_STOP_WAIT_SECONDS = 0.05
+
+
+def _stop_thread(thread: threading.Thread) -> None:
+    """Raise SystemExit inside a running thread until it exits.
+
+    A thread left spinning takes its share of the interpreter from every other
+    thread for the rest of the process. The exception arrives between bytecodes,
+    so it ends a Python loop at once and a long C call (a backtracking `re`
+    match, `sum(range(10**12))`) only when that call returns. A loop whose bare
+    `except:` catches it gets it again, and can outlast the attempts.
+    """
+    for _ in range(_STOP_ATTEMPTS):
+        if thread.ident is None or not thread.is_alive():
+            return
+        reached = ctypes.pythonapi.PyThreadState_SetAsyncExc(
+            ctypes.c_ulong(thread.ident), ctypes.py_object(SystemExit)
+        )
+        if not reached:
+            return
+        thread.join(_STOP_WAIT_SECONDS)
 
 
 @dataclass(frozen=True)
@@ -188,7 +211,7 @@ class CorpusTools:
         The script gets helper functions (search(q,k), grep(p,k), count(t),
         text(doc_id), all_ids) plus `re`, and should assign `result`. No
         imports / filesystem / network (see `_SAFE_BUILTINS`). Runs in a daemon
-        thread with a wall-clock timeout to bound runaway loops."""
+        thread that is stopped at a wall-clock timeout (see `_stop_thread`)."""
         api: dict[str, Any] = {
             "search": lambda q, k=20: [h.doc_id for h in self.search(q, top_k=k)],
             "grep": lambda p, k=50: [h.doc_id for h in self.grep(p, top_k=k)],
@@ -205,11 +228,14 @@ class CorpusTools:
                 exec(compile(code, "<dci-script>", "exec"), ns)  # sandboxed: _SAFE_BUILTINS only
             except Exception as exc:  # report to the agent, don't crash the loop
                 err["e"] = f"{type(exc).__name__}: {exc}"
+            except SystemExit:  # from `_stop_thread`; the caller reports the timeout
+                pass
 
         th = threading.Thread(target=target, daemon=True)
         th.start()
         th.join(timeout)
         if th.is_alive():
+            _stop_thread(th)
             return f"(script timed out after {timeout}s; simplify or bound your loops)"
         if "e" in err:
             return f"(script error: {err['e']})"
