@@ -101,6 +101,9 @@ data/figures/
 data/pages_dpi*/
 data/mmlongbench/
 data/mmdocir/
+data/mcif/
+data/ami/
+qdrant_uploads/
 data/dci/
 data/ingestion_study/
 data/tiny_figures_inspect/
@@ -109,6 +112,11 @@ data/unlabeled_inspect/
 data/pages/*
 !data/pages/.gitkeep
 !data/pages/2604.*
+# MCIF talks in the demo (ADR 0034); transcript caches stay local
+!data/pages/wJAPXMIoIG
+!data/pages/csJIsDTYMW
+!data/pages/DyXpuURBMP
+data/pages/*/*_words.json
 # only the papers.txt manifest is committed
 data/curated_demo/*
 !data/curated_demo/papers.txt

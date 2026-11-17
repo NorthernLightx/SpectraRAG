@@ -110,3 +110,15 @@ async def test_path_mode_persists_across_clients(tmp_path: Path) -> None:
     scrolled = await reopened.scroll_chunks()
     assert [c.chunk_id for c in scrolled] == ["paper::p1::c0"]
     await reopened._client.close()
+
+
+async def test_delete_paper_removes_only_that_papers_chunks(store: QdrantVectorStore) -> None:
+    await store.ensure_collection()
+    chunks = [
+        _chunk("a::p1::c0", "x", "a"),
+        _chunk("a::p2::c1", "y", "a"),
+        _chunk("b::p1::c0", "z", "b"),
+    ]
+    await store.upsert_chunks(chunks, [[1.0, 0.0, 0.0, 0.0]] * 3)
+    await store.delete_paper("a")
+    assert [c.chunk_id for c in await store.scroll_chunks()] == ["b::p1::c0"]

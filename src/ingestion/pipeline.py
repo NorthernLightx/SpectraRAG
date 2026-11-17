@@ -8,10 +8,13 @@ the text chunks in the same embedding + BM25 + Qdrant pipeline.
 from __future__ import annotations
 
 import asyncio
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 from src.embeddings.protocol import Embedder
+from src.ingestion import media
 from src.ingestion.captioner import (
     _Captioner,
     caption_figures,
@@ -30,6 +33,13 @@ from src.rag.vectorstore import QdrantVectorStore
 from src.types import Chunk, Paper
 
 _log = get_logger(__name__)
+
+
+def document_id(filename: str, *, fallback: str) -> str:
+    """A document id from a file name: the stem, with characters outside
+    `[A-Za-z0-9._-]` replaced. Leading dots go, since pages and figures are
+    written under `<dir>/<id>/` and `.` or `..` would name the dir or its parent."""
+    return re.sub(r"[^A-Za-z0-9._-]", "_", Path(filename).stem).lstrip(".") or fallback
 
 
 @dataclass(frozen=True)
@@ -194,13 +204,97 @@ async def ingest_paper(
             )
         ctx["contextualized"] = contextualized
 
-        embeddings = await embedder.embed_texts([c.indexed_text for c in chunks])
-        await vectorstore.upsert_chunks(chunks, embeddings)
-        bm25.add(chunks)
-        ctx["embedding_dim"] = len(embeddings[0]) if embeddings else 0
+        ctx["embedding_dim"] = await _index_chunks(chunks, embedder, vectorstore, bm25)
         return IngestedPaper(
             paper_id=paper.paper_id,
             chunk_count=len(chunks),
             chunks=chunks,
             failed_pages=failed_pages,
         )
+
+
+async def _index_chunks(
+    chunks: list[Chunk], embedder: Embedder, vectorstore: QdrantVectorStore, bm25: Bm25Index
+) -> int:
+    """Embed, upsert and BM25-index `chunks`; returns the embedding dim."""
+    embeddings = await embedder.embed_texts([c.indexed_text for c in chunks])
+    await vectorstore.upsert_chunks(chunks, embeddings)
+    bm25.add(chunks)
+    return len(embeddings[0]) if embeddings else 0
+
+
+async def ingest_media(
+    *,
+    doc_id: str,
+    media_path: Path,
+    embedder: Embedder,
+    vectorstore: QdrantVectorStore,
+    bm25: Bm25Index,
+    transcriber: media.Transcriber,
+    pages_dir: Path = Path("data/pages"),
+    params: media.SegmentationParams | None = None,
+    audio_params: media.AudioSegmentationParams | None = None,
+    target_chars: int = 1200,
+) -> IngestedPaper:
+    """A recording as a document whose pages are its time segments.
+
+    A video's pages are its slide segments, each with a keyframe written as the
+    page image. An audio recording's pages are time windows over its
+    transcript, with no image. Either way the segment manifest goes beside the
+    pages and the transcript chunks are indexed like any text chunk. Decoding
+    and transcription take minutes of CPU, so both run off the event loop.
+    """
+    params = params or media.SegmentationParams()
+    audio_params = audio_params or media.AudioSegmentationParams()
+    with timed_event(_log, "ingest_media.done", doc_id=doc_id, media_path=str(media_path)) as ctx:
+        probe = await asyncio.to_thread(media.probe_media, media_path)
+        words: list[media.Word] = []
+        if probe.has_audio:
+            source = await asyncio.to_thread(media.media_fingerprint, media_path)
+            cached = media.load_words(pages_dir, doc_id, transcriber.name, source=source)
+            if cached is None:
+                cached = await asyncio.to_thread(transcriber.transcribe, media_path)
+                media.save_words(pages_dir, doc_id, transcriber.name, cached, source=source)
+            words = cached
+        segmentation: dict[str, Any]
+        if probe.has_video:
+            segments = await asyncio.to_thread(
+                media.segment_video, media_path, doc_id, pages_dir, params
+            )
+            segmentation = params.as_dict()
+        else:
+            segments = media.segment_words(words, duration_s=probe.duration_s, params=audio_params)
+            segmentation = audio_params.as_dict()
+        segments = media.cover_words(segments, words)
+        chunks = media.transcript_chunks(doc_id, segments, words, target_chars=target_chars)
+        if not chunks and not probe.has_video:
+            # An audio document is only its transcript; checked before the old
+            # chunks go, so a failed re-ingest keeps the previous index.
+            raise ValueError(f"no speech found in {media_path.name}")
+        ctx["kind"] = "video" if probe.has_video else "audio"
+        ctx["segments"] = len(segments)
+        per_minute = len(segments) / max(segments[-1].end_s / 60, 1e-9)
+        ctx["segments_per_min"] = round(per_minute, 2)
+        ctx["words"] = len(words)
+        ctx["chunks"] = len(chunks)
+        ctx["empty_pages"] = len(segments) - len({c.page_numbers[0] for c in chunks})
+        # The manifest marks a recording as done, so it goes last: a failure
+        # before it leaves no marker and the next run retries. The old chunks
+        # go first, since a new segmentation changes their ids.
+        media.manifest_path(pages_dir, doc_id).unlink(missing_ok=True)
+        await vectorstore.delete_paper(doc_id)
+        if chunks:
+            ctx["embedding_dim"] = await _index_chunks(chunks, embedder, vectorstore, bm25)
+        media.write_manifest(
+            pages_dir,
+            media.MediaManifest(
+                doc_id=doc_id,
+                source=media_path.name,
+                duration_s=segments[-1].end_s,
+                transcriber=transcriber.name,
+                segmentation=segmentation,
+                segments=segments,
+                kind="video" if probe.has_video else "audio",
+            ),
+        )
+        return IngestedPaper(paper_id=doc_id, chunk_count=len(chunks), chunks=chunks)
