@@ -185,3 +185,41 @@ reproducible.
   bbox-on-chunk invariant from figures/tables to text.
 - ADR 0019: `answer_correctness` is the scoreboard this ADR's
   measurement uses.
+
+## Amendment (2026-11-23): a chunk across pages carries a box per page
+
+"Cross-page chunks losing bbox" was left open above. In the served corpus that
+is 390 of 1,932 text chunks, one in five, and the demo's page viewer opened
+each of them with nothing marked.
+
+`metadata['bbox']` keeps its meaning: one rectangle on the chunk's only page.
+A chunk on two or more pages now carries `metadata['page_bboxes']`, a map from
+page number to the union box of the chunk's blocks on that page. The key is a
+string because the payload is JSON. A page whose blocks have no box is left
+out. `Citation.bbox` is unchanged: a client reads `page_bboxes` off the result
+metadata that `/query` already returns.
+
+The chunker writes the field for new ingests (`region_metadata` in
+`src/ingestion/docling_chunker.py`). The committed `rag_corpus` snapshot was
+patched in place by `scripts/backfill_page_bboxes.py` and not re-ingested, so
+its chunk ids, text and vectors are still the ones the recorded runs and the CI
+fixture refer to. The script re-parses each PDF, finds a stored chunk's text
+among the parsed blocks and writes the boxes of the blocks it covers.
+
+The re-parse ran on Docling 2.150.1, newer than the parse behind the snapshot,
+and its text is not identical: inline math is spaced differently ("0 . 30" is
+now "0.30") and quote characters changed. The script therefore compares
+letters and digits alone, and locates a chunk only when that sequence is one
+run inside a section and covers exactly the chunk's stored pages.
+
+Single-page chunks already carry a box, which makes them the check on the
+fresh parse. Of the 1,468 that do, the script located 1,340. 1,332 of the
+fresh boxes overlap the stored one with an IoU of at least 0.9, and 1,337 with
+at least 0.5. Of the 390 multi-page chunks, 325 were located and each has a
+box on every page it spans. The other 65 are in the fresh parse with their
+blocks split or ordered differently and stay without a box. Matching those
+paragraph by paragraph located more of them but, on the single-page check, put
+some boxes in the wrong place, so it was dropped.
+
+Retrieval does not read the field. `eval_retrieval_ci` returns the same
+per-query results before and after the patch on both arms.

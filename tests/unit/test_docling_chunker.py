@@ -17,6 +17,7 @@ from src.ingestion.docling_chunker import (
     _accept_block,
     _bbox_inside_any,
     _union_bbox,
+    chunk_with_docling,
 )
 from src.types import Bbox
 
@@ -119,7 +120,7 @@ def test_accept_block_drops_text_inside_figure_bbox(heights: dict[int, float]) -
     # Figure on page 1 covers a region; an axis-tick text inside it should
     # be excluded from chunkable body.
     fig_bbox = _bbox(50, 50, 250, 250)
-    # axis-tick block at TOP-LEFT (60,60)-(70,70) — fully inside fig.
+    # axis-tick block at TOP-LEFT (60,60)-(70,70), fully inside fig.
     # BOTTOMLEFT for (60,60)-(70,70) given page_height=792: t=732, b=722.
     item = _item("text", "64", bbox_raw=_raw_bbox_bottomleft(60, 732, 70, 722))
     assert _accept_block(item, heights=heights, fig_tab_by_page={1: [fig_bbox]}) is None
@@ -133,3 +134,57 @@ def test_accept_block_drops_too_short_text(heights: dict[int, float]) -> None:
 def test_accept_block_drops_no_prov(heights: dict[int, float]) -> None:
     item = SimpleNamespace(label="text", text="real text", prov=[])
     assert _accept_block(item, heights=heights, fig_tab_by_page={}) is None
+
+
+# ----- chunk_with_docling: boxes per page ---------------------------------
+
+
+def _doc(*items: Any, pages: int = 2) -> Any:
+    """Duck-typed DoclingDocument: letter-size pages, no pictures or tables."""
+    size = SimpleNamespace(height=792.0)
+    return SimpleNamespace(
+        texts=list(items),
+        pages={n: SimpleNamespace(size=size) for n in range(1, pages + 1)},
+        pictures=[],
+        tables=[],
+    )
+
+
+def test_chunk_on_one_page_keeps_a_single_bbox() -> None:
+    doc = _doc(
+        _item("section_header", "Intro"),
+        _item("text", "First paragraph.", page=1, bbox_raw=_raw_bbox_bottomleft(50, 700, 250, 650)),
+        _item("text", "Second one.", page=1, bbox_raw=_raw_bbox_bottomleft(60, 640, 300, 600)),
+    )
+    (chunk,) = chunk_with_docling("paper", doc)
+    assert chunk.page_numbers == [1]
+    assert chunk.metadata["bbox"] == pytest.approx([50.0, 92.0, 300.0, 192.0])
+    assert "page_bboxes" not in chunk.metadata
+
+
+def test_chunk_across_two_pages_carries_a_box_per_page() -> None:
+    doc = _doc(
+        _item("section_header", "Framework"),
+        _item("text", "Ends page one.", page=1, bbox_raw=_raw_bbox_bottomleft(50, 100, 250, 60)),
+        _item("text", "Starts page two.", page=2, bbox_raw=_raw_bbox_bottomleft(50, 740, 250, 700)),
+        _item("text", "More on two.", page=2, bbox_raw=_raw_bbox_bottomleft(70, 690, 300, 650)),
+    )
+    (chunk,) = chunk_with_docling("paper", doc)
+    assert chunk.page_numbers == [1, 2]
+    # ADR 0009: `bbox` stays one page-local rectangle, so it is absent here.
+    assert "bbox" not in chunk.metadata
+    boxes = chunk.metadata["page_bboxes"]
+    assert set(boxes) == {"1", "2"}
+    assert boxes["1"] == pytest.approx([50.0, 692.0, 250.0, 732.0])
+    assert boxes["2"] == pytest.approx([50.0, 52.0, 300.0, 142.0])
+
+
+def test_page_without_a_boxed_block_is_left_out() -> None:
+    doc = _doc(
+        _item("section_header", "Framework"),
+        _item("text", "Ends page one.", page=1, bbox_raw=_raw_bbox_bottomleft(50, 100, 250, 60)),
+        _item("text", "Starts page two.", page=2, bbox_raw=None),
+    )
+    (chunk,) = chunk_with_docling("paper", doc)
+    assert chunk.page_numbers == [1, 2]
+    assert set(chunk.metadata["page_bboxes"]) == {"1"}

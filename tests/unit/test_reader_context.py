@@ -221,6 +221,24 @@ def test_context_route_returns_the_builders_messages(tmp_path: Path, _corpus: No
     assert "a::p5::page" in body["context_ids"]
 
 
+def test_context_route_takes_a_result_with_a_box_per_page(_corpus: None) -> None:
+    # The client posts /query results back as it received them (ADR 0021 amendment).
+    result = RetrievalResult(
+        chunk_id="a::p1::c7",
+        paper_id="a",
+        score=0.5,
+        text="runs over a page break",
+        page_numbers=[1, 2],
+        source="pipeline",
+        metadata={
+            "section": "2 Framework",
+            "page_bboxes": {"1": [50.0, 700.0, 300.0, 740.0], "2": [50.0, 80.0, 300.0, 120.0]},
+        },
+    )
+    body = _post(_client(None), results=[result.model_dump()])
+    assert "a::p1::c7" in body["context_ids"]
+
+
 def test_context_route_skips_images_without_rendered_pages(_corpus: None) -> None:
     body = _post(_client(None))
     parts = body["messages"][-1]["content"]

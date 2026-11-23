@@ -19,7 +19,10 @@ when `use_docling=True`. Three structural wins over the prior path
 
 Per-chunk `metadata['bbox']` carries the union of contributing-block
 bboxes for single-page chunks, enabling region-precise citations on
-text answers (ADR 0009 extends from figures/tables to text).
+text answers (ADR 0009 extends from figures/tables to text). A chunk
+that runs across pages carries `metadata['page_bboxes']` instead: one
+such union per page, keyed by the page number as a string (ADR 0021
+amendment).
 """
 
 from __future__ import annotations
@@ -150,21 +153,11 @@ def _accept_block(
     return _Block(text=text, label=label, page=page_no, bbox=bbox)
 
 
-def chunk_with_docling(
-    paper_id: str,
-    doc: Any,
-    *,
-    target_chars: int = 1200,
-    overlap_chars: int = 200,
-) -> list[Chunk]:
-    """Walk `doc.texts` in reading order, accumulate body blocks under their
-    `section_header`, window each section into Chunks with proper page +
-    bbox metadata.
-    """
+def body_sections(doc: Any) -> list[tuple[str | None, list[_Block]]]:
+    """Body blocks in reading order, grouped under their `section_header`."""
     heights = page_heights(doc)
     fig_tab = _figure_table_bboxes_by_page(doc)
 
-    # Single pass: accumulate body blocks under the current section_header.
     sections: list[tuple[str | None, list[_Block]]] = []
     current_title: str | None = None
     current_body: list[_Block] = []
@@ -182,6 +175,69 @@ def chunk_with_docling(
             current_body.append(block)
     if current_body:
         sections.append((current_title, current_body))
+    return sections
+
+
+def section_text(body: list[_Block]) -> str:
+    """A section's blocks joined by a newline, the string its windows are cut from."""
+    return "\n".join(b.text for b in body)
+
+
+def contributing_blocks(body: list[_Block], start: int, end: int) -> list[_Block]:
+    """The blocks that overlap the `[start, end)` span of `section_text(body)`."""
+    out: list[_Block] = []
+    cursor = 0
+    for b in body:
+        block_end = cursor + len(b.text)
+        if cursor < end and block_end > start:
+            out.append(b)
+        cursor = block_end + 1  # +1 for the joining newline
+    return out
+
+
+def page_boxes(blocks: list[_Block]) -> dict[int, Bbox]:
+    """One union box per page over the blocks that carry a bbox."""
+    by_page: dict[int, list[Bbox]] = {}
+    for b in blocks:
+        if b.bbox is not None:
+            by_page.setdefault(b.page, []).append(b.bbox)
+    out: dict[int, Bbox] = {}
+    for page, boxes in by_page.items():
+        union = _union_bbox(boxes)
+        if union is not None:
+            out[page] = union
+    return out
+
+
+def region_metadata(blocks: list[_Block]) -> dict[str, Any]:
+    """Where a chunk built from `blocks` sits on its pages.
+
+    A `Bbox` is page-local (ADR 0009), so a chunk on one page gets `bbox`
+    and a chunk across pages gets `page_bboxes`, a box per page keyed by
+    the page number as a string. A page whose blocks carry no bbox is
+    left out.
+    """
+    boxes = page_boxes(blocks)
+    pages = {b.page for b in blocks}
+    if len(pages) == 1:
+        (page,) = pages
+        return {"bbox": boxes[page].as_list()} if page in boxes else {}
+    per_page = {str(page): boxes[page].as_list() for page in sorted(boxes)}
+    return {"page_bboxes": per_page} if per_page else {}
+
+
+def chunk_with_docling(
+    paper_id: str,
+    doc: Any,
+    *,
+    target_chars: int = 1200,
+    overlap_chars: int = 200,
+) -> list[Chunk]:
+    """Walk `doc.texts` in reading order, accumulate body blocks under their
+    `section_header`, window each section into Chunks with proper page +
+    bbox metadata.
+    """
+    sections = body_sections(doc)
 
     chunks: list[Chunk] = []
     counter = 0
@@ -193,38 +249,19 @@ def chunk_with_docling(
         total_blocks=sum(len(body) for _, body in sections),
     ) as ctx:
         for title, body in sections:
-            # One joined string per section, then window it. Block boundary
-            # is "\n" so the offsets line up for the bbox-contribution scan.
-            body_text = "\n".join(b.text for b in body)
+            # One joined string per section, then window it.
+            body_text = section_text(body)
             if not body_text.strip():
                 continue
             for win_start, win_end in _window_spans(body_text, target_chars, overlap_chars):
                 window_text = body_text[win_start:win_end].strip()
                 if not window_text:
                     continue
-                # Walk blocks in order, tracking char offsets, to find which
-                # blocks contribute to this window. Same "\n" separator.
-                cursor = 0
-                pages: set[int] = set()
-                contrib_bboxes: list[Bbox] = []
-                for b in body:
-                    block_end = cursor + len(b.text)
-                    if cursor < win_end and block_end > win_start:
-                        pages.add(b.page)
-                        if b.bbox is not None and b.page == b.page:
-                            contrib_bboxes.append(b.bbox)
-                    cursor = block_end + 1  # +1 for the join '\n'
-                if not pages:
+                contrib = contributing_blocks(body, win_start, win_end)
+                if not contrib:
                     continue
-                page_numbers = sorted(pages)
-                metadata: dict[str, Any] = {}
-                # bbox: emit the union of contributing-block bboxes only when
-                # the chunk is single-page; cross-page chunks have no single
-                # rectangle (ADR 0009's Bbox is page-local).
-                if len(page_numbers) == 1:
-                    union = _union_bbox(contrib_bboxes)
-                    if union is not None:
-                        metadata["bbox"] = union.as_list()
+                page_numbers = sorted({b.page for b in contrib})
+                metadata = region_metadata(contrib)
                 chunks.append(
                     Chunk(
                         chunk_id=f"{paper_id}::p{page_numbers[0]}::c{counter}",

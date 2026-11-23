@@ -180,7 +180,15 @@ async def test_retrieve_carries_chunk_metadata_into_result_metadata() -> None:
         text="Plain text.",
         section="1 Introduction",
     )
-    chunks = [fig_chunk, text_chunk]
+    per_page = {"4": [50.0, 700.0, 300.0, 740.0], "5": [50.0, 80.0, 300.0, 120.0]}
+    cross_page_chunk = Chunk(
+        chunk_id="p1::p4::c1",
+        paper_id="p1",
+        page_numbers=[4, 5],
+        text="Text that runs over a page break.",
+        metadata={"page_bboxes": per_page},
+    )
+    chunks = [fig_chunk, text_chunk, cross_page_chunk]
     embeddings = await embedder.embed_texts([c.text for c in chunks])
     await vectorstore.upsert_chunks(chunks, embeddings)
     bm25.add(chunks)
@@ -191,8 +199,11 @@ async def test_retrieve_carries_chunk_metadata_into_result_metadata() -> None:
         bm25=bm25,
         chunks_by_id={c.chunk_id: c for c in chunks},
     )
-    results = await retriever.retrieve(Query(text="figure", top_k=2))
+    results = await retriever.retrieve(Query(text="figure", top_k=3))
     by_id = {r.chunk_id: r for r in results}
+
+    # ADR 0021 amendment: a chunk across pages carries a box per page.
+    assert by_id["p1::p4::c1"].metadata.get("page_bboxes") == per_page
 
     fig_result = by_id["p1::p3::fig1"]
     assert fig_result.metadata.get("kind") == "figure"
