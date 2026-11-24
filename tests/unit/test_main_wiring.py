@@ -80,6 +80,11 @@ def _settings(
     return Settings(**kwargs)  # type: ignore[arg-type]
 
 
+# The tests that rerank for real load the reranker the cpu profile serves; the
+# Settings default is a 2 GB model.
+_SERVED_RERANKER = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+
+
 def _vec(dim: int) -> list[float]:
     return [0.1] * dim
 
@@ -180,7 +185,9 @@ async def test_wired_retriever_can_serve_a_query() -> None:
     ]
     await store.upsert_chunks(chunks, [_vec(embedder.dim) for _ in chunks])
 
-    wired = await _wire_retriever_from_settings(_settings(), embedder=embedder, vectorstore=store)
+    wired = await _wire_retriever_from_settings(
+        _settings(reranker_model=_SERVED_RERANKER), embedder=embedder, vectorstore=store
+    )
     assert wired is True
 
     retriever = _RetrieverState.instance
@@ -440,7 +447,7 @@ async def test_multimodal_routing_actually_dispatches_figure_to_hybrid(
     ]
     visual = FakeRetriever(results=visual_results)
     await _wire_retriever_from_settings(
-        _settings(enable_multimodal=True),
+        _settings(enable_multimodal=True, reranker_model=_SERVED_RERANKER),
         embedder=embedder,
         vectorstore=store,
         visual_retriever=visual,
